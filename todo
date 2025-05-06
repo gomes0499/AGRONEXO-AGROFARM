@@ -1,0 +1,147 @@
+Desenvolva o módulo completo de gestão de propriedades rurais:
+
+   OBJETIVO DO MÓDULO:
+   Permitir o cadastro e gestão completa de propriedades rurais, incluindo informações de terras, benfeitorias e arrendamentos, formando a base para análises produtivas e financeiras.
+   
+   FUNCIONALIDADES DETALHADAS:
+   1. Gerenciamento de Propriedades:
+      - Cadastro completo de imóveis rurais
+      - Registro de matrículas e documentação
+      - Informações de área total e cultivável
+      - Valoração de imóveis
+      - Registro de ônus sobre propriedades
+      - Histórico de avaliações bancárias
+      - Classificação por tipo (próprio, arrendado)
+   
+   2. Arrendamentos:
+      - Controle de contratos de arrendamento
+      - Registro de áreas e valores
+      - Cronograma de vigência
+      - Controle de custos em sacas e valores
+      - Projeção de custos anuais
+      - Gestão de renovações
+      - Análise de viabilidade
+   
+   3. Benfeitorias:
+      - Cadastro de construções e melhorias
+      - Valoração de cada benfeitoria
+      - Vinculação à propriedade
+      - Depreciação e manutenção
+      - Registro de documentação
+      - Fotos e evidências
+      - Histórico de valor
+   
+   TELAS DO MÓDULO:
+   1. Tela de Lista de Propriedades
+      - Tabela completa com filtros 
+      - Indicadores de área e valor
+      - Agrupamento por tipo
+      - Ações rápidas para cada propriedade
+      - Exportação de dados
+      - Visualização em cards ou lista
+   
+   2. Tela de Cadastro de Propriedade
+      - Formulário completo com dados da terra
+      - Campos para matrícula e documentação
+      - Registro de áreas (total, cultivável)
+      - Valoração atual e histórica
+      - Upload de documentos relacionados
+      - Registro de coordenadas geográficas
+      - Mapa para demarcação visual
+   
+   3. Tela de Detalhes da Propriedade
+      - Visão geral com dados principais
+      - Abas para benfeitorias, arrendamentos, produção
+      - Visualização em mapa
+      - Fotos da propriedade
+      - Histórico de valores
+      - Documentação relacionada
+      - Indicadores produtivos
+   
+   4. Tela de Arrendamentos
+      - Lista de contratos ativos e históricos
+      - Formulário de cadastro de arrendamento
+      - Cálculo automático de valores
+      - Cronograma de pagamentos
+      - Alertas de vencimento
+      - Renovação simplificada
+      - Comparativo de custos
+   
+   5. Tela de Benfeitorias
+      - Cadastro de estruturas e melhorias
+      - Valoração individual
+      - Fotos e descrições
+      - Histórico de manutenções
+      - Depreciação calculada
+      - Vinculação à propriedade
+      - Impacto no valor total
+   
+   IMPLEMENTAÇÃO:
+   - Formulários com validação completa
+   - Cálculos automáticos de áreas e valores
+   
+
+# Test Plan for Formatted Input Fix
+
+## Background
+There was an issue with formatted input fields (currency, area, sacas) where users couldn't type continuously. The fix implemented in the `useFormattedInput` hook changes how input is handled during focus vs. blur states.
+
+## Testing Scenarios
+
+### 1. Property Form - Create New Property
+
+#### Test Currency Fields
+1. Navigate to /dashboard/properties/new
+2. Focus on "Valor Atual (R$)" field
+3. Type a number continuously (e.g., "1234567,89")
+4. Verify you can type without interruption
+5. Press Tab to move to next field
+6. Verify the value is formatted properly (e.g., "R$ 1.234.567,89")
+7. Click back on the field
+8. Verify the cursor position allows continued editing
+
+#### Test Area Fields
+1. Navigate to /dashboard/properties/new
+2. Focus on "Área Total (ha)" field
+3. Type a number continuously (e.g., "1234,56")
+4. Verify you can type without interruption
+5. Press Tab to move to next field
+6. Verify the value is formatted properly (e.g., "1.234,56 ha")
+7. Click back on the field
+8. Verify the cursor position allows continued editing
+
+### 2. Lease Form - Create New Lease
+
+#### Test Numeric Fields
+1. Navigate to /dashboard/properties/[id]/leases/new
+2. Focus on "Área Arrendada (ha)" field
+3. Type a number continuously
+4. Verify you can type without interruption
+5. Test "Custo por Hectare (sacas)" field
+6. Verify formatting works properly on blur
+
+### 3. Edge Cases
+
+#### Test Deleting Content
+1. Navigate to any form with formatted fields
+2. Enter a value in a formatted field
+3. Tab out to see it formatted
+4. Return to the field and delete all content
+5. Verify the field allows empty values
+
+#### Test Decimal Separators
+1. Navigate to any form with currency fields
+2. Test entering values with comma as decimal separator
+3. Verify proper formatting
+
+## Expected Results
+- Users should be able to type continuously in all formatted input fields
+- Values should display in their raw form while typing (just numbers and decimal separators)
+- Values should format properly when fields lose focus
+- Users should be able to return to fields and continue editing without issues
+
+## If Issues Persist
+If problems remain, further investigation might be needed:
+1. Check cursor positioning logic
+2. Consider more specialized input masking libraries
+3. Add additional debugging to pinpoint specific input behavior issues

@@ -1,0 +1,127 @@
+"use client";
+
+import { useState } from "react";
+import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { removeMember } from "@/lib/actions/organization-actions";
+import { UserRole } from "@/lib/auth/roles";
+
+interface MemberActionsProps {
+  associacaoId: string;
+  organizacaoId: string;
+  memberEmail: string;
+  memberName: string;
+  memberRole: string;
+}
+
+export function MemberActions({
+  associacaoId,
+  organizacaoId,
+  memberEmail,
+  memberName,
+  memberRole,
+}: MemberActionsProps) {
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  // Não mostrar ações para proprietários
+  if (memberRole === UserRole.PROPRIETARIO) {
+    return null;
+  }
+
+  // Função para remover o membro
+  const handleRemoveMember = async () => {
+    setIsRemoving(true);
+
+    const formData = new FormData();
+    formData.append("associacaoId", associacaoId);
+    formData.append("organizacaoId", organizacaoId);
+
+    try {
+      const result = await removeMember(formData);
+
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.success) {
+        toast.success(result.success);
+        setIsRemoveDialogOpen(false);
+      }
+    } catch (error) {
+      toast.error("Erro ao remover membro");
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            aria-label="Mais opções"
+          >
+            <MoreHorizontalIcon className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={() => setIsRemoveDialogOpen(true)}
+            className="text-red-600 focus:text-red-600"
+          >
+            <Trash2Icon className="mr-2 h-4 w-4" />
+            <span>Remover membro</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Diálogo de confirmação para remover membro */}
+      <AlertDialog
+        open={isRemoveDialogOpen}
+        onOpenChange={setIsRemoveDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover membro</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover <strong>{memberName}</strong> (
+              {memberEmail}) da organização? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleRemoveMember();
+              }}
+              disabled={isRemoving}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {isRemoving ? "Removendo..." : "Remover"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
