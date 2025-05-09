@@ -519,9 +519,9 @@ export function PriceComparison({
             <div className="space-y-4">
               {loading ? (
                 <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-4/5" />
-                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-full" as="span" />
+                  <Skeleton className="h-4 w-4/5" as="span" />
+                  <Skeleton className="h-4 w-3/4" as="span" />
                 </div>
               ) : (
                 <div>

@@ -53,10 +53,7 @@ export function ConfigTabs({
           />
         </TabsContent>
         <TabsContent value="cycles" className="mt-0">
-          <CyclesTab
-            initialCycles={cycles}
-            organizationId={organizationId}
-          />
+          <CyclesTab initialCycles={cycles} organizationId={organizationId} />
         </TabsContent>
         <TabsContent value="harvests" className="mt-0">
           <HarvestsTab

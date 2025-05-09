@@ -57,17 +57,7 @@ export default async function NewOrganizationPage() {
       <SiteHeader title="Nova Organização" />
       <main className="flex-1 p-6">
         <div className="max-w-3xl">
-          <Card>
-            <CardHeader>
-              <CardTitle>Criar Nova Organização</CardTitle>
-              <CardDescription>
-                Preencha os dados para criar sua organização
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <OrganizationForm userId={user.id} />
-            </CardContent>
-          </Card>
+          <OrganizationForm userId={user.id} />
         </div>
       </main>
     </div>

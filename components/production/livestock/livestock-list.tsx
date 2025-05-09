@@ -80,6 +80,9 @@ export function LivestockList({
       await deleteLivestock(id);
       setLivestock(livestock.filter(item => item.id !== id));
       toast.success("Registro de rebanho excluído com sucesso!");
+      
+      // Forçar recarregamento da página para atualizar os dados
+      window.location.reload();
     } catch (error) {
       console.error("Erro ao excluir registro de rebanho:", error);
       toast.error("Ocorreu um erro ao excluir o registro de rebanho.");

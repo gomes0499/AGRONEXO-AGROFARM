@@ -193,7 +193,7 @@ export function HarvestsTab({ initialHarvests, organizationId }: HarvestsTabProp
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground"
+                          className="bg-destructive text-white hover:bg-destructive/90"
                           onClick={() => handleDelete(harvest.id!)}
                         >
                           Excluir

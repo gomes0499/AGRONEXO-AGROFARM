@@ -96,13 +96,13 @@ export function OrganizationSwitcher() {
 
     loadOrganizations();
   }, [user, isSuperAdmin]);
-  
+
   // Verificar se a organização atual está na lista de organizações carregadas
   React.useEffect(() => {
     if (organization && organizations.length > 0 && !loading) {
       // Verifica se a organização atual existe na lista de organizações do usuário
-      const orgExists = organizations.some(org => org.id === organization.id);
-      
+      const orgExists = organizations.some((org) => org.id === organization.id);
+
       // Se não existir, redefinir para a primeira organização disponível
       if (!orgExists && organizations[0]) {
         setOrganization(organizations[0]);
@@ -124,7 +124,7 @@ export function OrganizationSwitcher() {
 
       // Atualizar no banco a organização atual do usuário nos metadados
       const supabase = createClient();
-      
+
       // Atualizar nos user_metadata para que o backend possa acessar
       await supabase.auth.updateUser({
         data: {
@@ -177,7 +177,7 @@ export function OrganizationSwitcher() {
       <SidebarMenuItem className="flex items-center gap-2">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <SidebarMenuButton className="flex w-full justify-between">
+            <SidebarMenuButton className="flex w-full justify-between ">
               <div className="flex items-center gap-2">
                 {organization ? (
                   <Avatar className="h-6 w-6 rounded-md">

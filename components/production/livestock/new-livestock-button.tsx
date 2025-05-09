@@ -44,7 +44,6 @@ export function NewLivestockButton({
   
   const handleSuccess = () => {
     setIsOpen(false);
-    toast.success("Registro de rebanho criado com sucesso!");
   };
   
   if (isMobile) {

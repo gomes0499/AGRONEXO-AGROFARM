@@ -5,8 +5,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { UserRole } from "@/lib/auth/roles";
-
-// Componentes de organização
 import { OrganizationInfo } from "@/components/organization/organization-info";
 import { OrganizationMembers } from "@/components/organization/organization-members";
 import { OrganizationInvites } from "@/components/organization/organization-invites";
@@ -40,15 +38,6 @@ export default async function OrganizationPage() {
       <div className="flex flex-col">
         <SiteHeader title="Todas as Organizações" />
         <main className="flex-1 p-6">
-          <div className="flex justify-between mb-6">
-            <h2 className="text-2xl font-semibold">
-              Gerenciamento de Organizações
-            </h2>
-            <Button asChild>
-              <Link href="/dashboard/organization/new">Nova Organização</Link>
-            </Button>
-          </div>
-
           <OrganizationList organizations={allOrganizations || []} />
         </main>
       </div>

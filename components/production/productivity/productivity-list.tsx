@@ -196,7 +196,7 @@ export function ProductivityList({
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground"
+                                className="bg-destructive text-white hover:bg-destructive/90"
                                 onClick={() => handleDelete(item.id || "")}
                               >
                                 Excluir

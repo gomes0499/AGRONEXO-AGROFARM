@@ -84,7 +84,6 @@ export function ProductionCostList({
       setCosts(costs.filter((item) => item.id !== id));
       toast.success("Registro de custo excluído com sucesso!");
     } catch (error) {
-      console.error("Erro ao excluir registro de custo:", error);
       toast.error("Ocorreu um erro ao excluir o registro de custo.");
     }
   };
@@ -96,11 +95,6 @@ export function ProductionCostList({
     );
     setIsEditDrawerOpen(false);
     setEditingItem(null);
-  };
-
-  // Função para adicionar novo item à lista
-  const handleAdd = (newItem: ProductionCost) => {
-    setCosts([...costs, newItem]);
   };
 
   // Ordenar itens por safra, categoria e cultura
@@ -219,7 +213,7 @@ export function ProductionCostList({
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground"
+                                className="bg-destructive text-destructive-foreground text-white hover:bg-destructive/90"
                                 onClick={() => handleDelete(item.id || "")}
                               >
                                 Excluir
@@ -238,8 +232,8 @@ export function ProductionCostList({
       </Card>
 
       {/* Modal de edição */}
-      <Drawer 
-        open={isEditDrawerOpen} 
+      <Drawer
+        open={isEditDrawerOpen}
         onOpenChange={setIsEditDrawerOpen}
         direction="right"
       >

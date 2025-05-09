@@ -42,7 +42,12 @@ import {
   DrawerClose,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { LivestockOperation, Harvest, LivestockOperationCycle, LivestockOperationOrigin } from "@/schemas/production";
+import {
+  LivestockOperation,
+  Harvest,
+  LivestockOperationCycle,
+  LivestockOperationOrigin,
+} from "@/schemas/production";
 
 // Define interface for the property entity
 interface Property {
@@ -64,88 +69,96 @@ export function LivestockOperationList({
   harvests,
   organizationId,
 }: LivestockOperationListProps) {
-  const [operations, setOperations] = useState<LivestockOperation[]>(initialOperations);
-  const [editingItem, setEditingItem] = useState<LivestockOperation | null>(null);
+  const [operations, setOperations] =
+    useState<LivestockOperation[]>(initialOperations);
+  const [editingItem, setEditingItem] = useState<LivestockOperation | null>(
+    null
+  );
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
   const isMobile = useIsMobile();
-  
+
   // Função para editar um item
   const handleEdit = (item: LivestockOperation) => {
     setEditingItem(item);
     setIsEditDrawerOpen(true);
   };
-  
+
   // Função para excluir um item
   const handleDelete = async (id: string) => {
     try {
       await deleteLivestockOperation(id);
-      setOperations(operations.filter(item => item.id !== id));
+      setOperations(operations.filter((item) => item.id !== id));
       toast.success("Operação pecuária excluída com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir operação pecuária:", error);
       toast.error("Ocorreu um erro ao excluir a operação pecuária.");
     }
   };
-  
+
   // Função para atualizar a lista após edição
   const handleUpdate = (updatedItem: LivestockOperation) => {
     setOperations(
-      operations.map(item => item.id === updatedItem.id ? updatedItem : item)
+      operations.map((item) =>
+        item.id === updatedItem.id ? updatedItem : item
+      )
     );
     setIsEditDrawerOpen(false);
     setEditingItem(null);
   };
-  
+
   // Função para adicionar novo item à lista
   const handleAdd = (newItem: LivestockOperation) => {
     setOperations([...operations, newItem]);
   };
-  
+
   // Ordenar itens por ciclo e propriedade
   const sortedItems = [...operations].sort((a, b) => {
     // Primeiro por ciclo
     if (a.ciclo !== b.ciclo) {
       return a.ciclo.localeCompare(b.ciclo);
     }
-    
+
     // Depois por propriedade
-    const propA = properties.find(p => p.id === a.propriedade_id)?.nome || '';
-    const propB = properties.find(p => p.id === b.propriedade_id)?.nome || '';
+    const propA = properties.find((p) => p.id === a.propriedade_id)?.nome || "";
+    const propB = properties.find((p) => p.id === b.propriedade_id)?.nome || "";
     return propA.localeCompare(propB);
   });
-  
+
   // Função para obter nomes de referência
   const getPropertyName = (item: LivestockOperation): string => {
-    return properties.find(p => p.id === item.propriedade_id)?.nome || 'Desconhecida';
+    return (
+      properties.find((p) => p.id === item.propriedade_id)?.nome ||
+      "Desconhecida"
+    );
   };
-  
+
   // Função para traduzir ciclo
   const translateCycle = (cycle: LivestockOperationCycle): string => {
     const cycles: Record<LivestockOperationCycle, string> = {
       CONFINAMENTO: "Confinamento",
       PASTO: "Pasto",
-      SEMICONFINAMENTO: "Semiconfinamento"
+      SEMICONFINAMENTO: "Semiconfinamento",
     };
-    
+
     return cycles[cycle] || String(cycle);
   };
-  
+
   // Função para traduzir origem
   const translateOrigin = (origin: LivestockOperationOrigin): string => {
     const origins: Record<LivestockOperationOrigin, string> = {
       PROPRIO: "Próprio",
-      TERCEIRO: "Terceiro"
+      TERCEIRO: "Terceiro",
     };
-    
+
     return origins[origin] || String(origin);
   };
-  
+
   // Função para obter valores de abate
   const getSlaughterVolumes = (item: LivestockOperation): string => {
     if (!item.volume_abate_por_safra) return "Não informado";
-    
+
     let volumeData: Record<string, number>;
-    if (typeof item.volume_abate_por_safra === 'string') {
+    if (typeof item.volume_abate_por_safra === "string") {
       try {
         volumeData = JSON.parse(item.volume_abate_por_safra);
       } catch (e) {
@@ -154,12 +167,12 @@ export function LivestockOperationList({
     } else {
       volumeData = item.volume_abate_por_safra as Record<string, number>;
     }
-    
+
     const harvestNames = harvests.reduce<Record<string, string>>((acc, h) => {
       if (h.id) acc[h.id] = h.nome;
       return acc;
     }, {});
-    
+
     return Object.entries(volumeData)
       .map(([key, value]) => {
         // Tenta identificar se a chave é um ID de safra
@@ -168,7 +181,7 @@ export function LivestockOperationList({
       })
       .join(", ");
   };
-  
+
   return (
     <div className="space-y-4">
       <Card>
@@ -181,7 +194,8 @@ export function LivestockOperationList({
         <CardContent>
           {operations.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
-              Nenhuma operação pecuária cadastrada. Clique no botão "Nova Operação" para adicionar.
+              Nenhuma operação pecuária cadastrada. Clique no botão "Nova
+              Operação" para adicionar.
             </div>
           ) : (
             <Table>
@@ -219,15 +233,18 @@ export function LivestockOperationList({
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir Operação</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                Excluir Operação
+                              </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Tem certeza que deseja excluir esta operação pecuária? Esta ação não pode ser desfeita.
+                                Tem certeza que deseja excluir esta operação
+                                pecuária? Esta ação não pode ser desfeita.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground"
+                                className="bg-destructive text-white hover:bg-destructive/90"
                                 onClick={() => item.id && handleDelete(item.id)}
                               >
                                 Excluir
@@ -244,9 +261,13 @@ export function LivestockOperationList({
           )}
         </CardContent>
       </Card>
-      
+
       {/* Modal de edição */}
-      <Drawer open={isEditDrawerOpen} onOpenChange={setIsEditDrawerOpen} direction="right">
+      <Drawer
+        open={isEditDrawerOpen}
+        onOpenChange={setIsEditDrawerOpen}
+        direction="right"
+      >
         <DrawerContent className="h-full max-h-none">
           <DrawerHeader className="text-left">
             <DrawerTitle>Editar Operação Pecuária</DrawerTitle>

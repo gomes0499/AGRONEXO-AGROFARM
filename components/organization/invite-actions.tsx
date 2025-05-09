@@ -46,9 +46,7 @@ export function InviteActions({
 
   // Formatar a data do último envio para exibição
   const lastSentDate = new Date(lastSent);
-  const formattedLastSent = format(lastSentDate, "dd/MM/yyyy HH:mm", {
-    locale: ptBR,
-  });
+
   const relativeLastSent = formatDistance(lastSentDate, new Date(), {
     addSuffix: true,
     locale: ptBR,

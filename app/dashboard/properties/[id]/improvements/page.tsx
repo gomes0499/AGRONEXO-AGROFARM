@@ -1,11 +1,13 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import { ImprovementList } from "@/components/properties/improvement-list";
-import { getImprovements, getPropertyById } from "@/lib/actions/property-actions";
+import {
+  getImprovements,
+  getPropertyById,
+} from "@/lib/actions/property-actions";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { SiteHeader } from "@/components/dashboard/site-header";
+import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
   title: "Benfeitorias | SR Consultoria",
@@ -18,45 +20,54 @@ interface ImprovementsPageProps {
   };
 }
 
-export default async function ImprovementsPage({ params }: ImprovementsPageProps) {
+export default async function ImprovementsPage({
+  params,
+}: ImprovementsPageProps) {
   const session = await getSession();
-  
+
   if (!session?.organizationId) {
     redirect("/dashboard");
   }
-  
+
   try {
     const [property, improvements] = await Promise.all([
       getPropertyById(params.id),
-      getImprovements(session.organizationId, params.id)
+      getImprovements(session.organizationId, params.id),
     ]);
-    
+
     // Verificar se a propriedade pertence à organização atual
     if (property.organizacao_id !== session.organizationId) {
       notFound();
     }
-    
+
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/dashboard/properties/${params.id}`}>
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Voltar à Propriedade
-              </Link>
-            </Button>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Benfeitorias: {property.nome}
+      <>
+        <SiteHeader 
+          title={`Benfeitorias: ${property.nome}`} 
+          showBackButton 
+          backUrl={`/dashboard/properties/${params.id}`} 
+          backLabel="Voltar à Propriedade"
+        />
+        <div className="flex flex-col gap-6 p-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Benfeitorias
             </h1>
+            <p className="text-muted-foreground">
+              Gerenciamento de benfeitorias e melhorias da propriedade {property.nome}.
+            </p>
           </div>
+          <Separator />
+          <ImprovementList
+            improvements={improvements}
+            propertyId={params.id}
+            organizationId={session.organizationId}
+          />
         </div>
-        
-        <ImprovementList improvements={improvements} propertyId={params.id} />
-      </div>
+      </>
     );
   } catch (error) {
-    console.error("Erro ao carregar dados:", error);
+    console.error("Erro ao carregar benfeitorias:", error);
     notFound();
   }
 }

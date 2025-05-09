@@ -6,6 +6,7 @@ import {
   MoreVerticalIcon,
   UserCircleIcon,
   BuildingIcon,
+  SunMoonIcon,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,6 +30,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function NavUser({
   user,
@@ -49,10 +51,13 @@ export function NavUser({
     const fetchUserData = async () => {
       try {
         const supabase = createClient();
-        
+
         // Buscar dados do usuário diretamente da autenticação
-        const { data: { user: authUser }, error } = await supabase.auth.getUser();
-        
+        const {
+          data: { user: authUser },
+          error,
+        } = await supabase.auth.getUser();
+
         if (error) {
           console.error("Erro ao buscar dados do usuário:", error);
           return;
@@ -156,12 +161,6 @@ export function NavUser({
                 <Link href="/dashboard/organization">
                   <BuildingIcon className="mr-2 h-4 w-4" />
                   <span>Organização</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/configuracoes">
-                  <BellIcon className="mr-2 h-4 w-4" />
-                  <span>Notificações</span>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

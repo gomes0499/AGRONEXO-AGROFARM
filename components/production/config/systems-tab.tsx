@@ -23,8 +23,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { System, SystemFormValues, systemFormSchema } from "@/schemas/production";
-import { createSystem, updateSystem, deleteSystem } from "@/lib/actions/production-actions";
+import {
+  System,
+  SystemFormValues,
+  systemFormSchema,
+} from "@/schemas/production";
+import {
+  createSystem,
+  updateSystem,
+  deleteSystem,
+} from "@/lib/actions/production-actions";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -51,42 +59,47 @@ interface SystemsTabProps {
   organizationId: string;
 }
 
-export function SystemsTab({ initialSystems, organizationId }: SystemsTabProps) {
+export function SystemsTab({
+  initialSystems,
+  organizationId,
+}: SystemsTabProps) {
   const [systems, setSystems] = useState<System[]>(initialSystems);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingSystem, setEditingSystem] = useState<System | null>(null);
-  
+
   const form = useForm<SystemFormValues>({
     resolver: zodResolver(systemFormSchema),
     defaultValues: {
       nome: "",
     },
   });
-  
+
   // Função para abrir o diálogo de edição
   const handleEdit = (system: System) => {
     setEditingSystem(system);
     form.reset({ nome: system.nome });
     setOpenDialog(true);
   };
-  
+
   // Função para abrir o diálogo de criação
   const handleCreate = () => {
     setEditingSystem(null);
     form.reset({ nome: "" });
     setOpenDialog(true);
   };
-  
+
   // Função para salvar (criar ou atualizar)
   const onSubmit = async (values: SystemFormValues) => {
     try {
       setIsSubmitting(true);
-      
+
       if (editingSystem) {
         // Atualizar sistema existente
         const updated = await updateSystem(editingSystem.id!, values);
-        setSystems(systems.map(s => s.id === editingSystem.id ? updated : s));
+        setSystems(
+          systems.map((s) => (s.id === editingSystem.id ? updated : s))
+        );
         toast.success("Sistema atualizado com sucesso!");
       } else {
         // Criar novo sistema
@@ -94,7 +107,7 @@ export function SystemsTab({ initialSystems, organizationId }: SystemsTabProps) 
         setSystems([...systems, created]);
         toast.success("Sistema criado com sucesso!");
       }
-      
+
       setOpenDialog(false);
     } catch (error) {
       console.error("Erro ao salvar sistema:", error);
@@ -103,19 +116,19 @@ export function SystemsTab({ initialSystems, organizationId }: SystemsTabProps) 
       setIsSubmitting(false);
     }
   };
-  
+
   // Função para excluir
   const handleDelete = async (id: string) => {
     try {
       await deleteSystem(id);
-      setSystems(systems.filter(s => s.id !== id));
+      setSystems(systems.filter((s) => s.id !== id));
       toast.success("Sistema excluído com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir sistema:", error);
       toast.error("Ocorreu um erro ao excluir o sistema.");
     }
   };
-  
+
   return (
     <div className="space-y-4 py-4">
       <div className="flex justify-between items-center">
@@ -125,7 +138,7 @@ export function SystemsTab({ initialSystems, organizationId }: SystemsTabProps) 
           Novo Sistema
         </Button>
       </div>
-      
+
       {systems.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
           Nenhum sistema cadastrado. Clique em "Novo Sistema" para adicionar.
@@ -160,13 +173,14 @@ export function SystemsTab({ initialSystems, organizationId }: SystemsTabProps) 
                       <AlertDialogHeader>
                         <AlertDialogTitle>Excluir Sistema</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tem certeza que deseja excluir o sistema "{system.nome}"? Esta ação não pode ser desfeita.
+                          Tem certeza que deseja excluir o sistema "
+                          {system.nome}"? Esta ação não pode ser desfeita.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground"
+                          className="bg-destructive text-white hover:bg-destructive/90"
                           onClick={() => handleDelete(system.id!)}
                         >
                           Excluir
@@ -180,7 +194,7 @@ export function SystemsTab({ initialSystems, organizationId }: SystemsTabProps) 
           </TableBody>
         </Table>
       )}
-      
+
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent>
           <DialogHeader>

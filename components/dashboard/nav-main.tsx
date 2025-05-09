@@ -1,6 +1,6 @@
 "use client";
 
-import { type LucideIcon } from "lucide-react";
+import { type LucideIcon, FileTextIcon } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -11,6 +11,7 @@ import {
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function NavMain({
   items,
@@ -82,6 +83,24 @@ export function NavMain({
               </SidebarMenuItem>
             );
           })}
+        </SidebarMenu>
+
+        {/* Report Generator Button */}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Gerar Relatório"
+              asChild
+              className="bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
+            >
+              <Link href="/dashboard/reports">
+                <FileTextIcon className="text-primary-foreground" />
+                <span className="font-medium text-primary-foreground">
+                  Gerar Relatório
+                </span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

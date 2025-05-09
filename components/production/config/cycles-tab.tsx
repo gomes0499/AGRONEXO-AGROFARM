@@ -166,7 +166,7 @@ export function CyclesTab({ initialCycles, organizationId }: CyclesTabProps) {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground"
+                          className="bg-destructive text-white hover:bg-destructive/90"
                           onClick={() => handleDelete(cycle.id!)}
                         >
                           Excluir

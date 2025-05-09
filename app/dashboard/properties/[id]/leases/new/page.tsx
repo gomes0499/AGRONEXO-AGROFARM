@@ -3,6 +3,8 @@ import { LeaseForm } from "@/components/properties/lease-form";
 import { getPropertyById } from "@/lib/actions/property-actions";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { SiteHeader } from "@/components/dashboard/site-header";
+import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
   title: "Novo Arrendamento | SR Consultoria",
@@ -31,12 +33,27 @@ export default async function NewLeasePage({ params }: NewLeasePageProps) {
     }
     
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <LeaseForm 
-          propertyId={params.id} 
-          organizationId={session.organizationId} 
+      <>
+        <SiteHeader 
+          title="Novo Arrendamento" 
+          showBackButton 
+          backUrl={`/dashboard/properties/${params.id}/leases`} 
+          backLabel="Voltar para Arrendamentos"
         />
-      </div>
+        <div className="flex flex-col gap-6 p-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Novo Arrendamento</h1>
+            <p className="text-muted-foreground">
+              Cadastre um novo contrato de arrendamento para a propriedade {property.nome}.
+            </p>
+          </div>
+          <Separator />
+          <LeaseForm 
+            propertyId={params.id} 
+            organizationId={session.organizationId} 
+          />
+        </div>
+      </>
     );
   } catch (error) {
     console.error("Erro ao carregar propriedade:", error);

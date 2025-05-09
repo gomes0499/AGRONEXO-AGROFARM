@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { MoreHorizontalIcon, Trash2Icon, ShieldIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +22,12 @@ import {
 import { toast } from "sonner";
 import { removeMember } from "@/lib/actions/organization-actions";
 import { UserRole } from "@/lib/auth/roles";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MemberActionsProps {
   associacaoId: string;
@@ -41,9 +47,28 @@ export function MemberActions({
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  // Não mostrar ações para proprietários
+  // Para proprietários, mostrar um botão desabilitado com tooltip
   if (memberRole === UserRole.PROPRIETARIO) {
-    return null;
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 opacity-50 cursor-not-allowed"
+              disabled
+            >
+              <ShieldIcon className="h-4 w-4" />
+              <span className="sr-only">Proprietário protegido</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Proprietários não podem ser removidos</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   }
 
   // Função para remover o membro

@@ -1,5 +1,5 @@
-import { Metadata } from "next";
-import { PropertyDetail } from "@/components/properties/property-detail";
+import { SiteHeader } from "@/components/dashboard/site-header";
+import { PropertyTabs } from "@/components/properties/property-tabs";
 import {
   getPropertyById,
   getLeases,
@@ -7,26 +7,15 @@ import {
 } from "@/lib/actions/property-actions";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ImprovementList } from "@/components/properties/improvement-list";
-import { LeaseList } from "@/components/properties/lease-list";
-
-export async function generateMetadata({
-  params,
-}: PropertyDetailsPageProps): Promise<Metadata> {
-  try {
-    const property = await getPropertyById(params.id);
-    return {
-      title: `${property.nome} | SR Consultoria`,
-      description: `Detalhes da propriedade rural ${property.nome}`,
-    };
-  } catch (error) {
-    return {
-      title: "Propriedade | SR Consultoria",
-      description: "Detalhes da propriedade rural",
-    };
-  }
-}
+import type { Metadata } from "next";
+import { MapPinIcon } from "lucide-react";
+// Adicionando script para bibliotecas de mapas
+export const metadata = {
+  // Adiciona os scripts necessários para a aplicação
+  scripts: {
+    leaflet: { src: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" },
+  },
+};
 
 interface PropertyDetailsPageProps {
   params: {
@@ -58,72 +47,30 @@ export default async function PropertyDetailsPage({
     ]);
 
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <PropertyDetail property={property} />
+      <>
+        <SiteHeader
+          title={`Propriedade ${property.nome}`}
+          showBackButton={true}
+          backUrl="/dashboard/properties"
+        />
+        <div className="p-4 md:p-6">
+          <div className="mb-3">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+              {property.nome}
+            </h1>
+            <p className="text-muted-foreground flex items-center gap-1 mt-0.5">
+              <MapPinIcon size={16} />
+              {property.cidade}, {property.estado}
+            </p>
+          </div>
 
-        <Tabs defaultValue="overview" className="mt-6">
-          <TabsList>
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="leases">
-              Arrendamentos ({leases.length})
-            </TabsTrigger>
-            <TabsTrigger value="improvements">
-              Benfeitorias ({improvements.length})
-            </TabsTrigger>
-            <TabsTrigger value="production">Mapa</TabsTrigger>
-            <TabsTrigger value="documents">Documentação</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-4">
-            <div className="grid grid-cols-1 gap-6">
-              <div className="bg-card p-6 rounded-lg border">
-                <h2 className="text-xl font-bold mb-4">
-                  Resumo da Propriedade
-                </h2>
-                <p className="text-muted-foreground">
-                  Propriedade {property.nome} localizada em {property.cidade},{" "}
-                  {property.estado}.
-                  {property.onus && (
-                    <span className="block mt-2">
-                      <strong>Ônus:</strong> {property.onus}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="leases" className="mt-4">
-            <LeaseList leases={leases} propertyId={params.id} />
-          </TabsContent>
-
-          <TabsContent value="improvements" className="mt-4">
-            <ImprovementList
-              improvements={improvements}
-              propertyId={params.id}
-            />
-          </TabsContent>
-
-          <TabsContent value="production" className="mt-4">
-            <div className="bg-card p-6 rounded-lg border">
-              <h2 className="text-xl font-bold mb-4">Produção Agrícola</h2>
-              <p className="text-muted-foreground">
-                O mapa da propriedade serão exibidos aqui quando disponíveis.
-              </p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="documents" className="mt-4">
-            <div className="bg-card p-6 rounded-lg border">
-              <h2 className="text-xl font-bold mb-4">Documentação</h2>
-              <p className="text-muted-foreground">
-                Documentos relacionados à propriedade serão exibidos aqui quando
-                disponíveis.
-              </p>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          <PropertyTabs
+            property={property}
+            leases={leases}
+            improvements={improvements}
+          />
+        </div>
+      </>
     );
   } catch (error) {
     console.error("Erro ao carregar propriedade:", error);

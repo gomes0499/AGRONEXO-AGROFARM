@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { PropertyForm } from "@/components/properties/property-form";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { SiteHeader } from "@/components/dashboard/site-header";
+import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
   title: "Nova Propriedade | SR Consultoria",
@@ -10,14 +12,29 @@ export const metadata: Metadata = {
 
 export default async function NewPropertyPage() {
   const session = await getSession();
-  
+
   if (!session?.organizationId) {
     redirect("/dashboard");
   }
-  
+
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <PropertyForm organizationId={session.organizationId} />
-    </div>
+    <>
+      <SiteHeader 
+        title="Nova Propriedade" 
+        showBackButton 
+        backUrl="/dashboard/properties" 
+        backLabel="Voltar para Propriedades"
+      />
+      <div className="flex flex-col gap-6 p-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Nova Propriedade</h1>
+          <p className="text-muted-foreground">
+            Cadastre uma nova propriedade rural no sistema.
+          </p>
+        </div>
+        <Separator />
+        <PropertyForm organizationId={session.organizationId} />
+      </div>
+    </>
   );
 }

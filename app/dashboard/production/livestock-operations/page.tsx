@@ -16,7 +16,11 @@ import { NewLivestockOperationButton } from "@/components/production/livestock/n
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getProperties } from "@/lib/actions/property-actions";
-import { LivestockOperation, LivestockOperationCycle, LivestockOperationOrigin } from "@/schemas/production";
+import {
+  LivestockOperation,
+  LivestockOperationCycle,
+  LivestockOperationOrigin,
+} from "@/schemas/production";
 
 // Define the Property interface that matches what the components expect
 interface Property {
@@ -37,44 +41,53 @@ export default async function LivestockOperationsPage() {
   const operations = await getLivestockOperations(organizationId);
   const propertiesData = await getProperties(organizationId);
   const harvests = await getHarvests(organizationId);
-  
+
   // Converter propriedades para o formato esperado pelo componente
-  const properties: Property[] = propertiesData.map(p => ({
-    id: p.id || "",  // Garantir que id nunca será undefined
+  const properties: Property[] = propertiesData.map((p) => ({
+    id: p.id || "", // Garantir que id nunca será undefined
     nome: p.nome,
     cidade: p.cidade,
-    estado: p.estado
+    estado: p.estado,
   }));
 
   // Calcular estatísticas
-  const operationsByType = operations.reduce<Record<string, number>>((acc, op) => {
-    const cycleKey = op.ciclo as string;
-    if (!acc[cycleKey]) {
-      acc[cycleKey] = 0;
-    }
-    acc[cycleKey]++;
-    return acc;
-  }, {});
+  const operationsByType = operations.reduce<Record<string, number>>(
+    (acc, op) => {
+      const cycleKey = op.ciclo as string;
+      if (!acc[cycleKey]) {
+        acc[cycleKey] = 0;
+      }
+      acc[cycleKey]++;
+      return acc;
+    },
+    {}
+  );
 
-  const operationsByOrigin = operations.reduce<Record<string, number>>((acc, op) => {
-    const originKey = op.origem as string;
-    if (!acc[originKey]) {
-      acc[originKey] = 0;
-    }
-    acc[originKey]++;
-    return acc;
-  }, {});
+  const operationsByOrigin = operations.reduce<Record<string, number>>(
+    (acc, op) => {
+      const originKey = op.origem as string;
+      if (!acc[originKey]) {
+        acc[originKey] = 0;
+      }
+      acc[originKey]++;
+      return acc;
+    },
+    {}
+  );
 
-  const operationsByProperty = operations.reduce<Record<string, number>>((acc, op) => {
-    const propertyName =
-      properties.find((p) => p.id === op.propriedade_id)?.nome ||
-      "Desconhecida";
-    if (!acc[propertyName]) {
-      acc[propertyName] = 0;
-    }
-    acc[propertyName]++;
-    return acc;
-  }, {});
+  const operationsByProperty = operations.reduce<Record<string, number>>(
+    (acc, op) => {
+      const propertyName =
+        properties.find((p) => p.id === op.propriedade_id)?.nome ||
+        "Desconhecida";
+      if (!acc[propertyName]) {
+        acc[propertyName] = 0;
+      }
+      acc[propertyName]++;
+      return acc;
+    },
+    {}
+  );
 
   // Função para traduzir ciclo
   const translateCycle = (cycle: LivestockOperationCycle): string => {
@@ -98,7 +111,7 @@ export default async function LivestockOperationsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -114,11 +127,6 @@ export default async function LivestockOperationsPage() {
             harvests={harvests}
             organizationId={organizationId}
           />
-          <Button asChild variant="outline">
-            <Link href="/dashboard/production/livestock">
-              Voltar para Rebanho
-            </Link>
-          </Button>
         </div>
       </div>
 

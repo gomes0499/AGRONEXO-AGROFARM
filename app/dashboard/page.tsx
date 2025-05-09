@@ -27,7 +27,7 @@ export default async function DashboardPage() {
     .from("associacoes")
     .select("*, organizacao:organizacao_id(*)")
     .eq("usuario_id", user.id);
-    
+
   // Verificar se existe organização nos metadados do usuário autenticado
   let organizacaoMetadata = null;
   if (user.user_metadata?.organizacao?.id) {
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
       .select("*")
       .eq("id", user.user_metadata.organizacao.id)
       .single();
-      
+
     if (orgData) {
       organizacaoMetadata = orgData;
     }
@@ -79,17 +79,17 @@ export default async function DashboardPage() {
   // Determinar qual organização usar para o dashboard
   let organizationId;
   let organizationName;
-  
+
   // Prioridade 1: Usar a organização dos metadados (selecionada pelo usuário)
   if (organizacaoMetadata) {
     organizationId = organizacaoMetadata.id;
     organizationName = organizacaoMetadata.nome || "Minha Organização";
-  } 
+  }
   // Prioridade 2: Usar a organização associada ao perfil
   else if (userData?.organizacao) {
     organizationId = userData.organizacao.id;
     organizationName = userData.organizacao.nome || "Minha Organização";
-  } 
+  }
   // Prioridade 3: Usar a primeira associação
   else if (hasAssociations) {
     organizationId = associacoes[0].organizacao_id;

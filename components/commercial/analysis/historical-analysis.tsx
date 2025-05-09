@@ -263,10 +263,10 @@ export function HistoricalAnalysis({
             </h3>
             {loading ? (
               <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-4/5" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-4/5" />
+                <Skeleton as="span" className="h-4 w-full" />
+                <Skeleton as="span" className="h-4 w-4/5" />
+                <Skeleton as="span" className="h-4 w-3/4" />
+                <Skeleton as="span" className="h-4 w-4/5" />
               </div>
             ) : historicalData.length > 0 ? (
               <div className="space-y-2 text-sm">
@@ -331,9 +331,9 @@ export function HistoricalAnalysis({
             <h3 className="font-medium text-sm mb-2">Tendência</h3>
             {loading ? (
               <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-4/5" />
-                <Skeleton className="h-4 w-3/4" />
+                <Skeleton as="span" className="h-4 w-full" />
+                <Skeleton as="span" className="h-4 w-4/5" />
+                <Skeleton as="span" className="h-4 w-3/4" />
               </div>
             ) : historicalData.length > 0 ? (
               <div className="space-y-4">

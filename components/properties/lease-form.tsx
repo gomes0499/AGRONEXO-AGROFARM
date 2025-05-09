@@ -6,9 +6,24 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
-import { Lease, LeaseFormValues, leaseFormSchema, Property } from "@/schemas/properties";
-import { createLease, updateLease, getProperties, getPropertyById } from "@/lib/actions/property-actions";
-import { formatCurrency, formatArea, formatSacas, parseFormattedNumber } from "@/lib/utils/formatters";
+import {
+  Lease,
+  LeaseFormValues,
+  leaseFormSchema,
+  Property,
+} from "@/schemas/properties";
+import {
+  createLease,
+  updateLease,
+  getProperties,
+  getPropertyById,
+} from "@/lib/actions/property-actions";
+import {
+  formatCurrency,
+  formatArea,
+  formatSacas,
+  parseFormattedNumber,
+} from "@/lib/utils/formatters";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,27 +56,32 @@ interface LeaseFormProps {
   propertyId: string;
 }
 
-export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps) {
+export function LeaseForm({
+  lease,
+  organizationId,
+  propertyId,
+}: LeaseFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(
+    null
+  );
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
   const isEditing = !!lease?.id;
 
   // Determinar o ano atual e próximos 10 anos para projeção de custos
   const currentYear = new Date().getFullYear();
-  const projectionYears = Array.from(
-    { length: 11 }, 
-    (_, i) => (currentYear + i).toString()
+  const projectionYears = Array.from({ length: 11 }, (_, i) =>
+    (currentYear + i).toString()
   );
 
   // Converter o objeto JSONB de custos para objeto JavaScript
-  const defaultCustos = isEditing 
-    ? (typeof lease.custos_projetados_anuais === 'string' 
-        ? JSON.parse(lease.custos_projetados_anuais) 
-        : lease.custos_projetados_anuais)
-    : projectionYears.reduce((acc, year) => ({...acc, [year]: 0}), {});
+  const defaultCustos = isEditing
+    ? typeof lease.custos_projetados_anuais === "string"
+      ? JSON.parse(lease.custos_projetados_anuais)
+      : lease.custos_projetados_anuais
+    : projectionYears.reduce((acc, year) => ({ ...acc, [year]: 0 }), {});
 
   const form = useForm<LeaseFormValues>({
     resolver: zodResolver(leaseFormSchema),
@@ -72,8 +92,12 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
       area_arrendada: lease?.area_arrendada || 0,
       nome_fazenda: lease?.nome_fazenda || "",
       arrendantes: lease?.arrendantes || "",
-      data_inicio: lease?.data_inicio ? new Date(lease.data_inicio) : new Date(),
-      data_termino: lease?.data_termino ? new Date(lease.data_termino) : new Date(new Date().setFullYear(new Date().getFullYear() + 5)),
+      data_inicio: lease?.data_inicio
+        ? new Date(lease.data_inicio)
+        : new Date(),
+      data_termino: lease?.data_termino
+        ? new Date(lease.data_termino)
+        : new Date(new Date().setFullYear(new Date().getFullYear() + 5)),
       custo_hectare: lease?.custo_hectare || 0,
       custo_ano: lease?.custo_ano || 0,
       custos_projetados_anuais: defaultCustos,
@@ -104,12 +128,12 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
   const calculateAnnualCost = () => {
     const area = form.getValues("area_arrendada");
     const costPerHectare = form.getValues("custo_hectare");
-    
+
     if (area && costPerHectare) {
       form.setValue("custo_ano", area * costPerHectare);
     }
   };
-  
+
   // Buscar a lista de propriedades para o dropdown
   useEffect(() => {
     const fetchProperties = async () => {
@@ -117,20 +141,22 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
         setIsLoadingProperties(true);
         const propertiesList = await getProperties(organizationId);
         setProperties(propertiesList);
-        
+
         // Se for edição, use a propriedade atual
         if (isEditing && propertyId) {
-          const currentProperty = propertiesList.find(p => p.id === propertyId);
+          const currentProperty = propertiesList.find(
+            (p) => p.id === propertyId
+          );
           if (currentProperty) {
             setSelectedProperty(currentProperty);
           }
-        } 
+        }
         // Se for criação com propertyId pré-definido
         else if (propertyId) {
           try {
             const property = await getPropertyById(propertyId);
             setSelectedProperty(property);
-            
+
             // Preencher automaticamente os campos relacionados à propriedade
             form.setValue("area_fazenda", property.area_total);
             form.setValue("nome_fazenda", property.nome);
@@ -153,17 +179,17 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
   useEffect(() => {
     calculateAnnualCost();
   }, [form.watch("area_arrendada"), form.watch("custo_hectare")]);
-  
+
   // Função para atualizar a propriedade selecionada
   const handlePropertyChange = async (value: string) => {
     if (!value) return;
-    
+
     form.setValue("propriedade_id", value);
-    
+
     try {
       const property = await getPropertyById(value);
       setSelectedProperty(property);
-      
+
       // Preencher automaticamente os campos relacionados à propriedade
       form.setValue("area_fazenda", property.area_total);
       form.setValue("nome_fazenda", property.nome);
@@ -174,20 +200,6 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/dashboard/properties/${propertyId}`}>
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Voltar
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isEditing ? `Editar Arrendamento` : "Novo Arrendamento"}
-          </h1>
-        </div>
-      </div>
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Card>
@@ -206,23 +218,34 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                       <Select
                         value={field.value}
                         onValueChange={handlePropertyChange}
-                        disabled={isEditing || isLoadingProperties || !!propertyId}
+                        disabled={
+                          isEditing || isLoadingProperties || !!propertyId
+                        }
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={isLoadingProperties ? "Carregando..." : "Selecione uma propriedade"} />
+                            <SelectValue
+                              placeholder={
+                                isLoadingProperties
+                                  ? "Carregando..."
+                                  : "Selecione uma propriedade"
+                              }
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {properties.map(property => (
+                          {properties.map((property) => (
                             <SelectItem key={property.id} value={property.id}>
-                              {property.nome} ({property.cidade}/{property.estado})
+                              {property.nome} ({property.cidade}/
+                              {property.estado})
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        {selectedProperty ? `Área total: ${selectedProperty.area_total} ha` : 'Escolha a propriedade para o arrendamento'}
+                        {selectedProperty
+                          ? `Área total: ${selectedProperty.area_total} ha`
+                          : "Escolha a propriedade para o arrendamento"}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -236,7 +259,10 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                     <FormItem>
                       <FormLabel>Número do Contrato</FormLabel>
                       <FormControl>
-                        <Input placeholder="Número ou identificação do contrato" {...field} />
+                        <Input
+                          placeholder="Número ou identificação do contrato"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -252,9 +278,14 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                     <FormItem>
                       <FormLabel>Nome da Fazenda</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nome da fazenda arrendada" {...field} />
+                        <Input
+                          placeholder="Nome da fazenda arrendada"
+                          {...field}
+                        />
                       </FormControl>
-                      <FormDescription>Preenchido automaticamente ao selecionar a propriedade</FormDescription>
+                      <FormDescription>
+                        Preenchido automaticamente ao selecionar a propriedade
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -268,8 +299,8 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                   <FormItem>
                     <FormLabel>Arrendantes</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Nome dos arrendantes/proprietários" 
+                      <Textarea
+                        placeholder="Nome dos arrendantes/proprietários"
                         {...field}
                         className="resize-none"
                       />
@@ -286,10 +317,7 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Data de Início</FormLabel>
-                      <DatePicker
-                        date={field.value}
-                        setDate={field.onChange}
-                      />
+                      <DatePicker date={field.value} setDate={field.onChange} />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -301,10 +329,7 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Data de Término</FormLabel>
-                      <DatePicker
-                        date={field.value}
-                        setDate={field.onChange}
-                      />
+                      <DatePicker date={field.value} setDate={field.onChange} />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -338,7 +363,9 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                           disabled={true} // Somente leitura, preenchido automaticamente
                         />
                       </FormControl>
-                      <FormDescription>Em hectares (preenchido automaticamente)</FormDescription>
+                      <FormDescription>
+                        Em hectares (preenchido automaticamente)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -357,9 +384,13 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                           {...field}
                           onChange={(e) => {
                             // Limpa a formatação e pega apenas números e vírgulas
-                            const cleanValue = e.target.value.replace(/[^\d.,]/g, '');
+                            const cleanValue = e.target.value.replace(
+                              /[^\d.,]/g,
+                              ""
+                            );
                             // Converte para número para armazenar no form
-                            const numericValue = parseFormattedNumber(cleanValue);
+                            const numericValue =
+                              parseFormattedNumber(cleanValue);
                             field.onChange(numericValue);
                             // Atualizar o custo anual após mudar a área
                             setTimeout(() => calculateAnnualCost(), 0);
@@ -406,9 +437,13 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                           {...field}
                           onChange={(e) => {
                             // Limpa a formatação e pega apenas números e vírgulas
-                            const cleanValue = e.target.value.replace(/[^\d.,]/g, '');
+                            const cleanValue = e.target.value.replace(
+                              /[^\d.,]/g,
+                              ""
+                            );
                             // Converte para número para armazenar no form
-                            const numericValue = parseFormattedNumber(cleanValue);
+                            const numericValue =
+                              parseFormattedNumber(cleanValue);
                             field.onChange(numericValue);
                             // Atualizar o custo anual após mudar o custo por hectare
                             setTimeout(() => calculateAnnualCost(), 0);
@@ -459,7 +494,9 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                           disabled={true} // Somente leitura, calculado automaticamente
                         />
                       </FormControl>
-                      <FormDescription>Custo total anual em sacas (calculado automaticamente)</FormDescription>
+                      <FormDescription>
+                        Custo total anual em sacas (calculado automaticamente)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -469,7 +506,9 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
               <Separator className="my-4" />
 
               <div>
-                <h3 className="text-sm font-medium mb-3">Projeção de Custos Anuais</h3>
+                <h3 className="text-sm font-medium mb-3">
+                  Projeção de Custos Anuais
+                </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {projectionYears.map((year) => (
                     <FormField
@@ -485,18 +524,29 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                               placeholder={`Sacas para ${year}`}
                               onChange={(e) => {
                                 // Limpa a formatação e pega apenas números e vírgulas
-                                const cleanValue = e.target.value.replace(/[^\d.,]/g, '');
+                                const cleanValue = e.target.value.replace(
+                                  /[^\d.,]/g,
+                                  ""
+                                );
                                 // Converte para número para armazenar no form
-                                const numericValue = parseFormattedNumber(cleanValue);
-                                
+                                const numericValue =
+                                  parseFormattedNumber(cleanValue);
+
                                 // Atualiza o valor no objeto de custos projetados
-                                const custos = { ...form.getValues("custos_projetados_anuais") };
+                                const custos = {
+                                  ...form.getValues("custos_projetados_anuais"),
+                                };
                                 custos[year] = numericValue ?? 0;
-                                form.setValue("custos_projetados_anuais", custos);
+                                form.setValue(
+                                  "custos_projetados_anuais",
+                                  custos
+                                );
                               }}
                               onBlur={(e) => {
                                 // Se tiver um valor, formata ele ao sair do campo
-                                const custos = form.getValues("custos_projetados_anuais");
+                                const custos = form.getValues(
+                                  "custos_projetados_anuais"
+                                );
                                 const value = custos[year];
                                 if (value !== null && value !== undefined) {
                                   const formattedValue = formatSacas(value);
@@ -505,14 +555,17 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
                               }}
                               onFocus={(e) => {
                                 // Quando ganhar foco, mostra apenas o número sem formatação
-                                const custos = form.getValues("custos_projetados_anuais");
+                                const custos = form.getValues(
+                                  "custos_projetados_anuais"
+                                );
                                 const value = custos[year];
                                 if (value !== null && value !== undefined) {
                                   e.target.value = value.toString();
                                 }
                               }}
                               value={
-                                field.value !== undefined && field.value !== null
+                                field.value !== undefined &&
+                                field.value !== null
                                   ? formatSacas(field.value)
                                   : ""
                               }
@@ -536,11 +589,10 @@ export function LeaseForm({ lease, organizationId, propertyId }: LeaseFormProps)
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {isEditing ? "Atualizar Arrendamento" : "Criar Arrendamento"}
             </Button>
           </div>

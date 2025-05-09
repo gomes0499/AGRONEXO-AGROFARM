@@ -96,3 +96,60 @@ export function formatPhone(phone: string | null | undefined): string {
     );
   }
 }
+
+
+/**
+ * Formata um número para exibição com sufixos K, M, B
+ * Ex: 1234 -> 1.23K, 1234567 -> 1.23M, 1234567890 -> 1.23B
+ */
+export function formatCompactNumber(value: number): string {
+  if (value === 0) return "0"
+
+  const suffixes = ["", "K", "M", "B", "T"]
+  const suffixNum = Math.floor(Math.log10(Math.abs(value)) / 3)
+
+  let shortValue = value / Math.pow(10, suffixNum * 3)
+
+  // Se o valor for menor que 1000, mantém 2 casas decimais
+  // Se for maior, mantém apenas 1 casa decimal para valores como 1.2K
+  const precision = suffixNum === 0 ? 2 : 1
+
+  // Remove zeros à direita e o ponto decimal se for um número inteiro
+  shortValue = Number.parseFloat(shortValue.toFixed(precision))
+
+  return shortValue.toLocaleString("pt-BR") + suffixes[suffixNum]
+}
+
+/**
+ * Formata um valor monetário para exibição com sufixos K, M, B
+ * Ex: 1234 -> R$ 1.23K, 1234567 -> R$ 1.23M, 1234567890 -> R$ 1.23B
+ */
+export function formatCompactCurrency(value: number): string {
+  return "R$ " + formatCompactNumber(value)
+}
+
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+/**
+ * Formata uma porcentagem para exibição
+ * Ex: 12.34 -> 12,3%
+ */
+export function formatPercentage(value: number): string {
+  // Divide por 100 para converter de valor absoluto para valor percentual
+  // quando usando style: "percent" o valor já é multiplicado por 100
+  const percentValue = value / 100
+
+  // Formata com 1 casa decimal
+  return percentValue.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+    style: "percent",
+    useGrouping: true,
+  })
+}

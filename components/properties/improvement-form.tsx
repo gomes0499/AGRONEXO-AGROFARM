@@ -6,8 +6,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
-import { Improvement, ImprovementFormValues, improvementFormSchema } from "@/schemas/properties";
-import { createImprovement, updateImprovement } from "@/lib/actions/property-actions";
+import {
+  type Improvement,
+  type ImprovementFormValues,
+  improvementFormSchema,
+} from "@/schemas/properties";
+import {
+  createImprovement,
+  updateImprovement,
+} from "@/lib/actions/property-actions";
 import { formatCurrency, parseFormattedNumber } from "@/lib/utils/formatters";
 
 import { Button } from "@/components/ui/button";
@@ -21,9 +28,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -31,9 +36,17 @@ interface ImprovementFormProps {
   improvement?: Improvement;
   organizationId: string;
   propertyId: string;
+  isModal?: boolean;
+  onSuccess?: () => void;
 }
 
-export function ImprovementForm({ improvement, organizationId, propertyId }: ImprovementFormProps) {
+export function ImprovementForm({
+  improvement,
+  organizationId,
+  propertyId,
+  isModal = false,
+  onSuccess,
+}: ImprovementFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditing = !!improvement?.id;
@@ -41,7 +54,7 @@ export function ImprovementForm({ improvement, organizationId, propertyId }: Imp
   const form = useForm<ImprovementFormValues>({
     resolver: zodResolver(improvementFormSchema),
     defaultValues: {
-      propriedade_id: propertyId,
+      propriedade_id: propertyId || "",
       descricao: improvement?.descricao || "",
       dimensoes: improvement?.dimensoes || "",
       valor: improvement?.valor || 0,
@@ -58,8 +71,15 @@ export function ImprovementForm({ improvement, organizationId, propertyId }: Imp
         await createImprovement(organizationId, values);
         toast.success("Benfeitoria criada com sucesso!");
       }
-      router.push(`/dashboard/properties/${propertyId}`);
-      router.refresh();
+
+      // Se estiver em um modal e tiver callback de sucesso, chama ele
+      if (isModal && onSuccess) {
+        onSuccess();
+      } else {
+        // Caso contrário, navega de volta para a página da propriedade
+        router.push(`/dashboard/properties/${propertyId}`);
+        router.refresh();
+      }
     } catch (error) {
       console.error("Erro ao salvar benfeitoria:", error);
       toast.error("Ocorreu um erro ao salvar a benfeitoria.");
@@ -68,22 +88,115 @@ export function ImprovementForm({ improvement, organizationId, propertyId }: Imp
     }
   };
 
+  // Renderização condicional baseada no modo (modal ou página)
+  if (isModal) {
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="descricao"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Descrição</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Ex: Casa sede, galpão, curral, etc."
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Tipo e descrição da benfeitoria
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="dimensoes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Dimensões</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Ex: 200m², 10x15m, etc."
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Tamanho ou dimensões da benfeitoria (opcional)
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="valor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Valor (R$)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="text"
+                    placeholder="Digite o valor da benfeitoria"
+                    {...field}
+                    onChange={(e) => {
+                      // Limpa a formatação e pega apenas números e vírgulas
+                      const cleanValue = e.target.value.replace(/[^\d.,]/g, "");
+                      // Converte para número para armazenar no form
+                      const numericValue = parseFormattedNumber(cleanValue);
+                      field.onChange(numericValue);
+                    }}
+                    onBlur={(e) => {
+                      field.onBlur();
+                      // Se tiver um valor, formata ele ao sair do campo
+                      if (field.value) {
+                        const formattedValue = formatCurrency(field.value);
+                        e.target.value = formattedValue;
+                      }
+                    }}
+                    onFocus={(e) => {
+                      // Quando ganhar foco, mostra apenas o número sem formatação
+                      if (field.value) {
+                        e.target.value = field.value.toString();
+                      }
+                    }}
+                    value={
+                      field.value !== undefined && field.value !== null
+                        ? formatCurrency(field.value)
+                        : ""
+                    }
+                  />
+                </FormControl>
+                <FormDescription>
+                  Valor de mercado ou custo da benfeitoria
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {isEditing ? "Atualizar" : "Salvar"} Benfeitoria
+            </Button>
+          </div>
+        </form>
+      </Form>
+    );
+  }
+
+  // Versão para página completa
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/dashboard/properties/${propertyId}`}>
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Voltar
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isEditing ? `Editar Benfeitoria` : "Nova Benfeitoria"}
-          </h1>
-        </div>
-      </div>
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Card>
@@ -98,7 +211,10 @@ export function ImprovementForm({ improvement, organizationId, propertyId }: Imp
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Casa sede, galpão, curral, etc." {...field} />
+                      <Input
+                        placeholder="Ex: Casa sede, galpão, curral, etc."
+                        {...field}
+                      />
                     </FormControl>
                     <FormDescription>
                       Tipo e descrição da benfeitoria
@@ -115,7 +231,11 @@ export function ImprovementForm({ improvement, organizationId, propertyId }: Imp
                   <FormItem>
                     <FormLabel>Dimensões</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: 200m², 10x15m, etc." {...field} value={field.value || ""} />
+                      <Input
+                        placeholder="Ex: 200m², 10x15m, etc."
+                        {...field}
+                        value={field.value || ""}
+                      />
                     </FormControl>
                     <FormDescription>
                       Tamanho ou dimensões da benfeitoria (opcional)
@@ -138,7 +258,10 @@ export function ImprovementForm({ improvement, organizationId, propertyId }: Imp
                         {...field}
                         onChange={(e) => {
                           // Limpa a formatação e pega apenas números e vírgulas
-                          const cleanValue = e.target.value.replace(/[^\d.,]/g, '');
+                          const cleanValue = e.target.value.replace(
+                            /[^\d.,]/g,
+                            ""
+                          );
                           // Converte para número para armazenar no form
                           const numericValue = parseFormattedNumber(cleanValue);
                           field.onChange(numericValue);
@@ -182,11 +305,10 @@ export function ImprovementForm({ improvement, organizationId, propertyId }: Imp
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {isEditing ? "Atualizar Benfeitoria" : "Criar Benfeitoria"}
             </Button>
           </div>

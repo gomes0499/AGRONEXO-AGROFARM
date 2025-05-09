@@ -6,8 +6,8 @@ import {
   getPropertyStats,
 } from "@/lib/actions/property-actions";
 import { Separator } from "@/components/ui/separator";
-import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { SiteHeader } from "@/components/dashboard/site-header";
 
 export const metadata: Metadata = {
   title: "Propriedades Rurais | SR Consultoria",
@@ -18,34 +18,29 @@ export const metadata: Metadata = {
 export default async function PropertiesPage() {
   const session = await getSession();
 
-  if (!session?.organizationId) {
-    redirect("/dashboard");
-  }
-
-  // Buscar propriedades e estatísticas
   const [properties, stats] = await Promise.all([
-    getProperties(session.organizationId),
-    getPropertyStats(session.organizationId),
+    getProperties(session?.organizationId),
+    getPropertyStats(session?.organizationId),
   ]);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Propriedades Rurais
-        </h1>
-        <p className="text-muted-foreground">
-          Gerencie suas propriedades rurais, arrendamentos e benfeitorias.
-        </p>
+    <>
+      <SiteHeader title="Propriedades Rurais" />
+      <div className="flex flex-col gap-6 p-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Propriedades Rurais
+          </h1>
+          <p className="text-muted-foreground">
+            Gerencie suas propriedades rurais, arrendamentos e benfeitorias.
+          </p>
+        </div>
+        <Separator />
+        <PropertyStats stats={stats} />
+        <div className="mt-4">
+          <PropertyList properties={properties} />
+        </div>
       </div>
-
-      <Separator />
-
-      <PropertyStats stats={stats} />
-
-      <div className="mt-4">
-        <PropertyList properties={properties} />
-      </div>
-    </div>
+    </>
   );
 }

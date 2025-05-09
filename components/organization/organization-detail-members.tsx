@@ -1,5 +1,18 @@
 "use client";
 
+import { useState } from "react";
+import {
+  UserPlus,
+  Search,
+  Filter,
+  Calendar,
+  Clock,
+  UserCircle2,
+} from "lucide-react";
+import { UserRole } from "@/lib/auth/roles";
+import { MemberActions } from "./member-actions";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,12 +20,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Link from "next/link";
-import { UserPlus } from "lucide-react";
-import { UserRole } from "@/lib/auth/roles";
-import { MemberActions } from "./member-actions";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -21,6 +28,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { InviteDialog } from "@/components/organization/invite-dialog";
 
 interface Member {
   id: string;
@@ -41,19 +60,28 @@ interface Member {
 type OrganizationDetailMembersProps = {
   members: Member[];
   organizationId: string;
+  organizationName?: string;
 };
 
 export function OrganizationDetailMembers({
   members,
   organizationId,
+  organizationName,
 }: OrganizationDetailMembersProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string | null>(null);
+
   // Function to get the status badge for last login
   const getLastLoginStatus = (lastLogin?: string) => {
     if (!lastLogin) {
       return (
-        <span className="inline-flex items-center px-2 py-1 text-md rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">
+        <Badge
+          variant="outline"
+          className="bg-yellow-100/50 text-yellow-800 hover:bg-yellow-100/50 dark:bg-yellow-900/40 dark:text-yellow-300 dark:hover:bg-yellow-900/40"
+        >
+          <Clock className="mr-1 h-3 w-3" />
           Nunca acessou
-        </span>
+        </Badge>
       );
     }
 
@@ -64,28 +92,44 @@ export function OrganizationDetailMembers({
 
     if (daysSinceLogin < 1) {
       return (
-        <span className="inline-flex items-center px-2 py-1 text-md rounded-full bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+        <Badge
+          variant="outline"
+          className="bg-green-100/50 text-green-800 hover:bg-green-100/50 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/40"
+        >
+          <Clock className="mr-1 h-3 w-3" />
           Hoje
-        </span>
+        </Badge>
       );
     } else if (daysSinceLogin < 7) {
       return (
-        <span className="inline-flex items-center px-2 py-1 text-md rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+        <Badge
+          variant="outline"
+          className="bg-blue-100/50 text-blue-800 hover:bg-blue-100/50 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/40"
+        >
+          <Calendar className="mr-1 h-3 w-3" />
           {daysSinceLogin} {daysSinceLogin === 1 ? "dia" : "dias"} atrás
-        </span>
+        </Badge>
       );
     } else if (daysSinceLogin < 30) {
       return (
-        <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+        <Badge
+          variant="outline"
+          className="bg-purple-100/50 text-purple-800 hover:bg-purple-100/50 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/40"
+        >
+          <Calendar className="mr-1 h-3 w-3" />
           {Math.floor(daysSinceLogin / 7)}{" "}
           {Math.floor(daysSinceLogin / 7) === 1 ? "semana" : "semanas"} atrás
-        </span>
+        </Badge>
       );
     } else {
       return (
-        <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
+        <Badge
+          variant="outline"
+          className="bg-gray-100/50 text-gray-800 hover:bg-gray-100/50 dark:bg-gray-800/80 dark:text-gray-300 dark:hover:bg-gray-800/80"
+        >
+          <Calendar className="mr-1 h-3 w-3" />
           {new Date(lastLogin).toLocaleDateString()}
-        </span>
+        </Badge>
       );
     }
   };
@@ -135,78 +179,215 @@ export function OrganizationDetailMembers({
     }
   };
 
+  // Function to get role badge
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case UserRole.PROPRIETARIO:
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60"
+          >
+            {getRoleDisplayName(role)}
+          </Badge>
+        );
+      case UserRole.ADMINISTRADOR:
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/60"
+          >
+            {getRoleDisplayName(role)}
+          </Badge>
+        );
+      default:
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            {getRoleDisplayName(role)}
+          </Badge>
+        );
+    }
+  };
+
+  // Filter members based on search query and role filter
+  const filteredMembers = members.filter((member) => {
+    const matchesSearch =
+      !searchQuery ||
+      member.user?.nome?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.user?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesRole = !roleFilter || member.funcao === roleFilter;
+
+    return matchesSearch && matchesRole;
+  });
+
+  // Get unique roles for filter
+  const uniqueRoles = Array.from(
+    new Set(members.map((member) => member.funcao))
+  );
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <div>
-          <CardTitle>Membros</CardTitle>
-          <CardDescription>Pessoas com acesso à organização</CardDescription>
+    <Card className="shadow-sm border-muted/80">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <div className="flex items-center gap-2">
+          <UserCircle2 className="h-5 w-5 text-primary" />
+          <div>
+            <CardTitle>Membros</CardTitle>
+            <CardDescription>Pessoas com acesso à organização</CardDescription>
+          </div>
         </div>
-        <Button asChild>
-          <Link href={`/dashboard/organization/${organizationId}/invite`}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Convidar
-          </Link>
-        </Button>
+        <InviteDialog
+          organizationId={organizationId}
+          organizationName={organizationName}
+        />
       </CardHeader>
       <CardContent>
         {members && members.length > 0 ? (
-          <div className="border rounded-md overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Função</TableHead>
-                  <TableHead>Último Acesso</TableHead>
-                  <TableHead className="text-center">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {members.map((member: Member) => (
-                  <TableRow key={member.id}>
-                    <TableCell className="flex items-center gap-2">
-                      <Avatar
-                        className={`h-8 w-8 ${getAvatarColor(member.funcao)}`}
+          <>
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Buscar por nome ou email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex gap-2">
+                    <Filter className="h-4 w-4" />
+                    <span>
+                      {roleFilter
+                        ? getRoleDisplayName(roleFilter)
+                        : "Filtrar por função"}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Filtrar por função</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={() => setRoleFilter(null)}>
+                      Todos
+                    </DropdownMenuItem>
+                    {uniqueRoles.map((role) => (
+                      <DropdownMenuItem
+                        key={role}
+                        onClick={() => setRoleFilter(role)}
                       >
-                        <AvatarFallback>{getInitials(member)}</AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium truncate">
-                        {member.user?.nome ||
-                          member.user?.email?.split("@")[0] ||
-                          "Usuário"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground truncate">
-                      {member.user?.email}
-                    </TableCell>
-                    <TableCell>{getRoleDisplayName(member.funcao)}</TableCell>
-                    <TableCell>
-                      {getLastLoginStatus(member.ultimo_login)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <MemberActions
-                        associacaoId={member.id}
-                        organizacaoId={member.organizacao_id}
-                        memberEmail={member.user?.email}
-                        memberName={member.user?.nome || "Usuário"}
-                        memberRole={member.funcao}
-                      />
-                    </TableCell>
+                        {getRoleDisplayName(role)}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead>Nome</TableHead>
+                    <TableHead className="hidden md:table-cell">
+                      Email
+                    </TableHead>
+                    <TableHead>Função</TableHead>
+                    <TableHead className="hidden sm:table-cell">
+                      Último Acesso
+                    </TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredMembers.length > 0 ? (
+                    filteredMembers.map((member: Member) => (
+                      <TableRow key={member.id} className="group">
+                        <TableCell className="flex items-center gap-2">
+                          <Avatar
+                            className={`h-8 w-8 ${getAvatarColor(
+                              member.funcao
+                            )} transition-transform group-hover:scale-110`}
+                          >
+                            <AvatarFallback>
+                              {getInitials(member)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <span className="font-medium truncate">
+                              {member.user?.nome ||
+                                member.user?.email?.split("@")[0] ||
+                                "Usuário"}
+                            </span>
+                            <span className="text-xs text-muted-foreground md:hidden truncate">
+                              {member.user?.email}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground truncate hidden md:table-cell">
+                          {member.user?.email}
+                        </TableCell>
+                        <TableCell>{getRoleBadge(member.funcao)}</TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {getLastLoginStatus(member.ultimo_login)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <MemberActions
+                            associacaoId={member.id}
+                            organizacaoId={member.organizacao_id}
+                            memberEmail={member.user?.email}
+                            memberName={member.user?.nome || "Usuário"}
+                            memberRole={member.funcao}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center">
+                        Nenhum resultado encontrado.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="mt-3 text-sm text-muted-foreground">
+              {filteredMembers.length}{" "}
+              {filteredMembers.length === 1 ? "membro" : "membros"}
+              {roleFilter
+                ? ` com função ${getRoleDisplayName(roleFilter)}`
+                : ""}
+            </div>
+          </>
         ) : (
           <div className="py-12 text-center text-muted-foreground flex flex-col items-center justify-center space-y-3">
-            <p>Nenhum membro encontrado além de você</p>
-            <Button asChild>
-              <Link href={`/dashboard/organization/${organizationId}/invite`}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Convidar Membros
-              </Link>
-            </Button>
+            <div className="bg-muted/50 p-4 rounded-full">
+              <UserCircle2 className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-lg font-medium">
+                Nenhum membro encontrado além de você
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Convide pessoas para colaborar na sua organização
+              </p>
+            </div>
+            <InviteDialog
+              organizationId={organizationId}
+              organizationName={organizationName}
+              trigger={
+                <Button>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Convidar Membros
+                </Button>
+              }
+            />
           </div>
         )}
       </CardContent>

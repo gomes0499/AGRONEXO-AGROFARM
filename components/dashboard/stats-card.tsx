@@ -1,104 +1,85 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import dynamic from "next/dynamic";
 import {
-  AreaChart,
-  CircleDollarSign,
-  Leaf,
-  Shell,
+  ArrowDown,
+  ArrowUp,
   BarChart,
-  PieChart,
-  LineChart,
   Building2,
-  Blocks,
-  Activity,
-  TrendingUp,
-  DollarSign,
-  HelpCircle,
+  LineChart,
+  Map,
 } from "lucide-react";
-import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-
-// Mapeamento de nomes de ícones para componentes
-const iconMap = {
-  AreaChart,
-  CircleDollarSign,
-  Leaf,
-  Shell,
-  BarChart,
-  PieChart,
-  LineChart,
-  Building2,
-  Blocks,
-  Activity,
-  TrendingUp,
-  DollarSign,
-  HelpCircle,
-};
-
-// Criando um tipo para os nomes dos ícones disponíveis
-type IconName = keyof typeof iconMap;
 
 interface StatsCardProps {
   title: string;
-  value: string | number;
+  value: string;
   description?: string;
-  // Podemos aceitar tanto o nome do ícone como string quanto o próprio componente
-  icon: IconName | React.ComponentType<{ className?: string }>;
-  iconColor?: string;
   trend?: {
     value: number;
     label: string;
-    positive?: boolean;
+    positive: boolean;
   };
-  className?: string;
+  iconName?: string;
+  iconColor?: string;
 }
 
 export function StatsCard({
   title,
   value,
   description,
-  icon,
-  iconColor = "text-indigo-500",
   trend,
-  className,
+  iconName,
+  iconColor,
 }: StatsCardProps) {
-  // Componente de ícone a ser renderizado
-  let IconComponent: React.ComponentType<{ className?: string }>;
-
-  // Se o ícone for uma string, buscar no mapa de ícones
-  if (typeof icon === "string") {
-    IconComponent = iconMap[icon as IconName] || HelpCircle;
-  } else {
-    // Se for um componente, usar diretamente
-    IconComponent = icon;
-  }
+  // Função para renderizar o ícone baseado no nome
+  const renderIcon = () => {
+    switch (iconName) {
+      case "Map":
+        return <Map className={cn("h-5 w-5", iconColor)} />;
+      case "Building2":
+        return <Building2 className={cn("h-5 w-5", iconColor)} />;
+      case "LineChart":
+        return <LineChart className={cn("h-5 w-5", iconColor)} />;
+      case "BarChart":
+        return <BarChart className={cn("h-5 w-5", iconColor)} />;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <Card className={cn("relative overflow-hidden", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <IconComponent className={cn("h-5 w-5", iconColor)} />
+        {iconName && (
+          <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
+            {renderIcon()}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
-        )}
-        {trend && (
-          <div className="flex items-center text-xs mt-1">
-            <span
+        <div className="flex items-center justify-between">
+          {description && (
+            <p className="text-xs text-muted-foreground">{description}</p>
+          )}
+          {trend && (
+            <div
               className={cn(
-                "mr-1 flex items-center",
+                "flex items-center text-xs",
                 trend.positive ? "text-green-500" : "text-red-500"
               )}
             >
-              {trend.positive ? "↑" : "↓"} {Math.abs(trend.value)}%
-            </span>
-            <span className="text-muted-foreground">{trend.label}</span>
-          </div>
-        )}
+              {trend.positive ? (
+                <ArrowUp className="mr-1 h-3 w-3" />
+              ) : (
+                <ArrowDown className="mr-1 h-3 w-3" />
+              )}
+              <span>{trend.label}</span>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

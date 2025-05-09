@@ -1,6 +1,5 @@
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { UserRole } from "@/lib/auth/roles";
@@ -186,23 +185,19 @@ export default async function ManageOrganizationPage({
 
   return (
     <div className="flex flex-col">
-      <SiteHeader title={`Gerenciar ${organization.nome}`} />
-      <div className="flex justify-between items-center p-6 pb-0">
-        <h1 className="text-3xl font-bold tracking-tight">
+      <SiteHeader
+        title={`Gerenciar ${organization.nome}`}
+        showBackButton={true}
+        backUrl="/dashboard/organization"
+      />
+
+      <div className="container mx-auto p-6">
+        <h1 className="text-3xl font-semibold tracking-tight mb-6">
           {organization.nome}
         </h1>
-        <div className="flex space-x-2">
-          <Link
-            href="/dashboard/organization"
-            className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            Voltar
-          </Link>
-        </div>
-      </div>
-      <main className="flex-1 p-6 pt-4">
-        <Tabs defaultValue={searchParams.tab || "info"}>
-          <TabsList className="mb-6">
+
+        <Tabs defaultValue={searchParams.tab || "info"} className="">
+          <TabsList>
             <TabsTrigger value="info">Informações</TabsTrigger>
             <TabsTrigger value="members">
               Membros ({members?.length || 0})
@@ -213,29 +208,34 @@ export default async function ManageOrganizationPage({
             <TabsTrigger value="edit">Editar Organização</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="info" className="space-y-6">
+          <TabsContent value="info" className="mt-0 pt-2">
             <OrganizationDetailInfo organization={organization} />
           </TabsContent>
 
-          <TabsContent value="members" className="space-y-6">
+          <TabsContent value="members" className="mt-0 pt-2">
             <OrganizationDetailMembers
               members={members}
               organizationId={params.id}
+              organizationName={organization.nome}
             />
           </TabsContent>
 
-          <TabsContent value="invites" className="space-y-6">
-            <OrganizationDetailInvites invites={invites || []} />
+          <TabsContent value="invites" className="mt-0 pt-2">
+            <OrganizationDetailInvites
+              invites={invites || []}
+              organizationId={params.id}
+              organizationName={organization.nome}
+            />
           </TabsContent>
 
-          <TabsContent value="edit" className="space-y-6">
+          <TabsContent value="edit" className="mt-0 pt-2">
             <OrganizationDetailEdit
               userId={user.id}
               organization={organization}
             />
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
     </div>
   );
 }

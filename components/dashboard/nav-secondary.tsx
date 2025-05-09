@@ -30,13 +30,16 @@ export function NavSecondary({
     if (pathname === url) {
       return true;
     }
-    
+
     // If pathname starts with url and the next character is a slash or nothing, it's active
     // This handles nested routes correctly
-    if (pathname.startsWith(url) && (pathname.length === url.length || pathname.charAt(url.length) === '/')) {
+    if (
+      pathname.startsWith(url) &&
+      (pathname.length === url.length || pathname.charAt(url.length) === "/")
+    ) {
       return true;
     }
-    
+
     return false;
   };
 
@@ -46,17 +49,19 @@ export function NavSecondary({
         <SidebarMenu>
           {items.map((item) => {
             const active = isActive(item.url);
-            
+
             return (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
+                <SidebarMenuButton
                   asChild
                   className={active ? "bg-primary/10 dark:bg-primary/20" : ""}
                   data-active={active}
                 >
                   <Link href={item.url}>
                     <item.icon className={active ? "text-primary" : ""} />
-                    <span className={active ? "font-medium text-primary" : ""}>{item.title}</span>
+                    <span className={active ? "font-medium text-primary" : ""}>
+                      {item.title}
+                    </span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

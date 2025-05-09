@@ -80,7 +80,7 @@ export default async function ProductionCostsPage() {
   })).sort((a, b) => b.value - a.value);
   
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Custos de Produção</h1>

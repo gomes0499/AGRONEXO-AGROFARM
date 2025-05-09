@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,17 +18,24 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
-  DrawerFooter,
-  DrawerClose,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Culture, System, Harvest } from "@/schemas/production";
+import { cn } from "@/lib/utils";
+import type {
+  Culture,
+  System,
+  Harvest,
+  ProductionCost,
+} from "@/schemas/production";
 
 interface NewProductionCostButtonProps {
   cultures: Culture[];
   systems: System[];
   harvests: Harvest[];
   organizationId: string;
+  className?: string;
+  variant?: "default" | "outline" | "secondary" | "ghost";
+  size?: "default" | "sm" | "lg" | "icon";
 }
 
 export function NewProductionCostButton({
@@ -36,37 +43,45 @@ export function NewProductionCostButton({
   systems,
   harvests,
   organizationId,
+  className,
+  variant = "default",
+  size = "default",
 }: NewProductionCostButtonProps) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const isMobile = useIsMobile();
 
-  const handleSuccess = () => {
+  const handleSuccess = (cost: ProductionCost) => {
     setIsOpen(false);
-    toast.success("Registro de custo criado com sucesso!");
   };
 
   if (isMobile) {
     return (
       <>
-        <Button onClick={() => setIsOpen(true)}>
+        <Button
+          onClick={() => setIsOpen(true)}
+          className={cn("transition-all hover:scale-105", className)}
+          variant={variant}
+          size={size}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Novo Custo
         </Button>
 
-        <Drawer 
-          open={isOpen} 
-          onOpenChange={setIsOpen}
-          direction="right"
-        >
-          <DrawerContent className="h-full max-h-none">
-            <DrawerHeader className="text-left">
-              <DrawerTitle>Novo Custo</DrawerTitle>
-              <DrawerDescription>
+        <Drawer open={isOpen} onOpenChange={setIsOpen}>
+          <DrawerContent className="h-[90%] max-h-none rounded-t-xl">
+            <DrawerHeader className="text-left border-b pb-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+                <DrawerTitle className="text-xl font-semibold">
+                  Novo Custo
+                </DrawerTitle>
+              </div>
+              <DrawerDescription className="text-muted-foreground mt-1">
                 Cadastre um novo registro de custo para uma cultura, sistema e
                 safra.
               </DrawerDescription>
             </DrawerHeader>
-            <div className="px-4 overflow-y-auto flex-1">
+            <div className="px-4 py-2 overflow-y-auto flex-1">
               <ProductionCostForm
                 cultures={cultures}
                 systems={systems}
@@ -76,11 +91,6 @@ export function NewProductionCostButton({
                 onCancel={() => setIsOpen(false)}
               />
             </div>
-            <DrawerFooter className="pt-2">
-              <DrawerClose asChild>
-                <Button variant="outline">Cancelar</Button>
-              </DrawerClose>
-            </DrawerFooter>
           </DrawerContent>
         </Drawer>
       </>
@@ -89,28 +99,40 @@ export function NewProductionCostButton({
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)}>
+      <Button
+        onClick={() => setIsOpen(true)}
+        className={cn(className)}
+        variant={variant}
+        size={size}
+      >
         <Plus className="h-4 w-4 mr-2" />
         Novo Custo
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Novo Custo</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-2">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <DialogTitle className="text-xl font-semibold">
+                Novo Custo
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-muted-foreground mt-1">
               Cadastre um novo registro de custo para uma cultura, sistema e
               safra.
             </DialogDescription>
           </DialogHeader>
-          <ProductionCostForm
-            cultures={cultures}
-            systems={systems}
-            harvests={harvests}
-            organizationId={organizationId}
-            onSuccess={handleSuccess}
-            onCancel={() => setIsOpen(false)}
-          />
+          <div className="px-6 py-2 max-h-[60vh] overflow-y-auto">
+            <ProductionCostForm
+              cultures={cultures}
+              systems={systems}
+              harvests={harvests}
+              organizationId={organizationId}
+              onSuccess={handleSuccess}
+              onCancel={() => setIsOpen(false)}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </>

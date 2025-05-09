@@ -68,7 +68,7 @@ export const data = {
     },
     {
       title: "Suporte",
-      url: "/dashboard/suporte",
+      url: "/dashboard/support",
       icon: HelpCircleIcon,
     },
  

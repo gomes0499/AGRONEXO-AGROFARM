@@ -388,9 +388,9 @@ export function SeasonalityAnalysis({
                 <h3 className="font-medium text-sm mb-2">Análise Mensal</h3>
                 {loading ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-4/5" />
-                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton as="span" className="h-4 w-full" />
+                    <Skeleton as="span" className="h-4 w-4/5" />
+                    <Skeleton as="span" className="h-4 w-3/4" />
                   </div>
                 ) : monthlyData.length > 0 ? (
                   <div className="text-sm text-muted-foreground space-y-2">
@@ -452,9 +452,9 @@ export function SeasonalityAnalysis({
                 <h3 className="font-medium text-sm mb-2">Análise Anual</h3>
                 {loading ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-4/5" />
-                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton as="span" className="h-4 w-full" />
+                    <Skeleton as="span" className="h-4 w-4/5" />
+                    <Skeleton as="span" className="h-4 w-3/4" />
                   </div>
                 ) : yearlyData.length > 0 ? (
                   <div className="text-sm text-muted-foreground space-y-2">

@@ -3,6 +3,8 @@ import { PropertyForm } from "@/components/properties/property-form";
 import { getPropertyById } from "@/lib/actions/property-actions";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { SiteHeader } from "@/components/dashboard/site-header";
+import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
   title: "Editar Propriedade | SR Consultoria",
@@ -31,12 +33,27 @@ export default async function EditPropertyPage({ params }: EditPropertyPageProps
     }
     
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <PropertyForm 
-          property={property} 
-          organizationId={session.organizationId} 
+      <>
+        <SiteHeader 
+          title="Editar Propriedade" 
+          showBackButton 
+          backUrl={`/dashboard/properties/${params.id}`} 
+          backLabel="Voltar para Detalhes"
         />
-      </div>
+        <div className="flex flex-col gap-6 p-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Editar Propriedade</h1>
+            <p className="text-muted-foreground">
+              Atualize as informações da propriedade {property.nome}.
+            </p>
+          </div>
+          <Separator />
+          <PropertyForm 
+            property={property} 
+            organizationId={session.organizationId} 
+          />
+        </div>
+      </>
     );
   } catch (error) {
     console.error("Erro ao carregar propriedade:", error);

@@ -23,8 +23,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Culture, CultureFormValues, cultureFormSchema } from "@/schemas/production";
-import { createCulture, updateCulture, deleteCulture } from "@/lib/actions/production-actions";
+import {
+  Culture,
+  CultureFormValues,
+  cultureFormSchema,
+} from "@/schemas/production";
+import {
+  createCulture,
+  updateCulture,
+  deleteCulture,
+} from "@/lib/actions/production-actions";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -51,42 +59,47 @@ interface CulturesTabProps {
   organizationId: string;
 }
 
-export function CulturesTab({ initialCultures, organizationId }: CulturesTabProps) {
+export function CulturesTab({
+  initialCultures,
+  organizationId,
+}: CulturesTabProps) {
   const [cultures, setCultures] = useState<Culture[]>(initialCultures);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingCulture, setEditingCulture] = useState<Culture | null>(null);
-  
+
   const form = useForm<CultureFormValues>({
     resolver: zodResolver(cultureFormSchema),
     defaultValues: {
       nome: "",
     },
   });
-  
+
   // Função para abrir o diálogo de edição
   const handleEdit = (culture: Culture) => {
     setEditingCulture(culture);
     form.reset({ nome: culture.nome });
     setOpenDialog(true);
   };
-  
+
   // Função para abrir o diálogo de criação
   const handleCreate = () => {
     setEditingCulture(null);
     form.reset({ nome: "" });
     setOpenDialog(true);
   };
-  
+
   // Função para salvar (criar ou atualizar)
   const onSubmit = async (values: CultureFormValues) => {
     try {
       setIsSubmitting(true);
-      
+
       if (editingCulture) {
         // Atualizar cultura existente
         const updated = await updateCulture(editingCulture.id!, values);
-        setCultures(cultures.map(c => c.id === editingCulture.id ? updated : c));
+        setCultures(
+          cultures.map((c) => (c.id === editingCulture.id ? updated : c))
+        );
         toast.success("Cultura atualizada com sucesso!");
       } else {
         // Criar nova cultura
@@ -94,7 +107,7 @@ export function CulturesTab({ initialCultures, organizationId }: CulturesTabProp
         setCultures([...cultures, created]);
         toast.success("Cultura criada com sucesso!");
       }
-      
+
       setOpenDialog(false);
     } catch (error) {
       console.error("Erro ao salvar cultura:", error);
@@ -103,19 +116,19 @@ export function CulturesTab({ initialCultures, organizationId }: CulturesTabProp
       setIsSubmitting(false);
     }
   };
-  
+
   // Função para excluir
   const handleDelete = async (id: string) => {
     try {
       await deleteCulture(id);
-      setCultures(cultures.filter(c => c.id !== id));
+      setCultures(cultures.filter((c) => c.id !== id));
       toast.success("Cultura excluída com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir cultura:", error);
       toast.error("Ocorreu um erro ao excluir a cultura.");
     }
   };
-  
+
   return (
     <div className="space-y-4 py-4">
       <div className="flex justify-between items-center">
@@ -125,7 +138,7 @@ export function CulturesTab({ initialCultures, organizationId }: CulturesTabProp
           Nova Cultura
         </Button>
       </div>
-      
+
       {cultures.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
           Nenhuma cultura cadastrada. Clique em "Nova Cultura" para adicionar.
@@ -160,13 +173,14 @@ export function CulturesTab({ initialCultures, organizationId }: CulturesTabProp
                       <AlertDialogHeader>
                         <AlertDialogTitle>Excluir Cultura</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tem certeza que deseja excluir a cultura "{culture.nome}"? Esta ação não pode ser desfeita.
+                          Tem certeza que deseja excluir a cultura "
+                          {culture.nome}"? Esta ação não pode ser desfeita.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground"
+                          className="bg-destructive text-white hover:bg-destructive/90"
                           onClick={() => handleDelete(culture.id!)}
                         >
                           Excluir
@@ -180,7 +194,7 @@ export function CulturesTab({ initialCultures, organizationId }: CulturesTabProp
           </TableBody>
         </Table>
       )}
-      
+
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent>
           <DialogHeader>
@@ -202,7 +216,10 @@ export function CulturesTab({ initialCultures, organizationId }: CulturesTabProp
                   <FormItem>
                     <FormLabel>Nome da Cultura</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Soja, Milho, Algodão" {...field} />
+                      <Input
+                        placeholder="Ex: Soja, Milho, Algodão"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
