@@ -14,6 +14,8 @@ export const propertySchema = z.object({
   cidade: z.string().min(1, "Cidade é obrigatória"),
   estado: z.string().min(2, "Estado é obrigatório").max(2, "Use a sigla do estado (2 caracteres)"),
   numero_matricula: z.string().min(1, "Número da matrícula é obrigatório"),
+  cartorio_registro: z.string().nullable().optional(),
+  numero_car: z.string().nullable().optional(),
   area_total: z.coerce.number().min(0, "Área total deve ser positiva"),
   area_cultivada: z.coerce.number().min(0, "Área cultivada deve ser positiva").nullable(),
   valor_atual: z.coerce.number().min(0, "Valor atual deve ser positivo").nullable(),

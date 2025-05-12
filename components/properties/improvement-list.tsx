@@ -45,7 +45,7 @@ export function ImprovementList({
           <ImprovementListActions
             propertyId={propertyId}
             organizationId={organizationId || ""}
-            useModal={false}
+            useModal={true}
           />
         )}
       </CardHeader>
@@ -88,7 +88,7 @@ export function ImprovementList({
                 <ImprovementListActions
                   propertyId={propertyId}
                   organizationId={organizationId || ""}
-                  useModal={false}
+                  useModal={true}
                 />
               )
             }

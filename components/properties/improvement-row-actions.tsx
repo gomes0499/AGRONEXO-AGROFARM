@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Edit2Icon, Trash2Icon } from "lucide-react";
 import {
@@ -19,6 +18,7 @@ import {
 import { deleteImprovement } from "@/lib/actions/property-actions";
 import { cn } from "@/lib/utils";
 import type { Improvement } from "@/schemas/properties";
+import { ImprovementModal } from "./improvement-modal";
 
 interface ImprovementRowActionsProps {
   improvement: Improvement;
@@ -30,6 +30,7 @@ export function ImprovementRowActions({
   propertyId,
 }: ImprovementRowActionsProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const router = useRouter();
 
   const handleDelete = async (id: string, improvementPropertyId: string) => {
@@ -46,20 +47,35 @@ export function ImprovementRowActions({
     }
   };
 
+  const handleEditSuccess = () => {
+    setShowEditModal(false);
+    router.refresh();
+  };
+
   return (
     <div className="flex justify-end gap-2">
-      <Button variant="outline" size="icon" asChild>
-        <Link
-          href={
-            propertyId
-              ? `/dashboard/properties/${propertyId}/improvements/${improvement.id}/edit`
-              : `/dashboard/properties/${improvement.propriedade_id}/improvements/${improvement.id}/edit`
-          }
-        >
-          <Edit2Icon className="h-4 w-4" />
-          <span className="sr-only">Editar</span>
-        </Link>
+      {/* Edit Modal */}
+      <ImprovementModal
+        propertyId={propertyId || improvement.propriedade_id}
+        organizationId={improvement.organizacao_id}
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        improvement={improvement}
+        onSuccess={handleEditSuccess}
+        isEditing={true}
+      />
+
+      {/* Edit Button */}
+      <Button 
+        variant="outline" 
+        size="icon"
+        onClick={() => setShowEditModal(true)}
+      >
+        <Edit2Icon className="h-4 w-4" />
+        <span className="sr-only">Editar</span>
       </Button>
+
+      {/* Delete Dialog */}
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button

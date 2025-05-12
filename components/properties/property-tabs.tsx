@@ -150,6 +150,7 @@ export function PropertyTabs({
           <ImprovementList
             improvements={improvements}
             propertyId={property.id!}
+            organizationId={property.organizacao_id}
           />
         )}
 

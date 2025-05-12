@@ -7,10 +7,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import {
-  Lease,
-  LeaseFormValues,
+  type Lease,
+  type LeaseFormValues,
   leaseFormSchema,
-  Property,
+  type Property,
 } from "@/schemas/properties";
 import {
   createLease,
@@ -19,7 +19,6 @@ import {
   getPropertyById,
 } from "@/lib/actions/property-actions";
 import {
-  formatCurrency,
   formatArea,
   formatSacas,
   parseFormattedNumber,
@@ -38,10 +37,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/datepicker";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Loader2,
+  FileTextIcon,
+  CalculatorIcon,
+  CalendarIcon,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -49,6 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface LeaseFormProps {
   lease?: Lease;
@@ -68,6 +71,7 @@ export function LeaseForm({
     null
   );
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [activeTab, setActiveTab] = useState("informacoes-contrato");
   const isEditing = !!lease?.id;
 
   // Determinar o ano atual e próximos 10 anos para projeção de custos
@@ -173,7 +177,7 @@ export function LeaseForm({
     };
 
     fetchProperties();
-  }, [organizationId, propertyId, isEditing]);
+  }, [organizationId, propertyId, isEditing, form]);
 
   // Atualiza o custo anual quando a área ou o custo por hectare mudar
   useEffect(() => {
@@ -198,330 +202,245 @@ export function LeaseForm({
     }
   };
 
+  const handleNextTab = () => {
+    setActiveTab("areas-custos");
+  };
+
+  const handlePreviousTab = () => {
+    setActiveTab("informacoes-contrato");
+  };
+
+  const handleThirdTab = () => {
+    setActiveTab("projecao-custos");
+  };
+
   return (
     <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações do Contrato</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Dropdown de Seleção de Propriedade */}
-                <FormField
-                  control={form.control}
-                  name="propriedade_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Propriedade Rural</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={handlePropertyChange}
-                        disabled={
-                          isEditing || isLoadingProperties || !!propertyId
-                        }
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={
-                                isLoadingProperties
-                                  ? "Carregando..."
-                                  : "Selecione uma propriedade"
-                              }
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {properties.map((property) => (
-                            <SelectItem key={property.id} value={property.id}>
-                              {property.nome} ({property.cidade}/
-                              {property.estado})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        {selectedProperty
-                          ? `Área total: ${selectedProperty.area_total} ha`
-                          : "Escolha a propriedade para o arrendamento"}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger
+                value="informacoes-contrato"
+                className="flex items-center gap-2"
+              >
+                <FileTextIcon size={16} />
+                Informações do Contrato
+              </TabsTrigger>
+              <TabsTrigger
+                value="areas-custos"
+                className="flex items-center gap-2"
+              >
+                <CalculatorIcon size={16} />
+                Áreas e Custos
+              </TabsTrigger>
+              <TabsTrigger
+                value="projecao-custos"
+                className="flex items-center gap-2"
+              >
+                <CalendarIcon size={16} />
+                Projeção de Custos
+              </TabsTrigger>
+            </TabsList>
 
-                <FormField
-                  control={form.control}
-                  name="numero_arrendamento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número do Contrato</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Número ou identificação do contrato"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="nome_fazenda"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome da Fazenda</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nome da fazenda arrendada"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Preenchido automaticamente ao selecionar a propriedade
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="arrendantes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Arrendantes</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Nome dos arrendantes/proprietários"
-                        {...field}
-                        className="resize-none"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="data_inicio"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Data de Início</FormLabel>
-                      <DatePicker date={field.value} setDate={field.onChange} />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="data_termino"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Data de Término</FormLabel>
-                      <DatePicker date={field.value} setDate={field.onChange} />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Áreas e Custos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="area_fazenda"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Área Total da Fazenda (ha)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Digite a área total da fazenda"
-                          {...field}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatArea(field.value)
-                              : ""
-                          }
-                          disabled={true} // Somente leitura, preenchido automaticamente
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Em hectares (preenchido automaticamente)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="area_arrendada"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Área Arrendada (ha)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Digite a área arrendada"
-                          {...field}
-                          onChange={(e) => {
-                            // Limpa a formatação e pega apenas números e vírgulas
-                            const cleanValue = e.target.value.replace(
-                              /[^\d.,]/g,
-                              ""
-                            );
-                            // Converte para número para armazenar no form
-                            const numericValue =
-                              parseFormattedNumber(cleanValue);
-                            field.onChange(numericValue);
-                            // Atualizar o custo anual após mudar a área
-                            setTimeout(() => calculateAnnualCost(), 0);
-                          }}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            // Se tiver um valor, formata ele ao sair do campo
-                            if (field.value) {
-                              const formattedValue = formatArea(field.value);
-                              e.target.value = formattedValue;
-                            }
-                          }}
-                          onFocus={(e) => {
-                            // Quando ganhar foco, mostra apenas o número sem formatação
-                            if (field.value) {
-                              e.target.value = field.value.toString();
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatArea(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormDescription>Em hectares</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="custo_hectare"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Custo por Hectare (sacas)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Digite o custo por hectare"
-                          {...field}
-                          onChange={(e) => {
-                            // Limpa a formatação e pega apenas números e vírgulas
-                            const cleanValue = e.target.value.replace(
-                              /[^\d.,]/g,
-                              ""
-                            );
-                            // Converte para número para armazenar no form
-                            const numericValue =
-                              parseFormattedNumber(cleanValue);
-                            field.onChange(numericValue);
-                            // Atualizar o custo anual após mudar o custo por hectare
-                            setTimeout(() => calculateAnnualCost(), 0);
-                          }}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            // Se tiver um valor, formata ele ao sair do campo
-                            if (field.value) {
-                              const formattedValue = formatSacas(field.value);
-                              e.target.value = formattedValue;
-                            }
-                          }}
-                          onFocus={(e) => {
-                            // Quando ganhar foco, mostra apenas o número sem formatação
-                            if (field.value) {
-                              e.target.value = field.value.toString();
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatSacas(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormDescription>Em sacas</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="custo_ano"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Custo Anual (sacas)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Calculado automaticamente"
-                          {...field}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatSacas(field.value)
-                              : ""
-                          }
-                          disabled={true} // Somente leitura, calculado automaticamente
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Custo total anual em sacas (calculado automaticamente)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Separator className="my-4" />
-
-              <div>
-                <h3 className="text-sm font-medium mb-3">
-                  Projeção de Custos Anuais
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {projectionYears.map((year) => (
+            <TabsContent value="informacoes-contrato">
+              <Card>
+                <CardContent className="pt-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Dropdown de Seleção de Propriedade */}
                     <FormField
-                      key={year}
                       control={form.control}
-                      name={`custos_projetados_anuais.${year}`}
+                      name="propriedade_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Ano {year}</FormLabel>
+                          <FormLabel>Propriedade Rural</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={handlePropertyChange}
+                            disabled={
+                              isEditing || isLoadingProperties || !!propertyId
+                            }
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue
+                                  placeholder={
+                                    isLoadingProperties
+                                      ? "Carregando..."
+                                      : "Selecione uma propriedade"
+                                  }
+                                />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {properties.map((property) => (
+                                <SelectItem
+                                  key={property.id}
+                                  value={property.id}
+                                >
+                                  {property.nome} ({property.cidade}/
+                                  {property.estado})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            {selectedProperty
+                              ? `Área total: ${selectedProperty.area_total} ha`
+                              : "Escolha a propriedade para o arrendamento"}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="numero_arrendamento"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Número do Contrato</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Número ou identificação do contrato"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="nome_fazenda"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome da Fazenda</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Nome da fazenda arrendada"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Preenchido automaticamente ao selecionar a
+                            propriedade
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="arrendantes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Arrendantes</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Nome dos arrendantes/proprietários"
+                            {...field}
+                            className="resize-none"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="data_inicio"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Data de Início</FormLabel>
+                          <DatePicker
+                            date={field.value}
+                            setDate={field.onChange}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="data_termino"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Data de Término</FormLabel>
+                          <DatePicker
+                            date={field.value}
+                            setDate={field.onChange}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex justify-end mt-6">
+                    <Button type="button" onClick={handleNextTab}>
+                      Próximo
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="areas-custos">
+              <Card>
+                <CardContent className="pt-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="area_fazenda"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Área Total da Fazenda (ha)</FormLabel>
                           <FormControl>
                             <Input
                               type="text"
-                              placeholder={`Sacas para ${year}`}
+                              placeholder="Digite a área total da fazenda"
+                              {...field}
+                              value={
+                                field.value !== undefined &&
+                                field.value !== null
+                                  ? formatArea(field.value)
+                                  : ""
+                              }
+                              disabled={true} // Somente leitura, preenchido automaticamente
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Em hectares (preenchido automaticamente)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="area_arrendada"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Área Arrendada (ha)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="Digite a área arrendada"
+                              {...field}
                               onChange={(e) => {
                                 // Limpa a formatação e pega apenas números e vírgulas
                                 const cleanValue = e.target.value.replace(
@@ -531,36 +450,80 @@ export function LeaseForm({
                                 // Converte para número para armazenar no form
                                 const numericValue =
                                   parseFormattedNumber(cleanValue);
-
-                                // Atualiza o valor no objeto de custos projetados
-                                const custos = {
-                                  ...form.getValues("custos_projetados_anuais"),
-                                };
-                                custos[year] = numericValue ?? 0;
-                                form.setValue(
-                                  "custos_projetados_anuais",
-                                  custos
-                                );
+                                field.onChange(numericValue);
+                                // Atualizar o custo anual após mudar a área
+                                setTimeout(() => calculateAnnualCost(), 0);
                               }}
                               onBlur={(e) => {
+                                field.onBlur();
                                 // Se tiver um valor, formata ele ao sair do campo
-                                const custos = form.getValues(
-                                  "custos_projetados_anuais"
-                                );
-                                const value = custos[year];
-                                if (value !== null && value !== undefined) {
-                                  const formattedValue = formatSacas(value);
+                                if (field.value) {
+                                  const formattedValue = formatArea(
+                                    field.value
+                                  );
                                   e.target.value = formattedValue;
                                 }
                               }}
                               onFocus={(e) => {
                                 // Quando ganhar foco, mostra apenas o número sem formatação
-                                const custos = form.getValues(
-                                  "custos_projetados_anuais"
+                                if (field.value) {
+                                  e.target.value = field.value.toString();
+                                }
+                              }}
+                              value={
+                                field.value !== undefined &&
+                                field.value !== null
+                                  ? formatArea(field.value)
+                                  : ""
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>Em hectares</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="custo_hectare"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Custo por Hectare (sacas)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="Digite o custo por hectare"
+                              {...field}
+                              onChange={(e) => {
+                                // Limpa a formatação e pega apenas números e vírgulas
+                                const cleanValue = e.target.value.replace(
+                                  /[^\d.,]/g,
+                                  ""
                                 );
-                                const value = custos[year];
-                                if (value !== null && value !== undefined) {
-                                  e.target.value = value.toString();
+                                // Converte para número para armazenar no form
+                                const numericValue =
+                                  parseFormattedNumber(cleanValue);
+                                field.onChange(numericValue);
+                                // Atualizar o custo anual após mudar o custo por hectare
+                                setTimeout(() => calculateAnnualCost(), 0);
+                              }}
+                              onBlur={(e) => {
+                                field.onBlur();
+                                // Se tiver um valor, formata ele ao sair do campo
+                                if (field.value) {
+                                  const formattedValue = formatSacas(
+                                    field.value
+                                  );
+                                  e.target.value = formattedValue;
+                                }
+                              }}
+                              onFocus={(e) => {
+                                // Quando ganhar foco, mostra apenas o número sem formatação
+                                if (field.value) {
+                                  e.target.value = field.value.toString();
                                 }
                               }}
                               value={
@@ -571,31 +534,169 @@ export function LeaseForm({
                               }
                             />
                           </FormControl>
-                          <FormDescription>Valor em sacas</FormDescription>
+                          <FormDescription>Em sacas</FormDescription>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <div className="flex gap-2 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push(`/dashboard/properties/${propertyId}`)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {isEditing ? "Atualizar Arrendamento" : "Criar Arrendamento"}
-            </Button>
-          </div>
+                    <FormField
+                      control={form.control}
+                      name="custo_ano"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Custo Anual (sacas)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="Calculado automaticamente"
+                              {...field}
+                              value={
+                                field.value !== undefined &&
+                                field.value !== null
+                                  ? formatSacas(field.value)
+                                  : ""
+                              }
+                              disabled={true} // Somente leitura, calculado automaticamente
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Custo total anual em sacas (calculado
+                            automaticamente)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex justify-between mt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePreviousTab}
+                    >
+                      Voltar
+                    </Button>
+                    <Button type="button" onClick={handleThirdTab}>
+                      Próximo
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="projecao-custos">
+              <Card>
+                <CardContent className="pt-6 space-y-6">
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">
+                      Projeção de Custos Anuais
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {projectionYears.map((year) => (
+                        <FormField
+                          key={year}
+                          control={form.control}
+                          name={`custos_projetados_anuais.${year}`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Ano {year}</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="text"
+                                  placeholder={`Sacas para ${year}`}
+                                  onChange={(e) => {
+                                    // Limpa a formatação e pega apenas números e vírgulas
+                                    const cleanValue = e.target.value.replace(
+                                      /[^\d.,]/g,
+                                      ""
+                                    );
+                                    // Converte para número para armazenar no form
+                                    const numericValue =
+                                      parseFormattedNumber(cleanValue);
+
+                                    // Atualiza o valor no objeto de custos projetados
+                                    const custos = {
+                                      ...form.getValues(
+                                        "custos_projetados_anuais"
+                                      ),
+                                    };
+                                    custos[year] = numericValue ?? 0;
+                                    form.setValue(
+                                      "custos_projetados_anuais",
+                                      custos
+                                    );
+                                  }}
+                                  onBlur={(e) => {
+                                    // Se tiver um valor, formata ele ao sair do campo
+                                    const custos = form.getValues(
+                                      "custos_projetados_anuais"
+                                    );
+                                    const value = custos[year];
+                                    if (value !== null && value !== undefined) {
+                                      const formattedValue = formatSacas(value);
+                                      e.target.value = formattedValue;
+                                    }
+                                  }}
+                                  onFocus={(e) => {
+                                    // Quando ganhar foco, mostra apenas o número sem formatação
+                                    const custos = form.getValues(
+                                      "custos_projetados_anuais"
+                                    );
+                                    const value = custos[year];
+                                    if (value !== null && value !== undefined) {
+                                      e.target.value = value.toString();
+                                    }
+                                  }}
+                                  value={
+                                    field.value !== undefined &&
+                                    field.value !== null
+                                      ? formatSacas(field.value)
+                                      : ""
+                                  }
+                                />
+                              </FormControl>
+                              <FormDescription>Valor em sacas</FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between mt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleNextTab}
+                    >
+                      Voltar
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          router.push(`/dashboard/properties/${propertyId}`)
+                        }
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {isEditing
+                          ? "Atualizar Arrendamento"
+                          : "Criar Arrendamento"}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </form>
       </Form>
     </div>

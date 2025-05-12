@@ -56,6 +56,34 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const { pathname } = url;
 
+  // Padrão para redirecionar URLs das páginas de benfeitoria removidas (new e edit)
+  const oldNewImprovementPattern = /^\/dashboard\/properties\/([^\/]+)\/improvements\/new/;
+  const isOldNewImprovementPage = oldNewImprovementPattern.test(pathname);
+  
+  const oldEditImprovementPattern = /^\/dashboard\/properties\/([^\/]+)\/improvements\/([^\/]+)\/edit/;
+  const isOldEditImprovementPage = oldEditImprovementPattern.test(pathname);
+  
+  // Redirecionar tanto a página de criar quanto a de editar
+  if (isOldNewImprovementPage) {
+    // Extrair o ID da propriedade da URL
+    const propertyId = pathname.match(oldNewImprovementPattern)?.[1];
+    if (propertyId) {
+      // Redirecionar para a página de lista de benfeitorias
+      url.pathname = `/dashboard/properties/${propertyId}/improvements`;
+      return NextResponse.redirect(url);
+    }
+  }
+  
+  if (isOldEditImprovementPage) {
+    // Extrair o ID da propriedade da URL
+    const propertyId = pathname.match(oldEditImprovementPattern)?.[1];
+    if (propertyId) {
+      // Redirecionar para a página de lista de benfeitorias
+      url.pathname = `/dashboard/properties/${propertyId}/improvements`;
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Verificar se o usuário está tentando acessar uma rota protegida sem estar autenticado
   const isProtectedRoute = protectedRoutes.some(route => 
     pathname === route || pathname.startsWith(`${route}/`)

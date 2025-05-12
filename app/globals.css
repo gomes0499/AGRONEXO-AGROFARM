@@ -120,3 +120,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Corrige o z-index do mapa do Leaflet para não sobrepor selects e popovers */
+.leaflet-container {
+  z-index: 0 !important;
+}
+
+/* Garante que popovers, selects e dropdowns do shadcn/ui fiquem acima do mapa */
+[data-radix-popper-content-wrapper] {
+  z-index: 1001 !important;
+}
+
+/* Se o chat de IA for um portal/modal, pode-se ajustar o seletor e aumentar o z-index aqui também, se necessário */

@@ -12,6 +12,7 @@ import {
   FileText,
   Landmark,
   MapPinIcon,
+  FileIcon,
 } from "lucide-react";
 
 interface PropertyDetailProps {
@@ -33,141 +34,144 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
   const typeInfo = propertyTypeInfo[property.tipo] || propertyTypeInfo.PROPRIO;
 
   return (
-    <div>
-      {/* Card único com todas as informações */}
-      <Card className="overflow-hidden border-border/60 hover:shadow-sm transition-shadow">
-        <div className="grid grid-cols-1 md:grid-cols-2">
-          {/* Seção de Informações Básicas */}
-          <div>
-            <CardHeader className="py-2 px-4">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <Building2Icon size={16} />
-                Informações Básicas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 gap-y-6">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Proprietário
-                  </h3>
-                  <p className="font-medium flex items-center gap-1.5">
-                    <Building2Icon
-                      size={16}
-                      className="text-muted-foreground"
-                    />
-                    {property.proprietario}
-                  </p>
-                </div>
-
-                {property.ano_aquisicao && (
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Ano de Aquisição
-                    </h3>
-                    <p className="font-medium flex items-center gap-1.5">
-                      <CalendarIcon
-                        size={16}
-                        className="text-muted-foreground"
-                      />
-                      {property.ano_aquisicao}
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Matrícula
-                  </h3>
-                  <p className="font-medium flex items-center gap-1.5">
-                    <FileText size={16} className="text-muted-foreground" />
-                    {property.numero_matricula}
-                  </p>
-                </div>
-
-                {property.coordenadas && (
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Coordenadas
-                    </h3>
-                    <p className="font-medium flex items-center gap-1.5">
-                      <MapPinIcon size={16} className="text-muted-foreground" />
-                      {property.coordenadas}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </div>
-
-          {/* Seção de Área e Valoração */}
-          <div className="md:border-l border-border/60">
-            <CardHeader className=" py-2 px-4">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <AreaChartIcon size={16} />
-                Área e Valoração
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-6">
+    <Card className="overflow-hidden border-border/60 hover:shadow-sm transition-shadow">
+      <div className="grid grid-cols-1 md:grid-cols-2">
+        {/* Seção de Informações Básicas */}
+        <div>
+          <CardHeader className="py-3 px-4 border-b border-border/60">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <Building2Icon size={18} />
+              Informações Básicas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="space-y-5">
               <div className="space-y-1">
                 <h3 className="text-sm font-medium text-muted-foreground">
-                  Área Total
+                  Proprietário
                 </h3>
-                <p className="text-2xl font-bold tracking-tight">
-                  {formatArea(property.area_total)}
+                <p className="font-medium flex items-center gap-1.5">
+                  <Building2Icon size={16} className="text-muted-foreground" />
+                  {property.proprietario}
                 </p>
               </div>
 
-              {property.area_cultivada && (
+              {property.ano_aquisicao && (
                 <div className="space-y-1">
                   <h3 className="text-sm font-medium text-muted-foreground">
-                    Área Cultivável
+                    Ano de Aquisição
                   </h3>
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-medium">
-                      {formatArea(property.area_cultivada)}
-                    </p>
-                    <Badge variant="outline" className="ml-1 font-normal">
-                      {cultivationPercentage}%
-                    </Badge>
-                  </div>
-                  <div className="w-full h-2 bg-muted rounded-full mt-2 overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full"
-                      style={{ width: `${cultivationPercentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-
-              <Separator />
-
-              {property.valor_atual && (
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Valor Atual
-                  </h3>
-                  <p className="text-xl font-bold tracking-tight flex items-center gap-1.5">
-                    <Landmark size={16} className="text-muted-foreground" />
-                    {formatCurrency(property.valor_atual)}
+                  <p className="font-medium flex items-center gap-1.5">
+                    <CalendarIcon size={16} className="text-muted-foreground" />
+                    {property.ano_aquisicao}
                   </p>
                 </div>
               )}
 
-              {property.avaliacao_banco && (
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Matrícula
+                </h3>
+                <p className="font-medium flex items-center gap-1.5">
+                  <FileText size={16} className="text-muted-foreground" />
+                  {property.numero_matricula}
+                </p>
+              </div>
+
+              {property.numero_car && (
                 <div className="space-y-1">
                   <h3 className="text-sm font-medium text-muted-foreground">
-                    Avaliação Bancária
+                    Número CAR
                   </h3>
-                  <p className="font-medium">
-                    {formatCurrency(property.avaliacao_banco)}
+                  <p className="font-medium flex items-center gap-1.5">
+                    <FileIcon size={16} className="text-muted-foreground" />
+                    {property.numero_car}
                   </p>
                 </div>
               )}
-            </CardContent>
-          </div>
+
+              {property.coordenadas && (
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    Coordenadas
+                  </h3>
+                  <p className="font-medium flex items-center gap-1.5">
+                    <MapPinIcon size={16} className="text-muted-foreground" />
+                    {property.coordenadas}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
         </div>
-      </Card>
+
+        {/* Seção de Área e Valoração */}
+        <div className="md:border-l border-border/60">
+          <CardHeader className="py-3 px-4 border-b border-border/60">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <AreaChartIcon size={18} />
+              Área e Valoração
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 space-y-6">
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Área Total
+              </h3>
+              <p className="text-2xl font-bold tracking-tight">
+                {formatArea(property.area_total)}
+              </p>
+            </div>
+
+            {property.area_cultivada && (
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Área Cultivável
+                </h3>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-medium">
+                    {formatArea(property.area_cultivada)}
+                  </p>
+                  <Badge variant="outline" className="ml-1 font-normal">
+                    {cultivationPercentage}%
+                  </Badge>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full mt-2 overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full"
+                    style={{ width: `${cultivationPercentage}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
+            <Separator />
+
+            {property.valor_atual && (
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Valor Atual
+                </h3>
+                <p className="text-xl font-bold tracking-tight flex items-center gap-1.5">
+                  <Landmark size={16} className="text-muted-foreground" />
+                  {formatCurrency(property.valor_atual)}
+                </p>
+              </div>
+            )}
+
+            {property.avaliacao_banco && (
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Avaliação Bancária
+                </h3>
+                <p className="font-medium">
+                  {formatCurrency(property.avaliacao_banco)}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </div>
+      </div>
 
       {/* Informações adicionais */}
       {property.onus && (
@@ -178,6 +182,6 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
           </p>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

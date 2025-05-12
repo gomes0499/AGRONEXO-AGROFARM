@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+// No need for useEffect anymore
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ImprovementForm } from "@/components/properties/improvement-form";
+import type { Improvement } from "@/schemas/properties";
 
 interface ImprovementModalProps {
   propertyId: string;
@@ -16,6 +17,8 @@ interface ImprovementModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  improvement?: Improvement;
+  isEditing?: boolean;
 }
 
 export function ImprovementModal({
@@ -24,13 +27,9 @@ export function ImprovementModal({
   open,
   onOpenChange,
   onSuccess,
+  improvement,
+  isEditing = false,
 }: ImprovementModalProps) {
-  // Log para depuração - para verificar propriedades
-  useEffect(() => {
-    console.log("Modal renderizado com propertyId =", propertyId);
-    console.log("Modal renderizado com organizationId =", organizationId);
-  }, [open, propertyId, organizationId]);
-
   const handleSuccess = () => {
     if (onSuccess) {
       onSuccess();
@@ -42,15 +41,20 @@ export function ImprovementModal({
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>Nova Benfeitoria</DialogTitle>
+            <DialogTitle>
+              {isEditing ? "Editar Benfeitoria" : "Nova Benfeitoria"}
+            </DialogTitle>
           </div>
           <DialogDescription>
-            Cadastre uma nova benfeitoria ou melhoria para a propriedade.
+            {isEditing 
+              ? "Edite os dados da benfeitoria ou melhoria da propriedade."
+              : "Cadastre uma nova benfeitoria ou melhoria para a propriedade."}
           </DialogDescription>
         </DialogHeader>
         <ImprovementForm
           propertyId={propertyId}
           organizationId={organizationId}
+          improvement={improvement}
           onSuccess={handleSuccess}
           isModal={true}
         />

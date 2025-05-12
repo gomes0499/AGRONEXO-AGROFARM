@@ -3,6 +3,8 @@ import { LeaseDetail } from "@/components/properties/lease-detail";
 import { getLeaseById, getPropertyById } from "@/lib/actions/property-actions";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { SiteHeader } from "@/components/dashboard/site-header";
+import { Separator } from "@/components/ui/separator";
 
 export async function generateMetadata({ params }: LeaseDetailsPageProps): Promise<Metadata> {
   try {
@@ -47,12 +49,20 @@ export default async function LeaseDetailsPage({ params }: LeaseDetailsPageProps
     }
     
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <LeaseDetail 
-          lease={lease}
-          propertyId={params.id}
+      <>
+        <SiteHeader 
+          title={`Arrendamento: ${lease.nome_fazenda}`} 
+          showBackButton 
+          backUrl={`/dashboard/properties/${params.id}`} 
+          backLabel="Voltar"
         />
-      </div>
+        <div className="flex flex-col gap-6 p-6">
+          <LeaseDetail 
+            lease={lease}
+            propertyId={params.id}
+          />
+        </div>
+      </>
     );
   } catch (error) {
     console.error("Erro ao carregar dados:", error);

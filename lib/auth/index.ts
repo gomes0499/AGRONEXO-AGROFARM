@@ -44,26 +44,38 @@ export async function getOrganizationId() {
 
 export async function getSession() {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getSession();
   
-  if (!data.session) {
+  // Primeiro, verificar se existe uma sessão
+  const { data: sessionData } = await supabase.auth.getSession();
+  
+  if (!sessionData.session) {
     return null;
   }
   
+  // Se existe, usar o método seguro getUser() para autenticar os dados
+  const { data: userData, error } = await supabase.auth.getUser();
+  
+  if (error || !userData.user) {
+    console.error("Erro ao autenticar usuário:", error);
+    return null;
+  }
+  
+  const user = userData.user;
+  
   // Verifica se há uma organização na user_metadata (definida pelo organization-switcher)
-  const userOrganizationId = data.session.user.user_metadata?.organizacao?.id;
+  const userOrganizationId = user.user_metadata?.organizacao?.id;
   
   // Buscar associações do usuário
   const { data: associacoes } = await supabase
     .from("associacoes")
     .select("*, organizacao:organizacoes(*)")
-    .eq("usuario_id", data.session.user.id);
+    .eq("usuario_id", user.id);
   
   // Se não tiver associações, retornar apenas os dados básicos
   if (!associacoes?.length) {
     return {
-      user: data.session.user,
-      userId: data.session.user.id,
+      user,
+      userId: user.id,
     };
   }
   
@@ -95,8 +107,8 @@ export async function getSession() {
     .eq("id", activeAssociation.id);
   
   return {
-    user: data.session.user,
-    userId: data.session.user.id,
+    user,
+    userId: user.id,
     organization: activeAssociation.organizacao,
     organizationId: activeAssociation.organizacao_id,
     role: activeAssociation.funcao,

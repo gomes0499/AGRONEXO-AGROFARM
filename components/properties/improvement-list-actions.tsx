@@ -9,23 +9,30 @@ import { ImprovementModal } from "@/components/properties/improvement-modal";
 interface ImprovementListActionsProps {
   propertyId: string;
   organizationId: string;
-  useModal: boolean;
+  useModal: boolean; // Mantido para compatibilidade, mas sempre será true
 }
 
 export function ImprovementListActions({
   propertyId,
   organizationId,
-  useModal,
+  useModal, // Não será mais usado, mas mantido para compatibilidade
 }: ImprovementListActionsProps) {
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
 
   const handleButtonClick = () => {
-    if (useModal) {
-      setShowModal(true);
-    } else {
-      router.push(`/dashboard/properties/${propertyId}/improvements/new`);
+    // Verifica se temos os IDs necessários antes de abrir o modal
+    if (!propertyId || !organizationId) {
+      console.error(
+        "Erro: IDs inválidos para criar benfeitoria", 
+        { propertyId, organizationId }
+      );
+      // Poderíamos usar um toast aqui também para notificar o usuário
+      return;
     }
+    
+    // Sempre abre o modal, não redireciona mais
+    setShowModal(true);
   };
 
   const handleSuccess = () => {
@@ -40,7 +47,7 @@ export function ImprovementListActions({
         Nova Benfeitoria
       </Button>
 
-      {useModal && showModal && (
+      {showModal && (
         <ImprovementModal
           propertyId={propertyId}
           organizationId={organizationId}
