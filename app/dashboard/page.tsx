@@ -54,6 +54,11 @@ import {
 import { WeatherTickerBar } from "@/components/dashboard/weather-ticker-bar";
 import { Cloud } from "lucide-react";
 import { UnderConstruction } from "@/components/ui/under-construction";
+import AgroKpiCards from "@/components/dashboard/visao-geral/kpi-cards";
+import { AreaPlantioChart } from "@/components/dashboard/visao-geral/area-plantio-chart";
+import { ResultadosChart } from "@/components/dashboard/visao-geral/resultados-chart";
+import { ComposicaoDividaChart } from "@/components/dashboard/visao-geral/composicao-divida-chart";
+import { EndividamentoBancosChart } from "@/components/dashboard/visao-geral/endividamento-bancos-chart";
 
 export default async function DashboardPage() {
   // Verifica autenticação e obtém dados do usuário
@@ -197,13 +202,10 @@ export default async function DashboardPage() {
             <TabsTrigger value="projections">Projeções</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <h2 className="text-2xl font-bold">Visão Geral</h2>
-            <UnderConstruction
-              variant="coming-soon"
-              showBackButton={false}
-              message="Permitira a visualização de todos os indicadores-chave de desempenho da sua operação."
-            />
+          <TabsContent value="overview" className="space-y-4">
+            <AgroKpiCards />
+            <AreaPlantioChart />
+            <ResultadosChart />
           </TabsContent>
 
           <TabsContent value="properties" className="space-y-6">

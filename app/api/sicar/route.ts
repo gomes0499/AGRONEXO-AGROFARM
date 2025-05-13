@@ -109,28 +109,91 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Consumir a API externa do SICAR com o novo endpoint que inclui geometrias
-    const response = await fetch(
-      `http://localhost:8000/api/v1/estatisticas/estados/${estado}/car/${numeroCAR}?incluir_geometrias=true`
-    );
-    
-    if (!response.ok) {
-      // Verificar status do response
-      if (response.status === 404) {
-        return new Response(JSON.stringify({ error: 'CAR não encontrado' }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        });
+    // Dados fixos para teste - substituindo a chamada à API externa
+    const rawData = {
+      "codigo_car": "BA-2933455-07DE4C04FC994BAC9D2A3ABE19C0A6B1",
+      "estado": "BA",
+      "municipio": "Wanderley",
+      "estatisticas": {
+        "area_total": 83.89683171042174,
+        "reserva_legal": 4.580004901657653,
+        "area_cultivo_total": 56.36962281957116,
+        "area_cultivo_ativa": 42.77517431816566,
+        "area_pousio": 13.594448501405502,
+        "area_protegida": 29.09138704425551,
+        "area_cultivavel_teorica": 54.805444666166224,
+        "recursos_hidricos": 2.434130821467923,
+        "percentual_ocupacao": 67.18921521868253,
+        "percentual_reserva_legal": 5.459091610832213,
+        "percentual_area_protegida": 34.6751914835918
+      },
+      "geometrias": {
+        "geometria_total": {
+          "type": "Polygon",
+          "coordinates": [[
+            [-43.8263726234436, -11.805375705573574],
+            [-43.83426904678345, -11.802519173390817],
+            [-43.83450508117676, -11.796322916748823],
+            [-43.829419612884514, -11.794453510143265],
+            [-43.82439851760864, -11.796364925739704],
+            [-43.8263726234436, -11.805375705573574]
+          ]]
+        },
+        "geometria_reserva": {
+          "type": "MultiPolygon",
+          "coordinates": [
+            [[
+              [-43.8281966243818, -11.803650297872142],
+              [-43.82946120523308, -11.804258410704618],
+              [-43.82823944091797, -11.803611380386752],
+              [-43.8281966243818, -11.803650297872142]
+            ]],
+            [[
+              [-43.82948187845731, -11.804250932163031],
+              [-43.83285909913576, -11.803029222137988],
+              [-43.827595710754395, -11.802393149226702],
+              [-43.82948187845731, -11.804250932163031]
+            ]]
+          ]
+        },
+        "geometria_hidrica": {
+          "type": "MultiPolygon",
+          "coordinates": [
+            [[
+              [-43.83448362350464, -11.79682702421471],
+              [-43.83377552032471, -11.796322916748823],
+              [-43.834054470062256, -11.796700997435087],
+              [-43.83448362350464, -11.79682702421471]
+            ]],
+            [[
+              [-43.82725238800049, -11.805102655989696],
+              [-43.82823944091797, -11.803611380386752],
+              [-43.82952690124512, -11.80432551337779],
+              [-43.82896900177002, -11.803401340917732],
+              [-43.82811069488525, -11.80346435277533],
+              [-43.82744550704955, -11.80407346665218],
+              [-43.82725238800049, -11.805102655989696]
+            ]],
+            [[
+              [-43.83270465402896, -11.799518113026151],
+              [-43.83323967038744, -11.798322599811902],
+              [-43.8332195061826, -11.797794309394455],
+              [-43.833941752275415, -11.797782719412227],
+              [-43.83339266477481, -11.797842912355408],
+              [-43.8332604705493, -11.798437664244377],
+              [-43.832830382599866, -11.799494529473973],
+              [-43.833522286345854, -11.802961304026272],
+              [-43.832876158550164, -11.79949688375149],
+              [-43.83452038021349, -11.797734778159777],
+              [-43.83317984997008, -11.79775678833994],
+              [-43.83265922407133, -11.799510855706519],
+              [-43.833393884967286, -11.802919226684974],
+              [-43.83270465402896, -11.799518113026151]
+            ]]
+          ]
+        }
       }
-      
-      // Se a API estiver indisponível, podemos usar dados simulados como fallback
-      return new Response(JSON.stringify({ error: 'Serviço SICAR indisponível', status: response.status }), {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const rawData = await response.json();
+    };
     
     // Verificar se os dados recebidos seguem a estrutura esperada
     console.log("Dados recebidos da API SICAR:", JSON.stringify(rawData));

@@ -1,0 +1,76 @@
+{
+  "resultados": [
+    {
+      "safra": "2021/22",
+      "receitaTotal": 186214296,
+      "custoTotal": 102820188,
+      "ebitda": 83394109,
+      "lucroLiquido": 51566767,
+      "margemLiquida": 28
+    },
+    {
+      "safra": "2022/23",
+      "receitaTotal": 195972679,
+      "custoTotal": 119659756,
+      "ebitda": 76312923,
+      "lucroLiquido": 31601670,
+      "margemLiquida": 16
+    },
+    {
+      "safra": "2023/24",
+      "receitaTotal": 202837080,
+      "custoTotal": 121131960,
+      "ebitda": 81705120,
+      "lucroLiquido": 34456200,
+      "margemLiquida": 17
+    },
+    {
+      "safra": "2024/25",
+      "receitaTotal": 254280600,
+      "custoTotal": 152292000,
+      "ebitda": 101988600,
+      "lucroLiquido": 53061002,
+      "margemLiquida": 21
+    },
+    {
+      "safra": "2025/26",
+      "receitaTotal": 253063600,
+      "custoTotal": 151949000,
+      "ebitda": 101114600,
+      "lucroLiquido": 52458322,
+      "margemLiquida": 21
+    },
+    {
+      "safra": "2026/27",
+      "receitaTotal": 257438600,
+      "custoTotal": 154574000,
+      "ebitda": 102864600,
+      "lucroLiquido": 57115258,
+      "margemLiquida": 22
+    },
+    {
+      "safra": "2027/28",
+      "receitaTotal": 260938600,
+      "custoTotal": 156674000,
+      "ebitda": 104264600,
+      "lucroLiquido": 61203547,
+      "margemLiquida": 23
+    },
+    {
+      "safra": "2028/29",
+      "receitaTotal": 260938600,
+      "custoTotal": 156674000,
+      "ebitda": 104264600,
+      "lucroLiquido": 64461301,
+      "margemLiquida": 25
+    },
+    {
+      "safra": "2029/30",
+      "receitaTotal": 260938600,
+      "custoTotal": 156674000,
+      "ebitda": 104264600,
+      "lucroLiquido": 68721036,
+      "margemLiquida": 26
+    }
+  ]
+}
