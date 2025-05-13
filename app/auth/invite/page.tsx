@@ -6,20 +6,26 @@ export const metadata: Metadata = {
   description: "Aceite seu convite para a plataforma SR-Consultoria",
 };
 
-export default function InvitePage({
-  searchParams,
-}: {
-  searchParams: { token?: string };
-}) {
-  const token = searchParams.token || "";
+interface PageProps {
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default function InvitePage({ searchParams }: PageProps) {
+
+  const token =
+    typeof searchParams.token === "string"
+      ? searchParams.token
+      : Array.isArray(searchParams.token)
+      ? searchParams.token[0]
+      : "";
 
   if (!token) {
     return (
       <div className="mx-auto max-w-md text-center mt-8">
         <h2 className="text-2xl font-bold">Convite Inválido</h2>
         <p className="text-muted-foreground mt-2">
-          O link de convite está incompleto. Por favor, verifique se você copiou o link
-          completo do email.
+          O link de convite está incompleto. Por favor, verifique se você copiou
+          o link completo do email.
         </p>
       </div>
     );
