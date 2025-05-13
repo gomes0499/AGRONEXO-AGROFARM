@@ -186,6 +186,34 @@ export const onboardingSchema = z.object({
     .optional(),
 });
 
+// Esquema para alteração de email
+export const changeEmailSchema = z.object({
+  email: z
+    .string()
+    .min(1, { message: 'O e-mail é obrigatório' })
+    .email({ message: 'E-mail inválido' }),
+  password: z
+    .string()
+    .min(1, { message: 'A senha atual é obrigatória para confirmar a mudança' })
+});
+
+// Esquema para alteração de senha
+export const changePasswordSchema = z.object({
+  currentPassword: z
+    .string()
+    .min(1, { message: 'A senha atual é obrigatória' }),
+  newPassword: z
+    .string()
+    .min(1, { message: 'A nova senha é obrigatória' })
+    .min(8, { message: 'A nova senha deve ter pelo menos 8 caracteres' }),
+  confirmNewPassword: z
+    .string()
+    .min(1, { message: 'A confirmação da nova senha é obrigatória' })
+}).refine((data) => data.newPassword === data.confirmNewPassword, {
+  message: 'As senhas não conferem',
+  path: ['confirmNewPassword'],
+});
+
 // Esquema completo de perfil do usuário
 export const fullProfileSchema = updateProfileSchema
   .merge(personalInfoSchema)
@@ -200,3 +228,5 @@ export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 export type UpdateProfileFormValues = z.infer<typeof updateProfileSchema>;
 export type FullProfileFormValues = z.infer<typeof fullProfileSchema>;
+export type ChangeEmailFormValues = z.infer<typeof changeEmailSchema>;
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;

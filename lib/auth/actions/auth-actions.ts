@@ -9,7 +9,9 @@ import {
   ForgotPasswordFormValues,
   ResetPasswordFormValues,
   UpdateProfileFormValues,
-  FullProfileFormValues
+  FullProfileFormValues,
+  ChangeEmailFormValues,
+  ChangePasswordFormValues
 } from '@/schemas/auth';
 import { UserRole } from '@/lib/auth/roles';
 
@@ -827,6 +829,133 @@ export async function cancelInvite(inviteId: string) {
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Erro ao cancelar convite'
+    };
+  }
+}
+
+// Ação para alterar o email do usuário
+export async function changeUserEmail(formData: ChangeEmailFormValues) {
+  const supabase = await createClient();
+  
+  try {
+    // Obter o email do usuário atual
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user || !user.email) {
+      throw new Error('Usuário não autenticado ou email não disponível');
+    }
+
+    // Verificar senha atual e autenticar
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email, // Email atual
+      password: formData.password,
+    });
+
+    if (authError) {
+      throw new Error('Senha atual incorreta. Por favor, verifique e tente novamente.');
+    }
+
+    // Atualizar o email
+    const { error: updateError } = await supabase.auth.updateUser({
+      email: formData.email, // Novo email
+    });
+
+    if (updateError) {
+      // Traduzir mensagens de erro comuns
+      let errorMessage = updateError.message;
+      
+      // Mapeamento de erros comuns para português
+      const errorMap: Record<string, string> = {
+        'Email already in use': 'Este email já está sendo usado por outra conta',
+        'Email format is invalid': 'Formato de email inválido',
+        'Email change requires reauthentication': 'A alteração de email requer reautenticação, faça login novamente',
+        'Rate limit exceeded': 'Limite de tentativas excedido, tente novamente mais tarde',
+      };
+      
+      // Verificar se temos uma tradução para o erro
+      for (const [englishError, portugueseError] of Object.entries(errorMap)) {
+        if (errorMessage.includes(englishError)) {
+          errorMessage = portugueseError;
+          break;
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    revalidatePath('/dashboard/profile');
+    return { 
+      success: true, 
+      message: 'Um email de confirmação foi enviado para o novo endereço. Por favor, verifique sua caixa de entrada.' 
+    };
+  } catch (error) {
+    console.error('Erro ao alterar email:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Erro ao alterar email'
+    };
+  }
+}
+
+// Ação para alterar a senha do usuário
+export async function changeUserPassword(formData: ChangePasswordFormValues) {
+  const supabase = await createClient();
+  
+  try {
+    // Obter o email do usuário atual
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user || !user.email) {
+      throw new Error('Usuário não autenticado ou email não disponível');
+    }
+
+    // Verificar senha atual e autenticar
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: formData.currentPassword,
+    });
+
+    if (authError) {
+      throw new Error('Senha atual incorreta. Por favor, verifique e tente novamente.');
+    }
+
+    // Atualizar a senha
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: formData.newPassword,
+    });
+
+    if (updateError) {
+      // Traduzir mensagens de erro comuns
+      let errorMessage = updateError.message;
+      
+      // Mapeamento de erros comuns para português
+      const errorMap: Record<string, string> = {
+        'Password should be at least 6 characters': 'A senha deve ter pelo menos 6 caracteres',
+        'New password should be different': 'A nova senha deve ser diferente da senha atual',
+        'Rate limit exceeded': 'Limite de tentativas excedido, tente novamente mais tarde',
+      };
+      
+      // Verificar se temos uma tradução para o erro
+      for (const [englishError, portugueseError] of Object.entries(errorMap)) {
+        if (errorMessage.includes(englishError)) {
+          errorMessage = portugueseError;
+          break;
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    revalidatePath('/dashboard/profile');
+    return { 
+      success: true, 
+      message: 'Senha alterada com sucesso.' 
+    };
+  } catch (error) {
+    console.error('Erro ao alterar senha:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Erro ao alterar senha'
     };
   }
 }

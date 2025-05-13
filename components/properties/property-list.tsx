@@ -270,7 +270,7 @@ export function PropertyList({ properties }: PropertyListProps) {
                                 className="flex cursor-pointer items-center"
                               >
                                 <EyeIcon size={14} className="mr-2" />
-                                Visualizar
+                                Gerenciar
                               </Link>
                             </DropdownMenuItem>
 

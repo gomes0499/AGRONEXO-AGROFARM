@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { ProfileForm } from "@/components/auth/profile-form";
 import { FullProfileForm } from "@/components/auth/full-profile-form";
+import { ChangeEmailForm } from "@/components/auth/change-email-form";
+import { ChangePasswordForm } from "@/components/auth/change-password-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
@@ -36,6 +38,7 @@ export default async function ProfilePage() {
           <TabsList className="mb-6">
             <TabsTrigger value="basic">Informações Básicas</TabsTrigger>
             <TabsTrigger value="details">Dados Completos</TabsTrigger>
+            <TabsTrigger value="account">Configurações da Conta</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic">
@@ -48,6 +51,26 @@ export default async function ProfilePage() {
             <Card className="p-6">
               <FullProfileForm />
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="account">
+            <div className="grid gap-6">
+              <Card className="p-6">
+                <h3 className="text-xl font-semibold mb-4">Alterar Email</h3>
+                <p className="text-muted-foreground mb-6">
+                  Atualize o endereço de email associado à sua conta
+                </p>
+                <ChangeEmailForm />
+              </Card>
+              
+              <Card className="p-6">
+                <h3 className="text-xl font-semibold mb-4">Alterar Senha</h3>
+                <p className="text-muted-foreground mb-6">
+                  Atualize sua senha para manter sua conta segura
+                </p>
+                <ChangePasswordForm />
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

@@ -7,9 +7,7 @@ import {
   Search,
   Plus,
   ArrowUpDown,
-  MoreHorizontal,
   ExternalLink,
-  Trash2,
   Mail,
   Hash,
 } from "lucide-react";
@@ -26,14 +24,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Organization = {
@@ -209,8 +199,8 @@ export function OrganizationList({
           <TableCell>
             <Skeleton className="h-4 w-[180px]" />
           </TableCell>
-          <TableCell>
-            <Skeleton className="h-8 w-[100px]" />
+          <TableCell className="text-right">
+            <Skeleton className="h-9 w-[100px] ml-auto" />
           </TableCell>
         </TableRow>
       ));
@@ -324,41 +314,19 @@ export function OrganizationList({
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Abrir menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link
-                            href={`/dashboard/organization/${org.id}`}
-                            className="cursor-pointer"
-                          >
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            <span>Gerenciar</span>
-                          </Link>
-                        </DropdownMenuItem>
-
-                        {onDelete && (
-                          <DropdownMenuItem
-                            onClick={() => onDelete(org.id)}
-                            className="text-red-600 focus:text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Excluir</span>
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                    >
+                      <Link
+                        href={`/dashboard/organization/${org.id}`}
+                        className="cursor-pointer"
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        <span>Gerenciar</span>
+                      </Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
