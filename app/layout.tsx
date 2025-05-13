@@ -51,8 +51,8 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <link 
-          rel="stylesheet" 
+        <link
+          rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossOrigin=""
@@ -66,16 +66,17 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          enableColorScheme
         >
           <main className="min-h-screen flex flex-col">
             {children}
             <Toaster />
             <FloatingChat />
           </main>
-          
+
           {/* Adicionar bibliotecas de mapas */}
-          <Script 
-            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+          <Script
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             strategy="lazyOnload"
           />
         </ThemeProvider>
