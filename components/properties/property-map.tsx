@@ -365,7 +365,7 @@ export function PropertyMap({ property }: PropertyMapProps) {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card className="bg-gray-50 shadow-sm border-gray-200">
+        <Card>
           <CardContent className="p-6">
             <h3 className="text-sm font-medium text-gray-500">Área Total</h3>
             <p className="text-2xl font-bold mt-1">
@@ -377,12 +377,12 @@ export function PropertyMap({ property }: PropertyMapProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-green-50 shadow-sm border-green-100">
+        <Card>
           <CardContent className="p-6">
             <h3 className="text-sm font-medium text-gray-500">
               Área Cultivável
             </h3>
-            <p className="text-2xl font-bold mt-1 text-green-600">
+            <p className="text-2xl font-bold mt-1 ">
               {Number(String(sicarData.area_cultivavel?.area || 0))
                 .toFixed(2)
                 .replace(".", ",")}{" "}
@@ -391,10 +391,10 @@ export function PropertyMap({ property }: PropertyMapProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-blue-50 shadow-sm border-blue-100">
+        <Card>
           <CardContent className="p-6">
             <h3 className="text-sm font-medium text-gray-500">Reserva Legal</h3>
-            <p className="text-2xl font-bold mt-1 text-blue-600">
+            <p className="text-2xl font-bold mt-1 ">
               {Number(String(sicarData.reserva_legal?.area || 0))
                 .toFixed(2)
                 .replace(".", ",")}{" "}
@@ -403,10 +403,10 @@ export function PropertyMap({ property }: PropertyMapProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-amber-50 shadow-sm border-amber-100">
+        <Card>
           <CardContent className="p-6">
             <h3 className="text-sm font-medium text-gray-500">Cultivo Ativo</h3>
-            <p className="text-2xl font-bold mt-1 text-amber-600">
+            <p className="text-2xl font-bold mt-1 ">
               {Number(String(sicarData.area_cultivo?.area || 0))
                 .toFixed(2)
                 .replace(".", ",")}{" "}

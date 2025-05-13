@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { UnderConstruction } from "@/components/ui/under-construction";
+import { SiteHeader } from "@/components/dashboard/site-header";
 
 export const metadata: Metadata = {
   title: "Projeções | SR Consultoria",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function ProjectionsPage() {
   return (
     <div className="flex flex-col min-h-screen">
+      <SiteHeader title="Projeções" />
       <div className="p-4 md:p-6 pt-2 space-y-6">
         <h1 className="text-2xl font-bold tracking-tight">Projeções</h1>
 

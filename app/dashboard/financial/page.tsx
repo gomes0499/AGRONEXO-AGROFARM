@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { UnderConstruction } from "@/components/ui/under-construction";
+import { SiteHeader } from "@/components/dashboard/site-header";
 
 export const metadata: Metadata = {
   title: "Financeiro | SR Consultoria",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function FinancialPage() {
   return (
     <div className="flex flex-col min-h-screen">
+      <SiteHeader title="Financeiro" />
       <div className="p-4 md:p-6 pt-2 space-y-6">
         <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
 

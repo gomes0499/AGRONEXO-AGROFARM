@@ -15,8 +15,8 @@ export default function PropertyDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-green-50 shadow-sm border-green-100">
-          <CardContent className="p-6">
+        <Card>
+          <CardContent>
             <h3 className="text-sm font-medium text-gray-500">
               Área Cultivável
             </h3>

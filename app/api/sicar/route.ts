@@ -196,7 +196,7 @@ export async function GET(request: Request) {
     };
     
     // Verificar se os dados recebidos seguem a estrutura esperada
-    console.log("Dados recebidos da API SICAR:", JSON.stringify(rawData));
+    // console.log("Dados recebidos da API SICAR:", JSON.stringify(rawData));
     
     // Garantir que temos as propriedades esperadas com valores padrão se não existirem
     const data: DadosCAR = {

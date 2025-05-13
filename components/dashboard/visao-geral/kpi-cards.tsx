@@ -58,8 +58,8 @@ export default function AgroKpiCards() {
         <div className="relative">
           <KpiItem
             title="Faturamento Total"
-            value="R$ 2.45M"
-            change="+12% vs último ano"
+            value="R$ 202M"
+            change="+3.5% vs último ano"
             isPositive={true}
             icon={<BanknoteIcon className="h-5 w-5 text-white" />}
           />
@@ -70,8 +70,8 @@ export default function AgroKpiCards() {
         <div className="relative">
           <KpiItem
             title="EBITDA"
-            value="R$ 875K"
-            change="+8.3% vs último ano"
+            value="R$ 81.75M"
+            change="+7.1% vs último ano"
             isPositive={true}
             icon={<BarChart3Icon className="h-5 w-5 text-white" />}
           />
@@ -94,8 +94,8 @@ export default function AgroKpiCards() {
         <div>
           <KpiItem
             title="Lucro Líquido"
-            value="R$ 620K"
-            change="+5.2% vs último ano"
+            value="R$ 34.45M"
+            change="+9.0% vs último ano"
             isPositive={true}
             icon={<CoinsIcon className="h-5 w-5 text-white" />}
           />
@@ -109,7 +109,7 @@ export default function AgroKpiCards() {
         <div className="relative">
           <KpiItem
             title="Margem Líquida"
-            value="25.3%"
+            value="17.0%"
             change="+0.5% vs último ano"
             isPositive={true}
             icon={<PercentIcon className="h-5 w-5 text-white" />}
@@ -121,7 +121,7 @@ export default function AgroKpiCards() {
         <div className="relative">
           <KpiItem
             title="Dívida Total"
-            value="R$ 1.2M"
+            value="R$ 439M"
             change="-7.8% vs último ano"
             isPositive={true}
             icon={<DollarSignIcon className="h-5 w-5 text-white" />}
@@ -133,7 +133,7 @@ export default function AgroKpiCards() {
         <div className="relative">
           <KpiItem
             title="Dívida Líquida"
-            value="R$ 950K"
+            value="R$ 357M"
             change="-10.2% vs último ano"
             isPositive={true}
             icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
@@ -145,7 +145,7 @@ export default function AgroKpiCards() {
         <div>
           <KpiItem
             title="Dívida/EBITDA"
-            value="1.09x"
+            value="5,37x"
             change="-0.15x vs último ano"
             isPositive={true}
             icon={<GaugeIcon className="h-5 w-5 text-white" />}
