@@ -21,7 +21,7 @@ export default async function DashboardLayout({
   // Obtém dados da organização associada
   const supabase = await createClient();
   let userData;
-  
+
   try {
     // Tenta obter o perfil do usuário
     const { data: profile, error } = await supabase
@@ -29,7 +29,7 @@ export default async function DashboardLayout({
       .select("*, organizacao:organizacao_id(*)")
       .eq("id", user.id)
       .single();
-      
+
     if (error || !profile) {
       // Se não existir, cria um perfil básico
       const { data: newProfile } = await supabase
@@ -41,12 +41,12 @@ export default async function DashboardLayout({
         })
         .select()
         .single();
-        
+
       userData = newProfile;
     } else {
       userData = profile;
     }
-    
+
     // Se temos metadados de organização no usuário autenticado, usá-los
     if (user.user_metadata?.organizacao?.id) {
       // Verificar se a organização existe e recuperar dados completos
@@ -55,13 +55,13 @@ export default async function DashboardLayout({
         .select("*")
         .eq("id", user.user_metadata.organizacao.id)
         .single();
-        
+
       if (orgData) {
         // Substituir os dados da organização com os atualizados
         userData = {
           ...userData,
           organizacao: orgData,
-          organizacao_id: orgData.id
+          organizacao_id: orgData.id,
         };
       }
     }

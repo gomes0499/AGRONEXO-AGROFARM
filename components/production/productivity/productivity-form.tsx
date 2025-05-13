@@ -11,6 +11,7 @@ import {
   Leaf,
   Settings,
   Scale,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,12 +48,22 @@ import {
 } from "@/lib/actions/production-actions";
 import { parseFormattedNumber } from "@/lib/utils/formatters";
 
+// Define interface for the property entity
+interface Property {
+  id: string;
+  nome: string;
+  cidade?: string;
+  estado?: string;
+  [key: string]: any;
+}
+
 interface ProductivityFormProps {
   cultures: Culture[];
   systems: System[];
   harvests: Harvest[];
   organizationId: string;
   productivity?: Productivity | null;
+  properties: Property[];
   onSuccess?: (productivity: Productivity) => void;
   onCancel?: () => void;
 }
@@ -91,6 +102,7 @@ export function ProductivityForm({
   harvests,
   organizationId,
   productivity = null,
+  properties,
   onSuccess,
   onCancel,
 }: ProductivityFormProps) {
@@ -107,6 +119,7 @@ export function ProductivityForm({
       cultura_id: productivity?.cultura_id || "",
       sistema_id: productivity?.sistema_id || "",
       safra_id: productivity?.safra_id || "",
+      propriedade_id: productivity?.propriedade_id || "",
       produtividade: productivity?.produtividade || 0,
       unidade: (productivity?.unidade as any) || "sc/ha",
     },
@@ -164,28 +177,28 @@ export function ProductivityForm({
   );
   const selectedSystem = systems.find((s) => s.id === form.watch("sistema_id"));
   const selectedHarvest = harvests.find((h) => h.id === form.watch("safra_id"));
+  const selectedProperty = properties.find(
+    (p) => p.id === form.watch("propriedade_id")
+  );
 
   const onSubmit = async (values: ProductivityFormValues) => {
     try {
       setIsSubmitting(true);
 
-      if (isEditing) {
+      if (isEditing && productivity?.id) {
         // Atualizar item existente
-        const updatedItem = await updateProductivity(
-          productivity.id || "",
-          values
-        );
-        toast.success("Produtividade atualizada com sucesso!");
+        const updatedItem = await updateProductivity(productivity.id, values);
+        toast.success("Registro de produtividade atualizado com sucesso!");
         onSuccess?.(updatedItem);
       } else {
         // Criar novo item
         const newItem = await createProductivity(organizationId, values);
-        toast.success("Produtividade criada com sucesso!");
+        toast.success("Registro de produtividade criado com sucesso!");
         onSuccess?.(newItem);
       }
     } catch (error) {
-      console.error("Erro ao salvar produtividade:", error);
-      toast.error("Ocorreu um erro ao salvar a produtividade.");
+      console.error("Erro ao salvar registro de produtividade:", error);
+      toast.error("Ocorreu um erro ao salvar o registro de produtividade.");
     } finally {
       setIsSubmitting(false);
     }
@@ -229,6 +242,65 @@ export function ProductivityForm({
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="propriedade_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  Propriedade
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={isSubmitting}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione a propriedade" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {properties.map((property: Property) => (
+                      <SelectItem key={property.id} value={property.id}>
+                        {property.nome}
+                        {property.cidade && property.estado && (
+                          <span className="text-muted-foreground ml-1">
+                            ({property.cidade}/{property.estado})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {selectedProperty && (
+            <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border border-muted">
+              <p className="font-medium text-foreground">
+                Propriedade selecionada:
+              </p>
+              <p className="mt-1">
+                {selectedProperty.nome}
+                {selectedProperty.cidade && selectedProperty.estado && (
+                  <span>
+                    {" "}
+                    - {selectedProperty.cidade}/{selectedProperty.estado}
+                  </span>
+                )}
+              </p>
+              {selectedProperty.areaTotal && (
+                <p className="mt-1">
+                  Área total: {selectedProperty.areaTotal} hectares
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
@@ -392,6 +464,17 @@ export function ProductivityForm({
               <Card className="mt-2 bg-muted/30 border-muted">
                 <CardContent className="p-3">
                   <div className="flex flex-wrap gap-x-4 gap-y-2">
+                    {selectedProperty && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground">
+                          Propriedade:
+                        </span>
+                        <span className="text-sm font-medium">
+                          {selectedProperty.nome}
+                        </span>
+                      </div>
+                    )}
+
                     {selectedCulture && (
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-muted-foreground">

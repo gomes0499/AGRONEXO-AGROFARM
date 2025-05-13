@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,7 +42,6 @@ import {
   DrawerFooter,
   DrawerClose,
 } from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   PlantingArea,
   Culture,
@@ -89,7 +88,11 @@ export function PlantingAreaList({
     useState<PlantingArea[]>(initialPlantingAreas);
   const [editingArea, setEditingArea] = useState<PlantingArea | null>(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
-  const isMobile = useIsMobile();
+
+  // Atualizar o estado local sempre que os dados do servidor mudarem
+  useEffect(() => {
+    setPlantingAreas(initialPlantingAreas);
+  }, [initialPlantingAreas]);
 
   // Função para editar uma área
   const handleEdit = (area: PlantingArea) => {

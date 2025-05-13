@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -28,30 +29,52 @@ import type {
   ProductionCost,
 } from "@/schemas/production";
 
+// Define interface for the property entity
+interface Property {
+  id: string;
+  nome: string;
+  cidade?: string;
+  estado?: string;
+  [key: string]: any;
+}
+
 interface NewProductionCostButtonProps {
   cultures: Culture[];
   systems: System[];
   harvests: Harvest[];
+  properties: Property[];
   organizationId: string;
   className?: string;
   variant?: "default" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
+  onItemCreated?: () => void;
 }
 
 export function NewProductionCostButton({
   cultures,
   systems,
   harvests,
+  properties,
   organizationId,
   className,
   variant = "default",
   size = "default",
+  onItemCreated,
 }: NewProductionCostButtonProps) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const isMobile = useIsMobile();
+  const router = useRouter();
 
   const handleSuccess = (cost: ProductionCost) => {
     setIsOpen(false);
+
+    // Forçar uma atualização dos dados por re-renderização da página
+    router.refresh();
+
+    // Chamar o callback se fornecido
+    if (onItemCreated) {
+      onItemCreated();
+    }
   };
 
   if (isMobile) {
@@ -86,6 +109,7 @@ export function NewProductionCostButton({
                 cultures={cultures}
                 systems={systems}
                 harvests={harvests}
+                properties={properties}
                 organizationId={organizationId}
                 onSuccess={handleSuccess}
                 onCancel={() => setIsOpen(false)}
@@ -123,11 +147,12 @@ export function NewProductionCostButton({
               safra.
             </DialogDescription>
           </DialogHeader>
-          <div className="px-6 py-2 max-h-[60vh] overflow-y-auto">
+          <div className="px-6 py-2 overflow-y-auto">
             <ProductionCostForm
               cultures={cultures}
               systems={systems}
               harvests={harvests}
+              properties={properties}
               organizationId={organizationId}
               onSuccess={handleSuccess}
               onCancel={() => setIsOpen(false)}

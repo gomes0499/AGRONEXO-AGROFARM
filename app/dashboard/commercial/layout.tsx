@@ -13,9 +13,9 @@ export default function CommercialLayout({
       <div className="p-4 md:p-6 pt-2 space-y-6">
         <Card>
           <div className="w-full">
-            <div className="flex items-center px-4 py-2 overflow-x-auto">
+            {/* <div className="flex items-center px-4 py-2 overflow-x-auto">
               <CommercialNav />
-            </div>
+            </div> */}
             <div className="px-0">
               {children}
             </div>

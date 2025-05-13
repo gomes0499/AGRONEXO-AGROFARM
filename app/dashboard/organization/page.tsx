@@ -36,10 +36,18 @@ export default async function OrganizationPage() {
 
     return (
       <div className="flex flex-col">
-        <SiteHeader title="Todas as Organizações" />
-        <main className="flex-1 p-6">
+        <SiteHeader title="Organizações" />
+        <div className="flex flex-col gap-6 p-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Organizações
+            </h1>
+            <p className="text-muted-foreground">
+              Gerencie todas as organizações da plataforma.
+            </p>
+          </div>
           <OrganizationList organizations={allOrganizations || []} />
-        </main>
+        </div>
       </div>
     );
   }
@@ -55,18 +63,28 @@ export default async function OrganizationPage() {
     return (
       <div className="flex flex-col">
         <SiteHeader title="Organização" />
-        <div className="flex flex-1 flex-col items-center justify-center p-6">
-          <div className="mx-auto max-w-md text-center">
-            <h2 className="text-2xl font-semibold">
-              Sem organização associada
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              Você ainda não está associado a uma organização. Crie uma
-              organização ou aguarde um convite para começar.
+        <div className="flex flex-col gap-6 p-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Organização
+            </h1>
+            <p className="text-muted-foreground">
+              Gerencie sua organização e membros.
             </p>
-            <Button className="mt-4" asChild>
-              <Link href="/dashboard/organization/new">Criar Organização</Link>
-            </Button>
+          </div>
+          <div className="flex flex-1 flex-col items-center justify-center p-6">
+            <div className="mx-auto max-w-md text-center">
+              <h2 className="text-2xl font-semibold">
+                Sem organização associada
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                Você ainda não está associado a uma organização. Crie uma
+                organização ou aguarde um convite para começar.
+              </p>
+              <Button className="mt-4" asChild>
+                <Link href="/dashboard/organization/new">Criar Organização</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -97,7 +115,16 @@ export default async function OrganizationPage() {
   return (
     <div className="flex flex-col">
       <SiteHeader title="Organização" />
-      <main className="flex-1 p-6">
+      <div className="flex flex-col gap-6 p-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Organização
+          </h1>
+          <p className="text-muted-foreground">
+            Gerencie sua organização e membros.
+          </p>
+        </div>
+        
         <Tabs defaultValue="info">
           <TabsList className="mb-6">
             <TabsTrigger value="info">Informações</TabsTrigger>
@@ -136,7 +163,7 @@ export default async function OrganizationPage() {
             </TabsContent>
           )}
         </Tabs>
-      </main>
+      </div>
     </div>
   );
 }

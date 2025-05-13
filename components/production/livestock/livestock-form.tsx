@@ -204,17 +204,11 @@ export function LivestockForm({
         const updatedItem = await updateLivestock(livestock.id, values);
         toast.success("Registro de rebanho atualizado com sucesso!");
         onSuccess?.(updatedItem);
-        
-        // Forçar recarregamento da página para atualizar os dados
-        window.location.reload();
       } else {
         // Criar novo item
         const newItem = await createLivestock(organizationId, values);
         toast.success("Registro de rebanho criado com sucesso!");
         onSuccess?.(newItem);
-        
-        // Forçar recarregamento da página para mostrar o novo item
-        window.location.reload();
       }
     } catch (error) {
       console.error("Erro ao salvar registro de rebanho:", error);

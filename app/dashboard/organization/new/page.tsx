@@ -30,7 +30,12 @@ export default async function NewOrganizationPage() {
   if (hasOrganization) {
     return (
       <div className="flex flex-col">
-        <SiteHeader title="Nova Organização" />
+        <SiteHeader 
+          title="Nova Organização"
+          showBackButton={true}
+          backUrl="/dashboard/organization"
+          backLabel="Voltar"
+        />
         <div className="flex flex-1 flex-col items-start justify-start p-6">
           <div className="max-w-md text-left">
             <h2 className="text-2xl font-semibold">
@@ -54,7 +59,12 @@ export default async function NewOrganizationPage() {
 
   return (
     <div className="flex flex-col">
-      <SiteHeader title="Nova Organização" />
+      <SiteHeader 
+        title="Nova Organização"
+        showBackButton={true}
+        backUrl="/dashboard/organization"
+        backLabel="Voltar"
+      />
       <main className="flex-1 p-6">
         <div className="max-w-3xl">
           <OrganizationForm userId={user.id} />

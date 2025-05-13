@@ -1,10 +1,6 @@
 import { Metadata } from "next";
 import { PropertyList } from "@/components/properties/property-list";
-import { PropertyStats } from "@/components/properties/property-stats";
-import {
-  getProperties,
-  getPropertyStats,
-} from "@/lib/actions/property-actions";
+import { getProperties } from "@/lib/actions/property-actions";
 import { Separator } from "@/components/ui/separator";
 import { getSession } from "@/lib/auth";
 import { SiteHeader } from "@/components/dashboard/site-header";
@@ -17,11 +13,7 @@ export const metadata: Metadata = {
 
 export default async function PropertiesPage() {
   const session = await getSession();
-
-  const [properties, stats] = await Promise.all([
-    getProperties(session?.organizationId),
-    getPropertyStats(session?.organizationId),
-  ]);
+  const properties = await getProperties(session?.organizationId);
 
   return (
     <>
@@ -35,11 +27,7 @@ export default async function PropertiesPage() {
             Gerencie suas propriedades rurais, arrendamentos e benfeitorias.
           </p>
         </div>
-        <Separator />
-        <PropertyStats stats={stats} />
-        <div className="mt-4">
-          <PropertyList properties={properties} />
-        </div>
+        <PropertyList properties={properties} />
       </div>
     </>
   );

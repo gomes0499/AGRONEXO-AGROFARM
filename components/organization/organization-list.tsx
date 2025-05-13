@@ -9,11 +9,9 @@ import {
   ArrowUpDown,
   MoreHorizontal,
   ExternalLink,
-  Pencil,
   Trash2,
   Mail,
   Hash,
-  Filter,
 } from "lucide-react";
 import {
   Table,
@@ -27,13 +25,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -43,12 +34,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Organization = {
@@ -231,168 +216,176 @@ export function OrganizationList({
       ));
 
   return (
-    <Card className="shadow-sm border-muted/80">
-      <CardHeader className="pb-3">
+    <div className="space-y-6">
+      <div className="flex justify-end items-center">
+        <Button asChild>
+          <Link href="/dashboard/organization/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Organização
+          </Link>
+        </Button>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, identificador ou email..."
+            className="pl-8 w-full"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Buscar organizações"
+          />
+        </div>
+      </div>
+
+      {searchQuery && filteredAndSortedOrganizations.length > 0 && (
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle>Organizações</CardTitle>
-              <CardDescription>Gerencie suas organizações</CardDescription>
-            </div>
-          </div>
-          <Button asChild>
-            <Link href="/dashboard/organization/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Organização
-            </Link>
+          <p className="text-sm text-muted-foreground">
+            {filteredAndSortedOrganizations.length}
+            {filteredAndSortedOrganizations.length === 1
+              ? " organização encontrada"
+              : " organizações encontradas"}
+          </p>
+          <Button variant="ghost" size="sm" onClick={() => setSearchQuery("")}>
+            Limpar busca
           </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Input
-              placeholder="Buscar por nome, identificador ou email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" className="flex gap-2" disabled>
-                  <Filter className="h-4 w-4" />
-                  <span className="hidden sm:inline">Filtros</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Filtros avançados em breve</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+      )}
 
-        <div className="border rounded-md overflow-hidden">
+      {isLoading ? (
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="w-[33%]">
-                  {renderSortableHeader("Nome", "nome")}
-                </TableHead>
-                <TableHead className="w-[25%]">
-                  {renderSortableHeader("Identificador", "slug")}
-                </TableHead>
-                <TableHead className="w-[25%]">
-                  {renderSortableHeader("Email", "email")}
-                </TableHead>
-                <TableHead className="w-[17%] text-right">Ações</TableHead>
+              <TableRow>
+                <TableHead>{renderSortableHeader("Nome", "nome")}</TableHead>
+                <TableHead>{renderSortableHeader("Identificador", "slug")}</TableHead>
+                <TableHead>{renderSortableHeader("Email", "email")}</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading
-                ? renderLoadingState()
-                : filteredAndSortedOrganizations.length > 0
-                ? filteredAndSortedOrganizations.map((org) => (
-                    <TableRow key={org.id} className="group">
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-3">
-                          <Avatar
-                            className={`h-10 w-10 transition-transform group-hover:scale-110 ${getAvatarColor(
-                              org.nome
-                            )}`}
-                          >
-                            <AvatarFallback>
-                              {getInitials(org.nome)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {org.nome || "Sem nome"}
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className="w-fit text-xs mt-1"
-                            >
-                              {getOrganizationType(org)}
-                            </Badge>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <Hash className="h-3.5 w-3.5" />
-                          <span>{org.slug || "-"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {org.email ? (
-                          <div className="flex items-center gap-1.5">
-                            <Mail className="h-3.5 w-3.5" />
-                            <span>{org.email}</span>
-                          </div>
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Abrir menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/dashboard/organization/${org.id}`}
-                                className="cursor-pointer"
-                              >
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                <span>Gerenciar</span>
-                              </Link>
-                            </DropdownMenuItem>
-
-                            {onDelete && (
-                              <DropdownMenuItem
-                                onClick={() => onDelete(org.id)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                <span>Excluir</span>
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                : renderEmptyState()}
+              {renderLoadingState()}
             </TableBody>
           </Table>
         </div>
+      ) : filteredAndSortedOrganizations.length > 0 ? (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{renderSortableHeader("Nome", "nome")}</TableHead>
+                <TableHead>{renderSortableHeader("Identificador", "slug")}</TableHead>
+                <TableHead>{renderSortableHeader("Email", "email")}</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAndSortedOrganizations.map((org) => (
+                <TableRow key={org.id} className="group">
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <Avatar
+                        className={`h-10 w-10 transition-transform group-hover:scale-110 ${getAvatarColor(
+                          org.nome
+                        )}`}
+                      >
+                        <AvatarFallback>
+                          {getInitials(org.nome)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {org.nome || "Sem nome"}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="w-fit text-xs mt-1"
+                        >
+                          {getOrganizationType(org)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Hash className="h-3.5 w-3.5" />
+                      <span>{org.slug || "-"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {org.email ? (
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        <span>{org.email}</span>
+                      </div>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Abrir menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/dashboard/organization/${org.id}`}
+                            className="cursor-pointer"
+                          >
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            <span>Gerenciar</span>
+                          </Link>
+                        </DropdownMenuItem>
 
-        {filteredAndSortedOrganizations.length > 0 && (
-          <div className="mt-3 text-sm text-muted-foreground">
-            {filteredAndSortedOrganizations.length}{" "}
-            {filteredAndSortedOrganizations.length === 1
-              ? "organização"
-              : "organizações"}{" "}
-            encontrada
-            {filteredAndSortedOrganizations.length !== 1 ? "s" : ""}
-            {searchQuery && ` para "${searchQuery}"`}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                        {onDelete && (
+                          <DropdownMenuItem
+                            onClick={() => onDelete(org.id)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Excluir</span>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <EmptyState
+          icon={<Building2 className="h-10 w-10 text-muted-foreground" />}
+          title="Nenhuma organização encontrada"
+          description={
+            searchQuery
+              ? "Tente ajustar os termos da busca ou remover os filtros"
+              : "Crie sua primeira organização para começar"
+          }
+          action={
+            !searchQuery && (
+              <Button asChild>
+                <Link href="/dashboard/organization/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Organização
+                </Link>
+              </Button>
+            )
+          }
+        />
+      )}
+    </div>
   );
 }

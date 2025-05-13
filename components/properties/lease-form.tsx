@@ -280,7 +280,7 @@ export function LeaseForm({
                               {properties.map((property) => (
                                 <SelectItem
                                   key={property.id}
-                                  value={property.id}
+                                  value={property.id || ""}
                                 >
                                   {property.nome} ({property.cidade}/
                                   {property.estado})
@@ -617,15 +617,18 @@ export function LeaseForm({
                                       parseFormattedNumber(cleanValue);
 
                                     // Atualiza o valor no objeto de custos projetados
-                                    const custos = {
-                                      ...form.getValues(
-                                        "custos_projetados_anuais"
-                                      ),
-                                    };
-                                    custos[year] = numericValue ?? 0;
+                                    const custos = form.getValues(
+                                      "custos_projetados_anuais"
+                                    );
+                                    const custosObj =
+                                      typeof custos === "string"
+                                        ? JSON.parse(custos)
+                                        : { ...custos };
+
+                                    custosObj[year] = numericValue ?? 0;
                                     form.setValue(
                                       "custos_projetados_anuais",
-                                      custos
+                                      custosObj
                                     );
                                   }}
                                   onBlur={(e) => {
@@ -633,7 +636,12 @@ export function LeaseForm({
                                     const custos = form.getValues(
                                       "custos_projetados_anuais"
                                     );
-                                    const value = custos[year];
+                                    const custosObj =
+                                      typeof custos === "string"
+                                        ? JSON.parse(custos)
+                                        : custos;
+
+                                    const value = custosObj[year];
                                     if (value !== null && value !== undefined) {
                                       const formattedValue = formatSacas(value);
                                       e.target.value = formattedValue;
@@ -644,7 +652,12 @@ export function LeaseForm({
                                     const custos = form.getValues(
                                       "custos_projetados_anuais"
                                     );
-                                    const value = custos[year];
+                                    const custosObj =
+                                      typeof custos === "string"
+                                        ? JSON.parse(custos)
+                                        : custos;
+
+                                    const value = custosObj[year];
                                     if (value !== null && value !== undefined) {
                                       e.target.value = value.toString();
                                     }

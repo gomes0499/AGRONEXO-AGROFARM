@@ -219,7 +219,7 @@ export function OrganizationSwitcher() {
                       onSelect={() => switchOrganization(org)}
                       className="text-sm"
                     >
-                      <Avatar className="mr-2 h-5 w-5 rounded-md">
+                      <Avatar className="mr-2 h-6 w-6 rounded-md">
                         <AvatarImage src={org.logo || ""} alt={org.nome} />
                         <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
                           {getInitials(org.nome)}

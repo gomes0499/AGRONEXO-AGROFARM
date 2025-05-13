@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -29,7 +30,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteProductionCost } from "@/lib/actions/production-actions";
+import {
+  deleteProductionCost,
+  getProductionCosts,
+} from "@/lib/actions/production-actions";
 import { ProductionCostForm } from "./production-cost-form";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
@@ -45,11 +49,21 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProductionCost, Culture, System, Harvest } from "@/schemas/production";
 
+// Define interface for the property entity
+interface Property {
+  id: string;
+  nome: string;
+  cidade?: string;
+  estado?: string;
+  [key: string]: any;
+}
+
 interface ProductionCostListProps {
   initialCosts: ProductionCost[];
   cultures: Culture[];
   systems: System[];
   harvests: Harvest[];
+  properties: Property[];
   organizationId: string;
 }
 
@@ -57,6 +71,7 @@ interface ReferenceNames {
   culture: string;
   system: string;
   harvest: string;
+  property?: string;
 }
 
 export function ProductionCostList({
@@ -64,12 +79,17 @@ export function ProductionCostList({
   cultures,
   systems,
   harvests,
+  properties,
   organizationId,
 }: ProductionCostListProps) {
   const [costs, setCosts] = useState<ProductionCost[]>(initialCosts);
   const [editingItem, setEditingItem] = useState<ProductionCost | null>(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
-  const isMobile = useIsMobile();
+
+  // Atualizar o estado local sempre que os dados do servidor mudarem
+  useEffect(() => {
+    setCosts(initialCosts);
+  }, [initialCosts]);
 
   // Função para editar um item
   const handleEdit = (item: ProductionCost) => {
@@ -81,6 +101,8 @@ export function ProductionCostList({
   const handleDelete = async (id: string) => {
     try {
       await deleteProductionCost(id);
+      // Ainda mantemos a atualização local para uma UI responsiva
+      // mas o revalidatePath no servidor vai garantir dados frescos na próxima renderização
       setCosts(costs.filter((item) => item.id !== id));
       toast.success("Registro de custo excluído com sucesso!");
     } catch (error) {
@@ -90,6 +112,7 @@ export function ProductionCostList({
 
   // Função para atualizar a lista após edição
   const handleUpdate = (updatedItem: ProductionCost) => {
+    // Atualização local para UI responsiva
     setCosts(
       costs.map((item) => (item.id === updatedItem.id ? updatedItem : item))
     );
@@ -127,6 +150,8 @@ export function ProductionCostList({
         systems.find((s) => s.id === item.sistema_id)?.nome || "Desconhecido",
       harvest:
         harvests.find((h) => h.id === item.safra_id)?.nome || "Desconhecida",
+      property:
+        properties.find((p) => p.id === item.propriedade_id)?.nome || "",
     };
   };
 
@@ -172,6 +197,7 @@ export function ProductionCostList({
                   <TableHead>Categoria</TableHead>
                   <TableHead>Cultura</TableHead>
                   <TableHead>Sistema</TableHead>
+                  <TableHead>Propriedade</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -185,6 +211,7 @@ export function ProductionCostList({
                       <TableCell>{translateCategory(item.categoria)}</TableCell>
                       <TableCell>{refs.culture}</TableCell>
                       <TableCell>{refs.system}</TableCell>
+                      <TableCell>{refs.property}</TableCell>
                       <TableCell>{formatCurrency(item.valor)}</TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -250,6 +277,7 @@ export function ProductionCostList({
                 cultures={cultures}
                 systems={systems}
                 harvests={harvests}
+                properties={properties}
                 organizationId={organizationId}
                 cost={editingItem}
                 onSuccess={handleUpdate}

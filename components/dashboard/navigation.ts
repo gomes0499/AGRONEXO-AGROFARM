@@ -1,4 +1,4 @@
-import { HelpCircleIcon, SearchIcon, PieChartIcon, BuildingIcon } from "lucide-react";
+import { HelpCircleIcon, SearchIcon, PieChartIcon, BuildingIcon, BrainCircuitIcon, Brain } from "lucide-react";
 import { 
   BarChartIcon, CameraIcon, FileCodeIcon, FileTextIcon, FolderIcon, 
   SettingsIcon, UsersIcon, WalletIcon, LineChartIcon, MapIcon, 
@@ -46,30 +46,26 @@ export const data = {
     },
     {
       title: "Patrimonial",
-      url: "/dashboard/patrimonial",
+      url: "/dashboard/assets",
       icon: LandmarkIcon,
     },
     {
       title: "Projeções",
-      url: "/dashboard/projecoes",
+      url: "/dashboard/projections",
       icon: LineChartIcon,
     },
     {
       title: "Indicadores",
-      url: "/dashboard/indicadores",
+      url: "/dashboard/indicators",
       icon: GaugeIcon,
     },
   ],
   navSecondary: [
+    
     {
-      title: "Configurações",
-      url: "/dashboard/configuracoes",
-      icon: SettingsIcon,
-    },
-    {
-      title: "Suporte",
+      title: "Suporte com IA",
       url: "/dashboard/support",
-      icon: HelpCircleIcon,
+      icon: Brain,
     },
  
   ],

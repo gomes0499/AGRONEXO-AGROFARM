@@ -10,6 +10,7 @@ import { OrganizationDetailInfo } from "@/components/organization/organization-d
 import { OrganizationDetailMembers } from "@/components/organization/organization-detail-members";
 import { OrganizationDetailInvites } from "@/components/organization/organization-detail-invites";
 import { OrganizationDetailEdit } from "@/components/organization/organization-detail-edit";
+import { OrganizationSettings } from "@/components/organization/organization-settings";
 
 interface PageProps {
   params: {
@@ -206,6 +207,7 @@ export default async function ManageOrganizationPage({
               Convites ({invites?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="edit">Editar Organização</TabsTrigger>
+            <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="info" className="mt-0 pt-2">
@@ -232,6 +234,12 @@ export default async function ManageOrganizationPage({
             <OrganizationDetailEdit
               userId={user.id}
               organization={organization}
+            />
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-0 pt-2">
+            <OrganizationSettings
+              organizationId={params.id}
             />
           </TabsContent>
         </Tabs>

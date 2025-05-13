@@ -149,13 +149,21 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {lease.nome_fazenda}
-          </h1>
-          <Badge variant={isActive() ? "default" : "destructive"}>
-            {isActive() ? "Ativo" : "Vencido"}
-          </Badge>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/dashboard/properties/${propertyId}`}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Voltar à Propriedade
+            </Link>
+          </Button>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {lease.nome_fazenda}
+            </h1>
+            <Badge variant={isActive() ? "default" : "destructive"}>
+              {isActive() ? "Ativo" : "Vencido"}
+            </Badge>
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -351,11 +359,7 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
                       sc/ha
                     </Badge>
                   </div>
-                  <Progress
-                    value={100}
-                    className="h-2"
-                    indicatorClassName="bg-amber-500"
-                  />
+                  <Progress value={100} className="h-2" />
                 </div>
 
                 <div className="space-y-1">
@@ -371,11 +375,7 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
                       sc
                     </Badge>
                   </div>
-                  <Progress
-                    value={100}
-                    className="h-2"
-                    indicatorClassName="bg-emerald-500"
-                  />
+                  <Progress value={100} className="h-2" />
                 </div>
 
                 <div className="space-y-1">
@@ -393,7 +393,6 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
                   <Progress
                     value={(lease.area_arrendada / lease.area_fazenda) * 100}
                     className="h-2"
-                    indicatorClassName="bg-blue-500"
                   />
                 </div>
 
@@ -615,9 +614,6 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
                     content={
                       <ChartTooltipContent
                         labelFormatter={(value) => `Ano ${value}`}
-                        valueFormatter={(value) =>
-                          `${value.toLocaleString("pt-BR")} sacas`
-                        }
                       />
                     }
                   />

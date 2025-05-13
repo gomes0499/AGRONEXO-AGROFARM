@@ -89,7 +89,10 @@ export default function Loading() {
         <CardContent>
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center justify-between border-b pb-3">
+              <div
+                key={i}
+                className="flex items-center justify-between border-b pb-3"
+              >
                 <div className="flex items-center gap-4">
                   <Skeleton className="h-10 w-10 rounded-full" />
                   <div>

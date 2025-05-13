@@ -72,7 +72,7 @@ export async function createCulture(
     throw new Error("Não foi possível criar a cultura");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return data as Culture;
 }
@@ -95,7 +95,7 @@ export async function updateCulture(
     throw new Error("Não foi possível atualizar a cultura");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return data as Culture;
 }
@@ -113,7 +113,7 @@ export async function deleteCulture(id: string) {
     throw new Error("Não foi possível excluir a cultura");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return true;
 }
@@ -176,7 +176,7 @@ export async function createSystem(
     throw new Error("Não foi possível criar o sistema");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return data as System;
 }
@@ -199,7 +199,7 @@ export async function updateSystem(
     throw new Error("Não foi possível atualizar o sistema");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return data as System;
 }
@@ -217,7 +217,7 @@ export async function deleteSystem(id: string) {
     throw new Error("Não foi possível excluir o sistema");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return true;
 }
@@ -280,7 +280,7 @@ export async function createCycle(
     throw new Error("Não foi possível criar o ciclo");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return data as Cycle;
 }
@@ -303,7 +303,7 @@ export async function updateCycle(
     throw new Error("Não foi possível atualizar o ciclo");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return data as Cycle;
 }
@@ -321,7 +321,7 @@ export async function deleteCycle(id: string) {
     throw new Error("Não foi possível excluir o ciclo");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return true;
 }
@@ -384,7 +384,7 @@ export async function createHarvest(
     throw new Error("Não foi possível criar a safra");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return data as Harvest;
 }
@@ -407,7 +407,7 @@ export async function updateHarvest(
     throw new Error("Não foi possível atualizar a safra");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return data as Harvest;
 }
@@ -425,7 +425,7 @@ export async function deleteHarvest(id: string) {
     throw new Error("Não foi possível excluir a safra");
   }
   
-  revalidatePath("/dashboard/production/config");
+  revalidatePath("/dashboard/production");
   
   return true;
 }
@@ -519,7 +519,7 @@ export async function createPlantingArea(
     throw new Error("Não foi possível criar a área de plantio");
   }
   
-  revalidatePath("/dashboard/production/planting-areas");
+  revalidatePath("/dashboard/production");
   
   return data as PlantingArea;
 }
@@ -542,7 +542,7 @@ export async function updatePlantingArea(
     throw new Error("Não foi possível atualizar a área de plantio");
   }
   
-  revalidatePath("/dashboard/production/planting-areas");
+  revalidatePath("/dashboard/production");
   
   return data as PlantingArea;
 }
@@ -560,7 +560,7 @@ export async function deletePlantingArea(id: string) {
     throw new Error("Não foi possível excluir a área de plantio");
   }
   
-  revalidatePath("/dashboard/production/planting-areas");
+  revalidatePath("/dashboard/production");
   
   return true;
 }
@@ -650,7 +650,7 @@ export async function createProductivity(
     throw new Error("Não foi possível criar a produtividade");
   }
   
-  revalidatePath("/dashboard/production/productivity");
+  revalidatePath("/dashboard/production");
   
   return data as Productivity;
 }
@@ -673,7 +673,7 @@ export async function updateProductivity(
     throw new Error("Não foi possível atualizar a produtividade");
   }
   
-  revalidatePath("/dashboard/production/productivity");
+  revalidatePath("/dashboard/production");
   
   return data as Productivity;
 }
@@ -691,7 +691,7 @@ export async function deleteProductivity(id: string) {
     throw new Error("Não foi possível excluir a produtividade");
   }
   
-  revalidatePath("/dashboard/production/productivity");
+  revalidatePath("/dashboard/production");
   
   return true;
 }
@@ -786,7 +786,7 @@ export async function createProductionCost(
     throw new Error("Não foi possível criar o custo de produção");
   }
   
-  revalidatePath("/dashboard/production/costs");
+  revalidatePath("/dashboard/production");
   
   return data as ProductionCost;
 }
@@ -809,7 +809,7 @@ export async function updateProductionCost(
     throw new Error("Não foi possível atualizar o custo de produção");
   }
   
-  revalidatePath("/dashboard/production/costs");
+  revalidatePath("/dashboard/production");
   
   return data as ProductionCost;
 }
@@ -827,7 +827,7 @@ export async function deleteProductionCost(id: string) {
     throw new Error("Não foi possível excluir o custo de produção");
   }
   
-  revalidatePath("/dashboard/production/costs");
+  revalidatePath("/dashboard/production");
   
   return true;
 }
@@ -901,7 +901,7 @@ export async function createLivestock(
     throw new Error("Não foi possível criar o rebanho");
   }
   
-  revalidatePath("/dashboard/production/livestock");
+  revalidatePath("/dashboard/production");
   
   return data as Livestock;
 }
@@ -924,7 +924,7 @@ export async function updateLivestock(
     throw new Error("Não foi possível atualizar o rebanho");
   }
   
-  revalidatePath("/dashboard/production/livestock");
+  revalidatePath("/dashboard/production");
   
   return data as Livestock;
 }
@@ -942,7 +942,7 @@ export async function deleteLivestock(id: string) {
     throw new Error("Não foi possível excluir o rebanho");
   }
   
-  revalidatePath("/dashboard/production/livestock");
+  revalidatePath("/dashboard/production");
   
   return true;
 }
@@ -1021,7 +1021,7 @@ export async function createLivestockOperation(
     throw new Error("Não foi possível criar a operação pecuária");
   }
   
-  revalidatePath("/dashboard/production/livestock-operations");
+  revalidatePath("/dashboard/production");
   
   return data as LivestockOperation;
 }
@@ -1051,7 +1051,7 @@ export async function updateLivestockOperation(
     throw new Error("Não foi possível atualizar a operação pecuária");
   }
   
-  revalidatePath("/dashboard/production/livestock-operations");
+  revalidatePath("/dashboard/production");
   
   return data as LivestockOperation;
 }
@@ -1069,7 +1069,7 @@ export async function deleteLivestockOperation(id: string) {
     throw new Error("Não foi possível excluir a operação pecuária");
   }
   
-  revalidatePath("/dashboard/production/livestock-operations");
+  revalidatePath("/dashboard/production");
   
   return true;
 }
@@ -1078,7 +1078,7 @@ export async function deleteLivestockOperation(id: string) {
 // Funções para cálculo de métricas e estatísticas
 // ==========================================
 
-export async function getProductionStats(organizationId: string, harvestId?: string) {
+export async function getProductionStats(organizationId: string, propertyIds?: string[], harvestId?: string) {
   const supabase = await createClient();
 
   // Busca todas as áreas de plantio
@@ -1095,6 +1095,11 @@ export async function getProductionStats(organizationId: string, harvestId?: str
   
   if (harvestId) {
     areasQuery = areasQuery.eq("safra_id", harvestId);
+  }
+
+  // Filtrar por propriedades selecionadas
+  if (propertyIds && propertyIds.length > 0) {
+    areasQuery = areasQuery.in("propriedade_id", propertyIds);
   }
   
   const { data: plantingAreas, error: areasError } = await areasQuery;
@@ -1118,6 +1123,11 @@ export async function getProductionStats(organizationId: string, harvestId?: str
   if (harvestId) {
     prodQuery = prodQuery.eq("safra_id", harvestId);
   }
+
+  // Filtrar por propriedades selecionadas
+  if (propertyIds && propertyIds.length > 0) {
+    prodQuery = prodQuery.in("propriedade_id", propertyIds);
+  }
   
   const { data: productivities, error: prodError } = await prodQuery;
   
@@ -1139,6 +1149,11 @@ export async function getProductionStats(organizationId: string, harvestId?: str
   
   if (harvestId) {
     costsQuery = costsQuery.eq("safra_id", harvestId);
+  }
+
+  // Filtrar por propriedades selecionadas
+  if (propertyIds && propertyIds.length > 0) {
+    costsQuery = costsQuery.in("propriedade_id", propertyIds);
   }
   
   const { data: costs, error: costsError } = await costsQuery;

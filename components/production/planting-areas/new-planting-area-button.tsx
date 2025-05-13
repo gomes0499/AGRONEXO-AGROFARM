@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Map } from "lucide-react";
+import { Plus, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -85,7 +85,7 @@ export function NewPlantingAreaButton({
           <DrawerContent className="h-[90%] max-h-none rounded-t-xl">
             <DrawerHeader className="text-left border-b pb-4">
               <div className="flex items-center gap-2">
-                <Map className="h-5 w-5 text-primary" />
+                <MapIcon className="h-5 w-5 text-primary" />
                 <DrawerTitle className="text-xl font-semibold">
                   Nova Área de Plantio
                 </DrawerTitle>
@@ -129,7 +129,7 @@ export function NewPlantingAreaButton({
         <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-2">
             <div className="flex items-center gap-2">
-              <Map className="h-5 w-5 text-primary" />
+              <MapIcon className="h-5 w-5 text-primary" />
               <DialogTitle className="text-xl font-semibold">
                 Nova Área de Plantio
               </DialogTitle>

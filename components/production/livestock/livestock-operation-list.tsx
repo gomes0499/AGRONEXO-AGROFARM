@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +41,6 @@ import {
   DrawerFooter,
   DrawerClose,
 } from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   LivestockOperation,
   Harvest,
@@ -75,7 +74,11 @@ export function LivestockOperationList({
     null
   );
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
-  const isMobile = useIsMobile();
+
+  // Atualizar o estado local sempre que os dados do servidor mudarem
+  useEffect(() => {
+    setOperations(initialOperations);
+  }, [initialOperations]);
 
   // Função para editar um item
   const handleEdit = (item: LivestockOperation) => {

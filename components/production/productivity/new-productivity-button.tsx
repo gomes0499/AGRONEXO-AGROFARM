@@ -28,10 +28,20 @@ import type {
   Productivity,
 } from "@/schemas/production";
 
+// Define interface for the property entity
+interface Property {
+  id: string;
+  nome: string;
+  cidade?: string;
+  estado?: string;
+  [key: string]: any;
+}
+
 interface NewProductivityButtonProps {
   cultures: Culture[];
   systems: System[];
   harvests: Harvest[];
+  properties: Property[];
   organizationId: string;
   className?: string;
   variant?: "default" | "outline" | "secondary" | "ghost";
@@ -42,6 +52,7 @@ export function NewProductivityButton({
   cultures,
   systems,
   harvests,
+  properties,
   organizationId,
   className,
   variant = "default",
@@ -86,6 +97,7 @@ export function NewProductivityButton({
                 cultures={cultures}
                 systems={systems}
                 harvests={harvests}
+                properties={properties}
                 organizationId={organizationId}
                 onSuccess={handleSuccess}
                 onCancel={() => setIsOpen(false)}
@@ -128,6 +140,7 @@ export function NewProductivityButton({
               cultures={cultures}
               systems={systems}
               harvests={harvests}
+              properties={properties}
               organizationId={organizationId}
               onSuccess={handleSuccess}
               onCancel={() => setIsOpen(false)}

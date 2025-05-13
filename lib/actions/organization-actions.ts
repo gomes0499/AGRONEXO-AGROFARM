@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { UserRole } from "@/lib/auth/roles";
+import { redirect } from "next/navigation";
 
 /**
  * Remove um membro de uma organização
@@ -83,5 +84,190 @@ export async function removeMember(formData: FormData) {
     return { success: "Membro removido com sucesso" };
   } catch (error) {
     return { error: "Erro ao processar a solicitação" };
+  }
+}
+
+/**
+ * Exclui uma organização
+ * Apenas proprietários podem excluir organizações
+ * A exclusão remove todos os dados relacionados à organização
+ */
+export async function deleteOrganization(formData: FormData) {
+  try {
+    // Obter os dados do formulário
+    const organizacaoId = formData.get("organizacaoId") as string;
+    const confirmacao = formData.get("confirmacao") as string;
+    
+    if (!organizacaoId) {
+      return { error: "ID da organização é obrigatório" };
+    }
+    
+    // Verificar se a confirmação foi fornecida
+    if (confirmacao !== "CONFIRMAR") {
+      return { error: "Você precisa digitar CONFIRMAR para excluir a organização" };
+    }
+    
+    // Verificar autenticação
+    const user = await verifyUserPermission();
+    if (!user) {
+      return { error: "Não autorizado" };
+    }
+    
+    // Inicializar cliente Supabase
+    const supabase = await createClient();
+    
+    // Verificar se o usuário é super admin
+    const isSuperAdmin = user.app_metadata?.is_super_admin === true;
+    
+    if (!isSuperAdmin) {
+      // Verificar se o usuário é proprietário da organização
+      const { data: userMembership } = await supabase
+        .from("associacoes")
+        .select("*")
+        .eq("usuario_id", user.id)
+        .eq("organizacao_id", organizacaoId)
+        .single();
+        
+      // Apenas proprietários podem excluir organizações
+      if (!userMembership || userMembership.funcao !== UserRole.PROPRIETARIO) {
+        return { error: "Apenas proprietários podem excluir organizações" };
+      }
+    }
+    
+    try {
+      // Desativar temporariamente os triggers de auditoria para evitar conflitos
+      await supabase.rpc('desativar_triggers_auditoria');
+      
+      // Excluir todos os dados relacionados à organização em ordem para evitar violações de chave estrangeira
+      // 1. Primeiro excluir registros de auditoria existentes
+      await supabase
+        .from("auditoria")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+      
+      // 2. Excluir convites pendentes
+      await supabase
+        .from("convites")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      // 3. Excluir dados de produção (área de plantio, produtividade, custos, rebanho, operações)
+      await supabase
+        .from("area_plantio")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("produtividade")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("custo_producao")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("rebanho")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("operacao_pecuaria")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      // 4. Excluir configurações (culturas, sistemas, ciclos, safras)
+      await supabase
+        .from("culturas")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("sistemas")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("ciclos")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("safras")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      // 5. Excluir dados comerciais (preços, vendas)
+      await supabase
+        .from("precos")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("venda_sementes")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("venda_pecuaria")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      // 6. Excluir propriedades e relacionados
+      await supabase
+        .from("arrendamentos")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("benfeitorias")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      await supabase
+        .from("propriedades")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      // 7. Excluir as associações de membros
+      await supabase
+        .from("associacoes")
+        .delete()
+        .eq("organizacao_id", organizacaoId);
+        
+      // 8. Por fim, excluir a organização
+      const { error: deleteError } = await supabase
+        .from("organizacoes")
+        .delete()
+        .eq("id", organizacaoId);
+        
+      if (deleteError) {
+        throw new Error(`Erro ao excluir organização: ${deleteError.message}`);
+      }
+      
+      // Reativar os triggers de auditoria
+      await supabase.rpc('ativar_triggers_auditoria');
+      
+      // Retornar sucesso e o caminho para redirecionamento
+      return { success: true, redirect: "/dashboard" };
+    } catch (innerError) {
+      // Em caso de erro, garantir que os triggers sejam reativados
+      try {
+        await supabase.rpc('ativar_triggers_auditoria');
+      } catch (e) {
+        console.error("Erro ao reativar triggers:", e);
+      }
+      
+      throw innerError; // Relançar o erro para ser tratado pelo catch externo
+    }
+  } catch (error) {
+    console.error("Erro ao excluir organização:", error);
+    // Verifica se o erro é de redirecionamento do Next.js
+    if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
+      // Este é um redirecionamento intencional, não um erro
+      throw error; // Relançar para que o Next.js possa processar o redirecionamento
+    }
+    return { error: "Erro ao processar a solicitação de exclusão" };
   }
 }

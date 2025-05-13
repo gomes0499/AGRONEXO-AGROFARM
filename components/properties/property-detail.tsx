@@ -89,18 +89,6 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
                   </p>
                 </div>
               )}
-
-              {property.coordenadas && (
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Coordenadas
-                  </h3>
-                  <p className="font-medium flex items-center gap-1.5">
-                    <MapPinIcon size={16} className="text-muted-foreground" />
-                    {property.coordenadas}
-                  </p>
-                </div>
-              )}
             </div>
           </CardContent>
         </div>

@@ -13,17 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { 
-  PlusIcon, 
-  Search, 
-  XIcon, 
-  MapPinIcon, 
-  EditIcon, 
+import {
+  PlusIcon,
+  Search,
+  XIcon,
+  MapPinIcon,
+  EditIcon,
   Trash2Icon,
   AlertTriangleIcon,
   MoreHorizontal,
   EyeIcon,
-  Loader2Icon
+  Loader2Icon,
 } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -70,7 +70,9 @@ export function PropertyList({ properties }: PropertyListProps) {
   const [typeFilter, setTypeFilter] = useState<PropertyType | "ALL">("ALL");
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deletingPropertyId, setDeletingPropertyId] = useState<string | null>(null);
+  const [deletingPropertyId, setDeletingPropertyId] = useState<string | null>(
+    null
+  );
   const router = useRouter();
 
   // Usando useCallback para funções que não mudam frequentemente
@@ -90,30 +92,35 @@ export function PropertyList({ properties }: PropertyListProps) {
     setTypeFilter(value as PropertyType | "ALL");
   }, []);
 
-  const handleDelete = useCallback(async (propertyId: string, propertyName: string) => {
-    try {
-      setIsDeleting(true);
-      setDeletingPropertyId(propertyId);
-      setDeleteError(null);
-      await deleteProperty(propertyId);
+  const handleDelete = useCallback(
+    async (propertyId: string, propertyName: string) => {
+      try {
+        setIsDeleting(true);
+        setDeletingPropertyId(propertyId);
+        setDeleteError(null);
+        await deleteProperty(propertyId);
 
-      toast.success(
-        `A propriedade "${propertyName}" foi excluída com sucesso.`
-      );
-      
-      router.refresh();
-    } catch (error) {
-      console.error("Erro ao excluir propriedade:", error);
-      setDeleteError(
-        "Não foi possível excluir a propriedade. Tente novamente mais tarde."
-      );
+        toast.success(
+          `A propriedade "${propertyName}" foi excluída com sucesso.`
+        );
 
-      toast.error("Ocorreu um erro ao excluir a propriedade. Tente novamente.");
-    } finally {
-      setIsDeleting(false);
-      setDeletingPropertyId(null);
-    }
-  }, [router]);
+        router.refresh();
+      } catch (error) {
+        console.error("Erro ao excluir propriedade:", error);
+        setDeleteError(
+          "Não foi possível excluir a propriedade. Tente novamente mais tarde."
+        );
+
+        toast.error(
+          "Ocorreu um erro ao excluir a propriedade. Tente novamente."
+        );
+      } finally {
+        setIsDeleting(false);
+        setDeletingPropertyId(null);
+      }
+    },
+    [router]
+  );
 
   // Usando useMemo para evitar recálculos desnecessários em cada renderização
   const filteredProperties = useMemo(() => {
@@ -139,8 +146,7 @@ export function PropertyList({ properties }: PropertyListProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-tight">Propriedades</h1>
+      <div className="flex justify-end items-center">
         <Button asChild>
           <Link href="/dashboard/properties/new">
             <PlusIcon className="mr-2 h-4 w-4" />
@@ -215,24 +221,36 @@ export function PropertyList({ properties }: PropertyListProps) {
             </TableHeader>
             <TableBody>
               {filteredProperties.map((property) => {
-                const typeInfo = propertyTypeInfo[property.tipo] || propertyTypeInfo.PROPRIO;
-                
+                const typeInfo =
+                  propertyTypeInfo[property.tipo] || propertyTypeInfo.PROPRIO;
+
                 return (
                   <TableRow key={property.id}>
-                    <TableCell className="font-medium">{property.nome}</TableCell>
+                    <TableCell className="font-medium">
+                      {property.nome}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={typeInfo.variant}>{typeInfo.label}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <MapPinIcon size={14} className="shrink-0 text-muted-foreground" />
-                        <span>{property.cidade}, {property.estado}</span>
+                        <MapPinIcon
+                          size={14}
+                          className="shrink-0 text-muted-foreground"
+                        />
+                        <span>
+                          {property.cidade}, {property.estado}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>{formatArea(property.area_total)}</TableCell>
                     <TableCell>{formatArea(property.area_cultivada)}</TableCell>
                     <TableCell>{property.proprietario}</TableCell>
-                    <TableCell>{property.valor_atual ? formatCurrency(property.valor_atual) : "-"}</TableCell>
+                    <TableCell>
+                      {property.valor_atual
+                        ? formatCurrency(property.valor_atual)
+                        : "-"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end">
                         <DropdownMenu>
@@ -245,7 +263,7 @@ export function PropertyList({ properties }: PropertyListProps) {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            
+
                             <DropdownMenuItem asChild>
                               <Link
                                 href={`/dashboard/properties/${property.id}`}
@@ -255,7 +273,7 @@ export function PropertyList({ properties }: PropertyListProps) {
                                 Visualizar
                               </Link>
                             </DropdownMenuItem>
-                            
+
                             <DropdownMenuItem asChild>
                               <Link
                                 href={`/dashboard/properties/${property.id}/edit`}
@@ -265,49 +283,75 @@ export function PropertyList({ properties }: PropertyListProps) {
                                 Editar
                               </Link>
                             </DropdownMenuItem>
-                            
+
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <DropdownMenuItem
                                   onSelect={(e) => e.preventDefault()}
-                                  disabled={isDeleting && deletingPropertyId === property.id}
+                                  disabled={
+                                    isDeleting &&
+                                    deletingPropertyId === property.id
+                                  }
                                   className="text-destructive focus:text-destructive cursor-pointer"
                                 >
-                                  {isDeleting && deletingPropertyId === property.id ? (
-                                    <Loader2Icon size={14} className="mr-2 animate-spin" />
+                                  {isDeleting &&
+                                  deletingPropertyId === property.id ? (
+                                    <Loader2Icon
+                                      size={14}
+                                      className="mr-2 animate-spin"
+                                    />
                                   ) : (
                                     <Trash2Icon size={14} className="mr-2" />
                                   )}
-                                  {isDeleting && deletingPropertyId === property.id ? "Excluindo..." : "Excluir"}
+                                  {isDeleting &&
+                                  deletingPropertyId === property.id
+                                    ? "Excluindo..."
+                                    : "Excluir"}
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Excluir propriedade</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Excluir propriedade
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Tem certeza que deseja excluir a propriedade &quot;
-                                    {property.nome}&quot;? Esta ação não pode ser desfeita e
-                                    removerá todos os dados relacionados.
+                                    Tem certeza que deseja excluir a propriedade
+                                    &quot;
+                                    {property.nome}&quot;? Esta ação não pode
+                                    ser desfeita e removerá todos os dados
+                                    relacionados.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
 
                                 {deleteError && (
                                   <div className="flex items-center gap-2 p-3 text-sm bg-destructive/10 text-destructive rounded-md">
-                                    <AlertTriangleIcon size={16} className="shrink-0" />
+                                    <AlertTriangleIcon
+                                      size={16}
+                                      className="shrink-0"
+                                    />
                                     <p>{deleteError}</p>
                                   </div>
                                 )}
 
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogCancel>
+                                    Cancelar
+                                  </AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => handleDelete(property.id!, property.nome)}
+                                    onClick={() =>
+                                      handleDelete(property.id!, property.nome)
+                                    }
                                     className={cn(
                                       "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-                                      isDeleting && deletingPropertyId === property.id && "opacity-50 pointer-events-none"
+                                      isDeleting &&
+                                        deletingPropertyId === property.id &&
+                                        "opacity-50 pointer-events-none"
                                     )}
                                   >
-                                    {isDeleting && deletingPropertyId === property.id ? "Excluindo..." : "Excluir"}
+                                    {isDeleting &&
+                                    deletingPropertyId === property.id
+                                      ? "Excluindo..."
+                                      : "Excluir"}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>

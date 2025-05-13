@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,11 +43,21 @@ import {
 } from "@/components/ui/drawer";
 import { Productivity, Culture, System, Harvest } from "@/schemas/production";
 
+// Define interface for the property entity
+interface Property {
+  id: string;
+  nome: string;
+  cidade?: string;
+  estado?: string;
+  [key: string]: any;
+}
+
 interface ProductivityListProps {
   initialProductivities: Productivity[];
   cultures: Culture[];
   systems: System[];
   harvests: Harvest[];
+  properties: Property[];
   organizationId: string;
 }
 
@@ -55,6 +65,7 @@ interface ReferenceNames {
   culture: string;
   system: string;
   harvest: string;
+  property?: string;
 }
 
 export function ProductivityList({
@@ -62,6 +73,7 @@ export function ProductivityList({
   cultures,
   systems,
   harvests,
+  properties,
   organizationId,
 }: ProductivityListProps) {
   const [productivities, setProductivities] = useState<Productivity[]>(
@@ -69,6 +81,11 @@ export function ProductivityList({
   );
   const [editingItem, setEditingItem] = useState<Productivity | null>(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
+
+  // Atualizar o estado local sempre que os dados do servidor mudarem
+  useEffect(() => {
+    setProductivities(initialProductivities);
+  }, [initialProductivities]);
 
   // Função para editar um item
   const handleEdit = (item: Productivity) => {
@@ -129,6 +146,8 @@ export function ProductivityList({
         systems.find((s) => s.id === item.sistema_id)?.nome || "Desconhecido",
       harvest:
         harvests.find((h) => h.id === item.safra_id)?.nome || "Desconhecida",
+      property:
+        properties.find((p) => p.id === item.propriedade_id)?.nome || "",
     };
   };
 
@@ -154,6 +173,7 @@ export function ProductivityList({
                   <TableHead>Safra</TableHead>
                   <TableHead>Cultura</TableHead>
                   <TableHead>Sistema</TableHead>
+                  <TableHead>Propriedade</TableHead>
                   <TableHead>Produtividade</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -166,6 +186,7 @@ export function ProductivityList({
                       <TableCell>{refs.harvest}</TableCell>
                       <TableCell>{refs.culture}</TableCell>
                       <TableCell>{refs.system}</TableCell>
+                      <TableCell>{refs.property}</TableCell>
                       <TableCell>
                         {item.produtividade} {item.unidade}
                       </TableCell>
@@ -233,6 +254,7 @@ export function ProductivityList({
                 cultures={cultures}
                 systems={systems}
                 harvests={harvests}
+                properties={properties}
                 organizationId={organizationId}
                 productivity={editingItem}
                 onSuccess={handleUpdate}
