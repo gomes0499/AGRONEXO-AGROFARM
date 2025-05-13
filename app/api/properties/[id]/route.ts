@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getPropertyById } from "@/lib/actions/property-actions";
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: { id: string } }
 ) {
   try {
     const session = await getSession();
@@ -17,7 +17,7 @@ export async function GET(
     }
 
     // Obter dados da propriedade
-    const property = await getPropertyById(params.id);
+    const property = await getPropertyById(context.params.id);
 
     // Verificar se a propriedade pertence à organização do usuário
     if (property.organizacao_id !== session.organizationId) {
