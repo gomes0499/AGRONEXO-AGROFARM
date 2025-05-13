@@ -26,15 +26,19 @@ export default function DashboardLoading() {
           </div>
         </div>
       </div>
-      
+
       <main className="flex-1 p-6">
         <Tabs defaultValue="overview">
           <TabsList className="mb-6">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="production">Produção</TabsTrigger>
             <TabsTrigger value="financial">Financeiro</TabsTrigger>
+            <TabsTrigger value="assets">Patrimonial</TabsTrigger>
+            <TabsTrigger value="projections">Projeções</TabsTrigger>
+            <TabsTrigger value="indicators">Indicadores</TabsTrigger>
+            <TabsTrigger value="commercial">Comercial</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="overview" className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {/* Stat Cards Skeletons */}
@@ -73,7 +77,7 @@ export default function DashboardLoading() {
                   <Skeleton className="h-64 w-full" />
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>
@@ -89,13 +93,13 @@ export default function DashboardLoading() {
               </Card>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="production" className="space-y-6">
             <Card>
               <CardContent className="pt-6">
                 <Skeleton className="h-6 w-48 mb-2" />
                 <Skeleton className="h-4 w-full mb-6" />
-                
+
                 <Skeleton className="h-5 w-32 mb-4" />
                 <div className="grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {[1, 2, 3, 4].map((i) => (
@@ -105,13 +109,13 @@ export default function DashboardLoading() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="financial" className="space-y-6">
             <Card>
               <CardContent className="pt-6">
                 <Skeleton className="h-6 w-48 mb-2" />
                 <Skeleton className="h-4 w-full mb-6" />
-                
+
                 <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="rounded-md border p-3">

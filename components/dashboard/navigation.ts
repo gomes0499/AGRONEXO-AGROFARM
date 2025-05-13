@@ -15,7 +15,7 @@ export const data = {
   },
   navMain: [
     {
-      title: "Início",
+      title: "Visão Geral",
       url: "/dashboard",
       icon: LayoutDashboardIcon,
     },

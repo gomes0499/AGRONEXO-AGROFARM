@@ -124,10 +124,7 @@ export function ResponsiveGroqChat({
   );
 
   return (
-    <Card
-      className={`w-full flex flex-col shadow-lg border-primary/10`}
-      style={{ height: isMobile ? "calc(100vh - 200px)" : "700px" }}
-    >
+    <Card style={{ height: isMobile ? "calc(100vh - 200px)" : "700px" }}>
       <CardHeader className="px-4 py-3 flex flex-row items-center justify-between border-b bg-card shrink-0">
         <div className="flex items-center">
           <Avatar className="h-8 w-8 mr-2 bg-primary/10">
