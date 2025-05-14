@@ -9,6 +9,7 @@ interface LeafletMapProps {
   zoom?: number;
   geoJson?: any;
   mapType?: "satellite" | "osm" | "topographic" | "terrain" | "hybrid";
+  marker?: [number, number]; // Coordenadas para um marcador único
 }
 
 export function LeafletMap({
@@ -17,6 +18,7 @@ export function LeafletMap({
   zoom = 13,
   geoJson,
   mapType = "osm",
+  marker,
 }: LeafletMapProps) {
   // Gerar um ID único para cada instância do componente
   // Isso ajuda a garantir que cada mapa seja um elemento único
@@ -134,6 +136,26 @@ export function LeafletMap({
         position: "topright",
       })
       .addTo(map);
+
+    // Adicionar marcador único se fornecido
+    if (marker) {
+      // Criar um ícone personalizado para o marcador
+      const customIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+        iconSize: [25, 41], // tamanho do ícone
+        iconAnchor: [12, 41], // ponto do ícone que corresponderá à localização do marcador
+        popupAnchor: [1, -34], // ponto a partir do qual o popup deve abrir em relação ao iconAnchor
+        shadowSize: [41, 41] // tamanho da sombra
+      });
+
+      // Adicionar o marcador ao mapa
+      const markerInstance = L.marker(marker, { icon: customIcon })
+        .addTo(map)
+        .bindPopup('Localização do Escritório')
+        .openPopup();
+    }
 
     // Adicionar GeoJSON se fornecido
     if (geoJson) {
@@ -279,7 +301,7 @@ export function LeafletMap({
         mapInstanceRef.current = null;
       }
     };
-  }, [center, zoom, geoJson, mapType]);
+  }, [center, zoom, geoJson, mapType, marker]);
 
   return (
     <div

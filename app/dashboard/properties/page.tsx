@@ -17,14 +17,12 @@ export default async function PropertiesPage() {
 
   return (
     <>
-      <SiteHeader title="Propriedades Rurais" />
+      <SiteHeader title="Bens Imóveis" />
       <div className="flex flex-col gap-6 p-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Propriedades Rurais
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">Bens Imóveis</h1>
           <p className="text-muted-foreground">
-            Gerencie suas propriedades rurais, arrendamentos e benfeitorias.
+            Gerencie seus bens imóveis, arrendamentos e benfeitorias.
           </p>
         </div>
         <PropertyList properties={properties} />

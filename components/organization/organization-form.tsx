@@ -20,6 +20,11 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Map,
+  Navigation,
+  CornerDownRight,
+  X,
+  ImageIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,6 +40,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { UserRole } from "@/lib/auth/roles";
 import { toast } from "sonner";
@@ -43,6 +56,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { LeafletMap } from "@/components/properties/leaflet-map";
+import { OrganizationLogoUpload } from "@/components/organization/organization-logo-upload";
+import { uploadOrganizationLogo } from "@/lib/actions/upload-actions";
 import {
   type CepData,
   unformat,
@@ -77,6 +101,9 @@ const organizationSchema = z.object({
   estado: z.string().optional().or(z.literal("")),
   cep: z.string().optional().or(z.literal("")),
   inscricao_estadual: z.string().optional().or(z.literal("")),
+  roteiro: z.string().optional().or(z.literal("")),
+  latitude: z.string().optional().or(z.literal("")),
+  longitude: z.string().optional().or(z.literal("")),
 });
 
 type OrganizationFormValues = z.infer<typeof organizationSchema>;
@@ -95,6 +122,8 @@ export function OrganizationForm({
   const [activeTab, setActiveTab] = useState("info");
   const [cepLoading, setCepLoading] = useState(false);
   const [cepSuccess, setCepSuccess] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(organization?.logo || null);
   const supabase = createClient();
 
   // Inicializa o formulário com valores existentes ou padrões
@@ -129,6 +158,9 @@ export function OrganizationForm({
           estado: "",
           cep: "",
           inscricao_estadual: "",
+          roteiro: "",
+          latitude: "",
+          longitude: "",
         },
   });
 
@@ -206,6 +238,10 @@ export function OrganizationForm({
         estado: values.estado || null,
         cep: values.cep ? unformat(values.cep) || null : null,
         inscricao_estadual: values.inscricao_estadual || null,
+        roteiro: values.roteiro || null,
+        latitude: values.latitude || null,
+        longitude: values.longitude || null,
+        logo: logoUrl,
       };
 
       if (organization) {
@@ -228,6 +264,35 @@ export function OrganizationForm({
           .single();
 
         if (createError) throw createError;
+        
+        // Se temos uma URL de logo temporária no estado, precisamos fazer o upload dela
+        if (logoUrl && logoUrl.startsWith('blob:')) {
+          try {
+            // Localizar o componente de upload para obter o arquivo
+            const uploadComponent = document.querySelector('[data-organization-upload="true"]');
+            if (uploadComponent) {
+              // Pegar o arquivo da propriedade __temporaryImage
+              const temporaryFile = (uploadComponent as any).__temporaryImage;
+              
+              if (temporaryFile && temporaryFile instanceof File) {
+                // Criar FormData para o upload
+                const formData = new FormData();
+                formData.append("file", temporaryFile);
+                
+                // Fazer o upload usando a server action
+                const uploadResult = await uploadOrganizationLogo(newOrg.id, formData);
+                
+                if (!uploadResult.success) {
+                  console.error("Erro ao fazer upload do logo:", uploadResult.error);
+                  toast.error("A organização foi criada, mas houve um erro ao salvar o logo.");
+                }
+              }
+            }
+          } catch (uploadError) {
+            console.error("Erro ao processar upload do logo temporário:", uploadError);
+            toast.error("A organização foi criada, mas houve um erro ao salvar o logo.");
+          }
+        }
 
         // Cria associação entre usuário e organização
         const { error: associationError } = await supabase
@@ -347,6 +412,17 @@ export function OrganizationForm({
                   <Building2 className="h-5 w-5 text-primary" />
                   <h2 className="text-lg font-medium">Dados da Organização</h2>
                 </div>
+                
+                {/* Componente de upload de logo */}
+                <div className="mb-6">
+                  <OrganizationLogoUpload 
+                    organizationId={organization?.id}
+                    currentLogoUrl={logoUrl}
+                    onSuccess={(url) => setLogoUrl(url)}
+                    onRemove={() => setLogoUrl(null)}
+                    isTemporary={!organization?.id}
+                  />
+                </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <FormField
@@ -360,7 +436,7 @@ export function OrganizationForm({
                         </FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Ex: Fazenda São João"
+                            placeholder="Ex: Grupo Safra S.A."
                             {...field}
                           />
                         </FormControl>
@@ -592,14 +668,6 @@ export function OrganizationForm({
                   <h2 className="text-lg font-medium">Endereço</h2>
                 </div>
 
-                <Alert className="bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-900/30 dark:text-blue-300">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Dica</AlertTitle>
-                  <AlertDescription>
-                    Digite o CEP para preencher o endereço automaticamente
-                  </AlertDescription>
-                </Alert>
-
                 <div className="grid gap-6 md:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -630,6 +698,90 @@ export function OrganizationForm({
                             </div>
                           )}
                         </div>
+                        <FormDescription className="text-xs text-muted-foreground">
+                          Digite o CEP para preencher o endereço automaticamente
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="cidade"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                          Cidade
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Ex: Luís Eduardo Magalhães"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="estado"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                          Estado
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o estado" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="AC">Acre</SelectItem>
+                            <SelectItem value="AL">Alagoas</SelectItem>
+                            <SelectItem value="AP">Amapá</SelectItem>
+                            <SelectItem value="AM">Amazonas</SelectItem>
+                            <SelectItem value="BA">Bahia</SelectItem>
+                            <SelectItem value="CE">Ceará</SelectItem>
+                            <SelectItem value="DF">Distrito Federal</SelectItem>
+                            <SelectItem value="ES">Espírito Santo</SelectItem>
+                            <SelectItem value="GO">Goiás</SelectItem>
+                            <SelectItem value="MA">Maranhão</SelectItem>
+                            <SelectItem value="MT">Mato Grosso</SelectItem>
+                            <SelectItem value="MS">
+                              Mato Grosso do Sul
+                            </SelectItem>
+                            <SelectItem value="MG">Minas Gerais</SelectItem>
+                            <SelectItem value="PA">Pará</SelectItem>
+                            <SelectItem value="PB">Paraíba</SelectItem>
+                            <SelectItem value="PR">Paraná</SelectItem>
+                            <SelectItem value="PE">Pernambuco</SelectItem>
+                            <SelectItem value="PI">Piauí</SelectItem>
+                            <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                            <SelectItem value="RN">
+                              Rio Grande do Norte
+                            </SelectItem>
+                            <SelectItem value="RS">
+                              Rio Grande do Sul
+                            </SelectItem>
+                            <SelectItem value="RO">Rondônia</SelectItem>
+                            <SelectItem value="RR">Roraima</SelectItem>
+                            <SelectItem value="SC">Santa Catarina</SelectItem>
+                            <SelectItem value="SP">São Paulo</SelectItem>
+                            <SelectItem value="SE">Sergipe</SelectItem>
+                            <SelectItem value="TO">Tocantins</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -643,13 +795,30 @@ export function OrganizationForm({
                     <FormItem>
                       <FormLabel className="flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                        Endereço
+                        Logradouro
                       </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Rua, Avenida, Estrada..."
                           {...field}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="bairro"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                        Bairro
+                      </FormLabel>
+                      <FormControl>
+                        <Input {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -695,57 +864,166 @@ export function OrganizationForm({
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="bairro"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                        Bairro
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-4 mt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Map className="h-5 w-5 text-primary" />
+                    <h3 className="text-md font-medium">
+                      Informações de Localização (Opcional)
+                    </h3>
+                  </div>
 
-                <div className="grid gap-6 md:grid-cols-2">
                   <FormField
                     control={form.control}
-                    name="cidade"
+                    name="roteiro"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                          Cidade
+                          <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground" />
+                          Roteiro de Acesso
                         </FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Textarea
+                            placeholder="Instruções para chegar ao escritório..."
+                            className="resize-none min-h-[100px]"
+                            {...field}
+                          />
                         </FormControl>
+                        <FormDescription className="text-xs">
+                          Descreva o roteiro para chegar ao escritório
+                          (especialmente útil para escritórios em fazendas).
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="estado"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                          Estado
-                        </FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="latitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1.5">
+                            <Navigation className="h-3.5 w-3.5 text-muted-foreground" />
+                            Latitude
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: -15.7801" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="longitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1.5">
+                            <Navigation className="h-3.5 w-3.5 text-muted-foreground" />
+                            Longitude
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: -47.9292" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center mt-2">
+                    <FormDescription className="text-xs mb-2 sm:mb-0">
+                      Dica: Você pode encontrar coordenadas no Google Maps
+                      clicando com botão direito e selecionando "O que há aqui?"
+                    </FormDescription>
+
+                    <Dialog open={mapOpen} onOpenChange={setMapOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => {
+                            const lat = form.getValues("latitude");
+                            const lng = form.getValues("longitude");
+
+                            if (lat && lng) {
+                              setMapOpen(true);
+                            } else {
+                              toast.warning("Preencha as coordenadas primeiro");
+                            }
+                          }}
+                        >
+                          <Map className="h-4 w-4" />
+                          Visualizar no Mapa
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[900px] max-h-[90vh] p-0">
+                        <DialogHeader className="p-6 pb-0">
+                          <div className="flex justify-between items-center w-full">
+                            <DialogTitle>Localização do Escritório</DialogTitle>
+                            <DialogClose asChild>
+                              <Button type="button" variant="ghost" size="icon">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </DialogClose>
+                          </div>
+                        </DialogHeader>
+                        {(() => {
+                          const lat = parseFloat(
+                            form.getValues("latitude") || "0"
+                          );
+                          const lng = parseFloat(
+                            form.getValues("longitude") || "0"
+                          );
+
+                          if (isNaN(lat) || isNaN(lng)) {
+                            return (
+                              <div className="p-6 text-center">
+                                <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+                                <p>
+                                  Coordenadas inválidas. Preencha latitude e
+                                  longitude com valores numéricos válidos.
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="p-0">
+                              <LeafletMap
+                                center={[lat, lng]}
+                                zoom={15}
+                                className="h-[500px] w-full rounded-none"
+                                mapType="osm"
+                                marker={[lat, lng]}
+                              />
+                              <div className="p-4 flex justify-end space-x-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2"
+                                  onClick={() => {
+                                    window.open(
+                                      `https://www.google.com/maps?q=${lat},${lng}`,
+                                      "_blank"
+                                    );
+                                  }}
+                                >
+                                  <Globe className="h-4 w-4" />
+                                  Abrir no Google Maps
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
 
                 <div className="flex justify-between mt-6">

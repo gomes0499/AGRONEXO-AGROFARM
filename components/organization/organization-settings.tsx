@@ -96,7 +96,7 @@ export function OrganizationSettings({
       <CardContent className="pt-6 space-y-6">
         <div className="space-y-6">
           <h3 className="text-lg font-medium text-destructive">
-            Zona de Perigo
+            Alerta de Exclusão !
           </h3>
 
           <Alert variant="destructive" className="border-destructive">

@@ -44,8 +44,33 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
     ? Math.round((new Date(property.data_termino).getTime() - new Date(property.data_inicio).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     : null;
 
+  // Preparar URL da imagem para exibição
+  const imageUrl = property.imagem ? property.imagem : null;
+  
+  // Para diagnóstico
+  if (imageUrl) {
+    console.log('URL da imagem da propriedade:', imageUrl);
+  }
+
   return (
     <Card className="overflow-hidden border-border/60 hover:shadow-sm transition-shadow">
+      {/* Exibir a imagem da propriedade se existir */}
+      {imageUrl && (
+        <div className="relative w-full h-[240px] overflow-hidden rounded-t-lg">
+          <img 
+            src={imageUrl}
+            alt={`Imagem da propriedade ${property.nome}`}
+            className="w-full h-full object-cover"
+            loading="eager" // Carrega imediatamente 
+            onError={(e) => {
+              console.error('Erro ao carregar imagem:', e);
+              console.log('URL que falhou:', imageUrl);
+              // Tentar definir uma imagem de fallback
+              e.currentTarget.src = '/soja.jpg'; // Usando uma imagem default do projeto
+            }}
+          />
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2">
         {/* Seção de Informações Básicas */}
         <div>
@@ -224,7 +249,7 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
             {property.avaliacao_banco && (
               <div className="space-y-1">
                 <h3 className="text-sm font-medium text-muted-foreground">
-                  Avaliação Bancária
+                 Avaliação do Imóvel
                 </h3>
                 <p className="font-medium">
                   {formatCurrency(property.avaliacao_banco)}

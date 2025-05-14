@@ -23,7 +23,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Organization = {
@@ -35,6 +35,7 @@ type Organization = {
   website?: string;
   cnpj?: string;
   cpf?: string;
+  logo?: string;
   created_at?: string;
   updated_at?: string;
   [key: string]: any;
@@ -280,6 +281,10 @@ export function OrganizationList({
                           org.nome
                         )}`}
                       >
+                        <AvatarImage 
+                          src={org.logo || ""}
+                          alt={`Logo de ${org.nome}`}
+                        />
                         <AvatarFallback>
                           {getInitials(org.nome)}
                         </AvatarFallback>

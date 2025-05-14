@@ -88,6 +88,22 @@ export function PropertyCard({ property, onDelete }: PropertyCardProps) {
 
   return (
     <Card className="w-full h-full overflow-hidden transition-all duration-200 hover:shadow-md">
+      {/* Imagem da propriedade (se disponível) */}
+      {property.imagem && (
+        <div className="relative w-full h-[160px] rounded-t-lg overflow-hidden">
+          <img
+            src={property.imagem}
+            alt={`Imagem da propriedade ${property.nome}`}
+            className="w-full h-full object-cover"
+            loading="eager"
+            onError={(e) => {
+              console.error('Erro ao carregar imagem no card:', e);
+              // Tentar definir uma imagem de fallback
+              e.currentTarget.src = '/soja.jpg'; // Usando uma imagem default do projeto
+            }}
+          />
+        </div>
+      )}
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start gap-2">
           <CardTitle className="text-xl truncate" title={property.nome}>

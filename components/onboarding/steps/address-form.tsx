@@ -154,7 +154,7 @@ export function AddressForm({
           name="endereco"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Endereço</FormLabel>
+              <FormLabel>Logradouro</FormLabel>
               <FormControl>
                 <Input
                   placeholder="Rua, Avenida, etc."

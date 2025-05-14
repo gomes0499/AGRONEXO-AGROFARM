@@ -32,8 +32,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {/* Lado direito - Imagem (visível apenas em telas médias para cima) */}
       <div className="hidden md:flex flex-1 relative border-l">
         <Image
-          src="/soja.jpg"
-          alt="Plantação de Soja"
+          src="/login.jpeg"
+          alt="Imagem de login"
           fill
           priority
           className="object-cover"

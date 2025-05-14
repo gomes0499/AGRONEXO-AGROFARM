@@ -29,6 +29,7 @@ export const propertySchema = z.object({
   onus: z.string().nullable().optional(),
   avaliacao_banco: z.coerce.number().nullable().optional(),
   tipo: propertyTypeEnum,
+  imagem: z.string().nullable().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

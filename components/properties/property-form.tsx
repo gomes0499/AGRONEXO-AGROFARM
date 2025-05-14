@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { PropertyImageUpload } from "@/components/properties/property-image-upload";
 
 import {
   type Property,
@@ -12,6 +13,7 @@ import {
   propertyFormSchema,
 } from "@/schemas/properties";
 import { createProperty, updateProperty } from "@/lib/actions/property-actions";
+import { uploadPropertyImage } from "@/lib/actions/upload-actions";
 import {
   formatCurrency,
   formatArea,
@@ -37,9 +39,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Building2Icon, AreaChartIcon } from "lucide-react";
+import { Loader2, Building2Icon, AreaChartIcon, ImageIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from "@/components/ui/datepicker";
 
@@ -83,6 +85,7 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("informacoes-basicas");
+  const [imageUrl, setImageUrl] = useState<string | null>(property?.imagem || null);
   const isEditing = !!property?.id;
 
   const form = useForm<PropertyFormValues>({
@@ -130,12 +133,50 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
   const onSubmit = async (values: PropertyFormValues) => {
     try {
       setIsSubmitting(true);
+      
+      // Adiciona a imagem às propriedades
+      const dataWithImage = {
+        ...values,
+        imagem: imageUrl
+      };
+      
       if (isEditing) {
-        await updateProperty(property.id!, values);
+        await updateProperty(property.id!, dataWithImage);
         toast.success("Propriedade atualizada com sucesso!");
         router.push(`/dashboard/properties/${property.id}`);
       } else {
-        const newProperty = await createProperty(organizationId, values);
+        // Primeiro criamos a propriedade
+        const newProperty = await createProperty(organizationId, dataWithImage);
+        
+        // Se temos uma URL de imagem temporária no estado, precisamos fazer o upload dela
+        if (imageUrl && imageUrl.startsWith('blob:')) {
+          try {
+            // Localizar o componente de upload para obter o arquivo
+            const uploadComponent = document.querySelector('[data-property-upload="true"]');
+            if (uploadComponent) {
+              // Pegar o arquivo da propriedade __temporaryImage
+              const temporaryFile = (uploadComponent as any).__temporaryImage;
+              
+              if (temporaryFile && temporaryFile instanceof File) {
+                // Criar FormData para o upload
+                const formData = new FormData();
+                formData.append("file", temporaryFile);
+                
+                // Fazer o upload usando a server action
+                const uploadResult = await uploadPropertyImage(newProperty.id, formData);
+                
+                if (!uploadResult.success) {
+                  console.error("Erro ao fazer upload da imagem:", uploadResult.error);
+                  toast.error("A propriedade foi criada, mas houve um erro ao salvar a imagem.");
+                }
+              }
+            }
+          } catch (uploadError) {
+            console.error("Erro ao processar upload da imagem temporária:", uploadError);
+            toast.error("A propriedade foi criada, mas houve um erro ao salvar a imagem.");
+          }
+        }
+        
         toast.success("Propriedade criada com sucesso!");
         router.push(`/dashboard/properties/${newProperty.id}`);
       }
@@ -148,11 +189,19 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
   };
 
   const handleNextTab = () => {
-    setActiveTab("area-valores");
+    if (activeTab === "informacoes-basicas") {
+      setActiveTab("area-valores");
+    } else if (activeTab === "area-valores") {
+      setActiveTab("imagem");
+    }
   };
 
   const handlePreviousTab = () => {
-    setActiveTab("informacoes-basicas");
+    if (activeTab === "area-valores") {
+      setActiveTab("informacoes-basicas");
+    } else if (activeTab === "imagem") {
+      setActiveTab("area-valores");
+    }
   };
 
   return (
@@ -164,7 +213,7 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger
                 value="informacoes-basicas"
                 className="flex items-center gap-2"
@@ -179,11 +228,19 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                 <AreaChartIcon size={16} />
                 Área e Valores
               </TabsTrigger>
+              <TabsTrigger
+                value="imagem"
+                className="flex items-center gap-2"
+              >
+                <ImageIcon size={16} />
+                Imagem
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="informacoes-basicas">
               <Card>
                 <CardContent className="pt-6 space-y-6">
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -334,7 +391,7 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                         name="data_inicio"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Data de Início</FormLabel>
+                            <FormLabel>Data de Início do Contrato</FormLabel>
                             <FormControl>
                               <Controller
                                 name="data_inicio"
@@ -365,7 +422,7 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                         name="data_termino"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Data de Término</FormLabel>
+                            <FormLabel>Data de Término do Contrato</FormLabel>
                             <FormControl>
                               <Controller
                                 name="data_termino"
@@ -670,11 +727,11 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                       name="avaliacao_banco"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Avaliação Bancária (R$)</FormLabel>
+                          <FormLabel>Avaliação do Imóvel (R$)</FormLabel>
                           <FormControl>
                             <Input
                               type="text"
-                              placeholder="Digite o valor da avaliação bancária"
+                              placeholder="Digite o valor da avaliação do imóvel"
                               {...field}
                               onChange={(e) => {
                                 // Limpa a formatação e pega apenas números e vírgulas
@@ -744,11 +801,51 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                     />
                   </div>
 
+
                   <div className="flex justify-between mt-6">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handlePreviousTab}
+                    >
+                      Voltar
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => router.push("/dashboard/properties")}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        type="button"
+                        onClick={handleNextTab}
+                      >
+                        Próximo
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="imagem">
+              <Card>
+                <CardContent className="pt-6 pb-6">
+                  <PropertyImageUpload 
+                    propertyId={isEditing ? property.id! : undefined}
+                    currentImageUrl={imageUrl}
+                    onSuccess={(url) => setImageUrl(url)}
+                    onRemove={() => setImageUrl(null)}
+                    isTemporary={!isEditing}
+                  />
+                  
+                  <div className="flex justify-between mt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setActiveTab("area-valores")}
                     >
                       Voltar
                     </Button>

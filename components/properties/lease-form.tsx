@@ -363,7 +363,7 @@ export function LeaseForm({
                       name="data_inicio"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Data de Início</FormLabel>
+                          <FormLabel>Data de Início de Contrato</FormLabel>
                           <DatePicker
                             date={field.value}
                             setDate={field.onChange}
@@ -378,7 +378,7 @@ export function LeaseForm({
                       name="data_termino"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Data de Término</FormLabel>
+                          <FormLabel>Data de Término de Contrato</FormLabel>
                           <DatePicker
                             date={field.value}
                             setDate={field.onChange}

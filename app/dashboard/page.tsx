@@ -201,8 +201,8 @@ export default async function DashboardPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <AgroKpiCards />
             <AreaPlantioChart />
+            <AgroKpiCards />
             <ResultadosChart />
           </TabsContent>
 

@@ -25,7 +25,7 @@ export const data = {
       icon: BuildingIcon,
     },
     {
-      title: "Propriedades",
+      title: "Bens Imóveis",
       url: "/dashboard/properties",
       icon: MapIcon,
     },

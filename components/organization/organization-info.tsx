@@ -1,4 +1,4 @@
-import { CalendarClock, Globe, Mail, MapPin, Phone, User } from "lucide-react";
+import { CalendarClock, Globe, Mail, MapPin, Phone, User, Building } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { formatCEP, formatCNPJ, formatPhone } from "@/lib/utils/formatters";
 
@@ -30,10 +31,23 @@ export function OrganizationInfo({
   return (
     <Card>
       <CardHeader className="border-b pb-6">
-        <CardTitle>Dados da Organização</CardTitle>
-        <CardDescription>
-          Informações gerais sobre a organização
-        </CardDescription>
+        <div className="flex items-center gap-4">
+          <Avatar className="h-12 w-12 rounded-md">
+            <AvatarImage 
+              src={organization.logo || ""} 
+              alt={organization.nome}
+            />
+            <AvatarFallback className="rounded-md bg-primary text-primary-foreground">
+              {organization.nome?.substring(0, 2).toUpperCase() || <Building size={16} />}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle>Dados da Organização</CardTitle>
+            <CardDescription>
+              Informações gerais sobre a organização
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="grid gap-6 md:grid-cols-2">
