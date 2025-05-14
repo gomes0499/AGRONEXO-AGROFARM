@@ -75,7 +75,6 @@ export default function RootLayout({
           <main className="min-h-screen flex flex-col">
             {children}
             <Toaster />
-            <FloatingChat />
           </main>
 
           {/* Adicionar bibliotecas de mapas */}

@@ -28,7 +28,11 @@ interface LoginFormProps {
   redirectAfterLogin?: boolean;
 }
 
-export function LoginForm({ email, inviteToken, redirectAfterLogin }: LoginFormProps = {}) {
+export function LoginForm({
+  email,
+  inviteToken,
+  redirectAfterLogin,
+}: LoginFormProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -63,12 +67,12 @@ export function LoginForm({ email, inviteToken, redirectAfterLogin }: LoginFormP
         router.push(`/auth/invite?token=${inviteToken}`);
       } else if (result.needsOnboarding) {
         // Se precisa completar o onboarding
-        router.push('/onboarding');
+        router.push("/onboarding");
       } else {
         // Fluxo normal - vai para o dashboard ou callbackUrl
         router.push(callbackUrl);
       }
-      
+
       router.refresh();
     } catch (error) {
       // Traduzir mensagens de erro comuns
@@ -166,26 +170,7 @@ export function LoginForm({ email, inviteToken, redirectAfterLogin }: LoginFormP
             )}
           />
 
-          <div className="flex items-center justify-between">
-            <FormField
-              control={form.control}
-              name="rememberMe"
-              render={({ field }) => (
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormLabel className="text-sm font-medium leading-none cursor-pointer">
-                    Lembrar de mim
-                  </FormLabel>
-                </FormItem>
-              )}
-            />
-
+          <div className="flex items-center justify-end">
             <Link
               href="/auth/forgot-password"
               className="text-sm font-medium text-primary hover:underline"
@@ -211,9 +196,12 @@ export function LoginForm({ email, inviteToken, redirectAfterLogin }: LoginFormP
         <p>
           Não tem uma conta?{" "}
           <Link
-            href={inviteToken 
-              ? `/auth/register?email=${encodeURIComponent(email || '')}&invite_token=${inviteToken}`
-              : "/auth/register"
+            href={
+              inviteToken
+                ? `/auth/register?email=${encodeURIComponent(
+                    email || ""
+                  )}&invite_token=${inviteToken}`
+                : "/auth/register"
             }
             className="font-medium text-primary hover:underline"
           >
