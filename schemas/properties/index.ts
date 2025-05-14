@@ -4,6 +4,10 @@ import { z } from "zod";
 export const propertyTypeEnum = z.enum(["PROPRIO", "ARRENDADO"]);
 export type PropertyType = z.infer<typeof propertyTypeEnum>;
 
+// Enum para tipos de anuência
+export const anuenciaTypeEnum = z.enum(["COM_ANUENCIA", "SEM_ANUENCIA"]);
+export type AnuenciaType = z.infer<typeof anuenciaTypeEnum>;
+
 // Schema para Propriedade
 export const propertySchema = z.object({
   id: z.string().uuid().optional(),
@@ -16,6 +20,9 @@ export const propertySchema = z.object({
   numero_matricula: z.string().min(1, "Número da matrícula é obrigatório"),
   cartorio_registro: z.string().nullable().optional(),
   numero_car: z.string().nullable().optional(),
+  data_inicio: z.coerce.date().nullable().optional(),
+  data_termino: z.coerce.date().nullable().optional(),
+  tipo_anuencia: z.string().nullable().optional(),
   area_total: z.coerce.number().min(0, "Área total deve ser positiva"),
   area_cultivada: z.coerce.number().min(0, "Área cultivada deve ser positiva").nullable(),
   valor_atual: z.coerce.number().min(0, "Valor atual deve ser positivo").nullable(),

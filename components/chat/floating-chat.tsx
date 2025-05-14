@@ -36,7 +36,7 @@ export function FloatingChat() {
                   "Qual a previsão do tempo?",
                   "Como estão os preços do mercado?",
                 ]}
-                title="Assistente Agrícola"
+                title="Assistente SR-Consultoria"
                 height="70vh"
               />
             </div>

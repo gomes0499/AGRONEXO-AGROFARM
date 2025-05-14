@@ -181,11 +181,10 @@ export function ResponsiveGroqChat({
                   <Bot className="h-12 w-12 text-primary" />
                 </div>
                 <h3 className="text-xl font-medium mb-2">
-                  Bem-vindo ao Assistente Agrícola
+                  Bem-vindo ao Suporte SR-Consultoria
                 </h3>
                 <p className="text-secondary-foreground max-w-md mb-8">
-                  Estou aqui para responder suas dúvidas sobre agricultura,
-                  pecuária e gestão rural.
+                  Estou aqui para responder suas dúvidas sobre o sistema.
                 </p>
 
                 {suggestions.length > 0 && (

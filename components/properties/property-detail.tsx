@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatArea } from "@/lib/utils/formatters";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   Building2Icon,
   AreaChartIcon,
@@ -13,6 +15,10 @@ import {
   Landmark,
   MapPinIcon,
   FileIcon,
+  CalendarCheckIcon,
+  CalendarOffIcon,
+  CheckCircleIcon,
+  XCircleIcon,
 } from "lucide-react";
 
 interface PropertyDetailProps {
@@ -32,6 +38,11 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
   };
 
   const typeInfo = propertyTypeInfo[property.tipo] || propertyTypeInfo.PROPRIO;
+  
+  // Calcular duração do arrendamento em anos
+  const arrendamentoDuration = property.tipo === "ARRENDADO" && property.data_inicio && property.data_termino
+    ? Math.round((new Date(property.data_termino).getTime() - new Date(property.data_inicio).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+    : null;
 
   return (
     <Card className="overflow-hidden border-border/60 hover:shadow-sm transition-shadow">
@@ -39,10 +50,15 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
         {/* Seção de Informações Básicas */}
         <div>
           <CardHeader className="py-3 px-4 border-b border-border/60">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <Building2Icon size={18} />
-              Informações Básicas
-            </CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <Building2Icon size={18} />
+                Informações Básicas
+              </CardTitle>
+              <Badge variant={typeInfo.variant}>
+                {typeInfo.label}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-5">
@@ -56,7 +72,8 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
                 </p>
               </div>
 
-              {property.ano_aquisicao && (
+              {/* Exibir Ano de Aquisição apenas para propriedades do tipo PROPRIO */}
+              {property.tipo === "PROPRIO" && property.ano_aquisicao && (
                 <div className="space-y-1">
                   <h3 className="text-sm font-medium text-muted-foreground">
                     Ano de Aquisição
@@ -66,6 +83,63 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
                     {property.ano_aquisicao}
                   </p>
                 </div>
+              )}
+              
+              {/* Informações específicas de arrendamento */}
+              {property.tipo === "ARRENDADO" && (
+                <>
+                  {property.tipo_anuencia && (
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Tipo de Anuência
+                      </h3>
+                      <p className="font-medium flex items-center gap-1.5">
+                        {property.tipo_anuencia === "COM_ANUENCIA" ? (
+                          <CheckCircleIcon size={16} className="text-green-500" />
+                        ) : (
+                          <XCircleIcon size={16} className="text-yellow-500" />
+                        )}
+                        {property.tipo_anuencia === "COM_ANUENCIA" ? "Com Anuência" : "Sem Anuência"}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {property.data_inicio && (
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Início do Arrendamento
+                      </h3>
+                      <p className="font-medium flex items-center gap-1.5">
+                        <CalendarCheckIcon size={16} className="text-muted-foreground" />
+                        {format(new Date(property.data_inicio), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {property.data_termino && (
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Término do Arrendamento
+                      </h3>
+                      <p className="font-medium flex items-center gap-1.5">
+                        <CalendarOffIcon size={16} className="text-muted-foreground" />
+                        {format(new Date(property.data_termino), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {arrendamentoDuration !== null && (
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        Duração do Arrendamento
+                      </h3>
+                      <p className="font-medium flex items-center gap-1.5">
+                        <CalendarIcon size={16} className="text-muted-foreground" />
+                        {arrendamentoDuration} {arrendamentoDuration === 1 ? 'ano' : 'anos'}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="space-y-1">

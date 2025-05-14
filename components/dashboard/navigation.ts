@@ -63,7 +63,7 @@ export const data = {
   navSecondary: [
     
     {
-      title: "Suporte com IA",
+      title: "Suporte",
       url: "/dashboard/support",
       icon: Brain,
     },

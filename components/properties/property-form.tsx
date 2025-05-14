@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
@@ -41,6 +41,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Building2Icon, AreaChartIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DatePicker } from "@/components/ui/datepicker";
 
 interface PropertyFormProps {
   property?: Property;
@@ -95,6 +96,9 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
       numero_matricula: property?.numero_matricula || "",
       cartorio_registro: property?.cartorio_registro || null,
       numero_car: property?.numero_car || null,
+      data_inicio: property?.data_inicio || null,
+      data_termino: property?.data_termino || null,
+      tipo_anuencia: property?.tipo_anuencia || null,
       area_total: property?.area_total || 0,
       area_cultivada: property?.area_cultivada || null,
       valor_atual: property?.valor_atual || null,
@@ -103,6 +107,25 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
       tipo: property?.tipo || "PROPRIO",
     },
   });
+
+  // Observar mudanças no campo tipo para mostrar campos condicionais
+  const propertyType = useWatch({
+    control: form.control,
+    name: "tipo",
+  });
+
+  // Atualizar campos ao mudar o tipo de propriedade
+  useEffect(() => {
+    if (propertyType === "PROPRIO") {
+      // Se mudar para própria, limpar campos de arrendamento
+      form.setValue("data_inicio", null);
+      form.setValue("data_termino", null);
+      form.setValue("tipo_anuencia", null);
+    } else if (propertyType === "ARRENDADO") {
+      // Se mudar para arrendada, limpar ano de aquisição
+      form.setValue("ano_aquisicao", null);
+    }
+  }, [propertyType, form]);
 
   const onSubmit = async (values: PropertyFormValues) => {
     try {
@@ -210,7 +233,7 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <FormField
                       control={form.control}
                       name="proprietario"
@@ -228,31 +251,65 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="ano_aquisicao"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Ano de Aquisição</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="2020"
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value
-                                    ? Number.parseInt(e.target.value)
-                                    : ""
-                                )
-                              }
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Condicional para mostrar ano de aquisição ou datas de arrendamento */}
+                    {propertyType === "PROPRIO" ? (
+                      <FormField
+                        control={form.control}
+                        name="ano_aquisicao"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Ano de Aquisição</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="2020"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    e.target.value
+                                      ? Number.parseInt(e.target.value)
+                                      : ""
+                                  )
+                                }
+                                value={field.value ?? ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ) : (
+                      <FormField
+                        control={form.control}
+                        name="tipo_anuencia"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tipo de Anuência</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value || ""}
+                              value={field.value || ""}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o tipo de anuência" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="COM_ANUENCIA">
+                                  Com Anuência
+                                </SelectItem>
+                                <SelectItem value="SEM_ANUENCIA">
+                                  Sem Anuência
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     <FormField
                       control={form.control}
@@ -268,6 +325,73 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                       )}
                     />
                   </div>
+
+                  {/* Datas de início e término para arrendamento */}
+                  {propertyType === "ARRENDADO" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="data_inicio"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data de Início</FormLabel>
+                            <FormControl>
+                              <Controller
+                                name="data_inicio"
+                                control={form.control}
+                                render={({ field }) => (
+                                  <DatePicker
+                                    date={
+                                      field.value
+                                        ? new Date(field.value)
+                                        : undefined
+                                    }
+                                    onSelect={(date) => field.onChange(date)}
+                                    placeholder="Selecione a data de início"
+                                  />
+                                )}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Data de início do arrendamento
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="data_termino"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data de Término</FormLabel>
+                            <FormControl>
+                              <Controller
+                                name="data_termino"
+                                control={form.control}
+                                render={({ field }) => (
+                                  <DatePicker
+                                    date={
+                                      field.value
+                                        ? new Date(field.value)
+                                        : undefined
+                                    }
+                                    onSelect={(date) => field.onChange(date)}
+                                    placeholder="Selecione a data de término"
+                                  />
+                                )}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Data de término do arrendamento
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField

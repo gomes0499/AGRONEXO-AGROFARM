@@ -8,7 +8,7 @@ export default function ResponsiveChatPage() {
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-2">Chat SR-Consultoria</h1>
         <p className="text-secondary-foreground mb-6">
-          Converse com nosso assistente especializado em agricultura e pecuária.
+          Converse com nosso assistente e tire suas dúvidas sobre o sistema.
         </p>
 
         <ResponsiveGroqChat
@@ -19,7 +19,7 @@ export default function ResponsiveChatPage() {
             "Como controlar pragas na lavoura?",
             "Quais fatores afetam o preço da soja?",
           ]}
-          title="Assistente Agrícola"
+          title="Assistente SR-Consultoria"
         />
       </div>
     </div>

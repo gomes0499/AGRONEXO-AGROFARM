@@ -12,6 +12,7 @@ import { OrganizationSwitcher } from "@/components/dashboard/organization-switch
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { ReportGeneratorModal } from "@/components/ui/report-generator-modal";
 
 export function NavMain({
   items,
@@ -88,18 +89,13 @@ export function NavMain({
         {/* Report Generator Button */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="Gerar Relatório"
-              asChild
-              className="bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
-            >
-              <Link href="/dashboard/reports">
-                <FileTextIcon className="text-primary-foreground" />
-                <span className="font-medium text-primary-foreground">
-                  Gerar Relatório
-                </span>
-              </Link>
-            </SidebarMenuButton>
+            <ReportGeneratorModal 
+              buttonText="Gerar Relatório"
+              buttonVariant="default"
+              buttonSize="default"
+              buttonIcon={true}
+              className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90"
+            />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroupContent>
