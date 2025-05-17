@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -60,7 +66,7 @@ export function LivestockSalesFallback() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             </div>
           </div>
-          
+
           <div className="border rounded-md overflow-hidden">
             <div className="flex items-center justify-center p-8 text-center">
               <div className="flex flex-col items-center">

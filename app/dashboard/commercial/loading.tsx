@@ -6,110 +6,63 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 export default function CommercialLoading() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="p-4 md:p-6 pt-2 space-y-6">
-        {/* Stats Cards */}
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  <Skeleton className="h-4 w-40" />
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Skeleton className="h-8 w-28" />
-                  <Skeleton className="h-4 w-36" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+    <div className="container p-4">
+      {/* Tabs Loader */}
+      <div className="mb-8">
+        <div className="border-b pb-2 mb-4">
+          <div className="flex space-x-2">
+            <div className="h-10 w-28 rounded-md bg-gray-200 animate-pulse"></div>
+            <div className="h-10 w-28 rounded-md bg-gray-100 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Seeds Tab Content */}
+      <div className="space-y-6">
+        {/* Title and Action Button */}
+        <div className="flex justify-between items-center">
+          <div>
+            <Skeleton className="h-8 w-56 mb-2" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <Skeleton className="h-10 w-32" />
         </div>
 
-        {/* Price Overview and Stock Summary */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>
-                <Skeleton className="h-5 w-32" />
-              </CardTitle>
-              <CardDescription>
-                <Skeleton className="h-4 w-56" />
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Skeleton className="h-5 w-24" />
-                    <Skeleton className="h-8 w-20" />
-                    <Skeleton className="h-4 w-28" />
-                  </div>
-                  <div className="space-y-2">
-                    <Skeleton className="h-5 w-28" />
-                    <Skeleton className="h-8 w-20" />
-                    <Skeleton className="h-4 w-28" />
-                  </div>
-                  <div className="space-y-2">
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-8 w-20" />
-                    <Skeleton className="h-4 w-28" />
-                  </div>
+        {/* Main Content Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <Skeleton className="h-6 w-40" />
+            </CardTitle>
+            <CardDescription>
+              <Skeleton className="h-4 w-64" />
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Search Controls */}
+            <div className="flex gap-4 mb-6">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+            
+            {/* Loading Indicator */}
+            <div className="flex items-center justify-center h-60">
+              <div className="flex flex-col items-center">
+                <Loader2 className="h-10 w-10 animate-spin mb-3 text-blue-500" />
+                <div className="text-muted-foreground text-center">
+                  Carregando dados comerciais...
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  Isso pode levar alguns segundos
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Stock Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <Skeleton className="h-5 w-48" />
-              </CardTitle>
-              <CardDescription>
-                <Skeleton className="h-4 w-56" />
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-[200px] w-full" />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sales Charts */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <Skeleton className="h-5 w-40" />
-              </CardTitle>
-              <CardDescription>
-                <Skeleton className="h-4 w-48" />
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-[300px] w-full" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <Skeleton className="h-5 w-40" />
-              </CardTitle>
-              <CardDescription>
-                <Skeleton className="h-4 w-48" />
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-[300px] w-full" />
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
