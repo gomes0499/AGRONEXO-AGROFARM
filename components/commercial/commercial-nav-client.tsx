@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 
 export interface CommercialNavClientProps {
   seedsComponent?: React.ReactNode;
@@ -14,13 +13,8 @@ export function CommercialNavClient({
   seedsComponent,
   livestockComponent,
 }: CommercialNavClientProps) {
-  const [activeTab, setActiveTab] = useState<string>("seeds");
-
-  // Usar apenas um default, já que não temos rotas diferentes para cada tab
-  useEffect(() => {
-    // Default para sementes
-    setActiveTab("seeds");
-  }, []);
+  // Inicialização direta sem useEffect para evitar problemas de temporalidade
+  const [activeTab, setActiveTab] = useState("seeds");
 
   // Função para trocar de tab
   const handleTabChange = (value: string) => {
@@ -28,31 +22,25 @@ export function CommercialNavClient({
     setActiveTab(value);
   };
 
-  // Renderizar o conteúdo da tab ativa
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "seeds":
-        return (
-          seedsComponent || (
-            <div className="flex items-center justify-center h-60 border rounded-lg">
-              <p className="text-muted-foreground">
-                Módulo de vendas de sementes em desenvolvimento
-              </p>
-            </div>
-          )
-        );
-      case "livestock":
-        return (
-          livestockComponent || (
-            <div className="flex items-center justify-center h-60 border rounded-lg">
-              <p className="text-muted-foreground">
-                Módulo de vendas pecuárias em desenvolvimento
-              </p>
-            </div>
-          )
-        );
-    }
-  };
+  // Renderizar o conteúdo da tab ativa de forma segura
+  let tabContent;
+  if (activeTab === "seeds") {
+    tabContent = seedsComponent || (
+      <div className="flex items-center justify-center h-60 border rounded-lg">
+        <p className="text-muted-foreground">
+          Módulo de vendas de sementes em desenvolvimento
+        </p>
+      </div>
+    );
+  } else if (activeTab === "livestock") {
+    tabContent = livestockComponent || (
+      <div className="flex items-center justify-center h-60 border rounded-lg">
+        <p className="text-muted-foreground">
+          Módulo de vendas pecuárias em desenvolvimento
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -75,7 +63,7 @@ export function CommercialNavClient({
       </Tabs>
 
       {/* Conteúdo da tab ativa */}
-      <div className="mt-4 relative">{renderTabContent()}</div>
+      <div className="mt-4 relative">{tabContent}</div>
     </div>
   );
 }
