@@ -48,15 +48,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
           let filteredNavItems = [...data.navMain];
 
-          // Se não for super admin, remove a opção de Organização
+          // Se não for super admin, remove as opções restritas
           if (!isSuperAdmin) {
+            // Lista de módulos restritos a superadmin
+            const restrictedModules = [
+              "Organização", 
+              "Bens Imóveis", 
+              "Produção", 
+              "Comercial",
+              "Financeiro",
+              "Patrimonial",
+              "Projeções",
+              "Indicadores"
+            ];
+            
             filteredNavItems = filteredNavItems.filter(
-              (item) => item.title !== "Organização"
+              (item) => !restrictedModules.includes(item.title)
             );
           }
 
-          // Todos os usuários podem ver todos os módulos
-          // A restrição anterior que limitava acesso ao Financeiro e Indicadores foi removida
+          // Apenas superadmin pode acessar todos os módulos
 
           setNavItems(filteredNavItems);
         }

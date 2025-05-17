@@ -3,9 +3,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, Cloud, CloudRain, CloudSnow, CloudLightning, ArrowDown, ArrowUp } from "lucide-react";
+import {
+  Sun,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  ArrowDown,
+  ArrowUp,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Função para remover acentos
 function removeAccents(str: string) {
@@ -13,6 +26,7 @@ function removeAccents(str: string) {
 }
 
 export const CITIES = [
+  { name: "Barreiras", value: "Barreiras" },
   { name: "Sorriso", value: "Sorriso" },
   { name: "Ribeirao Preto", value: "Ribeirao Preto" },
   { name: "Londrina", value: "Londrina" },
@@ -20,7 +34,6 @@ export const CITIES = [
   { name: "Luis Eduardo Magalhaes", value: "Luis Eduardo Magalhaes" },
   { name: "Campo Grande", value: "Campo Grande" },
   { name: "Chapeco", value: "Chapeco" },
-  { name: "Barreiras", value: "Barreiras" },
   { name: "Cascavel", value: "Cascavel" },
   { name: "Sinop", value: "Sinop" },
 ];
@@ -232,7 +245,7 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
                   <div key={idx} className="ticker-item">
                     <span className="ticker-prefix">{item.weekday}</span>
                     {getWeatherIcon(item.icon)}
-                    
+
                     <div className="ticker-minmax">
                       <div className="ticker-minmax-item text-orange-500">
                         <ArrowUp className="h-3 w-3 mr-1" />
@@ -243,7 +256,7 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
                         <span>{Math.round(item.min)}°</span>
                       </div>
                     </div>
-                    
+
                     {prev && (
                       <TooltipProvider>
                         <Tooltip>
@@ -258,7 +271,10 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Variação da temperatura máxima em relação ao dia anterior</p>
+                            <p>
+                              Variação da temperatura máxima em relação ao dia
+                              anterior
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

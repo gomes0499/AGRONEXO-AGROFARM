@@ -123,7 +123,9 @@ export function OrganizationForm({
   const [cepLoading, setCepLoading] = useState(false);
   const [cepSuccess, setCepSuccess] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string | null>(organization?.logo || null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    organization?.logo || null
+  );
   const supabase = createClient();
 
   // Inicializa o formulário com valores existentes ou padrões
@@ -264,33 +266,48 @@ export function OrganizationForm({
           .single();
 
         if (createError) throw createError;
-        
+
         // Se temos uma URL de logo temporária no estado, precisamos fazer o upload dela
-        if (logoUrl && logoUrl.startsWith('blob:')) {
+        if (logoUrl && logoUrl.startsWith("blob:")) {
           try {
             // Localizar o componente de upload para obter o arquivo
-            const uploadComponent = document.querySelector('[data-organization-upload="true"]');
+            const uploadComponent = document.querySelector(
+              '[data-organization-upload="true"]'
+            );
             if (uploadComponent) {
               // Pegar o arquivo da propriedade __temporaryImage
               const temporaryFile = (uploadComponent as any).__temporaryImage;
-              
+
               if (temporaryFile && temporaryFile instanceof File) {
                 // Criar FormData para o upload
                 const formData = new FormData();
                 formData.append("file", temporaryFile);
-                
+
                 // Fazer o upload usando a server action
-                const uploadResult = await uploadOrganizationLogo(newOrg.id, formData);
-                
+                const uploadResult = await uploadOrganizationLogo(
+                  newOrg.id,
+                  formData
+                );
+
                 if (!uploadResult.success) {
-                  console.error("Erro ao fazer upload do logo:", uploadResult.error);
-                  toast.error("A organização foi criada, mas houve um erro ao salvar o logo.");
+                  console.error(
+                    "Erro ao fazer upload do logo:",
+                    uploadResult.error
+                  );
+                  toast.error(
+                    "A organização foi criada, mas houve um erro ao salvar o logo."
+                  );
                 }
               }
             }
           } catch (uploadError) {
-            console.error("Erro ao processar upload do logo temporário:", uploadError);
-            toast.error("A organização foi criada, mas houve um erro ao salvar o logo.");
+            console.error(
+              "Erro ao processar upload do logo temporário:",
+              uploadError
+            );
+            toast.error(
+              "A organização foi criada, mas houve um erro ao salvar o logo."
+            );
           }
         }
 
@@ -382,28 +399,12 @@ export function OrganizationForm({
               onValueChange={setActiveTab}
               className="w-full"
             >
-              <TabsList className="grid grid-cols-2 mb-6">
+              <TabsList>
                 <TabsTrigger value="info" className="relative">
                   Informações Básicas
-                  {isTabComplete("info") && (
-                    <Badge
-                      variant="outline"
-                      className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-green-100 text-green-800 border-green-300"
-                    >
-                      <CheckCircle2 className="h-3 w-3" />
-                    </Badge>
-                  )}
                 </TabsTrigger>
                 <TabsTrigger value="address" className="relative">
                   Endereço
-                  {isTabComplete("address") && (
-                    <Badge
-                      variant="outline"
-                      className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-green-100 text-green-800 border-green-300"
-                    >
-                      <CheckCircle2 className="h-3 w-3" />
-                    </Badge>
-                  )}
                 </TabsTrigger>
               </TabsList>
 
@@ -412,10 +413,10 @@ export function OrganizationForm({
                   <Building2 className="h-5 w-5 text-primary" />
                   <h2 className="text-lg font-medium">Dados da Organização</h2>
                 </div>
-                
+
                 {/* Componente de upload de logo */}
                 <div className="mb-6">
-                  <OrganizationLogoUpload 
+                  <OrganizationLogoUpload
                     organizationId={organization?.id}
                     currentLogoUrl={logoUrl}
                     onSuccess={(url) => setLogoUrl(url)}

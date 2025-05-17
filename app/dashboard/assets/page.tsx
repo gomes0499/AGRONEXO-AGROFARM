@@ -1,13 +1,16 @@
 import { Metadata } from "next";
 import { UnderConstruction } from "@/components/ui/under-construction";
 import { SiteHeader } from "@/components/dashboard/site-header";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 
 export const metadata: Metadata = {
   title: "Patrimonial | SR Consultoria",
   description: "Gestão patrimonial e controle de ativos",
 };
 
-export default function AssetsPage() {
+export default async function AssetsPage() {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
   return (
     <div className="flex flex-col min-h-screen">
       <SiteHeader title="Patrimonial" />

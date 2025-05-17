@@ -3,6 +3,7 @@ import { PropertyList } from "@/components/properties/property-list";
 import { getProperties } from "@/lib/actions/property-actions";
 import { Separator } from "@/components/ui/separator";
 import { getSession } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { SiteHeader } from "@/components/dashboard/site-header";
 
 export const metadata: Metadata = {
@@ -12,6 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default async function PropertiesPage() {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
+  
   const session = await getSession();
   const properties = await getProperties(session?.organizationId);
 

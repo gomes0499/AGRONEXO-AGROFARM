@@ -25,7 +25,6 @@ BEGIN
     a.ultimo_login,
     u.email as usuario_email,
     COALESCE(
-      (u.user_metadata->>'name')::text,
       (u.raw_user_meta_data->>'name')::text,
       split_part(u.email, '@', 1)
     ) as usuario_nome,

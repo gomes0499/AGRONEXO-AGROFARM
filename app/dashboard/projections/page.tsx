@@ -1,13 +1,16 @@
 import { Metadata } from "next";
 import { UnderConstruction } from "@/components/ui/under-construction";
 import { SiteHeader } from "@/components/dashboard/site-header";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 
 export const metadata: Metadata = {
   title: "Projeções | SR Consultoria",
   description: "Projeções e simulações para planejamento de safras futuras",
 };
 
-export default function ProjectionsPage() {
+export default async function ProjectionsPage() {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
   return (
     <div className="flex flex-col min-h-screen">
       <SiteHeader title="Projeções" />

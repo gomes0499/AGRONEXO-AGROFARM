@@ -3,6 +3,7 @@ import { LeaseForm } from "@/components/properties/lease-form";
 import { getPropertyById } from "@/lib/actions/property-actions";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { Separator } from "@/components/ui/separator";
 
@@ -18,6 +19,9 @@ interface NewLeasePageProps {
 }
 
 export default async function NewLeasePage({ params }: NewLeasePageProps) {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
+  
   const session = await getSession();
   
   if (!session?.organizationId) {

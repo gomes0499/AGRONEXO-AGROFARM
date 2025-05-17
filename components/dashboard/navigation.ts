@@ -35,7 +35,7 @@ export const data = {
       icon: BarChartIcon,
     },
     {
-      title: "Comercial ",
+      title: "Comercial",
       url: "/dashboard/commercial",
       icon: StoreIcon,
     },

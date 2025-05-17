@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { Separator } from "@/components/ui/separator";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 
 export const metadata: Metadata = {
   title: "Nova Propriedade | SR Consultoria",
@@ -11,6 +12,9 @@ export const metadata: Metadata = {
 };
 
 export default async function NewPropertyPage() {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
+  
   const session = await getSession();
 
   if (!session?.organizationId) {

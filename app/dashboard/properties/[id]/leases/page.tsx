@@ -3,6 +3,7 @@ import { LeaseList } from "@/components/properties/lease-list";
 import { getLeases, getPropertyById } from "@/lib/actions/property-actions";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { Separator } from "@/components/ui/separator";
 
@@ -18,6 +19,9 @@ interface LeasesPageProps {
 }
 
 export default async function LeasesPage({ params }: LeasesPageProps) {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
+  
   const session = await getSession();
 
   if (!session?.organizationId) {

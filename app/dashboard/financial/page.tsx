@@ -1,13 +1,16 @@
 import { Metadata } from "next";
 import { UnderConstruction } from "@/components/ui/under-construction";
 import { SiteHeader } from "@/components/dashboard/site-header";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 
 export const metadata: Metadata = {
   title: "Financeiro | SR Consultoria",
   description: "Gestão financeira e controle de dívidas e investimentos",
 };
 
-export default function FinancialPage() {
+export default async function FinancialPage() {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
   return (
     <div className="flex flex-col min-h-screen">
       <SiteHeader title="Financeiro" />

@@ -80,7 +80,6 @@ export function AreaPlantioChart() {
     <Card className="overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <Leaf className="h-5 w-5 text-emerald-500" />
           <CardTitle>Evolução da Área Plantada</CardTitle>
         </div>
         <CardDescription>

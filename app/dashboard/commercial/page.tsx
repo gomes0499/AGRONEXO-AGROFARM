@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getOrganizationId } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { CommercialNavClient } from "@/components/commercial/commercial-nav-client";
 import { Suspense } from "react";
 import { Loader2, DollarSign } from "lucide-react";
@@ -30,6 +31,8 @@ export const metadata: Metadata = {
 
 export default async function CommercialDashboardPage() {
   try {
+    // Verificar se o usuário é superadmin
+    await requireSuperAdmin();
     // Obter ID da organização (já verifica autenticação)
     const organizationId = await getOrganizationId();
 

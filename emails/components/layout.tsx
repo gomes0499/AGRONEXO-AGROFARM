@@ -79,7 +79,7 @@ const containerStyle = {
 };
 
 const headerStyle = {
-  backgroundColor: "#111827",
+  backgroundColor: "#17134F",
   borderTopLeftRadius: "8px",
   borderTopRightRadius: "8px",
   padding: "20px",

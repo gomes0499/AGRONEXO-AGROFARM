@@ -7,6 +7,7 @@ import {
 } from "@/lib/actions/property-actions";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import type { Metadata } from "next";
 import { MapPinIcon } from "lucide-react";
 // Adicionando script para bibliotecas de mapas
@@ -26,6 +27,9 @@ interface PropertyDetailsPageProps {
 export default async function PropertyDetailsPage({
   params,
 }: PropertyDetailsPageProps) {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
+  
   const session = await getSession();
 
   if (!session?.organizationId) {

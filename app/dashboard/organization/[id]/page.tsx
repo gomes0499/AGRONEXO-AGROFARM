@@ -30,12 +30,14 @@ interface Member {
   funcao: string;
   eh_proprietario: boolean;
   ultimo_login?: string;
+  data_adicao?: string;
   created_at: string;
   updated_at: string;
   user: {
     id: string;
     email: string;
     nome: string;
+    avatar?: string;
   };
 }
 
@@ -49,12 +51,20 @@ export default async function ManageOrganizationPage({
   // Verifica se o usuário é super admin
   const isSuperAdmin = user.app_metadata?.is_super_admin === true;
 
+  // Garantir que os parâmetros são resolvidos antes de usá-los
+  const paramsResolved = await Promise.resolve(params);
+  const searchParamsResolved = await Promise.resolve(searchParams);
+
+  // Salvar em constantes para uso no componente
+  const organizationId = paramsResolved.id;
+  const activeTab = searchParamsResolved.tab || "info";
+
   // Obtém dados da organização específica
   const supabase = await createClient();
   const { data: organization, error } = await supabase
     .from("organizacoes")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", organizationId)
     .single();
 
   // Se não encontrar a organização, retorna 404
@@ -68,7 +78,7 @@ export default async function ManageOrganizationPage({
       .from("associacoes")
       .select("*")
       .eq("usuario_id", user.id)
-      .eq("organizacao_id", params.id)
+      .eq("organizacao_id", organizationId)
       .single();
 
     // Se não for membro da organização, redireciona
@@ -86,102 +96,131 @@ export default async function ManageOrganizationPage({
     }
   }
 
-  // Buscar membros da organização usando a função RPC que junta associações com dados dos usuários
+  // Buscar todos os membros da organização
   let members: Member[] = [];
 
-  // Tentar usar a função RPC para obter os membros com dados completos
-  const { data: membersData, error: rpcError } = await supabase.rpc(
-    "get_organization_members",
-    { org_id: params.id }
-  );
-
-  if (membersData && membersData.length > 0) {
-    // Converter os dados da RPC para o formato Member
-    members = membersData.map((member: any) => ({
-      id: member.associacao_id,
-      usuario_id: member.usuario_id,
-      organizacao_id: member.organizacao_id,
-      funcao: member.funcao as UserRole,
-      eh_proprietario: member.eh_proprietario,
-      ultimo_login: member.ultimo_login,
-      created_at: member.created_at,
-      updated_at: member.updated_at,
-      user: {
-        id: member.usuario_id,
-        email: member.usuario_email || `usuario@exemplo.com`,
-        nome:
-          member.usuario_nome ||
-          `Usuário ${member.associacao_id.substring(0, 4)}`,
-      },
-    }));
-  } else {
-    // Fallback: buscar apenas as associações e criar dados de usuário parciais
-    const { data: associacoes } = await supabase
+  try {
+    // Obter todas as associações da organização
+    const { data: associacoes, error: associacoesError } = await supabase
       .from("associacoes")
       .select("*")
-      .eq("organizacao_id", params.id)
+      .eq("organizacao_id", organizationId)
       .order("eh_proprietario", { ascending: false });
 
-    // Obter o usuário atual para mostrar dados reais
-    const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser();
+    if (associacoesError) {
+      console.error("Erro ao buscar associações:", associacoesError);
+    }
 
-    // Criar lista de membros
-    members = (associacoes || []).map((assoc) => {
-      // Para o usuário atual, usar informações reais
-      if (assoc.usuario_id === currentUser?.id) {
-        return {
+    if (associacoes && associacoes.length > 0) {
+      // Obter o usuário autenticado atual
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+
+      // Buscar dados dos usuários da tabela de autenticação do Supabase
+      // Nota: Esta é uma operação RPC personalizada que você deve criar no Supabase
+      const { data: authUsers, error: authUsersError } = await supabase.rpc(
+        "get_users_by_ids",
+        { user_ids: associacoes.map((a) => a.usuario_id) }
+      );
+
+      // Se falhar a consulta RPC, registra o erro mas continua com o fallback
+      if (authUsersError) {
+        console.error("Erro ao buscar dados de autenticação:", authUsersError);
+      }
+
+      // Criar um mapa para lookup rápido
+      const authUsersMap = new Map();
+      if (authUsers && authUsers.length > 0) {
+        authUsers.forEach((user: any) => {
+          authUsersMap.set(user.id, user);
+        });
+      }
+
+      // Mapear as associações para o formato Member
+      for (const assoc of associacoes) {
+        // Verificar se é o usuário atual
+        const isCurrentUser = assoc.usuario_id === currentUser?.id;
+
+        let userEmail = "";
+        let userName = "";
+        let userAvatar = null;
+
+        // Tentar obter dados do usuário da tabela auth
+        const authUser = authUsersMap.get(assoc.usuario_id);
+
+        // 1. Se for o usuário atual, usar seus dados da sessão (mais confiável)
+        if (isCurrentUser) {
+          userEmail = currentUser?.email || "";
+
+          // Verificar a existência do campo raw_user_meta_data antes de acessá-lo
+          const metadata = currentUser?.user_metadata || {};
+          userName = metadata.name || userEmail.split("@")[0] || "Usuário";
+          userAvatar = metadata.avatar_url;
+
+          // Log para debug - remover após resolução
+          console.log("Current user metadata:", metadata);
+        }
+        // 2. Se encontrou dados de autenticação, use-os
+        else if (authUser) {
+          userEmail = authUser.email || "";
+
+          // Verificar a existência do campo raw_user_meta_data antes de acessá-lo
+          const metadata = authUser.raw_user_meta_data || {};
+          userName = metadata.name || userEmail.split("@")[0] || "Usuário";
+          userAvatar = metadata.avatar_url;
+
+          // Log para debug - remover após resolução
+          console.log("Auth user metadata:", metadata);
+        }
+        // 3. Último recurso: crie dados temporários baseados na associação
+        else {
+          // Verificar a função para usar no nome
+          const roleName =
+            assoc.funcao === "PROPRIETARIO"
+              ? "Proprietário"
+              : assoc.funcao === "ADMINISTRADOR"
+              ? "Administrador"
+              : "Membro";
+
+          userEmail = `${roleName.toLowerCase()}-${assoc.id.substring(
+            0,
+            4
+          )}@exemplo.com`;
+          userName = `${roleName} ${assoc.id.substring(0, 4)}`;
+        }
+
+        // Adicionar o membro à lista
+        members.push({
           id: assoc.id,
           usuario_id: assoc.usuario_id,
           organizacao_id: assoc.organizacao_id,
           funcao: assoc.funcao,
           eh_proprietario: assoc.eh_proprietario,
           ultimo_login: assoc.ultimo_login,
+          data_adicao: assoc.data_adicao,
           created_at: assoc.created_at,
           updated_at: assoc.updated_at,
           user: {
-            id: currentUser?.id || "Seu ID",
-            email: currentUser?.email || "Seu email",
-            nome:
-              currentUser?.user_metadata?.name ||
-              currentUser?.email?.split("@")[0] ||
-              "Você",
+            id: assoc.usuario_id,
+            email: userEmail,
+            nome: userName,
+            avatar: userAvatar,
           },
-        };
+        });
       }
-
-      // Para outros usuários, mostrar função e identificador único
-      const roleName =
-        assoc.funcao === UserRole.PROPRIETARIO
-          ? "Proprietário"
-          : assoc.funcao === UserRole.ADMINISTRADOR
-          ? "Administrador"
-          : "Membro";
-
-      return {
-        id: assoc.id,
-        usuario_id: assoc.usuario_id,
-        organizacao_id: assoc.organizacao_id,
-        funcao: assoc.funcao,
-        eh_proprietario: assoc.eh_proprietario,
-        ultimo_login: assoc.ultimo_login,
-        created_at: assoc.created_at,
-        updated_at: assoc.updated_at,
-        user: {
-          id: assoc.usuario_id,
-          email: `${roleName.toLowerCase()}@exemplo.com`,
-          nome: `${roleName} ${assoc.id.substring(0, 4)}`,
-        },
-      };
-    });
+    }
+  } catch (error) {
+    console.error("Erro ao obter membros da organização:", error);
+    // Criar um array vazio em caso de erro para evitar falhas na renderização
+    members = [];
   }
 
   // Busca convites pendentes
   const { data: invites } = await supabase
     .from("convites")
     .select("*")
-    .eq("organizacao_id", params.id)
+    .eq("organizacao_id", organizationId)
     .eq("status", "PENDENTE");
 
   return (
@@ -197,7 +236,7 @@ export default async function ManageOrganizationPage({
           {organization.nome}
         </h1>
 
-        <Tabs defaultValue={searchParams.tab || "info"} className="">
+        <Tabs defaultValue={activeTab} className="">
           <TabsList>
             <TabsTrigger value="info">Informações</TabsTrigger>
             <TabsTrigger value="members">
@@ -217,7 +256,7 @@ export default async function ManageOrganizationPage({
           <TabsContent value="members" className="mt-0 pt-2">
             <OrganizationDetailMembers
               members={members}
-              organizationId={params.id}
+              organizationId={organizationId}
               organizationName={organization.nome}
             />
           </TabsContent>
@@ -225,7 +264,7 @@ export default async function ManageOrganizationPage({
           <TabsContent value="invites" className="mt-0 pt-2">
             <OrganizationDetailInvites
               invites={invites || []}
-              organizationId={params.id}
+              organizationId={organizationId}
               organizationName={organization.nome}
             />
           </TabsContent>
@@ -238,9 +277,7 @@ export default async function ManageOrganizationPage({
           </TabsContent>
 
           <TabsContent value="settings" className="mt-0 pt-2">
-            <OrganizationSettings
-              organizationId={params.id}
-            />
+            <OrganizationSettings organizationId={organizationId} />
           </TabsContent>
         </Tabs>
       </div>

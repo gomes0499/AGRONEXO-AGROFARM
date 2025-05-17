@@ -1,7 +1,11 @@
 import { ResponsiveGroqChat } from "@/components/chat/responsive-groq-chat";
 import { SiteHeader } from "@/components/dashboard/site-header";
+import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 
-export default function ResponsiveChatPage() {
+export default async function ResponsiveChatPage() {
+  // Verificar se o usuário está autenticado
+  await verifyUserPermission();
+  
   return (
     <div className="flex flex-col min-h-screen">
       <SiteHeader title="Suporte" />

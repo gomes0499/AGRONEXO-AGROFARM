@@ -69,14 +69,14 @@ export default function InvitationEmail({
 
 // Estilos
 const headingStyle = {
-  color: "#111827",
+  color: "#17134F",
   fontSize: "24px",
   fontWeight: "bold",
   margin: "16px 0",
 };
 
 const paragraphStyle = {
-  color: "#333333",
+  color: "#17134F",
   fontSize: "16px",
   lineHeight: "24px",
   margin: "16px 0",
@@ -88,7 +88,7 @@ const buttonContainerStyle = {
 };
 
 const buttonStyle = {
-  backgroundColor: "#111827",
+  backgroundColor: "#17134F",
   borderRadius: "6px",
   color: "#ffffff",
   display: "inline-block",
@@ -108,7 +108,7 @@ const noteStyle = {
 };
 
 const signatureStyle = {
-  color: "#333333",
+  color: "#17134F",
   fontSize: "16px",
   lineHeight: "24px",
   margin: "24px 0 0",

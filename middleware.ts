@@ -119,6 +119,6 @@ export const config = {
     '/dashboard/:path*',
     
     // Rotas de autenticação
-    '/auth/:path*',
+    '/auth/:path*'
   ],
 };

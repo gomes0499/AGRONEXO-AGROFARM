@@ -55,10 +55,6 @@ interface Member {
     email: string;
     nome: string;
     avatar?: string;
-    user_metadata?: {
-      avatar_url?: string;
-      name?: string;
-    };
   };
 }
 
@@ -141,20 +137,37 @@ export function OrganizationDetailMembers({
 
   // Function to get initial letters for avatar
   const getInitials = (member: Member) => {
-    if (member.user?.nome) {
-      const nameParts = member.user.nome.split(" ");
+    // Verificar se o nome existe e não é vazio
+    if (member.user?.nome && member.user.nome.trim() !== "") {
+      const nameParts = member.user.nome.split(" ").filter(part => part.trim() !== "");
+      
       if (nameParts.length > 1) {
+        // Pegar a primeira letra do primeiro e último nome
         return `${nameParts[0][0]}${
           nameParts[nameParts.length - 1][0]
         }`.toUpperCase();
+      } else if (nameParts.length === 1) {
+        // Se só tem um nome, pegar as duas primeiras letras
+        return nameParts[0].substring(0, 2).toUpperCase();
       }
-      return member.user.nome.substring(0, 2).toUpperCase();
     }
 
-    if (member.user?.email) {
+    // Se não tem nome, usar email
+    if (member.user?.email && member.user.email.trim() !== "") {
+      // Usar a primeira letra do email e a primeira letra após o @
+      const emailParts = member.user.email.split("@");
+      if (emailParts.length > 1 && emailParts[0].length > 0) {
+        return emailParts[0].substring(0, 2).toUpperCase();
+      }
       return member.user.email.substring(0, 2).toUpperCase();
     }
 
+    // Fallback para user ID
+    if (member.usuario_id) {
+      return member.usuario_id.substring(0, 2).toUpperCase();
+    }
+
+    // Último recurso
     return "U";
   };
 
@@ -319,7 +332,7 @@ export function OrganizationDetailMembers({
                             )}`}
                           >
                             <AvatarImage 
-                              src={member.user?.user_metadata?.avatar_url || member.user?.avatar || ""}
+                              src={member.user?.avatar || ""}
                               alt={member.user?.nome || "Avatar"}
                             />
                             <AvatarFallback>
@@ -328,17 +341,19 @@ export function OrganizationDetailMembers({
                           </Avatar>
                           <div className="flex flex-col">
                             <span className="font-medium truncate">
-                              {member.user?.nome ||
-                                member.user?.email?.split("@")[0] ||
-                                "Usuário"}
+                              {member.user?.nome}
                             </span>
                             <span className="text-xs text-muted-foreground md:hidden truncate">
-                              {member.user?.email}
+                              {member.user?.email && !member.user.email.includes("exemplo.com") 
+                                ? member.user.email 
+                                : ""}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground truncate hidden md:table-cell">
-                          {member.user?.email}
+                          {member.user?.email && !member.user.email.includes("exemplo.com") 
+                            ? member.user.email 
+                            : ""}
                         </TableCell>
                         <TableCell>{getRoleBadge(member.funcao)}</TableCell>
                         <TableCell className="hidden sm:table-cell">

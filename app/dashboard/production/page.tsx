@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { Suspense } from "react";
 import { getOrganizationId } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import {
   getPlantingAreas,
   getCultures,
@@ -56,6 +57,9 @@ interface Property {
 }
 
 export default async function ProductionPage() {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
+  
   const organizationId = await getOrganizationId();
 
   // Buscar dados comuns

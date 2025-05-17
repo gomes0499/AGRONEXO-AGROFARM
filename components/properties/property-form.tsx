@@ -308,7 +308,7 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList>
               <TabsTrigger
                 value="informacoes-basicas"
                 className="flex items-center gap-2"
@@ -734,6 +734,9 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                                 }
                               }}
                               onFocus={(e) => {
+                                console.error("Erro ao carregar imagem:", e);
+                                console.log("URL que falhou:", imageUrl);
+                                // Tentar definir uma imagem de fallback
                                 // Quando ganhar foco, mostra apenas o número sem formatação
                                 if (field.value) {
                                   e.target.value = field.value.toString();

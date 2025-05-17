@@ -1,13 +1,16 @@
 import { Metadata } from "next";
 import { UnderConstruction } from "@/components/ui/under-construction";
 import { SiteHeader } from "@/components/dashboard/site-header";
+import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 
 export const metadata: Metadata = {
   title: "Indicadores | SR Consultoria",
   description: "Indicadores de desempenho e análises para tomada de decisão",
 };
 
-export default function IndicatorsPage() {
+export default async function IndicatorsPage() {
+  // Verificar se o usuário é superadmin
+  await requireSuperAdmin();
   return (
     <div className="flex flex-col min-h-screen">
       <SiteHeader title="Indicadores" />
