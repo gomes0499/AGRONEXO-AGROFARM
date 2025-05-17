@@ -134,44 +134,60 @@ export function formatSacas(value: number | null | undefined): string {
   })} sc`;
 }
 
-// Converte uma string formatada para um número - versão simplificada e mais segura
+// Converte uma string formatada para um número - versão defensiva e segura para produção
 export function parseFormattedNumber(value: string): number | null {
-  // Validação de entrada
+  // Validação inicial de entrada para evitar processamento desnecessário
   if (!value || typeof value !== 'string') return null;
   
   try {
-    // Remove todos os caracteres não numéricos, exceto vírgula, ponto e hífen
+    // Primeiro: limpar a string de caracteres não permitidos
     const cleanValue = value.replace(/[^\d.,\-]/g, '');
+    if (!cleanValue) return null;  // Se ficou vazio após limpeza, retorna null
     
-    // Definição inicial de variáveis para evitar problemas de inicialização
+    // Inicialização segura das variáveis
+    // Use let para todas as variáveis que serão modificadas
+    let normalizedValue = '';
+    let result = 0;
+    
+    // Verificação de pontos e vírgulas - inicialização segura antes do uso
     const hasComma = cleanValue.indexOf(',') !== -1;
     const hasDot = cleanValue.indexOf('.') !== -1;
     
-    // Prepara valor normalizado
-    let normalizedValue = cleanValue;
-    
-    // Lógica de normalização mais linear
+    // Tratamento dos casos possíveis - lógica linear para evitar confusão em minificação
     if (hasComma && hasDot) {
-      // Formato brasileiro: 1.234,56
+      // Formato brasileiro: 1.234,56 -> pontos são separadores de milhar, vírgula é decimal
       normalizedValue = cleanValue.replace(/\./g, '').replace(',', '.');
     } else if (hasComma) {
-      // Formato com vírgula como decimal: 1234,56
+      // Formato com vírgula como decimal: 1234,56 -> vírgula é decimal
       normalizedValue = cleanValue.replace(',', '.');
+    } else {
+      // Se só tem ponto ou nenhum, mantém como está
+      normalizedValue = cleanValue;
     }
-    // Se só tem ponto ou nenhum, mantém como está
     
-    // Parse seguro
-    const result = parseFloat(normalizedValue);
+    // Verificação adicional para evitar problemas
+    if (!normalizedValue) return null;
     
-    // Verifica se é um número válido e retorna null se não for
-    if (isNaN(result)) {
+    // Parse seguro com try/catch interno para evitar falhas em runtime
+    try {
+      result = parseFloat(normalizedValue);
+    } catch (innerError) {
+      console.error('Erro durante parseFloat:', innerError);
       return null;
     }
     
-    // Arredonda para evitar problemas de precisão
-    return Number(result.toFixed(10));
+    // Verifica se é um número válido
+    if (isNaN(result) || !isFinite(result)) {
+      return null;
+    }
+    
+    // Arredonda para evitar problemas de precisão com número fixo de casas decimais
+    // Garantir que o resultado sempre é um número válido
+    return Number(parseFloat(result.toFixed(10)));
+    
   } catch (error) {
-    // Em caso de qualquer erro no processo, retorna null
+    // Erro genérico com log para debugging
+    console.error('Erro ao processar número formatado:', error);
     return null;
   }
 }
