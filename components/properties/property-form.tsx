@@ -18,7 +18,9 @@ import {
   formatCurrency,
   formatArea,
   parseFormattedNumber,
+  isNegativeValue,
 } from "@/lib/utils/formatters";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -81,11 +83,89 @@ const ESTADOS = [
   "TO",
 ];
 
+// Componente reutilizável para campos de moeda
+const CurrencyField = ({
+  name,
+  label,
+  control,
+  placeholder = "R$ 0,00",
+  description,
+  disabled = false,
+}: {
+  name: string;
+  label: string;
+  control: any;
+  placeholder?: string;
+  description?: string;
+  disabled?: boolean;
+}) => (
+  <FormField
+    control={control}
+    name={name}
+    render={({ field }) => {
+      // Track input focus state
+      const [isFocused, setIsFocused] = useState(false);
+
+      return (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          {description && <FormDescription>{description}</FormDescription>}
+          <FormControl>
+            <input
+              placeholder={placeholder}
+              disabled={disabled}
+              className={cn(
+                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                isNegativeValue(field.value) &&
+                  "text-red-600 focus:text-foreground"
+              )}
+              onChange={(e) => {
+                // Allow continuous typing by preserving the raw input
+                const rawValue = e.target.value.replace(/[^\d.,\-]/g, "");
+                const numericValue = parseFormattedNumber(rawValue);
+                field.onChange(numericValue);
+              }}
+              onBlur={(e) => {
+                setIsFocused(false);
+                field.onBlur();
+                if (field.value !== undefined && field.value !== null) {
+                  e.target.value = formatCurrency(field.value);
+                }
+              }}
+              onFocus={(e) => {
+                setIsFocused(true);
+                if (field.value) {
+                  // Show raw value without formatting for editing
+                  e.target.value = String(Math.abs(field.value));
+                } else {
+                  e.target.value = "";
+                }
+              }}
+              value={
+                isFocused
+                  ? field.value !== undefined && field.value !== null
+                    ? String(Math.abs(field.value))
+                    : ""
+                  : field.value !== undefined && field.value !== null
+                  ? formatCurrency(field.value)
+                  : ""
+              }
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      );
+    }}
+  />
+);
+
 export function PropertyForm({ property, organizationId }: PropertyFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("informacoes-basicas");
-  const [imageUrl, setImageUrl] = useState<string | null>(property?.imagem || null);
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    property?.imagem || null
+  );
   const isEditing = !!property?.id;
 
   const form = useForm<PropertyFormValues>({
@@ -133,13 +213,13 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
   const onSubmit = async (values: PropertyFormValues) => {
     try {
       setIsSubmitting(true);
-      
+
       // Adiciona a imagem às propriedades
       const dataWithImage = {
         ...values,
-        imagem: imageUrl
+        imagem: imageUrl,
       };
-      
+
       if (isEditing) {
         await updateProperty(property.id!, dataWithImage);
         toast.success("Propriedade atualizada com sucesso!");
@@ -147,36 +227,51 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
       } else {
         // Primeiro criamos a propriedade
         const newProperty = await createProperty(organizationId, dataWithImage);
-        
+
         // Se temos uma URL de imagem temporária no estado, precisamos fazer o upload dela
-        if (imageUrl && imageUrl.startsWith('blob:')) {
+        if (imageUrl && imageUrl.startsWith("blob:")) {
           try {
             // Localizar o componente de upload para obter o arquivo
-            const uploadComponent = document.querySelector('[data-property-upload="true"]');
+            const uploadComponent = document.querySelector(
+              '[data-property-upload="true"]'
+            );
             if (uploadComponent) {
               // Pegar o arquivo da propriedade __temporaryImage
               const temporaryFile = (uploadComponent as any).__temporaryImage;
-              
+
               if (temporaryFile && temporaryFile instanceof File) {
                 // Criar FormData para o upload
                 const formData = new FormData();
                 formData.append("file", temporaryFile);
-                
+
                 // Fazer o upload usando a server action
-                const uploadResult = await uploadPropertyImage(newProperty.id, formData);
-                
+                const uploadResult = await uploadPropertyImage(
+                  newProperty.id,
+                  formData
+                );
+
                 if (!uploadResult.success) {
-                  console.error("Erro ao fazer upload da imagem:", uploadResult.error);
-                  toast.error("A propriedade foi criada, mas houve um erro ao salvar a imagem.");
+                  console.error(
+                    "Erro ao fazer upload da imagem:",
+                    uploadResult.error
+                  );
+                  toast.error(
+                    "A propriedade foi criada, mas houve um erro ao salvar a imagem."
+                  );
                 }
               }
             }
           } catch (uploadError) {
-            console.error("Erro ao processar upload da imagem temporária:", uploadError);
-            toast.error("A propriedade foi criada, mas houve um erro ao salvar a imagem.");
+            console.error(
+              "Erro ao processar upload da imagem temporária:",
+              uploadError
+            );
+            toast.error(
+              "A propriedade foi criada, mas houve um erro ao salvar a imagem."
+            );
           }
         }
-        
+
         toast.success("Propriedade criada com sucesso!");
         router.push(`/dashboard/properties/${newProperty.id}`);
       }
@@ -228,10 +323,7 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                 <AreaChartIcon size={16} />
                 Área e Valores
               </TabsTrigger>
-              <TabsTrigger
-                value="imagem"
-                className="flex items-center gap-2"
-              >
+              <TabsTrigger value="imagem" className="flex items-center gap-2">
                 <ImageIcon size={16} />
                 Imagem
               </TabsTrigger>
@@ -240,7 +332,6 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
             <TabsContent value="informacoes-basicas">
               <Card>
                 <CardContent className="pt-6 space-y-6">
-                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -501,8 +592,6 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                     />
                   </div>
 
-                  <Separator className="my-4" />
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -666,114 +755,22 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
+                    <CurrencyField
                       name="valor_atual"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Valor Atual (R$)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="text"
-                              placeholder="Digite o valor atual da propriedade"
-                              {...field}
-                              onChange={(e) => {
-                                // Limpa a formatação e pega apenas números e vírgulas
-                                const cleanValue = e.target.value.replace(
-                                  /[^\d.,]/g,
-                                  ""
-                                );
-                                // Converte para número para armazenar no form
-                                const numericValue =
-                                  parseFormattedNumber(cleanValue);
-                                field.onChange(numericValue);
-                              }}
-                              onBlur={(e) => {
-                                field.onBlur();
-                                // Se tiver um valor, formata ele ao sair do campo
-                                if (field.value) {
-                                  const formattedValue = formatCurrency(
-                                    field.value
-                                  );
-                                  e.target.value = formattedValue;
-                                }
-                              }}
-                              onFocus={(e) => {
-                                // Quando ganhar foco, mostra apenas o número sem formatação
-                                if (field.value) {
-                                  e.target.value = field.value.toString();
-                                }
-                              }}
-                              value={
-                                field.value !== undefined &&
-                                field.value !== null
-                                  ? formatCurrency(field.value)
-                                  : ""
-                              }
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Valor de mercado (opcional)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      label="Valor Atual (R$)"
+                      control={form.control}
+                      placeholder="Digite o valor atual da propriedade"
+                      disabled={isSubmitting}
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
+                    <CurrencyField
                       name="avaliacao_banco"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Avaliação do Imóvel (R$)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="text"
-                              placeholder="Digite o valor da avaliação do imóvel"
-                              {...field}
-                              onChange={(e) => {
-                                // Limpa a formatação e pega apenas números e vírgulas
-                                const cleanValue = e.target.value.replace(
-                                  /[^\d.,]/g,
-                                  ""
-                                );
-                                // Converte para número para armazenar no form
-                                const numericValue =
-                                  parseFormattedNumber(cleanValue);
-                                field.onChange(numericValue);
-                              }}
-                              onBlur={(e) => {
-                                field.onBlur();
-                                // Se tiver um valor, formata ele ao sair do campo
-                                if (field.value) {
-                                  const formattedValue = formatCurrency(
-                                    field.value
-                                  );
-                                  e.target.value = formattedValue;
-                                }
-                              }}
-                              onFocus={(e) => {
-                                // Quando ganhar foco, mostra apenas o número sem formatação
-                                if (field.value) {
-                                  e.target.value = field.value.toString();
-                                }
-                              }}
-                              value={
-                                field.value !== undefined &&
-                                field.value !== null
-                                  ? formatCurrency(field.value)
-                                  : ""
-                              }
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Valor de avaliação bancária (opcional)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      label="Avaliação do Imóvel (R$)"
+                      control={form.control}
+                      placeholder="Digite o valor da avaliação do imóvel"
+                      disabled={isSubmitting}
                     />
 
                     <FormField
@@ -801,7 +798,6 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                     />
                   </div>
 
-
                   <div className="flex justify-between mt-6">
                     <Button
                       type="button"
@@ -818,10 +814,7 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
                       >
                         Cancelar
                       </Button>
-                      <Button 
-                        type="button"
-                        onClick={handleNextTab}
-                      >
+                      <Button type="button" onClick={handleNextTab}>
                         Próximo
                       </Button>
                     </div>
@@ -833,14 +826,14 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
             <TabsContent value="imagem">
               <Card>
                 <CardContent className="pt-6 pb-6">
-                  <PropertyImageUpload 
+                  <PropertyImageUpload
                     propertyId={isEditing ? property.id! : undefined}
                     currentImageUrl={imageUrl}
                     onSuccess={(url) => setImageUrl(url)}
                     onRemove={() => setImageUrl(null)}
                     isTemporary={!isEditing}
                   />
-                  
+
                   <div className="flex justify-between mt-6">
                     <Button
                       type="button"

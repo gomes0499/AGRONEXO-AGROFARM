@@ -1,8 +1,8 @@
-import { HelpCircleIcon, SearchIcon, PieChartIcon, BuildingIcon, BrainCircuitIcon, Brain } from "lucide-react";
+import { HelpCircleIcon, SearchIcon, PieChartIcon, BuildingIcon, BrainCircuitIcon, Brain, Sun, Moon } from "lucide-react";
 import { 
   BarChartIcon, CameraIcon, FileCodeIcon, FileTextIcon, FolderIcon, 
   SettingsIcon, UsersIcon, WalletIcon, LineChartIcon, MapIcon, 
-  LandmarkIcon, AreaChartIcon, GaugeIcon, StoreIcon
+  LandmarkIcon, AreaChartIcon, GaugeIcon, StoreIcon, PaintbrushIcon
 } from "lucide-react";
 import { LayoutDashboardIcon } from "lucide-react";
 import { ListIcon } from "lucide-react";
@@ -35,7 +35,7 @@ export const data = {
       icon: BarChartIcon,
     },
     {
-      title: "Comercial",
+      title: "Comercial ",
       url: "/dashboard/commercial",
       icon: StoreIcon,
     },
@@ -61,12 +61,16 @@ export const data = {
     },
   ],
   navSecondary: [
-    
+    {
+      title: "Tema",
+      url: "#theme",
+      icon: PaintbrushIcon,
+      isThemeToggle: true,
+    },
     {
       title: "Suporte",
       url: "/dashboard/support",
       icon: Brain,
     },
- 
   ],
 };

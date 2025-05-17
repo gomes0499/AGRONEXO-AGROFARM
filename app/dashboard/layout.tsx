@@ -5,6 +5,9 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { UserProvider } from "@/components/auth/user-provider";
 import { OrganizationProvider } from "@/components/auth/organization-provider";
+import { DashboardProvider } from "./dashboard-provider";
+import { DashboardTickers } from "@/components/dashboard/dashboard-tickers";
+import { getPrices } from "@/lib/actions/commercial-actions";
 
 /**
  * Layout para todas as páginas do dashboard
@@ -21,6 +24,7 @@ export default async function DashboardLayout({
   // Obtém dados da organização associada
   const supabase = await createClient();
   let userData;
+  let organizationId = null;
 
   try {
     // Tenta obter o perfil do usuário
@@ -45,6 +49,9 @@ export default async function DashboardLayout({
       userData = newProfile;
     } else {
       userData = profile;
+      if (profile.organizacao_id) {
+        organizationId = profile.organizacao_id;
+      }
     }
 
     // Se temos metadados de organização no usuário autenticado, usá-los
@@ -63,6 +70,7 @@ export default async function DashboardLayout({
           organizacao: orgData,
           organizacao_id: orgData.id,
         };
+        organizationId = orgData.id;
       }
     }
   } catch (error) {
@@ -82,13 +90,29 @@ export default async function DashboardLayout({
     organizacao: userData?.organizacao || null,
   };
 
+  // Busca os preços mais recentes para o Market Ticker
+  let latestPrice = null;
+  if (organizationId) {
+    const pricesResponse = await getPrices(organizationId);
+    latestPrice = Array.isArray(pricesResponse) && pricesResponse.length > 0
+      ? pricesResponse[0]
+      : null;
+  }
+
   return (
     <UserProvider user={userWithProfile}>
       <OrganizationProvider organization={userData?.organizacao || null}>
-        <SidebarProvider>
-          <AppSidebar variant="inset" />
-          <SidebarInset>{children}</SidebarInset>
-        </SidebarProvider>
+        <DashboardProvider commercialPrices={latestPrice}>
+          <SidebarProvider>
+            <AppSidebar variant="inset" />
+            <SidebarInset>
+              <div className="flex flex-col">
+                <DashboardTickers commercialPrices={latestPrice} />
+                {children}
+              </div>
+            </SidebarInset>
+          </SidebarProvider>
+        </DashboardProvider>
       </OrganizationProvider>
     </UserProvider>
   );

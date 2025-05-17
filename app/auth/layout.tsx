@@ -32,13 +32,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {/* Lado direito - Imagem (visível apenas em telas médias para cima) */}
       <div className="hidden md:flex flex-1 relative border-l">
         <Image
-          src="/login.jpeg"
+          src="/auth.webp"
           alt="Imagem de login"
           fill
           priority
           className="object-cover"
+          quality={100}
         />
-        <div className="absolute inset-0 bg-black/20 flex items-end justify-center">
+        <div className="absolute inset-0 flex items-end justify-center">
           <div className="max-w-full px-8 py-12 bg-white/10 dark:bg-gray-900/80 rounded-t-lg  backdrop-blur-sm">
             <h2 className="text-3xl text-white font-medium text-start mb-2">
               Bem-vindo à SR Consultoria

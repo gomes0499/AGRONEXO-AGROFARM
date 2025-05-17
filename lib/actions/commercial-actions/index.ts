@@ -93,7 +93,6 @@ export async function createPrice(organizacaoId: string, values: PriceFormValues
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/prices');
     
     return data as Price;
   } catch (error) {
@@ -125,7 +124,6 @@ export async function updatePrice(id: string, values: Partial<PriceFormValues>) 
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/prices');
     
     return data as Price;
   } catch (error) {
@@ -149,7 +147,6 @@ export async function deletePrice(id: string) {
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/prices');
     
     return { success: true };
   } catch (error) {
@@ -162,22 +159,22 @@ export async function deletePrice(id: string) {
 /**
  * Obtém todas as vendas de sementes da organização
  */
-export async function getSeedSales(organizacaoId: string, culturaId?: string, ano?: number) {
+export async function getSeedSales(organizacaoId: string, culturaId?: string, safraId?: string) {
   try {
     const supabase = await createClient();
     
     let query = supabase
       .from('vendas_sementes')
-      .select('*, cultura:culturas(*)')
+      .select('*, cultura:culturas(*), safra:safras(*), propriedade:propriedades(*)')
       .eq('organizacao_id', organizacaoId)
-      .order('ano', { ascending: false });
+      .order('created_at', { ascending: false });
     
     if (culturaId) {
       query = query.eq('cultura_id', culturaId);
     }
     
-    if (ano) {
-      query = query.eq('ano', ano);
+    if (safraId) {
+      query = query.eq('safra_id', safraId);
     }
     
     const { data, error } = await query;
@@ -199,7 +196,7 @@ export async function getSeedSaleById(id: string, organizacaoId: string) {
     
     const { data, error } = await supabase
       .from('vendas_sementes')
-      .select('*, cultura:culturas(*)')
+      .select('*, cultura:culturas(*), safra:safras(*), propriedade:propriedades(*)')
       .eq('id', id)
       .eq('organizacao_id', organizacaoId)
       .single();
@@ -235,7 +232,6 @@ export async function createSeedSale(organizacaoId: string, values: SeedSaleForm
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/seed-sales');
     
     return data as SeedSale;
   } catch (error) {
@@ -261,7 +257,6 @@ export async function updateSeedSale(id: string, values: Partial<SeedSaleFormVal
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/seed-sales');
     
     return data as SeedSale;
   } catch (error) {
@@ -285,7 +280,6 @@ export async function deleteSeedSale(id: string) {
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/seed-sales');
     
     return { success: true };
   } catch (error) {
@@ -298,18 +292,18 @@ export async function deleteSeedSale(id: string) {
 /**
  * Obtém todas as vendas pecuárias da organização
  */
-export async function getLivestockSales(organizacaoId: string, ano?: number) {
+export async function getLivestockSales(organizacaoId: string, safraId?: string) {
   try {
     const supabase = await createClient();
     
     let query = supabase
       .from('vendas_pecuaria')
-      .select('*')
+      .select('*, safra:safras(*), propriedade:propriedades(*)')
       .eq('organizacao_id', organizacaoId)
-      .order('ano', { ascending: false });
+      .order('created_at', { ascending: false });
     
-    if (ano) {
-      query = query.eq('ano', ano);
+    if (safraId) {
+      query = query.eq('safra_id', safraId);
     }
     
     const { data, error } = await query;
@@ -331,7 +325,7 @@ export async function getLivestockSaleById(id: string, organizacaoId: string) {
     
     const { data, error } = await supabase
       .from('vendas_pecuaria')
-      .select('*')
+      .select('*, safra:safras(*), propriedade:propriedades(*)')
       .eq('id', id)
       .eq('organizacao_id', organizacaoId)
       .single();
@@ -367,7 +361,6 @@ export async function createLivestockSale(organizacaoId: string, values: Livesto
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/livestock-sales');
     
     return data as LivestockSale;
   } catch (error) {
@@ -393,7 +386,6 @@ export async function updateLivestockSale(id: string, values: Partial<LivestockS
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/livestock-sales');
     
     return data as LivestockSale;
   } catch (error) {
@@ -417,7 +409,6 @@ export async function deleteLivestockSale(id: string) {
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/livestock-sales');
     
     return { success: true };
   } catch (error) {
@@ -511,7 +502,6 @@ export async function createCommodityStock(organizacaoId: string, values: Commod
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/stocks');
     
     return data as CommodityStock;
   } catch (error) {
@@ -560,7 +550,6 @@ export async function updateCommodityStock(id: string, values: Partial<Commodity
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/stocks');
     
     return data as CommodityStock;
   } catch (error) {
@@ -584,7 +573,6 @@ export async function deleteCommodityStock(id: string) {
     
     // Revalida os caminhos para atualizar os dados
     revalidatePath('/dashboard/commercial');
-    revalidatePath('/dashboard/commercial/stocks');
     
     return { success: true };
   } catch (error) {
@@ -611,23 +599,37 @@ export async function getCommercialDashboardData(organizacaoId: string) {
     
     if (pricesError) throw pricesError;
     
-    // Busca as vendas de sementes do ano atual
+    // Busca safras atuais
     const currentYear = new Date().getFullYear();
+    const { data: currentSafras, error: safrasError } = await supabase
+      .from('safras')
+      .select('id')
+      .eq('organizacao_id', organizacaoId)
+      .or(`ano_inicio.eq.${currentYear},ano_fim.eq.${currentYear}`);
+    
+    if (safrasError) throw safrasError;
+    
+    let safraIds = [];
+    if (currentSafras && currentSafras.length > 0) {
+      safraIds = currentSafras.map(s => s.id);
+    }
+    
+    // Busca as vendas de sementes da safra atual
     const { data: seedSales, error: seedSalesError } = await supabase
       .from('vendas_sementes')
-      .select('*, cultura:culturas(*)')
+      .select('*, cultura:culturas(*), safra:safras(*)')
       .eq('organizacao_id', organizacaoId)
-      .eq('ano', currentYear)
+      .in('safra_id', safraIds.length > 0 ? safraIds : ['no-safra-found'])
       .order('created_at', { ascending: false });
     
     if (seedSalesError) throw seedSalesError;
     
-    // Busca as vendas pecuárias do ano atual
+    // Busca as vendas pecuárias da safra atual
     const { data: livestockSales, error: livestockSalesError } = await supabase
       .from('vendas_pecuaria')
-      .select('*')
+      .select('*, safra:safras(*)')
       .eq('organizacao_id', organizacaoId)
-      .eq('ano', currentYear)
+      .in('safra_id', safraIds.length > 0 ? safraIds : ['no-safra-found'])
       .order('created_at', { ascending: false });
     
     if (livestockSalesError) throw livestockSalesError;

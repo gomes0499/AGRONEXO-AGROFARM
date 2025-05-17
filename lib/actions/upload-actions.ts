@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getStorageServerClient, BUCKET_NAME } from "@/lib/supabase/storage";
+import { getStorageServerClient } from "@/lib/supabase/storage";
 import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
 
 /**
  * Processa upload de imagem da organização (server-side)

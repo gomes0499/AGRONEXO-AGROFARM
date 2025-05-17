@@ -80,7 +80,7 @@ export function ProductionNavClient({
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList className="w-full justify-start overflow-x-auto">
+        <TabsList>
           {/* Configurações como primeira tab */}
           <TabsTrigger value="config" className="relative">
             Configurações

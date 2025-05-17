@@ -11,6 +11,7 @@ import {
   getSystems,
   getHarvests,
 } from "@/lib/actions/production-actions";
+import { getPrices } from "@/lib/actions/commercial-actions";
 import {
   Card,
   CardContent,
@@ -151,6 +152,15 @@ export default async function DashboardPage() {
     organizationId = null;
     organizationName = "Minha Organização";
   }
+  
+  // Busca os preços mais recentes para o Market Ticker
+  let latestPrice = null;
+  if (organizationId) {
+    const pricesResponse = await getPrices(organizationId);
+    latestPrice = Array.isArray(pricesResponse) && pricesResponse.length > 0
+      ? pricesResponse[0]
+      : null;
+  }
 
   if (!organizationId) {
     return (
@@ -174,19 +184,7 @@ export default async function DashboardPage() {
     <div className="flex flex-col">
       <SiteHeader title={`Dashboard - ${organizationName}`} />
 
-      {/* Market Ticker moved here - full width */}
-      <div className="w-full border-b bg-muted/30">
-        <div className="container flex items-center h-10">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground font-medium pr-4 border-r">
-            <DollarSign className="h-4 w-4 ml-2" />
-            <span>Mercado</span>
-          </div>
-          <div className="flex-1">
-            <MarketTicker />
-          </div>
-        </div>
-      </div>
-      <WeatherTickerBar />
+      {/* Tickers are now in the dashboard layout */}
 
       <main className="flex-1 p-6">
         <Tabs defaultValue="overview">
@@ -201,8 +199,8 @@ export default async function DashboardPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <AreaPlantioChart />
             <AgroKpiCards />
+            <AreaPlantioChart />
             <ResultadosChart />
           </TabsContent>
 

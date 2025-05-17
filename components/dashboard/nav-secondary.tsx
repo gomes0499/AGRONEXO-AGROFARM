@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function NavSecondary({
   items,
@@ -20,6 +21,7 @@ export function NavSecondary({
     title: string;
     url: string;
     icon: LucideIcon;
+    isThemeToggle?: boolean;
   }[];
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const pathname = usePathname();
@@ -50,6 +52,22 @@ export function NavSecondary({
           {items.map((item) => {
             const active = isActive(item.url);
 
+            // Special handling for theme toggle
+            if (item.isThemeToggle) {
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <item.icon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{item.title}</span>
+                    </div>
+                    <ThemeToggle />
+                  </div>
+                </SidebarMenuItem>
+              );
+            }
+            
+            // Standard menu item
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton

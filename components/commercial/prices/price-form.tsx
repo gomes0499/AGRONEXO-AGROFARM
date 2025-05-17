@@ -26,9 +26,13 @@ import {
 } from "@/components/ui/select";
 import { Harvest } from "@/schemas/production";
 import { DatePicker } from "@/components/ui/datepicker";
-import { parseFormattedNumber, formatCurrency } from "@/lib/utils/formatters";
+import {
+  parseFormattedNumber,
+  formatCurrency,
+  formatUsdCurrency,
+} from "@/lib/utils/formatters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ErrorResponse } from '@/utils/error-handler';
+import { ErrorResponse } from "@/utils/error-handler";
 
 interface PriceFormProps {
   harvests: Harvest[];
@@ -56,6 +60,107 @@ type FormValues = {
   preco_soja_brl: number | null;
   outros_precos: Record<string, number>;
 };
+
+// Função para lidar com campos de preço formatados
+const handleFormattedPriceChange = (
+  field: any,
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  // Remove tudo exceto dígitos, vírgulas e pontos
+  const cleanValue = e.target.value.replace(/[^\d.,\-]/g, "");
+  // Processa o valor numérico (funciona tanto para formato R$ quanto US$)
+  const numericValue = parseFormattedNumber(cleanValue);
+  field.onChange(numericValue);
+};
+
+// Componente reutilizável para campos de moeda
+const CurrencyField = ({
+  name,
+  label,
+  control,
+  placeholder = "R$ 0,00",
+  formatter = formatCurrency,
+  decimals = 2,
+}: {
+  name: string;
+  label: string;
+  control: any;
+  placeholder?: string;
+  formatter?: (value: number, decimals?: number) => string;
+  decimals?: number;
+}) => (
+  <FormField
+    control={control}
+    name={name}
+    render={({ field }) => {
+      // Track input focus state
+      const [isFocused, setIsFocused] = useState(false);
+
+      return (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Input
+              placeholder={placeholder}
+              onChange={(e) => {
+                // Allow continuous typing by preserving the raw input, including decimals
+                // Keep the raw input exactly as typed, including commas and dots
+                const rawValue = e.target.value.replace(/[^\d.,\-]/g, "");
+                
+                // Only process to numeric when we have a valid number
+                const numericValue = parseFormattedNumber(rawValue);
+                
+                // Update the field value with the parsed number (can be null)
+                field.onChange(numericValue);
+                
+                // Keep cursor position and improve typing experience
+                if (rawValue !== e.target.value) {
+                  const cursorPos = e.target.selectionStart || 0;
+                  setTimeout(() => {
+                    e.target.setSelectionRange(cursorPos, cursorPos);
+                  }, 0);
+                }
+              }}
+              onBlur={(e) => {
+                setIsFocused(false);
+                field.onBlur();
+                if (field.value !== undefined && field.value !== null) {
+                  // Make sure to format with the correct number of decimal places
+                  e.target.value = formatter(field.value, decimals);
+                }
+              }}
+              onFocus={(e) => {
+                setIsFocused(true);
+                if (field.value) {
+                  // Show raw value without formatting, but preserve decimal places
+                  const absValue = Math.abs(field.value);
+                  
+                  // Determine appropriate decimal places based on the value
+                  const decimalPlaces = decimals;
+                  
+                  // Format with explicit decimal places to make it easier to edit
+                  e.target.value = absValue.toFixed(decimalPlaces);
+                } else {
+                  e.target.value = "";
+                }
+              }}
+              value={
+                isFocused
+                  ? field.value !== undefined && field.value !== null
+                    ? Math.abs(field.value).toFixed(decimals)
+                    : ""
+                  : field.value !== undefined && field.value !== null
+                  ? formatter(field.value, decimals)
+                  : ""
+              }
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      );
+    }}
+  />
+);
 
 export function PriceForm({
   harvests,
@@ -105,16 +210,6 @@ export function PriceForm({
     });
   };
 
-  // Função para lidar com campos de preço formatados
-  const handleFormattedPriceChange = (
-    field: any,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const cleanValue = e.target.value.replace(/[^\d.,]/g, "");
-    const numericValue = parseFormattedNumber(cleanValue);
-    field.onChange(numericValue);
-  };
-
   // Função de submit
   const onSubmit: SubmitHandler<FormValues> = async (values) => {
     try {
@@ -128,7 +223,7 @@ export function PriceForm({
       }
 
       // Verifica se o resultado é um erro
-      if (result && 'error' in result) {
+      if (result && "error" in result) {
         console.error("Erro da API:", result.message);
         // Aqui você poderia mostrar um toast ou mensagem de erro
         return;
@@ -145,7 +240,7 @@ export function PriceForm({
   };
 
   return (
-    <Form {...form as unknown as UseFormReturn<Record<string, any>>}>
+    <Form {...(form as unknown as UseFormReturn<Record<string, any>>)}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
@@ -191,9 +286,9 @@ export function PriceForm({
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Data de Referência</FormLabel>
-                    <DatePicker 
-                      date={field.value} 
-                      setDate={(date) => date && field.onChange(date)} 
+                    <DatePicker
+                      date={field.value}
+                      setDate={(date) => date && field.onChange(date)}
                     />
                     <FormMessage />
                   </FormItem>
@@ -205,98 +300,31 @@ export function PriceForm({
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Soja</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="preco_soja_brl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço Soja (R$/saca)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = formatCurrency(field.value);
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (field.value) {
-                              e.target.value = String(field.value);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatCurrency(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Preço Soja (R$/saca)"
+                  control={form.control as any}
+                  placeholder="R$ 0,00"
+                  formatter={formatCurrency}
+                  decimals={2}
                 />
 
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="preco_soja_usd"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço Soja (US$/saca)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="US$ 0.00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = field.value.toFixed(2);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? field.value.toFixed(2)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Preço Soja (US$/saca)"
+                  control={form.control as any}
+                  placeholder="US$ 0.00"
+                  formatter={formatUsdCurrency}
+                  decimals={2}
                 />
 
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="dolar_soja"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dólar Soja (R$)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = formatCurrency(field.value);
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (field.value) {
-                              e.target.value = String(field.value);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatCurrency(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Dólar Soja (R$)"
+                  control={form.control as any}
+                  formatter={formatCurrency}
+                  placeholder="R$ 0,00"
+                  decimals={2}
                 />
               </div>
             </div>
@@ -305,70 +333,22 @@ export function PriceForm({
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Milho</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="preco_milho"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço Milho (R$/saca)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = formatCurrency(field.value);
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (field.value) {
-                              e.target.value = String(field.value);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatCurrency(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Preço Milho (R$/saca)"
+                  control={form.control as any}
+                  formatter={formatCurrency}
+                  placeholder="R$ 0,00"
+                  decimals={2}
                 />
 
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="dolar_milho"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dólar Milho (R$)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = formatCurrency(field.value);
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (field.value) {
-                              e.target.value = String(field.value);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatCurrency(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Dólar Milho (R$)"
+                  control={form.control as any}
+                  formatter={formatCurrency}
+                  placeholder="R$ 0,00"
+                  decimals={2}
                 />
               </div>
             </div>
@@ -379,98 +359,31 @@ export function PriceForm({
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Algodão</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="preco_algodao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço Algodão (US$/lb)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="US$ 0.0000"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = field.value.toFixed(4);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? field.value.toFixed(4)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Preço Algodão (US$/lb)"
+                  control={form.control as any}
+                  formatter={(value) => formatUsdCurrency(value, 4)}
+                  decimals={4}
+                  placeholder="US$ 0.0000"
                 />
 
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="preco_algodao_bruto"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço Algodão Bruto (R$/@)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = formatCurrency(field.value);
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (field.value) {
-                              e.target.value = String(field.value);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatCurrency(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Preço Algodão Bruto (R$/@)"
+                  control={form.control as any}
+                  formatter={formatCurrency}
+                  placeholder="R$ 0,00"
+                  decimals={2}
                 />
 
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="dolar_algodao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dólar Algodão (R$)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = formatCurrency(field.value);
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (field.value) {
-                              e.target.value = String(field.value);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatCurrency(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Dólar Algodão (R$)"
+                  control={form.control as any}
+                  formatter={formatCurrency}
+                  placeholder="R$ 0,00"
+                  decimals={2}
                 />
               </div>
             </div>
@@ -479,70 +392,22 @@ export function PriceForm({
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Caroço de Algodão</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="preco_caroco_algodao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço Caroço (R$/ton)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = formatCurrency(field.value);
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (field.value) {
-                              e.target.value = String(field.value);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatCurrency(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Preço Caroço (R$/ton)"
+                  control={form.control as any}
+                  formatter={formatCurrency}
+                  placeholder="R$ 0,00"
+                  decimals={2}
                 />
 
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="preco_unitario_caroco_algodao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço Unitário (R$/@)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = formatCurrency(field.value);
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (field.value) {
-                              e.target.value = String(field.value);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatCurrency(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Preço Unitário (R$/@)"
+                  control={form.control as any}
+                  formatter={formatCurrency}
+                  placeholder="R$ 0,00"
+                  decimals={2}
                 />
               </div>
             </div>
@@ -551,37 +416,13 @@ export function PriceForm({
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Câmbio</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control as any}
+                <CurrencyField
                   name="dolar_fechamento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dólar Fechamento (R$)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          onChange={(e) => handleFormattedPriceChange(field, e)}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (field.value) {
-                              e.target.value = formatCurrency(field.value);
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (field.value) {
-                              e.target.value = String(field.value);
-                            }
-                          }}
-                          value={
-                            field.value !== undefined && field.value !== null
-                              ? formatCurrency(field.value)
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Dólar Fechamento (R$)"
+                  control={form.control as any}
+                  formatter={formatCurrency}
+                  placeholder="R$ 0,00"
+                  decimals={2}
                 />
               </div>
             </div>
@@ -606,29 +447,44 @@ export function PriceForm({
                       <Input
                         placeholder={`R$ 0,00`}
                         onChange={(e) => {
-                          const cleanValue = e.target.value.replace(
-                            /[^\d.,]/g,
+                          // Allow continuous typing by preserving the raw input including decimal values
+                          const rawValue = e.target.value.replace(
+                            /[^\d.,\-]/g,
                             ""
                           );
-                          handleCustomPriceChange(commodity, cleanValue);
+                          // Parse to numeric value for storage
+                          const numericValue = parseFormattedNumber(rawValue);
+                          // Use the original raw value to support ongoing decimal entry
+                          handleCustomPriceChange(commodity, rawValue);
+                          
+                          // Keep cursor position and improve typing experience
+                          if (rawValue !== e.target.value) {
+                            const cursorPos = e.target.selectionStart || 0;
+                            setTimeout(() => {
+                              e.target.setSelectionRange(cursorPos, cursorPos);
+                            }, 0);
+                          }
                         }}
                         onBlur={(e) => {
                           const value =
                             form.getValues("outros_precos")?.[commodity];
                           if (value) {
-                            e.target.value = formatCurrency(value);
+                            e.target.value = formatCurrency(value, 2);
                           }
                         }}
                         onFocus={(e) => {
                           const value =
                             form.getValues("outros_precos")?.[commodity];
                           if (value) {
-                            e.target.value = String(value);
+                            // Show raw value without formatting but preserve decimal places
+                            e.target.value = Math.abs(value).toFixed(2);
+                          } else {
+                            e.target.value = "";
                           }
                         }}
                         value={
                           currentValue !== undefined && currentValue !== null
-                            ? formatCurrency(currentValue as number)
+                            ? formatCurrency(currentValue as number, 2)
                             : ""
                         }
                       />
@@ -644,7 +500,37 @@ export function PriceForm({
                     placeholder="Nome da commodity"
                     id="custom-commodity-name"
                   />
-                  <Input placeholder="R$ 0,00" id="custom-commodity-value" />
+                  <Input 
+                    placeholder="R$ 0,00" 
+                    id="custom-commodity-value"
+                    onChange={(e) => {
+                      // Allow continuous typing by preserving the raw input
+                      const rawValue = e.target.value.replace(/[^\d.,\-]/g, "");
+                      
+                      // Keep cursor position and improve typing experience
+                      if (rawValue !== e.target.value) {
+                        const cursorPos = e.target.selectionStart || 0;
+                        setTimeout(() => {
+                          e.target.setSelectionRange(cursorPos, cursorPos);
+                        }, 0);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const value = parseFormattedNumber(e.target.value);
+                      if (value) {
+                        e.target.value = formatCurrency(value, 2);
+                      }
+                    }}
+                    onFocus={(e) => {
+                      // Show raw value without formatting when focused
+                      const value = parseFormattedNumber(e.target.value);
+                      if (value) {
+                        e.target.value = Math.abs(value).toFixed(2);
+                      } else {
+                        e.target.value = "";
+                      }
+                    }}
+                  />
                   <Button
                     type="button"
                     onClick={() => {
@@ -688,7 +574,7 @@ export function PriceForm({
                           >
                             <span className="capitalize">{commodity}</span>
                             <div className="flex items-center gap-2">
-                              <span>{formatCurrency(value as number)}</span>
+                              <span>{formatCurrency(value as number, 2)}</span>
                               <Button
                                 type="button"
                                 variant="ghost"

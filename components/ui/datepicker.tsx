@@ -3,6 +3,7 @@
 import * as React from "react";
 import { format, getMonth, getYear, setMonth, setYear } from "date-fns";
 import { CalendarIcon } from "lucide-react";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,24 @@ interface DatePickerProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+}
+
+// Componente personalizado para forçar um z-index alto para o DatePicker
+function CustomPopoverContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof PopoverPrimitive.Content>) {
+  return (
+    <PopoverPrimitive.Portal>
+      <PopoverPrimitive.Content
+        className={cn(
+          "z-[9999] bg-popover text-popover-foreground rounded-md border p-0 shadow-md outline-hidden",
+          className
+        )}
+        {...props}
+      />
+    </PopoverPrimitive.Portal>
+  );
 }
 
 export function DatePicker({
@@ -149,7 +168,9 @@ export function DatePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+
+      {/* Use o componente personalizado em vez do PopoverContent padrão */}
+      <CustomPopoverContent align="start" sideOffset={4}>
         <div className="p-3 border-b space-y-2">
           {/* Seletor de Mês */}
           <Select
@@ -199,7 +220,7 @@ export function DatePicker({
           disabled={disabled}
           captionLayout="buttons"
         />
-      </PopoverContent>
+      </CustomPopoverContent>
     </Popover>
   );
 }

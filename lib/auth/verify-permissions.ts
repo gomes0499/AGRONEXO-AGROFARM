@@ -6,7 +6,7 @@ export async function verifyUserPermission() {
   const { data } = await supabase.auth.getUser();
   
   if (!data?.user) {
-    redirect("/login");
+    redirect("auth/login");
   }
   
   return data.user;
@@ -17,7 +17,7 @@ export async function verifyIsSuperAdmin() {
   const { data } = await supabase.auth.getUser();
   
   if (!data?.user) {
-    redirect("/login");
+    redirect("auth/login");
   }
   
   const isSuperAdmin = data.user.app_metadata?.is_super_admin === true;

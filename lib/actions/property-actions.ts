@@ -341,11 +341,12 @@ export async function deleteImprovement(id: string, propertyId: string) {
 export async function getPropertyStats(organizationId: string) {
   const supabase = await createClient();
   
-  // Busca todas as propriedades
+  // Busca todas as propriedades ordenadas por nome
   const { data: properties, error: propertiesError } = await supabase
     .from("propriedades")
     .select("*")
-    .eq("organizacao_id", organizationId);
+    .eq("organizacao_id", organizationId)
+    .order("nome");
   
   if (propertiesError) {
     console.error("Erro ao buscar propriedades para estatísticas:", propertiesError);

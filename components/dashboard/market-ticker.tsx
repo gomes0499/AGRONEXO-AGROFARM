@@ -1,17 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Badge } from "@/components/ui/badge";
 import {
-  ArrowUp,
-  ArrowDown,
   DollarSign,
   TrendingUp,
   Wheat,
   BarChart3,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils/formatters";
 import Script from "next/script";
 
 // Definição dos tipos para os dados financeiros
@@ -40,7 +35,24 @@ const CEPEA_INDICATORS = [
   { id: 76, name: "Milho", unit: "R$/sc" },
 ];
 
-export function MarketTicker() {
+interface MarketTickerProps {
+  commercialPrices?: {
+    preco_soja_brl?: number | null;
+    preco_soja_usd?: number | null;
+    preco_milho?: number | null;
+    preco_algodao_bruto?: number | null;
+    preco_algodao?: number | null;
+    preco_caroco_algodao?: number | null;
+    preco_unitario_caroco_algodao?: number | null;
+    dolar_algodao?: number | null;
+    dolar_milho?: number | null; 
+    dolar_soja?: number | null;
+    dolar_fechamento?: number | null;
+    outros_precos?: Record<string, number> | null;
+  } | null;
+}
+
+export function MarketTicker({ commercialPrices }: MarketTickerProps) {
   const [tickerData, setTickerData] = useState<TickerItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +92,7 @@ export function MarketTicker() {
         // Processar dados de moedas
         const dolarData: TickerItem = {
           name: "Dólar",
-          value: parseFloat(currencyData["USD"]["bid"]),
+          value: commercialPrices?.dolar_fechamento || parseFloat(currencyData["USD"]["bid"]),
           previousValue:
             parseFloat(currencyData["USD"]["bid"]) -
             parseFloat(currencyData["USD"]["varBid"]),
@@ -119,15 +131,219 @@ export function MarketTicker() {
           code: "CDI",
         };
 
-        // Combinar todos os dados
-        setTickerData([
+        // Array para armazenar todos os itens
+        const allTickerItems: TickerItem[] = [
           dolarData,
           euroData,
-          ...cepeaTickerItems, // Adicionar dados do CEPEA
           selicData,
           cdiData,
-        ]);
+        ];
 
+        // Adicionar dados do CEPEA, mas filtrar para evitar duplicação com preços comerciais
+        const cepeaFiltered = commercialPrices 
+          ? cepeaTickerItems.filter(item => {
+              // Filtrar itens que já temos no commercial prices
+              if (item.name.includes("Soja") && commercialPrices.preco_soja_brl) return false;
+              if (item.name.includes("Milho") && commercialPrices.preco_milho) return false;
+              if ((item.name.includes("Boi") || item.name.includes("Bovino")) && commercialPrices.outros_precos?.["boi_gordo"]) return false;
+              if (item.name.includes("Algodão") && commercialPrices.preco_algodao_bruto) return false;
+              return true;
+            })
+          : cepeaTickerItems;
+        
+        allTickerItems.push(...cepeaFiltered);
+
+        // Adicionar preços comerciais se disponíveis
+        if (commercialPrices) {
+          // Soja
+          if (commercialPrices.preco_soja_brl) {
+            allTickerItems.push({
+              name: "Soja",
+              value: commercialPrices.preco_soja_brl,
+              previousValue: commercialPrices.preco_soja_brl * 0.995, // Estimativa
+              unit: "R$/sc",
+              category: "commodity",
+              code: "SOJA",
+            });
+          }
+
+          // Milho
+          if (commercialPrices.preco_milho) {
+            allTickerItems.push({
+              name: "Milho",
+              value: commercialPrices.preco_milho,
+              previousValue: commercialPrices.preco_milho * 0.995, // Estimativa
+              unit: "R$/sc",
+              category: "commodity",
+              code: "MILHO",
+            });
+          }
+
+          // Algodão
+          if (commercialPrices.preco_algodao_bruto) {
+            allTickerItems.push({
+              name: "Algodão",
+              value: commercialPrices.preco_algodao_bruto,
+              previousValue: commercialPrices.preco_algodao_bruto * 0.995, // Estimativa
+              unit: "R$/@",
+              category: "commodity",
+              code: "ALGODAO",
+            });
+          }
+
+          // Adicionar dados de pluma, caroço e capulho de algodão
+          if (commercialPrices.preco_algodao) {
+            allTickerItems.push({
+              name: "Algodão (US$/Lb)",
+              value: commercialPrices.preco_algodao,
+              previousValue: commercialPrices.preco_algodao * 0.995, // Estimativa
+              unit: "US$/Lb",
+              category: "commodity",
+              code: "ALGODAO_USD",
+            });
+          }
+          
+          if (commercialPrices.preco_caroco_algodao) {
+            allTickerItems.push({
+              name: "Caroço (R$/Ton)",
+              value: commercialPrices.preco_caroco_algodao,
+              previousValue: commercialPrices.preco_caroco_algodao * 0.995, // Estimativa
+              unit: "R$/Ton",
+              category: "commodity",
+              code: "CAROCO_ALGODAO",
+            });
+          }
+          
+          if (commercialPrices.preco_unitario_caroco_algodao) {
+            allTickerItems.push({
+              name: "Caroço (R$/@)",
+              value: commercialPrices.preco_unitario_caroco_algodao,
+              previousValue: commercialPrices.preco_unitario_caroco_algodao * 0.995, // Estimativa
+              unit: "R$/@",
+              category: "commodity",
+              code: "CAROCO_ALGODAO_ARROBA",
+            });
+          }
+          
+          // Dólares específicos para commodities
+          if (commercialPrices.dolar_algodao) {
+            allTickerItems.push({
+              name: "Dólar Algodão",
+              value: commercialPrices.dolar_algodao,
+              previousValue: commercialPrices.dolar_algodao * 0.995, // Estimativa
+              unit: "R$",
+              category: "currency",
+              code: "USD_ALGODAO",
+            });
+          }
+          
+          if (commercialPrices.dolar_milho) {
+            allTickerItems.push({
+              name: "Dólar Milho",
+              value: commercialPrices.dolar_milho,
+              previousValue: commercialPrices.dolar_milho * 0.995, // Estimativa
+              unit: "R$",
+              category: "currency",
+              code: "USD_MILHO",
+            });
+          }
+          
+          if (commercialPrices.dolar_soja) {
+            allTickerItems.push({
+              name: "Dólar Soja",
+              value: commercialPrices.dolar_soja,
+              previousValue: commercialPrices.dolar_soja * 0.995, // Estimativa
+              unit: "R$",
+              category: "currency",
+              code: "USD_SOJA",
+            });
+          }
+
+          // Outros preços
+          if (commercialPrices.outros_precos) {
+            // Lista de commodities específicas que queremos exibir do mock data
+            const specificCommodities = [
+              { key: "millet", name: "Milheto", unit: "R$/sc" },
+              { key: "sorghum", name: "Sorgo", unit: "R$/sc" },
+              { key: "beanGurutuba", name: "Feijão Gurutuba", unit: "R$/sc" },
+              { key: "beanCarioca", name: "Feijão Carioca", unit: "R$/sc" },
+              { key: "castor", name: "Mamona", unit: "R$/kg" },
+              { key: "pastureSeed", name: "Sem. Pastagem", unit: "R$/kg" },
+              { key: "coffee", name: "Café", unit: "R$/sc" },
+              { key: "wheat", name: "Trigo", unit: "R$/sc" },
+            ];
+            
+            // Verificar e adicionar cada commodity específica
+            specificCommodities.forEach(({ key, name, unit }) => {
+              // Primeiro verificamos usando a key exata
+              if (commercialPrices.outros_precos?.[key] !== undefined) {
+                const value = commercialPrices.outros_precos[key];
+                allTickerItems.push({
+                  name,
+                  value,
+                  previousValue: value * 0.995, // Estimativa
+                  unit,
+                  category: "commodity",
+                  code: key.toUpperCase(),
+                });
+              } 
+              // Depois verificamos usando underscore para compatibilidade
+              else {
+                const underscoreKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+                if (commercialPrices.outros_precos?.[underscoreKey] !== undefined) {
+                  const value = commercialPrices.outros_precos[underscoreKey];
+                  allTickerItems.push({
+                    name,
+                    value,
+                    previousValue: value * 0.995, // Estimativa
+                    unit,
+                    category: "commodity",
+                    code: key.toUpperCase(),
+                  });
+                }
+              }
+            });
+            
+            // Processa outras commodities não especificadas acima
+            Object.entries(commercialPrices.outros_precos).forEach(([key, value]) => {
+              // Verificar se a key já está em specificCommodities (para não duplicar)
+              const isSpecificCommodity = specificCommodities.some(
+                c => c.key === key || c.key.replace(/([A-Z])/g, '_$1').toLowerCase() === key
+              );
+              
+              if (value && !isSpecificCommodity) {
+                // Formatar nome da commodity
+                const name = key
+                  .replace(/_/g, ' ')
+                  .split(' ')
+                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' ');
+                
+                // Determinar unidade apropriada
+                let unit = "R$";
+                if (key.includes("soja") || key.includes("milho")) unit = "R$/sc";
+                if (key.includes("boi") || key.includes("bovino")) unit = "R$/@";
+                if (key.includes("algodao")) unit = "R$/@";
+                if (key.includes("cafe")) unit = "R$/sc";
+                if (key.includes("trigo") || key.includes("sorgo") || key.includes("milheto")) unit = "R$/sc";
+                if (key.includes("feijao")) unit = "R$/sc";
+                if (key.includes("mamona") || key.includes("pastagem")) unit = "R$/kg";
+                
+                allTickerItems.push({
+                  name,
+                  value,
+                  previousValue: value * 0.995, // Estimativa
+                  unit,
+                  category: "commodity",
+                  code: key.toUpperCase(),
+                });
+              }
+            });
+          }
+        }
+
+        // Atualizar dados do ticker
+        setTickerData(allTickerItems);
         setLoading(false);
       } catch (err) {
         console.error("Erro ao buscar dados de mercado:", err);
@@ -242,7 +458,7 @@ export function MarketTicker() {
     const interval = setInterval(fetchMarketData, 300000); // 5 minutos
 
     return () => clearInterval(interval);
-  }, [cepeaData]);
+  }, [cepeaData, commercialPrices]);
 
   // Função para renderizar o ícone apropriado com base na categoria
   const renderIcon = (item: TickerItem) => {
@@ -295,8 +511,8 @@ export function MarketTicker() {
           position: relative;
           overflow: hidden;
           height: 2.5rem;
-          background-color: #f9fafb;
-          border-left: 1px solid #e5e7eb;
+          background-color: hsl(var(--background));
+          border-left: 1px solid hsl(var(--border));
         }
 
         .ticker-wrapper {
@@ -331,7 +547,7 @@ export function MarketTicker() {
           align-items: center;
           height: 100%;
           padding: 0 0.75rem;
-          border-right: 1px solid #e5e7eb;
+          border-right: 1px solid hsl(var(--border));
           white-space: nowrap;
           font-size: 0.875rem;
         }
@@ -342,7 +558,7 @@ export function MarketTicker() {
           top: 0;
           bottom: 0;
           width: 1px;
-          background-color: #e5e7eb;
+          background-color: hsl(var(--border));
           z-index: 10;
         }
 
@@ -352,18 +568,19 @@ export function MarketTicker() {
           top: 0;
           bottom: 0;
           width: 50px;
-          background: linear-gradient(to right, transparent, #f9fafb);
+          background: linear-gradient(to right, transparent, hsl(var(--background)));
           z-index: 5;
         }
 
         .ticker-prefix {
-          color: #6b7280;
+          color: hsl(var(--muted-foreground));
           margin-right: 0.5rem;
         }
 
         .ticker-value {
           font-weight: 600;
           margin-right: 0.25rem;
+          color: hsl(var(--foreground));
         }
 
         .ticker-variation {
@@ -372,11 +589,15 @@ export function MarketTicker() {
         }
 
         .value-positive {
-          color: #10b981;
+          color: hsl(var(--success, 142 76% 36%));
         }
 
         .value-negative {
-          color: #ef4444;
+          color: rgb(239, 68, 68); /* Fallback red */
+        }
+
+        html.dark .value-negative {
+          color: rgb(248, 113, 113); /* Darker fallback red */
         }
       `}</style>
 

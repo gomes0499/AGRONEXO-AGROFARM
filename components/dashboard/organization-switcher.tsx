@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Building, Check, ChevronsUpDown, PlusCircle } from "lucide-react";
+import { Check, ChevronsUpDown, PlusCircle, Building } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/auth/organization-provider";
@@ -163,13 +163,17 @@ export function OrganizationSwitcher() {
 
   // Obtem iniciais para avatar
   const getInitials = (name: string) => {
-    if (!name) return "??";
-    return name
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
+    if (!name || name.trim() === "") return "OR";
+    return (
+      name
+        .trim()
+        .split(" ")
+        .map((part) => (part && part.length > 0 ? part[0] : ""))
+        .filter(Boolean)
+        .join("")
+        .toUpperCase()
+        .substring(0, 2) || "OR"
+    );
   };
 
   return (
@@ -179,19 +183,21 @@ export function OrganizationSwitcher() {
           <PopoverTrigger asChild>
             <SidebarMenuButton className="flex w-full justify-between ">
               <div className="flex items-center gap-2">
-                {organization ? (
-                  <Avatar className="h-6 w-6 rounded-md">
+                <Avatar className="h-6 w-6 rounded-md">
+                  {organization && organization.logo ? (
                     <AvatarImage
-                      src={organization.logo || ""}
-                      alt={organization.nome}
+                      src={organization.logo}
+                      alt={organization.nome || ""}
                     />
-                    <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
-                      {getInitials(organization.nome)}
-                    </AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <Building className="h-5 w-5" />
-                )}
+                  ) : null}
+                  <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
+                    {organization ? (
+                      getInitials(organization.nome || "")
+                    ) : (
+                      <Building className="h-5 w-5" />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
                 <span className="truncate text-sm">
                   {loading ? (
                     <Skeleton className="h-4 w-24" />
@@ -220,9 +226,11 @@ export function OrganizationSwitcher() {
                       className="text-sm"
                     >
                       <Avatar className="mr-2 h-6 w-6 rounded-md">
-                        <AvatarImage src={org.logo || ""} alt={org.nome} />
+                        {org.logo ? (
+                          <AvatarImage src={org.logo} alt={org.nome || ""} />
+                        ) : null}
                         <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
-                          {getInitials(org.nome)}
+                          {getInitials(org.nome || "")}
                         </AvatarFallback>
                       </Avatar>
                       <span>{org.nome}</span>

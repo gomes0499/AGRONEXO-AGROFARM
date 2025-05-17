@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 interface KpiItemProps {
   title: string;
@@ -29,14 +30,17 @@ function KpiItem({ title, value, change, isPositive, icon }: KpiItemProps) {
     <div className="flex items-start p-5">
       <div className={`rounded-full p-2 mr-3 bg-primary`}>{icon}</div>
       <div>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           {title}
         </p>
-        <h3 className="text-2xl font-bold mt-1">{value}</h3>
+        <h3 className="text-2xl font-bold mt-1 dark:text-gray-100">{value}</h3>
         <p
-          className={`flex items-center text-xs font-medium mt-1 ${
-            isPositive ? "text-emerald-600" : "text-rose-600"
-          }`}
+          className={cn(
+            "flex items-center text-xs font-medium mt-1",
+            isPositive 
+              ? "text-emerald-600 dark:text-emerald-400" 
+              : "text-rose-600 dark:text-rose-400"
+          )}
         >
           {isPositive ? (
             <ArrowUpIcon className="h-3 w-3 mr-1" />
@@ -52,7 +56,7 @@ function KpiItem({ title, value, change, isPositive, icon }: KpiItemProps) {
 
 export default function AgroKpiCards() {
   return (
-    <Card className="w-full bg-white shadow-sm border border-gray-100 rounded-lg overflow-hidden">
+    <Card>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {/* Faturamento Total */}
         <div className="relative">
@@ -61,9 +65,9 @@ export default function AgroKpiCards() {
             value="R$ 202M"
             change="+3.5% vs último ano"
             isPositive={true}
-            icon={<BanknoteIcon className="h-5 w-5 text-white" />}
+            icon={<BanknoteIcon className="h-5 w-5 text-white dark:text-gray-700" />}
           />
-          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 hidden lg:block"></div>
+          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
         </div>
 
         {/* EBITDA */}
@@ -73,9 +77,9 @@ export default function AgroKpiCards() {
             value="R$ 81.75M"
             change="+7.1% vs último ano"
             isPositive={true}
-            icon={<BarChart3Icon className="h-5 w-5 text-white" />}
+            icon={<BarChart3Icon className="h-5 w-5 text-white dark:text-gray-700" />}
           />
-          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 hidden lg:block"></div>
+          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
         </div>
 
         {/* Margem EBITDA */}
@@ -85,9 +89,9 @@ export default function AgroKpiCards() {
             value="35.7%"
             change="-2.1% vs último ano"
             isPositive={false}
-            icon={<PercentIcon className="h-5 w-5 text-white" />}
+            icon={<PercentIcon className="h-5 w-5 text-white dark:text-gray-700" />}
           />
-          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 hidden lg:block"></div>
+          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
         </div>
 
         {/* Lucro Líquido */}
@@ -97,12 +101,12 @@ export default function AgroKpiCards() {
             value="R$ 34.45M"
             change="+9.0% vs último ano"
             isPositive={true}
-            icon={<CoinsIcon className="h-5 w-5 text-white" />}
+            icon={<CoinsIcon className="h-5 w-5 text-white dark:text-gray-700" />}
           />
         </div>
       </div>
 
-      <Separator className="bg-gray-200" />
+      <Separator className="bg-gray-200 dark:bg-gray-700" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {/* Margem Líquida */}
@@ -112,9 +116,9 @@ export default function AgroKpiCards() {
             value="17.0%"
             change="+0.5% vs último ano"
             isPositive={true}
-            icon={<PercentIcon className="h-5 w-5 text-white" />}
+            icon={<PercentIcon className="h-5 w-5 text-white dark:text-gray-700" />}
           />
-          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 hidden lg:block"></div>
+          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
         </div>
 
         {/* Dívida Total */}
@@ -124,9 +128,9 @@ export default function AgroKpiCards() {
             value="R$ 439M"
             change="-7.8% vs último ano"
             isPositive={true}
-            icon={<DollarSignIcon className="h-5 w-5 text-white" />}
+            icon={<DollarSignIcon className="h-5 w-5 text-white dark:text-gray-700" />}
           />
-          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 hidden lg:block"></div>
+          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
         </div>
 
         {/* Dívida Líquida */}
@@ -136,9 +140,9 @@ export default function AgroKpiCards() {
             value="R$ 357M"
             change="-10.2% vs último ano"
             isPositive={true}
-            icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
+            icon={<TrendingDownIcon className="h-5 w-5 text-white dark:text-gray-700" />}
           />
-          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 hidden lg:block"></div>
+          <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
         </div>
 
         {/* Dívida/EBITDA */}
@@ -148,7 +152,7 @@ export default function AgroKpiCards() {
             value="5,37x"
             change="-0.15x vs último ano"
             isPositive={true}
-            icon={<GaugeIcon className="h-5 w-5 text-white" />}
+            icon={<GaugeIcon className="h-5 w-5 text-white dark:text-gray-700" />}
           />
         </div>
       </div>

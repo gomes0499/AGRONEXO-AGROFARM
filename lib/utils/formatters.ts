@@ -4,17 +4,58 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-// Formata moeda em reais (R$)
-export function formatCurrency(value: number | null | undefined): string {
-  if (value === null || value === undefined) return 'R$ 0';
+// Formata moeda em reais (R$) com feedback visual melhorado
+export function formatCurrency(value: number | null | undefined, decimals: number = 2): string {
+  if (value === null || value === undefined) return 'R$ 0,00';
   
-  // Formata com símbolo de moeda, separador de milhar e sem decimais
-  return new Intl.NumberFormat('pt-BR', {
+  // Detecta se é um valor negativo para aplicar cor vermelha em componentes UI
+  const isNegative = value < 0;
+  const absValue = Math.abs(value);
+  
+  // Formata com símbolo de moeda, separador de milhar e com casas decimais conforme especificado
+  const formatted = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(value);
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(absValue);
+  
+  // Para valores negativos, adiciona o sinal de menos manualmente
+  return isNegative ? `-${formatted}` : formatted;
+}
+
+// Formata moeda em dólares (US$) com feedback visual melhorado
+export function formatUsdCurrency(value: number | null | undefined, decimals: number = 2): string {
+  if (value === null || value === undefined) return 'US$ 0.00';
+  
+  // Detecta se é um valor negativo para aplicar cor vermelha em componentes UI
+  const isNegative = value < 0;
+  const absValue = Math.abs(value);
+  
+  // Formata com símbolo de moeda, separador de milhar e com casas decimais
+  const formatted = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(absValue);
+  
+  // Para valores negativos, adiciona o sinal de menos manualmente
+  return isNegative ? `-${formatted}` : formatted;
+}
+
+// Função para verificar se um valor é negativo (útil para styles condicionais)
+export function isNegativeValue(value: number | null | undefined): boolean {
+  return value !== null && value !== undefined && value < 0;
+}
+
+// Formata moeda genérica (útil para formulários onde a moeda pode mudar)
+export function formatGenericCurrency(value: number | null | undefined, currency: 'BRL' | 'USD' = 'BRL', decimals: number = 2): string {
+  if (currency === 'USD') {
+    return formatUsdCurrency(value, decimals);
+  } else {
+    return formatCurrency(value, decimals);
+  }
 }
 
 // Formata data no padrão brasileiro (dia/mês/ano)
@@ -98,12 +139,34 @@ export function parseFormattedNumber(value: string): number | null {
   if (!value) return null;
   
   // Remove todos os caracteres não numéricos, exceto vírgula e ponto
-  const cleanValue = value.replace(/[^\d.,]/g, '');
+  const cleanValue = value.replace(/[^\d.,\-]/g, '');
   
-  // Converte para o formato que o parseFloat entende (com ponto decimal)
-  const normalizedValue = cleanValue.replace(/\./g, '').replace(',', '.');
+  // Verifica se o valor está no formato americano (1,234.56) ou brasileiro (1.234,56)
+  const hasComma = cleanValue.includes(',');
+  const hasDot = cleanValue.includes('.');
+  
+  let normalizedValue;
+  
+  if (hasComma && hasDot) {
+    // Se tem ambos, assumimos o formato brasileiro (ponto como separador de milhar)
+    normalizedValue = cleanValue.replace(/\./g, '').replace(',', '.');
+  } else if (hasComma) {
+    // Se só tem vírgula, assumimos que é decimal (formato brasileiro)
+    normalizedValue = cleanValue.replace(',', '.');
+  } else {
+    // Se só tem ponto ou nenhum, já está no formato que o parseFloat entende
+    normalizedValue = cleanValue;
+  }
   
   const result = parseFloat(normalizedValue);
+  
+  // Para evitar limitações de casas decimais, arredondamos para 10 casas
+  // e depois utilizamos o toFixed para garantir a precisão
+  if (!isNaN(result)) {
+    // Usando um número maior de casas decimais para evitar problemas de arredondamento
+    return parseFloat(result.toFixed(10));
+  }
+  
   return isNaN(result) ? null : result;
 }
 

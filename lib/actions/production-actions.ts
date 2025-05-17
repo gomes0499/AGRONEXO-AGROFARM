@@ -337,7 +337,7 @@ export async function getHarvests(organizationId: string) {
     .from("safras")
     .select("*")
     .eq("organizacao_id", organizationId)
-    .order("ano_inicio", { ascending: false });
+    .order("ano_inicio", { ascending: true });
   
   if (error) {
     console.error("Erro ao buscar safras:", error);

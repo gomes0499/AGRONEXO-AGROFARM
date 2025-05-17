@@ -9,7 +9,7 @@ import {
 import Link from "next/link";
 import { MoreHorizontal, UserPlus } from "lucide-react";
 import { UserRole } from "@/lib/auth/roles";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -153,7 +153,9 @@ export function OrganizationMembers({
                   <TableHead>Email</TableHead>
                   <TableHead>Função</TableHead>
                   <TableHead>Último Acesso</TableHead>
-                  {isOwnerOrAdmin && <TableHead className="text-right">Ações</TableHead>}
+                  {isOwnerOrAdmin && (
+                    <TableHead className="text-right">Ações</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -161,8 +163,14 @@ export function OrganizationMembers({
                   <TableRow key={member.id}>
                     <TableCell className="flex items-center gap-2">
                       <Avatar
-                        className={`h-8 w-8 ${getAvatarColor(member.funcao)}`}
+                        className={`h-8 w-8 rounded-md ${getAvatarColor(
+                          member.funcao
+                        )}`}
                       >
+                        <AvatarImage
+                          src={member.user?.avatar || ""}
+                          alt={member.user?.nome || ""}
+                        />
                         <AvatarFallback>{getInitials(member)}</AvatarFallback>
                       </Avatar>
                       <span className="font-medium truncate">
@@ -174,9 +182,7 @@ export function OrganizationMembers({
                     <TableCell className="text-muted-foreground truncate">
                       {member.user?.email}
                     </TableCell>
-                    <TableCell>
-                      {getRoleDisplayName(member.funcao)}
-                    </TableCell>
+                    <TableCell>{getRoleDisplayName(member.funcao)}</TableCell>
                     <TableCell>
                       {getLastLoginStatus(member.ultimo_login)}
                     </TableCell>
@@ -198,7 +204,9 @@ export function OrganizationMembers({
                             <DropdownMenuSeparator />
                             {member.funcao !== UserRole.PROPRIETARIO && (
                               <>
-                                <DropdownMenuItem>Editar função</DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  Editar função
+                                </DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive">
                                   Remover
                                 </DropdownMenuItem>

@@ -15,7 +15,8 @@ import {
   createImprovement,
   updateImprovement,
 } from "@/lib/actions/property-actions";
-import { formatCurrency, parseFormattedNumber } from "@/lib/utils/formatters";
+import { formatCurrency, parseFormattedNumber, isNegativeValue } from "@/lib/utils/formatters";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,86 @@ interface ImprovementFormProps {
   isModal?: boolean;
   onSuccess?: () => void;
 }
+
+// Componente reutilizável para campos de moeda
+const CurrencyField = ({
+  name,
+  label,
+  control,
+  placeholder = "R$ 0,00",
+  description,
+  disabled = false,
+}: {
+  name: string;
+  label: string;
+  control: any;
+  placeholder?: string;
+  description?: string;
+  disabled?: boolean;
+}) => (
+  <FormField
+    control={control}
+    name={name}
+    render={({ field }) => {
+      // Track input focus state
+      const [isFocused, setIsFocused] = useState(false);
+
+      return (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <input
+              placeholder={placeholder}
+              disabled={disabled}
+              className={cn(
+                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                isNegativeValue(field.value) &&
+                  "text-red-600 focus:text-foreground"
+              )}
+              onChange={(e) => {
+                // Allow continuous typing by preserving the raw input
+                const rawValue = e.target.value.replace(/[^\d.,\-]/g, "");
+                const numericValue = parseFormattedNumber(rawValue);
+                field.onChange(numericValue);
+              }}
+              onBlur={(e) => {
+                setIsFocused(false);
+                field.onBlur();
+                if (field.value !== undefined && field.value !== null) {
+                  e.target.value = formatCurrency(field.value);
+                }
+              }}
+              onFocus={(e) => {
+                setIsFocused(true);
+                if (field.value) {
+                  // Show raw value without formatting for editing
+                  e.target.value = String(Math.abs(field.value));
+                } else {
+                  e.target.value = "";
+                }
+              }}
+              value={
+                isFocused
+                  ? field.value !== undefined && field.value !== null
+                    ? String(Math.abs(field.value))
+                    : ""
+                  : field.value !== undefined && field.value !== null
+                  ? formatCurrency(field.value)
+                  : ""
+              }
+            />
+          </FormControl>
+          {description && (
+            <FormDescription>
+              {description}
+            </FormDescription>
+          )}
+          <FormMessage />
+        </FormItem>
+      );
+    }}
+  />
+);
 
 export function ImprovementForm({
   improvement,
@@ -134,51 +215,13 @@ export function ImprovementForm({
             )}
           />
 
-          <FormField
-            control={form.control}
+          <CurrencyField
             name="valor"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Valor (R$)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="text"
-                    placeholder="Digite o valor da benfeitoria"
-                    {...field}
-                    onChange={(e) => {
-                      // Limpa a formatação e pega apenas números e vírgulas
-                      const cleanValue = e.target.value.replace(/[^\d.,]/g, "");
-                      // Converte para número para armazenar no form
-                      const numericValue = parseFormattedNumber(cleanValue);
-                      field.onChange(numericValue);
-                    }}
-                    onBlur={(e) => {
-                      field.onBlur();
-                      // Se tiver um valor, formata ele ao sair do campo
-                      if (field.value) {
-                        const formattedValue = formatCurrency(field.value);
-                        e.target.value = formattedValue;
-                      }
-                    }}
-                    onFocus={(e) => {
-                      // Quando ganhar foco, mostra apenas o número sem formatação
-                      if (field.value) {
-                        e.target.value = field.value.toString();
-                      }
-                    }}
-                    value={
-                      field.value !== undefined && field.value !== null
-                        ? formatCurrency(field.value)
-                        : ""
-                    }
-                  />
-                </FormControl>
-                <FormDescription>
-                  Valor de mercado ou custo da benfeitoria
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Valor (R$)"
+            control={form.control}
+            placeholder="Digite o valor da benfeitoria"
+            description="Valor de mercado ou custo da benfeitoria"
+            disabled={isSubmitting}
           />
 
           <div className="flex justify-end gap-2 pt-2">
@@ -245,54 +288,13 @@ export function ImprovementForm({
                 )}
               />
 
-              <FormField
-                control={form.control}
+              <CurrencyField
                 name="valor"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor (R$)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="Digite o valor da benfeitoria"
-                        {...field}
-                        onChange={(e) => {
-                          // Limpa a formatação e pega apenas números e vírgulas
-                          const cleanValue = e.target.value.replace(
-                            /[^\d.,]/g,
-                            ""
-                          );
-                          // Converte para número para armazenar no form
-                          const numericValue = parseFormattedNumber(cleanValue);
-                          field.onChange(numericValue);
-                        }}
-                        onBlur={(e) => {
-                          field.onBlur();
-                          // Se tiver um valor, formata ele ao sair do campo
-                          if (field.value) {
-                            const formattedValue = formatCurrency(field.value);
-                            e.target.value = formattedValue;
-                          }
-                        }}
-                        onFocus={(e) => {
-                          // Quando ganhar foco, mostra apenas o número sem formatação
-                          if (field.value) {
-                            e.target.value = field.value.toString();
-                          }
-                        }}
-                        value={
-                          field.value !== undefined && field.value !== null
-                            ? formatCurrency(field.value)
-                            : ""
-                        }
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Valor de mercado ou custo da benfeitoria
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Valor (R$)"
+                control={form.control}
+                placeholder="Digite o valor da benfeitoria"
+                description="Valor de mercado ou custo da benfeitoria"
+                disabled={isSubmitting}
               />
             </CardContent>
           </Card>

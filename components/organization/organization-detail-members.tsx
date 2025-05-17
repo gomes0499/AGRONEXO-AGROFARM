@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { UserRole } from "@/lib/auth/roles";
 import { MemberActions } from "./member-actions";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -54,6 +54,11 @@ interface Member {
     id: string;
     email: string;
     nome: string;
+    avatar?: string;
+    user_metadata?: {
+      avatar_url?: string;
+      name?: string;
+    };
   };
 }
 
@@ -309,10 +314,14 @@ export function OrganizationDetailMembers({
                       <TableRow key={member.id} className="group">
                         <TableCell className="flex items-center gap-2">
                           <Avatar
-                            className={`h-8 w-8 ${getAvatarColor(
+                            className={`h-8 w-8 rounded-md ${getAvatarColor(
                               member.funcao
-                            )} transition-transform group-hover:scale-110`}
+                            )}`}
                           >
+                            <AvatarImage 
+                              src={member.user?.user_metadata?.avatar_url || member.user?.avatar || ""}
+                              alt={member.user?.nome || "Avatar"}
+                            />
                             <AvatarFallback>
                               {getInitials(member)}
                             </AvatarFallback>

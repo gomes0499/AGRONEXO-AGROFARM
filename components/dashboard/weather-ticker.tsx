@@ -3,8 +3,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, Cloud, CloudRain, CloudSnow, CloudLightning } from "lucide-react";
+import { Sun, Cloud, CloudRain, CloudSnow, CloudLightning, ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Função para remover acentos
 function removeAccents(str: string) {
@@ -184,9 +185,22 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
           font-weight: 600;
           margin-right: 0.25rem;
         }
+        .ticker-minmax {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          margin-right: 0.5rem;
+          font-size: 0.7rem;
+          min-width: 3.5rem;
+        }
+        .ticker-minmax-item {
+          display: flex;
+          align-items: center;
+        }
         .ticker-variation {
           font-size: 0.75rem;
           font-weight: 500;
+          margin-left: 0.25rem;
         }
         .value-positive {
           color: #10b981;
@@ -218,18 +232,36 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
                   <div key={idx} className="ticker-item">
                     <span className="ticker-prefix">{item.weekday}</span>
                     {getWeatherIcon(item.icon)}
-                    <span className="ticker-value">
-                      {Math.round(item.max)}°C
-                    </span>
+                    
+                    <div className="ticker-minmax">
+                      <div className="ticker-minmax-item text-orange-500">
+                        <ArrowUp className="h-3 w-3 mr-1" />
+                        <span>{Math.round(item.max)}°</span>
+                      </div>
+                      <div className="ticker-minmax-item text-blue-500">
+                        <ArrowDown className="h-3 w-3 mr-1" />
+                        <span>{Math.round(item.min)}°</span>
+                      </div>
+                    </div>
+                    
                     {prev && (
-                      <span
-                        className={`ticker-variation ${
-                          isPositive ? "value-positive" : "value-negative"
-                        }`}
-                      >
-                        {isPositive ? "+" : ""}
-                        {variation.toFixed(1)}%
-                      </span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              className={`ticker-variation ${
+                                isPositive ? "value-positive" : "value-negative"
+                              }`}
+                            >
+                              {isPositive ? "+" : ""}
+                              {variation.toFixed(1)}%
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Variação da temperatura máxima em relação ao dia anterior</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                     <span className="text-xs text-muted-foreground ml-2">
                       {item.desc}
