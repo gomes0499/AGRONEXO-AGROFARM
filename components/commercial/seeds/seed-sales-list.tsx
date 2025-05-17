@@ -130,14 +130,16 @@ export function SeedSalesList({
 
       if (result && "success" in result && result.success) {
         // Remove o item da lista local
-        const updatedSales = seedSales.filter((sale) => sale.id !== selectedSeedSale.id);
+        const updatedSales = seedSales.filter(
+          (sale) => sale.id !== selectedSeedSale.id
+        );
         setSeedSales(updatedSales);
-        
+
         // Atualiza também a lista filtrada para garantir feedback imediato
-        setFilteredSeedSales(prev => 
+        setFilteredSeedSales((prev) =>
           prev.filter((sale) => sale.id !== selectedSeedSale.id)
         );
-        
+
         toast.success("Venda de sementes excluída com sucesso!");
       } else {
         toast.error("Erro ao excluir venda de sementes");
@@ -158,15 +160,17 @@ export function SeedSalesList({
       sale.id === updatedSeedSale.id ? updatedSeedSale : sale
     );
     setSeedSales(updatedSales);
-    
+
     // Atualiza também a lista filtrada para garantir feedback imediato
-    setFilteredSeedSales(prev => 
-      prev.map((sale) => sale.id === updatedSeedSale.id ? updatedSeedSale : sale)
+    setFilteredSeedSales((prev) =>
+      prev.map((sale) =>
+        sale.id === updatedSeedSale.id ? updatedSeedSale : sale
+      )
     );
-    
+
     setIsEditDialogOpen(false);
     setSelectedSeedSale(null);
-    
+
     // Exibe o toast de sucesso diretamente aqui para garantir feedback visual
     toast.success("Venda de sementes atualizada com sucesso!");
   };

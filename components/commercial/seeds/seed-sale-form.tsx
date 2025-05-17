@@ -33,12 +33,6 @@ import {
 import { Harvest } from "@/schemas/production";
 import { Culture } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
-import {
-  parseFormattedNumber,
-  formatCurrency,
-  isNegativeValue,
-} from "@/lib/utils/formatters";
-import { cn } from "@/lib/utils";
 import { CurrencyField } from "@/components/ui/currency-field";
 
 interface SeedSaleFormProps {
@@ -82,8 +76,6 @@ export function SeedSaleForm({
     resolver: zodResolver(seedSaleFormSchema) as any,
     defaultValues,
   });
-
-  // Componente externo para campos de moeda
 
   // Função de submit
   const onSubmit: SubmitHandler<SeedSaleFormValues> = async (values) => {
