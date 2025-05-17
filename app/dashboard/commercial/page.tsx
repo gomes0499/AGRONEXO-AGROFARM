@@ -3,7 +3,7 @@ import { getOrganizationId } from "@/lib/auth";
 import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import { CommercialNavClient } from "@/components/commercial/commercial-nav-client";
+import { CommercialSafeWrapper } from "@/components/commercial/commercial-safe-wrapper";
 import {
   getSeedSales,
   getLivestockSales,
@@ -171,7 +171,8 @@ export default async function CommercialDashboardPage() {
       >
         <div className="space-y-4">
           <div className="container p-4">
-            <CommercialNavClient
+            {/* Aqui usamos o wrapper seguro em vez do CommercialNavClient direto */}
+            <CommercialSafeWrapper
               seedsComponent={SeedsComponent}
               livestockComponent={LivestockComponent}
             />
