@@ -134,40 +134,46 @@ export function formatSacas(value: number | null | undefined): string {
   })} sc`;
 }
 
-// Converte uma string formatada para um número
+// Converte uma string formatada para um número - versão simplificada e mais segura
 export function parseFormattedNumber(value: string): number | null {
-  if (!value) return null;
+  // Validação de entrada
+  if (!value || typeof value !== 'string') return null;
   
-  // Remove todos os caracteres não numéricos, exceto vírgula e ponto
-  const cleanValue = value.replace(/[^\d.,\-]/g, '');
-  
-  // Verifica se o valor está no formato americano (1,234.56) ou brasileiro (1.234,56)
-  const hasComma = cleanValue.includes(',');
-  const hasDot = cleanValue.includes('.');
-  
-  let normalizedValue;
-  
-  if (hasComma && hasDot) {
-    // Se tem ambos, assumimos o formato brasileiro (ponto como separador de milhar)
-    normalizedValue = cleanValue.replace(/\./g, '').replace(',', '.');
-  } else if (hasComma) {
-    // Se só tem vírgula, assumimos que é decimal (formato brasileiro)
-    normalizedValue = cleanValue.replace(',', '.');
-  } else {
-    // Se só tem ponto ou nenhum, já está no formato que o parseFloat entende
-    normalizedValue = cleanValue;
+  try {
+    // Remove todos os caracteres não numéricos, exceto vírgula, ponto e hífen
+    const cleanValue = value.replace(/[^\d.,\-]/g, '');
+    
+    // Definição inicial de variáveis para evitar problemas de inicialização
+    const hasComma = cleanValue.indexOf(',') !== -1;
+    const hasDot = cleanValue.indexOf('.') !== -1;
+    
+    // Prepara valor normalizado
+    let normalizedValue = cleanValue;
+    
+    // Lógica de normalização mais linear
+    if (hasComma && hasDot) {
+      // Formato brasileiro: 1.234,56
+      normalizedValue = cleanValue.replace(/\./g, '').replace(',', '.');
+    } else if (hasComma) {
+      // Formato com vírgula como decimal: 1234,56
+      normalizedValue = cleanValue.replace(',', '.');
+    }
+    // Se só tem ponto ou nenhum, mantém como está
+    
+    // Parse seguro
+    const result = parseFloat(normalizedValue);
+    
+    // Verifica se é um número válido e retorna null se não for
+    if (isNaN(result)) {
+      return null;
+    }
+    
+    // Arredonda para evitar problemas de precisão
+    return Number(result.toFixed(10));
+  } catch (error) {
+    // Em caso de qualquer erro no processo, retorna null
+    return null;
   }
-  
-  const result = parseFloat(normalizedValue);
-  
-  // Para evitar limitações de casas decimais, arredondamos para 10 casas
-  // e depois utilizamos o toFixed para garantir a precisão
-  if (!isNaN(result)) {
-    // Usando um número maior de casas decimais para evitar problemas de arredondamento
-    return parseFloat(result.toFixed(10));
-  }
-  
-  return isNaN(result) ? null : result;
 }
 
 // Formata CPF
