@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { CommercialUnderConstruction } from "@/components/commercial/commercial-under-construction";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { UnderConstruction } from "@/components/ui/under-construction";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -22,7 +23,12 @@ export default async function CommercialDashboardPage() {
     >
       <div className="space-y-4">
         <div className="container p-4">
-          <CommercialUnderConstruction />
+          <UnderConstruction
+            variant="coming-soon"
+            title="Módulo Comercial em Desenvolvimento"
+            message="O módulo comercial permitirá o gerenciamento completo de operações de venda de sementes e animais"
+            icon="database"
+          />
         </div>
       </div>
     </Suspense>
