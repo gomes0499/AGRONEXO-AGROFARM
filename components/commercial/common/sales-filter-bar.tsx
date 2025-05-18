@@ -28,51 +28,60 @@ interface SalesFilterBarProps {
   cultures?: Culture[];
 }
 
-export function SalesFilterBar({
-  selectedSafraId,
-  setSelectedSafraId,
-  selectedPropertyId,
-  setSelectedPropertyId,
-  uniqueSafraIds,
-  uniquePropertyIds,
-  properties,
-  harvests,
-  onRefresh,
-  isRefreshing,
-  selectedCulture,
-  setSelectedCulture,
-  cultures,
-}: SalesFilterBarProps) {
+export function SalesFilterBar(props: SalesFilterBarProps) {
+  // Acessando props diretamente para evitar desestruturação
+  const selectedSafraId = props.selectedSafraId;
+  const setSelectedSafraId = props.setSelectedSafraId;
+  const selectedPropertyId = props.selectedPropertyId;
+  const setSelectedPropertyId = props.setSelectedPropertyId;
+  const uniqueSafraIds = props.uniqueSafraIds || [];
+  const uniquePropertyIds = props.uniquePropertyIds || [];
+  const properties = props.properties || [];
+  const harvests = props.harvests || [];
+  const onRefresh = props.onRefresh;
+  const isRefreshing = props.isRefreshing;
+  const selectedCulture = props.selectedCulture;
+  const setSelectedCulture = props.setSelectedCulture;
+  const cultures = props.cultures || [];
+
   // Helper para obter o nome da safra a partir do ID
-  const getSafraName = (safraId: string) => {
-    const safra = harvests.find((h) => h.id === safraId);
+  const getSafraName = function (safraId: string): string {
+    const safra = harvests.find(function (h) {
+      return h.id === safraId;
+    });
     return safra ? safra.nome : safraId;
   };
 
   // Helper para obter o nome da propriedade a partir do ID
-  const getPropertyName = (propertyId: string) => {
-    const property = properties.find((p) => p.id === propertyId);
+  const getPropertyName = function (propertyId: string): string {
+    const property = properties.find(function (p) {
+      return p.id === propertyId;
+    });
     return property ? property.nome : "Desconhecida";
   };
 
   return (
     <div className="flex flex-col md:flex-row gap-4">
       {/* Filtro de cultura (apenas para sementes) */}
-      {setSelectedCulture && selectedCulture !== undefined && cultures && (
-        <Select value={selectedCulture} onValueChange={setSelectedCulture}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filtrar por cultura" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as culturas</SelectItem>
-            {cultures.map((culture) => (
-              <SelectItem key={culture.id} value={culture.id || ""}>
-                {culture.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+      {setSelectedCulture &&
+        selectedCulture !== undefined &&
+        cultures.length > 0 && (
+          <Select value={selectedCulture} onValueChange={setSelectedCulture}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por cultura" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as culturas</SelectItem>
+              {cultures.map(function (culture) {
+                return (
+                  <SelectItem key={culture.id} value={culture.id || ""}>
+                    {culture.nome}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        )}
 
       {/* Filtro de safra */}
       <Select value={selectedSafraId} onValueChange={setSelectedSafraId}>
@@ -81,11 +90,13 @@ export function SalesFilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todas as safras</SelectItem>
-          {uniqueSafraIds.map((safraId) => (
-            <SelectItem key={safraId} value={safraId}>
-              {getSafraName(safraId)}
-            </SelectItem>
-          ))}
+          {uniqueSafraIds.map(function (safraId) {
+            return (
+              <SelectItem key={safraId} value={safraId}>
+                {getSafraName(safraId)}
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
 
@@ -96,11 +107,13 @@ export function SalesFilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todas as propriedades</SelectItem>
-          {uniquePropertyIds.map((propertyId) => (
-            <SelectItem key={propertyId} value={propertyId}>
-              {getPropertyName(propertyId)}
-            </SelectItem>
-          ))}
+          {uniquePropertyIds.map(function (propertyId) {
+            return (
+              <SelectItem key={propertyId} value={propertyId}>
+                {getPropertyName(propertyId)}
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
 

@@ -8,7 +8,24 @@ interface FinancialSummaryProps {
   summary: FinancialSummaryType;
 }
 
-export function FinancialSummary({ summary }: FinancialSummaryProps) {
+export function FinancialSummary(props: FinancialSummaryProps) {
+  // Acesso direto à propriedade sem desestruturação
+  const summary = props.summary || {
+    grossRevenue: 0,
+    netRevenue: 0,
+    contributionMargin: 0,
+    contributionMarginPercent: 0,
+    operatingProfit: 0,
+    operatingProfitPercent: 0,
+    netIncome: 0,
+    netIncomePercent: 0,
+  };
+
+  // Helper para formatar percentuais
+  function formatPercent(value: number): string {
+    return value.toFixed(2) + "%";
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div className="rounded-md border p-4 bg-card shadow-sm">
@@ -55,7 +72,7 @@ export function FinancialSummary({ summary }: FinancialSummaryProps) {
                 "text-red-600": summary.contributionMarginPercent < 0,
               })}
             >
-              {summary.contributionMarginPercent.toFixed(2)}%
+              {formatPercent(summary.contributionMarginPercent)}
             </span>
           </div>
         </div>
@@ -76,16 +93,14 @@ export function FinancialSummary({ summary }: FinancialSummaryProps) {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">
-              Lucro operacional (%)
-            </span>
+            <span className="text-muted-foreground">Lucro operacional (%)</span>
             <span
               className={cn("font-semibold", {
                 "text-green-600": summary.operatingProfitPercent > 0,
                 "text-red-600": summary.operatingProfitPercent < 0,
               })}
             >
-              {summary.operatingProfitPercent.toFixed(2)}%
+              {formatPercent(summary.operatingProfitPercent)}
             </span>
           </div>
         </div>
@@ -117,7 +132,7 @@ export function FinancialSummary({ summary }: FinancialSummaryProps) {
                 "text-red-600": summary.netIncomePercent < 0,
               })}
             >
-              {summary.netIncomePercent.toFixed(2)}%
+              {formatPercent(summary.netIncomePercent)}
             </span>
           </div>
         </div>
