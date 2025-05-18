@@ -160,7 +160,7 @@ export default async function CommercialDashboardPage() {
         </Card>
       </div>
     );
-
+    
     return (
       <Suspense
         fallback={
@@ -171,11 +171,12 @@ export default async function CommercialDashboardPage() {
       >
         <div className="space-y-4">
           <div className="container p-4">
-            {/* Aqui usamos o wrapper seguro em vez do CommercialNavClient direto */}
-            <CommercialSafeWrapper
-              seedsComponent={SeedsComponent}
-              livestockComponent={LivestockComponent}
-            />
+            <div className="commercial-wrapper">
+              <CommercialSafeWrapper
+                seedsComponent={SeedsComponent}
+                livestockComponent={LivestockComponent}
+              />
+            </div>
           </div>
         </div>
       </Suspense>

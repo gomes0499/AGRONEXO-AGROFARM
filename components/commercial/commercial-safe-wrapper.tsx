@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { CommercialNavClient } from "./commercial-nav-client";
 
 interface CommercialSafeWrapperProps {
@@ -15,11 +16,22 @@ export function CommercialSafeWrapper({
   seedsComponent,
   livestockComponent,
 }: CommercialSafeWrapperProps) {
-  // Renderiza o componente diretamente, sem verificações adicionais
-  return (
-    <CommercialNavClient
-      seedsComponent={seedsComponent}
-      livestockComponent={livestockComponent}
-    />
-  );
+  try {
+    return (
+      <CommercialNavClient
+        seedsComponent={seedsComponent}
+        livestockComponent={livestockComponent}
+      />
+    );
+  } catch (error) {
+    // Fallback em caso de erro
+    return (
+      <div className="bg-red-50 border border-red-100 p-6 rounded-lg">
+        <h3 className="text-red-600 font-medium">Erro no wrapper do módulo comercial</h3>
+        <p className="text-sm text-red-500">
+          Erro específico: {error instanceof Error ? error.message : String(error)}
+        </p>
+      </div>
+    );
+  }
 }

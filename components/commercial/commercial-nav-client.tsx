@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePathname } from "next/navigation";
 
@@ -25,7 +25,6 @@ export function CommercialNavClient({
       } else if (pathname.includes("/commercial/livestock")) {
         setActiveTab("livestock");
       } else {
-        // Default para seeds
         setActiveTab("seeds");
       }
     }
