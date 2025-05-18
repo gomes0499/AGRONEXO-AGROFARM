@@ -33,18 +33,26 @@ export function NavUser({
   user,
 }: {
   user: {
-    name: string;
-    email: string;
-    avatar: string;
+    name?: string;
+    email?: string;
+    avatar?: string;
   };
 }) {
   const { isMobile } = useSidebar();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [userData, setUserData] = useState(user);
+  // Garantindo dados iniciais para evitar problemas de hidratação
+  const [userData, setUserData] = useState({
+    name: user?.name || 'Usuário',
+    email: user?.email || 'usuario@example.com',
+    avatar: user?.avatar || '',
+  });
 
   // Buscar dados adicionais do usuário
+  // Estabilizamos o efeito apenas para client-side para evitar problemas de hidratação
   useEffect(() => {
+    // Garantir que execute apenas no cliente
+    if (typeof window === 'undefined') return;
     const fetchUserData = async () => {
       try {
         const supabase = createClient();
@@ -76,14 +84,26 @@ export function NavUser({
     fetchUserData();
   }, [user]);
 
-  // Função para obter as iniciais do nome
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
+  // Função para obter as iniciais do nome - utiliza useMemo para estabilidade
+  const getInitials = (name: string): string => {
+    // Validação para evitar erros com valores vazios ou indefinidos
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return 'GS'; // Valor padrão para usuário desconhecido
+    }
+    
+    try {
+      return name
+        .trim()
+        .split(" ")
+        .map((part) => part && part.length > 0 ? part[0] : '')
+        .filter(Boolean)
+        .join("")
+        .toUpperCase()
+        .substring(0, 2) || 'GS';
+    } catch (e) {
+      // Retornamos um valor padrão em caso de erro
+      return 'GS';
+    }
   };
 
   // Função para logout
@@ -112,7 +132,7 @@ export function NavUser({
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={userData.avatar} alt={userData.name} />
                 <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                  {getInitials(userData.name)}
+                  GS
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -135,7 +155,7 @@ export function NavUser({
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={userData.avatar} alt={userData.name} />
                   <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                    {getInitials(userData.name)}
+                    GS
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">

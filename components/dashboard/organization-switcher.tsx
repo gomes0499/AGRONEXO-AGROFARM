@@ -161,20 +161,31 @@ export function OrganizationSwitcher() {
     router.push("/dashboard/organization/new");
   };
 
-  // Obtem iniciais para avatar
-  const getInitials = (name: string) => {
-    if (!name || name.trim() === "") return "OR";
-    return (
-      name
+  // Obtem iniciais para avatar - usando React.useMemo para garantir consistência entre servidor e cliente
+  const getInitials = React.useMemo(() => {
+    // Inicializamos com um valor memorizado para evitar problemas de hidratação
+    const cache: Record<string, string> = {};
+    
+    return (name: string): string => {
+      // Se já calculamos antes, retorna do cache
+      if (cache[name]) return cache[name];
+      
+      if (!name || name.trim() === "") return "OR";
+      
+      // Calculamos e armazenamos em cache
+      const initials = name
         .trim()
         .split(" ")
         .map((part) => (part && part.length > 0 ? part[0] : ""))
         .filter(Boolean)
         .join("")
         .toUpperCase()
-        .substring(0, 2) || "OR"
-    );
-  };
+        .substring(0, 2) || "OR";
+        
+      cache[name] = initials;
+      return initials;
+    };
+  }, []);
 
   return (
     <SidebarMenu>
@@ -191,11 +202,10 @@ export function OrganizationSwitcher() {
                     />
                   ) : null}
                   <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
-                    {organization ? (
-                      getInitials(organization.nome || "")
-                    ) : (
-                      <Building className="h-5 w-5" />
-                    )}
+                    {organization && organization.nome ? 
+                      getInitials(organization.nome) 
+                      : "OR"
+                    }
                   </AvatarFallback>
                 </Avatar>
                 <span className="truncate text-sm">
@@ -230,7 +240,7 @@ export function OrganizationSwitcher() {
                           <AvatarImage src={org.logo} alt={org.nome || ""} />
                         ) : null}
                         <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
-                          {getInitials(org.nome || "")}
+                          {org.nome ? getInitials(org.nome) : "OR"}
                         </AvatarFallback>
                       </Avatar>
                       <span>{org.nome}</span>

@@ -35,8 +35,9 @@ export function useFinancialCalculations() {
   // Cálculo do percentual da margem de contribuição
   const calculateContributionMarginPercent = (sale: Sale) => {
     const margin = calculateContributionMargin(sale);
-    if (sale.receita_operacional_bruta === 0) return 0;
-    return (margin / sale.receita_operacional_bruta) * 100;
+    const revenue = sale.receita_operacional_bruta;
+    if (revenue === 0) return 0;
+    return (margin / revenue) * 100;
   };
 
   // Cálculo do lucro operacional
@@ -48,8 +49,9 @@ export function useFinancialCalculations() {
   // Cálculo do percentual do lucro operacional
   const calculateOperatingProfitPercent = (sale: Sale) => {
     const operatingProfit = calculateOperatingProfit(sale);
-    if (sale.receita_operacional_bruta === 0) return 0;
-    return (operatingProfit / sale.receita_operacional_bruta) * 100;
+    const revenue = sale.receita_operacional_bruta;
+    if (revenue === 0) return 0;
+    return (operatingProfit / revenue) * 100;
   };
 
   // Cálculo do resultado do exercício
@@ -61,8 +63,9 @@ export function useFinancialCalculations() {
   // Cálculo do percentual do resultado do exercício
   const calculateNetIncomePercent = (sale: Sale) => {
     const netIncome = calculateNetIncome(sale);
-    if (sale.receita_operacional_bruta === 0) return 0;
-    return (netIncome / sale.receita_operacional_bruta) * 100;
+    const revenue = sale.receita_operacional_bruta;
+    if (revenue === 0) return 0;
+    return (netIncome / revenue) * 100;
   };
 
   // Calculate profit or loss
@@ -81,8 +84,9 @@ export function useFinancialCalculations() {
   // Calculate profit margin as percentage
   const calculateProfitMargin = (sale: Sale) => {
     const profit = calculateProfit(sale);
-    if (sale.receita_operacional_bruta === 0) return 0;
-    return (profit / sale.receita_operacional_bruta) * 100;
+    const revenue = sale.receita_operacional_bruta;
+    if (revenue === 0) return 0;
+    return (profit / revenue) * 100;
   };
 
   // Calcula os custos totais
@@ -99,7 +103,7 @@ export function useFinancialCalculations() {
 
   // Função para calcular os indicadores financeiros agregados de uma lista de vendas
   const calculateFinancialSummary = (sales: Sale[]): FinancialSummary => {
-    if (sales.length === 0) {
+    if (!sales || sales.length === 0) {
       return {
         grossRevenue: 0,
         netRevenue: 0,
@@ -112,43 +116,59 @@ export function useFinancialCalculations() {
       };
     }
 
-    const grossRevenue = sales.reduce(
+    // Declare all variables before using them to avoid TDZ issues
+    let grossRevenue = 0;
+    let netRevenue = 0;
+    let totalContributionMargin = 0;
+    let totalOperatingProfit = 0;
+    let totalNetIncome = 0;
+    let contributionMarginPercent = 0;
+    let operatingProfitPercent = 0;
+    let netIncomePercent = 0;
+
+    // Calculate sums
+    grossRevenue = sales.reduce(
       (sum, sale) => sum + sale.receita_operacional_bruta,
       0
     );
 
-    const netRevenue = sales.reduce(
+    netRevenue = sales.reduce(
       (sum, sale) => sum + calculateNetRevenue(sale),
       0
     );
 
-    const totalContributionMargin = sales.reduce(
+    totalContributionMargin = sales.reduce(
       (sum, sale) => sum + calculateContributionMargin(sale),
       0
     );
 
-    const totalOperatingProfit = sales.reduce(
+    totalOperatingProfit = sales.reduce(
       (sum, sale) => sum + calculateOperatingProfit(sale),
       0
     );
 
-    const totalNetIncome = sales.reduce(
+    totalNetIncome = sales.reduce(
       (sum, sale) => sum + calculateNetIncome(sale),
       0
     );
 
+    // Calculate percentages only if grossRevenue is positive
+    if (grossRevenue > 0) {
+      contributionMarginPercent = (totalContributionMargin / grossRevenue) * 100;
+      operatingProfitPercent = (totalOperatingProfit / grossRevenue) * 100;
+      netIncomePercent = (totalNetIncome / grossRevenue) * 100;
+    }
+
+    // Return results
     return {
       grossRevenue,
       netRevenue,
       contributionMargin: totalContributionMargin,
-      contributionMarginPercent:
-        grossRevenue > 0 ? (totalContributionMargin / grossRevenue) * 100 : 0,
+      contributionMarginPercent,
       operatingProfit: totalOperatingProfit,
-      operatingProfitPercent:
-        grossRevenue > 0 ? (totalOperatingProfit / grossRevenue) * 100 : 0,
+      operatingProfitPercent,
       netIncome: totalNetIncome,
-      netIncomePercent:
-        grossRevenue > 0 ? (totalNetIncome / grossRevenue) * 100 : 0,
+      netIncomePercent,
     };
   };
 

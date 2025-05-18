@@ -15,8 +15,11 @@ export function useSalesListState<T extends Sale>({
   initialSales,
   deleteSaleFn,
 }: UseSalesListStateProps<T>) {
-  const [sales, setSales] = useState<T[]>(initialSales);
-  const [filteredSales, setFilteredSales] = useState<T[]>(initialSales);
+  // Initialize with empty array fallback to prevent null/undefined issues
+  const safeInitialSales = Array.isArray(initialSales) ? initialSales : [];
+  
+  const [sales, setSales] = useState<T[]>(safeInitialSales);
+  const [filteredSales, setFilteredSales] = useState<T[]>(safeInitialSales);
   const [selectedSafraId, setSelectedSafraId] = useState<string>("all");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("all");
   const [selectedCulture, setSelectedCulture] = useState<string>("all");
@@ -25,27 +28,37 @@ export function useSalesListState<T extends Sale>({
   const [selectedSale, setSelectedSale] = useState<T | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Obtenha IDs exclusivos para safras e propriedades
-  const uniqueSafraIds = [...new Set(sales.map((sale) => sale.safra_id))];
-  const uniquePropertyIds = [...new Set(sales.map((sale) => sale.propriedade_id))];
+  // Get unique IDs safely with null checks
+  const uniqueSafraIds = sales && sales.length 
+    ? [...new Set(sales.map((sale) => sale.safra_id).filter(Boolean))]
+    : [];
+    
+  const uniquePropertyIds = sales && sales.length
+    ? [...new Set(sales.map((sale) => sale.propriedade_id).filter(Boolean))]
+    : [];
 
-  // Aplique filtros quando os valores de filtro mudarem
+  // Apply filters when filter values change
   useEffect(() => {
+    if (!Array.isArray(sales)) {
+      setFilteredSales([]);
+      return;
+    }
+
     let result = [...sales];
 
-    // Filtro por cultura (apenas para vendas de sementes)
+    // Culture filter (only for seed sales)
     if (selectedCulture && selectedCulture !== "all") {
       result = result.filter((sale) => 
         'cultura_id' in sale && sale.cultura_id === selectedCulture
       );
     }
 
-    // Filtro por safra
+    // Harvest filter
     if (selectedSafraId && selectedSafraId !== "all") {
       result = result.filter((sale) => sale.safra_id === selectedSafraId);
     }
 
-    // Filtro por propriedade
+    // Property filter
     if (selectedPropertyId && selectedPropertyId !== "all") {
       result = result.filter((sale) => sale.propriedade_id === selectedPropertyId);
     }
@@ -53,19 +66,19 @@ export function useSalesListState<T extends Sale>({
     setFilteredSales(result);
   }, [sales, selectedCulture, selectedSafraId, selectedPropertyId]);
 
-  // Função para lidar com edição
+  // Edit handler
   const handleEdit = (sale: T) => {
     setSelectedSale(sale);
     setIsEditDialogOpen(true);
   };
 
-  // Função para lidar com exclusão
+  // Delete handler
   const handleDelete = (sale: T) => {
     setSelectedSale(sale);
     setIsDeleteDialogOpen(true);
   };
 
-  // Função para confirmar exclusão
+  // Confirm delete function
   const confirmDelete = async () => {
     if (!selectedSale || !selectedSale.id) return;
 
@@ -73,13 +86,13 @@ export function useSalesListState<T extends Sale>({
       const result = await deleteSaleFn(selectedSale.id);
 
       if (result && "success" in result && result.success) {
-        // Remove o item da lista local
+        // Remove item from local list
         const updatedSales = sales.filter(
           (sale) => sale.id !== selectedSale.id
         );
         setSales(updatedSales);
 
-        // Atualiza também a lista filtrada para garantir feedback imediato
+        // Update filtered list as well to ensure immediate feedback
         setFilteredSales((prev) =>
           prev.filter((sale) => sale.id !== selectedSale.id)
         );
@@ -97,23 +110,31 @@ export function useSalesListState<T extends Sale>({
     }
   };
 
-  // Função para lidar com sucesso na atualização
+  // Update success handler
   const handleUpdateSuccess = (updatedSale: T) => {
-    // Atualiza o estado local imediatamente
-    const updatedSales = sales.map((sale) =>
-      sale.id === updatedSale.id ? updatedSale : sale
-    );
+    // Safely update sales with null checks
+    if (!updatedSale || !updatedSale.id) {
+      return;
+    }
+    
+    // Update local state immediately
+    const updatedSales = Array.isArray(sales) 
+      ? sales.map((sale) => sale.id === updatedSale.id ? updatedSale : sale)
+      : [];
+      
     setSales(updatedSales);
 
-    // Atualiza também a lista filtrada para garantir feedback imediato
+    // Update filtered list as well for immediate feedback
     setFilteredSales((prev) =>
-      prev.map((sale) => (sale.id === updatedSale.id ? updatedSale : sale))
+      Array.isArray(prev)
+        ? prev.map((sale) => sale.id === updatedSale.id ? updatedSale : sale)
+        : []
     );
 
     setIsEditDialogOpen(false);
     setSelectedSale(null);
 
-    // Exibe o toast de sucesso diretamente aqui para garantir feedback visual
+    // Show success toast
     toast.success("Registro atualizado com sucesso!");
   };
 
