@@ -46,7 +46,11 @@ import {
   createProductionCost,
   updateProductionCost,
 } from "@/lib/actions/production-actions";
-import { formatCurrency, parseFormattedNumber, isNegativeValue } from "@/lib/utils/formatters";
+import {
+  formatCurrency,
+  parseFormattedNumber,
+  isNegativeValue,
+} from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
 
 // Define interface for the property entity
@@ -175,9 +179,7 @@ const CurrencyField = ({
 
       return (
         <FormItem>
-          <FormLabel className="text-sm font-medium">
-            {label}
-          </FormLabel>
+          <FormLabel className="text-sm font-medium">{label}</FormLabel>
           <FormControl>
             <input
               placeholder={placeholder}
@@ -218,7 +220,7 @@ const CurrencyField = ({
                   ? formatCurrency(field.value)
                   : ""
               }
-              />
+            />
           </FormControl>
           {description && (
             <FormDescription className="text-xs text-muted-foreground">
@@ -535,10 +537,10 @@ export function ProductionCostForm({
           {/* Valor do Custo */}
           <CurrencyField
             name="valor"
-            label="Valor (R$)"
+            label="Valor (R$/ha)"
             control={form.control}
             placeholder="Digite o valor do custo"
-            description="Valor do custo em reais (R$)"
+            description="Valor do custo em reais por hectare (R$/ha)"
             disabled={isSubmitting}
           />
 

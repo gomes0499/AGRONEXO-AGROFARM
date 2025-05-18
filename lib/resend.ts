@@ -42,6 +42,16 @@ export async function sendEmail({
   }
 
   try {
+    console.log("Tentando enviar email via Resend:", { to, subject, from });
+    
+    if (process.env.NODE_ENV === 'development' && !process.env.ENABLE_EMAILS_IN_DEV) {
+      console.log('==== EMAIL NÃO ENVIADO NO AMBIENTE DE DESENVOLVIMENTO ====');
+      console.log('Destinatário:', to);
+      console.log('Assunto:', subject);
+      console.log('Para habilitar emails em desenvolvimento, defina ENABLE_EMAILS_IN_DEV=true');
+      return { success: true, data: { id: 'dev-mode-email-id' } };
+    }
+    
     const { data, error } = await resendClient.emails.send({
       from,
       to,
@@ -52,12 +62,15 @@ export async function sendEmail({
     });
 
     if (error) {
+      console.error('Erro ao enviar email via Resend:', error);
       logError('Erro ao enviar email via Resend', { error, to, subject });
       throw error;
     }
 
+    console.log('Email enviado com sucesso via Resend:', data);
     return { success: true, data };
   } catch (error) {
+    console.error('Exceção ao enviar email via Resend:', error);
     logError('Erro ao enviar email via Resend', { error, to, subject });
     throw error;
   }

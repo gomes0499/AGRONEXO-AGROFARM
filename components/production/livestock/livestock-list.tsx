@@ -33,17 +33,10 @@ import { deleteLivestock } from "@/lib/actions/production-actions";
 import { LivestockForm } from "./livestock-form";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerClose,
-} from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Livestock } from "@/schemas/production";
+import { FormModal } from "../common/form-modal";
+import { DeleteButton } from "../common/delete-button";
+import { Livestock, PriceUnit } from "@/schemas/production";
+import { PRICE_UNITS } from "../common/price-unit-selector";
 
 // Define interface for the property entity
 interface Property {
@@ -65,7 +58,7 @@ export function LivestockList({
 }: LivestockListProps) {
   const [livestock, setLivestock] = useState<Livestock[]>(initialLivestock);
   const [editingItem, setEditingItem] = useState<Livestock | null>(null);
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -75,7 +68,7 @@ export function LivestockList({
   // Função para editar um item
   const handleEdit = (item: Livestock) => {
     setEditingItem(item);
-    setIsEditDrawerOpen(true);
+    setIsEditModalOpen(true);
   };
 
   // Função para excluir um item
@@ -96,7 +89,7 @@ export function LivestockList({
     setLivestock(
       livestock.map((item) => (item.id === updatedItem.id ? updatedItem : item))
     );
-    setIsEditDrawerOpen(false);
+    setIsEditModalOpen(false);
     setEditingItem(null);
   };
 
@@ -146,7 +139,8 @@ export function LivestockList({
                   <TableHead>Tipo</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Quantidade</TableHead>
-                  <TableHead>Preço Unitário</TableHead>
+                  <TableHead>Unidade</TableHead>
+                  <TableHead>Preço</TableHead>
                   <TableHead>Valor Total</TableHead>
                   <TableHead>Propriedade</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -160,9 +154,28 @@ export function LivestockList({
                     <TableRow key={item.id}>
                       <TableCell>{item.tipo_animal}</TableCell>
                       <TableCell>{item.categoria}</TableCell>
-                      <TableCell>{item.quantidade}</TableCell>
+                      <TableCell>
+                        {item.unidade_preco === "CABECA" 
+                          ? item.quantidade 
+                          : item.unidade_preco === "KG" 
+                            ? `${item.quantidade} kg` 
+                            : item.unidade_preco === "ARROBA" 
+                              ? `${item.quantidade} @` 
+                              : `${item.quantidade} ${item.quantidade === 1 ? "lote" : "lotes"}`}
+                        {item.unidade_preco !== "CABECA" && item.numero_cabecas 
+                          ? ` (${item.numero_cabecas} ${item.numero_cabecas === 1 ? "cabeça" : "cabeças"})` 
+                          : ""}
+                      </TableCell>
+                      <TableCell>
+                        {PRICE_UNITS[item.unidade_preco as keyof typeof PRICE_UNITS]?.split(' ')[0] || "Por cabeça"}
+                      </TableCell>
                       <TableCell>
                         {formatCurrency(item.preco_unitario)}
+                        {item.unidade_preco === "KG" 
+                          ? "/kg" 
+                          : item.unidade_preco === "ARROBA" 
+                            ? "/@" 
+                            : ""}
                       </TableCell>
                       <TableCell>{formatCurrency(totalValue)}</TableCell>
                       <TableCell>{propertyName}</TableCell>
@@ -174,33 +187,11 @@ export function LivestockList({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Excluir Registro
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir este registro de
-                                rebanho? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground"
-                                onClick={() => item.id && handleDelete(item.id)}
-                              >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <DeleteButton
+                          title="Excluir Registro"
+                          description="Tem certeza que deseja excluir este registro de rebanho? Esta ação não pode ser desfeita."
+                          onDelete={() => item.id && handleDelete(item.id)}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -212,36 +203,23 @@ export function LivestockList({
       </Card>
 
       {/* Modal de edição */}
-      <Drawer
-        open={isEditDrawerOpen}
-        onOpenChange={setIsEditDrawerOpen}
-        direction="right"
+      <FormModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        title="Editar Rebanho"
+        description="Faça as alterações necessárias no registro de rebanho."
+        className="sm:max-w-[600px]"
       >
-        <DrawerContent className="h-full max-h-none">
-          <DrawerHeader className="text-left">
-            <DrawerTitle>Editar Rebanho</DrawerTitle>
-            <DrawerDescription>
-              Faça as alterações necessárias no registro de rebanho.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 overflow-y-auto flex-1">
-            {editingItem && (
-              <LivestockForm
-                properties={properties}
-                organizationId={organizationId}
-                livestock={editingItem}
-                onSuccess={handleUpdate}
-                onCancel={() => setIsEditDrawerOpen(false)}
-              />
-            )}
-          </div>
-          <DrawerFooter className="pt-2">
-            <DrawerClose asChild>
-              <Button variant="outline">Cancelar</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+        {editingItem && (
+          <LivestockForm
+            properties={properties}
+            organizationId={organizationId}
+            livestock={editingItem}
+            onSuccess={handleUpdate}
+            onCancel={() => setIsEditModalOpen(false)}
+          />
+        )}
+      </FormModal>
     </div>
   );
 }

@@ -37,16 +37,8 @@ import {
 import { ProductionCostForm } from "./production-cost-form";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerClose,
-} from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { FormModal } from "../common/form-modal";
+import { DeleteButton } from "../common/delete-button";
 import { ProductionCost, Culture, System, Harvest } from "@/schemas/production";
 
 // Define interface for the property entity
@@ -84,7 +76,7 @@ export function ProductionCostList({
 }: ProductionCostListProps) {
   const [costs, setCosts] = useState<ProductionCost[]>(initialCosts);
   const [editingItem, setEditingItem] = useState<ProductionCost | null>(null);
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -94,7 +86,7 @@ export function ProductionCostList({
   // Função para editar um item
   const handleEdit = (item: ProductionCost) => {
     setEditingItem(item);
-    setIsEditDrawerOpen(true);
+    setIsEditModalOpen(true);
   };
 
   // Função para excluir um item
@@ -116,7 +108,7 @@ export function ProductionCostList({
     setCosts(
       costs.map((item) => (item.id === updatedItem.id ? updatedItem : item))
     );
-    setIsEditDrawerOpen(false);
+    setIsEditModalOpen(false);
     setEditingItem(null);
   };
 
@@ -221,33 +213,11 @@ export function ProductionCostList({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Excluir Registro
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir este registro de
-                                custo? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground text-white hover:bg-destructive/90"
-                                onClick={() => handleDelete(item.id || "")}
-                              >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <DeleteButton
+                          title="Excluir Registro"
+                          description="Tem certeza que deseja excluir este registro de custo? Esta ação não pode ser desfeita."
+                          onDelete={() => handleDelete(item.id || "")}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -259,39 +229,25 @@ export function ProductionCostList({
       </Card>
 
       {/* Modal de edição */}
-      <Drawer
-        open={isEditDrawerOpen}
-        onOpenChange={setIsEditDrawerOpen}
-        direction="right"
+      <FormModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        title="Editar Custo"
+        description="Faça as alterações necessárias no registro de custo."
       >
-        <DrawerContent className="h-full max-h-none">
-          <DrawerHeader className="text-left">
-            <DrawerTitle>Editar Custo</DrawerTitle>
-            <DrawerDescription>
-              Faça as alterações necessárias no registro de custo.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 overflow-y-auto flex-1">
-            {editingItem && (
-              <ProductionCostForm
-                cultures={cultures}
-                systems={systems}
-                harvests={harvests}
-                properties={properties}
-                organizationId={organizationId}
-                cost={editingItem}
-                onSuccess={handleUpdate}
-                onCancel={() => setIsEditDrawerOpen(false)}
-              />
-            )}
-          </div>
-          <DrawerFooter className="pt-2">
-            <DrawerClose asChild>
-              <Button variant="outline">Cancelar</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+        {editingItem && (
+          <ProductionCostForm
+            cultures={cultures}
+            systems={systems}
+            harvests={harvests}
+            properties={properties}
+            organizationId={organizationId}
+            cost={editingItem}
+            onSuccess={handleUpdate}
+            onCancel={() => setIsEditModalOpen(false)}
+          />
+        )}
+      </FormModal>
     </div>
   );
 }

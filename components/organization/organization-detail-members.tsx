@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   UserPlus,
   Search,
@@ -8,6 +9,10 @@ import {
   Calendar,
   Clock,
   UserCircle2,
+  Shield,
+  UserCog,
+  AlertCircle,
+  PlusCircle,
 } from "lucide-react";
 import { UserRole } from "@/lib/auth/roles";
 import { MemberActions } from "./member-actions";
@@ -40,6 +45,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { InviteDialog } from "@/components/organization/invite-dialog";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { createAdminAccount } from "@/lib/actions/invitation-actions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { AddMemberForm } from "./add-member-form";
 
 interface Member {
   id: string;
@@ -71,6 +89,38 @@ export function OrganizationDetailMembers({
 }: OrganizationDetailMembersProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
+  const [isAdminCreateOpen, setIsAdminCreateOpen] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+  const router = useRouter();
+
+  // Function to create admin account
+  const handleCreateAdminAccount = async () => {
+    if (!adminEmail || !adminEmail.includes("@")) {
+      toast.error("Digite um email válido");
+      return;
+    }
+
+    setIsCreatingAdmin(true);
+
+    try {
+      const result = await createAdminAccount(adminEmail, organizationId);
+
+      if (result.success) {
+        toast.success(result.message || "Conta criada com sucesso!");
+        setIsAdminCreateOpen(false);
+        setAdminEmail("");
+        router.refresh();
+      } else {
+        toast.error(result.error || "Erro ao criar conta de administrador");
+      }
+    } catch (error) {
+      toast.error("Erro ao criar conta de administrador");
+      console.error(error);
+    } finally {
+      setIsCreatingAdmin(false);
+    }
+  };
 
   // Function to get the status badge for last login
   const getLastLoginStatus = (lastLogin?: string) => {
@@ -139,8 +189,10 @@ export function OrganizationDetailMembers({
   const getInitials = (member: Member) => {
     // Verificar se o nome existe e não é vazio
     if (member.user?.nome && member.user.nome.trim() !== "") {
-      const nameParts = member.user.nome.split(" ").filter(part => part.trim() !== "");
-      
+      const nameParts = member.user.nome
+        .split(" ")
+        .filter((part) => part.trim() !== "");
+
       if (nameParts.length > 1) {
         // Pegar a primeira letra do primeiro e último nome
         return `${nameParts[0][0]}${
@@ -257,10 +309,20 @@ export function OrganizationDetailMembers({
             <CardDescription>Pessoas com acesso à organização</CardDescription>
           </div>
         </div>
-        <InviteDialog
-          organizationId={organizationId}
-          organizationName={organizationName}
-        />
+        <div className="flex gap-2">
+          {/* Botão para nova página de criar conta completa de membro */}
+          <Button variant="outline" className="gap-1" size="default" asChild>
+            <Link href={`/dashboard/organization/${organizationId}/new-member`}>
+              <PlusCircle className="h-4 w-4 mr-1" />
+              Novo Membro
+            </Link>
+          </Button>
+
+          <InviteDialog
+            organizationId={organizationId}
+            organizationName={organizationName}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         {members && members.length > 0 ? (
@@ -331,7 +393,7 @@ export function OrganizationDetailMembers({
                               member.funcao
                             )}`}
                           >
-                            <AvatarImage 
+                            <AvatarImage
                               src={member.user?.avatar || ""}
                               alt={member.user?.nome || "Avatar"}
                             />
@@ -344,15 +406,17 @@ export function OrganizationDetailMembers({
                               {member.user?.nome}
                             </span>
                             <span className="text-xs text-muted-foreground md:hidden truncate">
-                              {member.user?.email && !member.user.email.includes("exemplo.com") 
-                                ? member.user.email 
+                              {member.user?.email &&
+                              !member.user.email.includes("exemplo.com")
+                                ? member.user.email
                                 : ""}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground truncate hidden md:table-cell">
-                          {member.user?.email && !member.user.email.includes("exemplo.com") 
-                            ? member.user.email 
+                          {member.user?.email &&
+                          !member.user.email.includes("exemplo.com")
+                            ? member.user.email
                             : ""}
                         </TableCell>
                         <TableCell>{getRoleBadge(member.funcao)}</TableCell>
@@ -402,16 +466,39 @@ export function OrganizationDetailMembers({
                 Convide pessoas para colaborar na sua organização
               </p>
             </div>
-            <InviteDialog
-              organizationId={organizationId}
-              organizationName={organizationName}
-              trigger={
-                <Button>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Convidar Membros
-                </Button>
-              }
-            />
+            <div className="flex gap-3 flex-wrap justify-center">
+              <Button asChild>
+                <Link
+                  href={`/dashboard/organization/${organizationId}/new-member`}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Novo Membro (Completo)
+                </Link>
+              </Button>
+
+              <Dialog
+                open={isAdminCreateOpen}
+                onOpenChange={setIsAdminCreateOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Criar Admin Rápido
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+
+              <InviteDialog
+                organizationId={organizationId}
+                organizationName={organizationName}
+                trigger={
+                  <Button variant="outline">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Convidar por Email
+                  </Button>
+                }
+              />
+            </div>
           </div>
         )}
       </CardContent>

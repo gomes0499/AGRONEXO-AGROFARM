@@ -259,4 +259,18 @@ export function formatCEP(cep: string): string {
   
   // Format as XXXXX-XXX
   return numericOnly.replace(/^(\d{5})(\d{3})$/, '$1-$2');
+}
+
+/**
+ * Formats an RG (Identity Card) string to a readable format
+ */
+export function formatRG(rg: string): string {
+  if (!rg) return '';
+  
+  // RGs can have various formats, so we just remove some special characters
+  // and keep X (which can appear in some RGs) and numbers
+  const cleaned = rg.replace(/[^\dxX]/g, '');
+  
+  // Return the cleaned value, as RG formatting can vary by state
+  return cleaned;
 } 

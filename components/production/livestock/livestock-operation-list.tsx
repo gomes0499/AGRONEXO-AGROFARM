@@ -32,15 +32,8 @@ import {
 import { deleteLivestockOperation } from "@/lib/actions/production-actions";
 import { LivestockOperationForm } from "./livestock-operation-form";
 import { toast } from "sonner";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerClose,
-} from "@/components/ui/drawer";
+import { FormModal } from "../common/form-modal";
+import { DeleteButton } from "../common/delete-button";
 import {
   LivestockOperation,
   Harvest,
@@ -73,7 +66,7 @@ export function LivestockOperationList({
   const [editingItem, setEditingItem] = useState<LivestockOperation | null>(
     null
   );
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -83,7 +76,7 @@ export function LivestockOperationList({
   // Função para editar um item
   const handleEdit = (item: LivestockOperation) => {
     setEditingItem(item);
-    setIsEditDrawerOpen(true);
+    setIsEditModalOpen(true);
   };
 
   // Função para excluir um item
@@ -105,7 +98,7 @@ export function LivestockOperationList({
         item.id === updatedItem.id ? updatedItem : item
       )
     );
-    setIsEditDrawerOpen(false);
+    setIsEditModalOpen(false);
     setEditingItem(null);
   };
 
@@ -228,33 +221,11 @@ export function LivestockOperationList({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Excluir Operação
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir esta operação
-                                pecuária? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-white hover:bg-destructive/90"
-                                onClick={() => item.id && handleDelete(item.id)}
-                              >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <DeleteButton
+                          title="Excluir Operação"
+                          description="Tem certeza que deseja excluir esta operação pecuária? Esta ação não pode ser desfeita."
+                          onDelete={() => item.id && handleDelete(item.id)}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -266,37 +237,23 @@ export function LivestockOperationList({
       </Card>
 
       {/* Modal de edição */}
-      <Drawer
-        open={isEditDrawerOpen}
-        onOpenChange={setIsEditDrawerOpen}
-        direction="right"
+      <FormModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        title="Editar Operação Pecuária"
+        description="Faça as alterações necessárias na operação pecuária."
       >
-        <DrawerContent className="h-full max-h-none">
-          <DrawerHeader className="text-left">
-            <DrawerTitle>Editar Operação Pecuária</DrawerTitle>
-            <DrawerDescription>
-              Faça as alterações necessárias na operação pecuária.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 overflow-y-auto flex-1">
-            {editingItem && (
-              <LivestockOperationForm
-                properties={properties}
-                harvests={harvests}
-                organizationId={organizationId}
-                operation={editingItem}
-                onSuccess={handleUpdate}
-                onCancel={() => setIsEditDrawerOpen(false)}
-              />
-            )}
-          </div>
-          <DrawerFooter className="pt-2">
-            <DrawerClose asChild>
-              <Button variant="outline">Cancelar</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+        {editingItem && (
+          <LivestockOperationForm
+            properties={properties}
+            harvests={harvests}
+            organizationId={organizationId}
+            operation={editingItem}
+            onSuccess={handleUpdate}
+            onCancel={() => setIsEditModalOpen(false)}
+          />
+        )}
+      </FormModal>
     </div>
   );
 }

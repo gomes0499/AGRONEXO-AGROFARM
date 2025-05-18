@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export interface CommercialNavClientProps {
   seedsComponent?: React.ReactNode;
@@ -15,40 +15,9 @@ export function CommercialNavClient({
 }: CommercialNavClientProps) {
   const [activeTab, setActiveTab] = useState("seeds");
 
-  // Função para trocar de tab
+  // Handler for tab change
   const handleTabChange = (value: string) => {
-    if (value === activeTab) return;
     setActiveTab(value);
-  };
-
-  // Renderizar o conteúdo da tab ativa
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "seeds":
-        return seedsComponent || (
-          <div className="flex items-center justify-center h-60 border rounded-lg">
-            <p className="text-muted-foreground">
-              Módulo de vendas de sementes em desenvolvimento
-            </p>
-          </div>
-        );
-      case "livestock":
-        return livestockComponent || (
-          <div className="flex items-center justify-center h-60 border rounded-lg">
-            <p className="text-muted-foreground">
-              Módulo de vendas pecuárias em desenvolvimento
-            </p>
-          </div>
-        );
-      default:
-        return (
-          <div className="flex items-center justify-center h-60 border rounded-lg">
-            <p className="text-muted-foreground">
-              Conteúdo não disponível
-            </p>
-          </div>
-        );
-    }
   };
 
   return (
@@ -58,21 +27,39 @@ export function CommercialNavClient({
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList>
-          {/* Sementes */}
+        <TabsList className="mb-4">
+          {/* Seeds Tab */}
           <TabsTrigger value="seeds" className="relative">
             Sementes
           </TabsTrigger>
 
-          {/* Pecuária */}
+          {/* Livestock Tab */}
           <TabsTrigger value="livestock" className="relative">
             Pecuária
           </TabsTrigger>
         </TabsList>
-      </Tabs>
 
-      {/* Conteúdo da tab ativa */}
-      <div className="mt-4 relative">{renderTabContent()}</div>
+        {/* Contents for each tab */}
+        <TabsContent value="seeds" className="mt-0">
+          {seedsComponent || (
+            <div className="flex items-center justify-center h-60 border rounded-lg">
+              <p className="text-muted-foreground">
+                Módulo de vendas de sementes em desenvolvimento
+              </p>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="livestock" className="mt-0">
+          {livestockComponent || (
+            <div className="flex items-center justify-center h-60 border rounded-lg">
+              <p className="text-muted-foreground">
+                Módulo de vendas pecuárias em desenvolvimento
+              </p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -193,14 +193,25 @@ export type ProductionCostFormValues = z.infer<typeof productionCostFormSchema>;
 // Livestock Schema
 // =======================================
 
+// Enum para unidades de preço de animais
+export const priceUnitEnum = z.enum([
+  "CABECA", // Por cabeça (R$/cabeça)
+  "KG",     // Por quilograma (R$/kg)
+  "ARROBA", // Por arroba (R$/@)
+  "LOTE"    // Por lote (R$/lote)
+]);
+export type PriceUnit = z.infer<typeof priceUnitEnum>;
+
 // Schema for Livestock (Rebanho)
 export const livestockSchema = z.object({
   id: z.string().uuid().optional(),
   organizacao_id: z.string().uuid(),
   tipo_animal: z.string().min(1, "Tipo de animal é obrigatório"),
   categoria: z.string().min(1, "Categoria é obrigatória"),
-  quantidade: z.coerce.number().int().min(0, "Quantidade deve ser positiva"),
+  quantidade: z.coerce.number().min(0, "Quantidade deve ser positiva"),
   preco_unitario: z.coerce.number().min(0, "Preço unitário deve ser positivo"),
+  unidade_preco: priceUnitEnum.default("CABECA"),
+  numero_cabecas: z.coerce.number().int().min(0, "Número de cabeças deve ser positivo").optional(),
   propriedade_id: z.string().uuid(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),

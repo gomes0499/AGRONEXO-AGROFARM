@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontalIcon, Trash2Icon, ShieldIcon } from "lucide-react";
+import { MoreHorizontalIcon, Trash2Icon, ShieldIcon, UserIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useRouter } from "next/navigation";
 
 interface MemberActionsProps {
   associacaoId: string;
@@ -44,8 +45,13 @@ export function MemberActions({
   memberName,
   memberRole,
 }: MemberActionsProps) {
+  const router = useRouter();
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  
+  const handleViewDetails = () => {
+    router.push(`/dashboard/organization/${organizacaoId}/member/${associacaoId}`);
+  };
 
   // Para proprietários, mostrar um botão desabilitado com tooltip
   if (memberRole === UserRole.PROPRIETARIO) {
@@ -109,6 +115,12 @@ export function MemberActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={handleViewDetails}
+          >
+            <UserIcon className="mr-2 h-4 w-4" />
+            <span>Ver detalhes</span>
+          </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setIsRemoveDialogOpen(true)}
             className="text-red-600 focus:text-red-600"

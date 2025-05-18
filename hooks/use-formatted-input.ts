@@ -11,13 +11,14 @@ import {
   formatArea,
   formatSacas,
   formatNumberOnly,
+  formatRG,
   unformat,
   fetchAddressByCep,
   parseFormattedNumber,
   CepData
 } from "@/lib/utils/format";
 
-export type FormatType = "cpf" | "cnpj" | "cep" | "phone" | "money" | "area" | "sacas" | "none";
+export type FormatType = "cpf" | "cnpj" | "cep" | "phone" | "money" | "area" | "sacas" | "rg" | "none";
 
 /**
  * Interface para as opções do hook
@@ -74,6 +75,8 @@ export function useFormattedInput(options?: UseFormattedInputOptions) {
         return formatCEP(value);
       case "phone":
         return formatPhone(value);
+      case "rg":
+        return formatRG(value);
       case "money":
         return formatMoney(value);
       case "area":
@@ -135,6 +138,7 @@ export function useFormattedInput(options?: UseFormattedInputOptions) {
         case "cnpj":
         case "cep":
         case "phone":
+        case "rg":
           field.onChange(unformat(value));
           break;
         default:

@@ -33,15 +33,8 @@ import { deletePlantingArea } from "@/lib/actions/production-actions";
 import { PlantingAreaForm } from "./planting-area-form";
 import { formatArea } from "@/lib/utils/formatters";
 import { toast } from "sonner";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerClose,
-} from "@/components/ui/drawer";
+import { FormModal } from "../common/form-modal";
+import { DeleteButton } from "../common/delete-button";
 import {
   PlantingArea,
   Culture,
@@ -87,7 +80,7 @@ export function PlantingAreaList({
   const [plantingAreas, setPlantingAreas] =
     useState<PlantingArea[]>(initialPlantingAreas);
   const [editingArea, setEditingArea] = useState<PlantingArea | null>(null);
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -97,7 +90,7 @@ export function PlantingAreaList({
   // Função para editar uma área
   const handleEdit = (area: PlantingArea) => {
     setEditingArea(area);
-    setIsEditDrawerOpen(true);
+    setIsEditModalOpen(true);
   };
 
   // Função para excluir uma área
@@ -119,7 +112,7 @@ export function PlantingAreaList({
         area.id === updatedArea.id ? updatedArea : area
       )
     );
-    setIsEditDrawerOpen(false);
+    setIsEditModalOpen(false);
     setEditingArea(null);
   };
 
@@ -215,33 +208,11 @@ export function PlantingAreaList({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Excluir Área de Plantio
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir esta área de
-                                plantio? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-white hover:bg-destructive/90"
-                                onClick={() => handleDelete(area.id || "")}
-                              >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <DeleteButton
+                          title="Excluir Área de Plantio"
+                          description="Tem certeza que deseja excluir esta área de plantio? Esta ação não pode ser desfeita."
+                          onDelete={() => handleDelete(area.id || "")}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -253,40 +224,26 @@ export function PlantingAreaList({
       </Card>
 
       {/* Modal de edição */}
-      <Drawer
-        open={isEditDrawerOpen}
-        onOpenChange={setIsEditDrawerOpen}
-        direction="right"
+      <FormModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        title="Editar Área de Plantio"
+        description="Faça as alterações necessárias na área de plantio."
       >
-        <DrawerContent className="h-full max-h-none">
-          <DrawerHeader className="text-left">
-            <DrawerTitle>Editar Área de Plantio</DrawerTitle>
-            <DrawerDescription>
-              Faça as alterações necessárias na área de plantio.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 overflow-y-auto flex-1">
-            {editingArea && (
-              <PlantingAreaForm
-                properties={properties}
-                cultures={cultures}
-                systems={systems}
-                cycles={cycles}
-                harvests={harvests}
-                organizationId={organizationId}
-                plantingArea={editingArea}
-                onSuccess={handleUpdate}
-                onCancel={() => setIsEditDrawerOpen(false)}
-              />
-            )}
-          </div>
-          <DrawerFooter className="pt-2">
-            <DrawerClose asChild>
-              <Button variant="outline">Cancelar</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+        {editingArea && (
+          <PlantingAreaForm
+            properties={properties}
+            cultures={cultures}
+            systems={systems}
+            cycles={cycles}
+            harvests={harvests}
+            organizationId={organizationId}
+            plantingArea={editingArea}
+            onSuccess={handleUpdate}
+            onCancel={() => setIsEditModalOpen(false)}
+          />
+        )}
+      </FormModal>
     </div>
   );
 }

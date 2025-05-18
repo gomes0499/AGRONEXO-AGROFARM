@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PriceUnitSelector, PRICE_UNITS, QUANTIDADE_LABELS } from "../common/price-unit-selector";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -157,7 +158,7 @@ const CurrencyField = ({
                 isNegativeValue(field.value) &&
                   "text-red-600 focus:text-foreground"
               )}
-                onChange={(e) => {
+              onChange={(e) => {
                 // Allow continuous typing by preserving the raw input
                 const rawValue = e.target.value.replace(/[^\d.,\-]/g, "");
                 const numericValue = parseFormattedNumber(rawValue);
@@ -188,7 +189,7 @@ const CurrencyField = ({
                   ? formatCurrency(field.value)
                   : ""
               }
-              />
+            />
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -243,6 +244,8 @@ export function LivestockForm({
       categoria: livestock?.categoria || "",
       quantidade: livestock?.quantidade || 0,
       preco_unitario: livestock?.preco_unitario || 0,
+      unidade_preco: livestock?.unidade_preco || "CABECA",
+      numero_cabecas: livestock?.numero_cabecas || livestock?.quantidade || 0, // Usar quantidade como fallback
       propriedade_id: livestock?.propriedade_id || "",
     },
   });
@@ -283,6 +286,16 @@ export function LivestockForm({
       if (form.watch("categoria") === "Outro") {
         values.categoria = outraCategoria;
       }
+      
+      // Garantir que número de cabeças seja salvo corretamente
+      if (values.unidade_preco === "CABECA") {
+        // Se for em cabeças, a quantidade é o número de cabeças
+        values.numero_cabecas = values.quantidade;
+      } else if (!values.numero_cabecas || values.numero_cabecas === 0) {
+        // Se não tiver número de cabeças definido, tentar usar um valor sensato
+        // Este é um fallback para registros antigos que não têm esta informação
+        values.numero_cabecas = 1;
+      }
 
       if (isEditing && livestock?.id) {
         // Atualizar item existente
@@ -310,9 +323,9 @@ export function LivestockForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-2">
             <FormField
               control={form.control}
               name="tipo_animal"
@@ -418,33 +431,24 @@ export function LivestockForm({
             />
           </div>
 
-          <Separator className="my-4" />
+          <Separator className="my-3" />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-3">
             <FormField
               control={form.control}
-              name="quantidade"
+              name="unidade_preco"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-medium">
-                    Quantidade
+                    Unidade de Preço
                   </FormLabel>
                   <FormDescription className="text-xs text-muted-foreground mt-0 mb-1.5">
-                    Número de cabeças
+                    Como o preço é calculado
                   </FormDescription>
                   <FormControl>
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="Quantidade de animais"
-                      {...field}
-                      onChange={(e) => {
-                        const value = e.target.value
-                          ? Number.parseInt(e.target.value)
-                          : 0;
-                        field.onChange(value);
-                      }}
+                    <PriceUnitSelector
                       value={field.value}
+                      onChange={field.onChange}
                       disabled={isSubmitting}
                       className="w-full"
                     />
@@ -453,15 +457,76 @@ export function LivestockForm({
                 </FormItem>
               )}
             />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="quantidade"
+                render={({ field }) => {
+                  // Obter configuração baseada na unidade de preço
+                  const unidadePreco = form.watch("unidade_preco") as keyof typeof QUANTIDADE_LABELS;
+                  const config = QUANTIDADE_LABELS[unidadePreco] || QUANTIDADE_LABELS.CABECA;
+                  
+                  // Quando a unidade muda, atualizamos os valores relacionados
+                  useEffect(() => {
+                    // Se mudar de CABECA para outra unidade, guarde o número de cabeças original
+                    if (unidadePreco !== "CABECA") {
+                      const valorAtual = form.getValues("numero_cabecas");
+                      if (!valorAtual || valorAtual === 0) {
+                        form.setValue("numero_cabecas", field.value);
+                      }
+                    }
+                    
+                    // Se mudar para CABECA, restaure o número de cabeças
+                    if (unidadePreco === "CABECA") {
+                      const cabecas = form.getValues("numero_cabecas");
+                      if (cabecas && cabecas > 0) {
+                        field.onChange(cabecas);
+                      }
+                    }
+                  }, [unidadePreco]);
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        {config.label}
+                      </FormLabel>
+                      <FormDescription className="text-xs text-muted-foreground mt-0 mb-1.5">
+                        {config.description}
+                      </FormDescription>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step={unidadePreco === "KG" ? "0.1" : "1"}
+                          placeholder={config.placeholder}
+                          {...field}
+                          onChange={(e) => {
+                            const value = e.target.value
+                              ? parseFloat(e.target.value)
+                              : 0;
+                            field.onChange(value);
+                          }}
+                          value={field.value}
+                          disabled={isSubmitting}
+                          className="w-full"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
 
-            <CurrencyField
-              name="preco_unitario"
-              label="Preço Unitário (R$)"
-              control={form.control}
-              placeholder="Valor por animal"
-              description="Preço por cabeça em R$"
-              disabled={isSubmitting}
-            />
+              <CurrencyField
+                name="preco_unitario"
+                label="Preço Unitário (R$)"
+                control={form.control}
+                placeholder="Valor por unidade"
+                description="Preço unitário conforme unidade selecionada"
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
 
           {totalValue > 0 && (
@@ -474,8 +539,20 @@ export function LivestockForm({
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Calculado com base na quantidade e preço unitário
+                  {form.watch("unidade_preco") === "CABECA" 
+                    ? `${form.watch("quantidade") || 0} ${form.watch("quantidade") === 1 ? "animal" : "animais"} × ${formatCurrency(form.watch("preco_unitario") || 0)}`
+                    : form.watch("unidade_preco") === "KG" 
+                      ? `${form.watch("quantidade") || 0} kg × ${formatCurrency(form.watch("preco_unitario") || 0)}/kg`
+                      : form.watch("unidade_preco") === "ARROBA" 
+                        ? `${form.watch("quantidade") || 0} @ × ${formatCurrency(form.watch("preco_unitario") || 0)}/@`
+                        : `${form.watch("quantidade") || 0} ${form.watch("quantidade") === 1 ? "lote" : "lotes"} × ${formatCurrency(form.watch("preco_unitario") || 0)}`
+                  }
                 </p>
+                {form.watch("unidade_preco") !== "CABECA" && form.watch("numero_cabecas") > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Total de {form.watch("numero_cabecas")} {form.watch("numero_cabecas") === 1 ? "cabeça" : "cabeças"}
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
