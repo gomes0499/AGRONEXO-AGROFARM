@@ -8,15 +8,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
-import { Sale } from "@/hooks/use-financial-calculations";
+import { SeedSale, LivestockSale } from "@/schemas/commercial";
 
+// Recebemos qualquer tipo de venda
 interface SalesActionsCellProps {
-  sale: Sale;
-  onEdit: (sale: Sale) => void;
-  onDelete: (sale: Sale) => void;
+  sale: SeedSale | LivestockSale;
+  onEdit: (sale: any) => void;
+  onDelete: (sale: any) => void;
 }
 
-export function SalesActionsCell({ sale, onEdit, onDelete }: SalesActionsCellProps) {
+export function SalesActionsCell(props: SalesActionsCellProps) {
+  // Evitar desestruturação
+  const sale = props.sale;
+  const onEdit = props.onEdit;
+  const onDelete = props.onDelete;
+
+  // Handlers locais para evitar inline functions
+  function handleEdit() {
+    if (onEdit && sale) {
+      onEdit(sale);
+    }
+  }
+
+  function handleDelete() {
+    if (onDelete && sale) {
+      onDelete(sale);
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -26,14 +45,11 @@ export function SalesActionsCell({ sale, onEdit, onDelete }: SalesActionsCellPro
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onEdit(sale)}>
+        <DropdownMenuItem onClick={handleEdit}>
           <Edit className="mr-2 h-4 w-4" />
           Editar
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => onDelete(sale)}
-          className="text-destructive"
-        >
+        <DropdownMenuItem onClick={handleDelete} className="text-destructive">
           <Trash2 className="mr-2 h-4 w-4" />
           Excluir
         </DropdownMenuItem>
