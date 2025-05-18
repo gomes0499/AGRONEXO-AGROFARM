@@ -84,11 +84,6 @@ interface SicarData {
     percentual: number;
     poligono: null;
   };
-  area_pousio?: {
-    area: number;
-    percentual: number;
-    poligono: null;
-  };
   area_protegida?: {
     area: number;
     percentual: number;
@@ -111,7 +106,30 @@ interface SicarData {
       };
     } | null;
   };
+  // Solo - dados do demonstrativo
+  solo?: {
+    area_nativa: number;
+    area_uso: number;
+    area_servidao_administrativa: number;
+  };
 
+  // Campos específicos da API InfoSimples
+  area_preservacao_permanente?: number;
+  area_preservacao_permanente_area_remanescente_vegetacao_nativa?: number;
+  area_preservacao_permanente_area_rural_consolidada?: number;
+  area_uso_restrito?: number;
+  regularidade_ambiental?: {
+    passivo_excedente_reserva_legal: number;
+    area_reserva_legal_recompor: number;
+    area_preservacao_permanente_recompor: number;
+  };
+  reserva_situacao?: string;
+  reserva_justificativa?: string | null;
+  reserva_area_averbada?: number;
+  reserva_area_nao_averbada?: number;
+  reserva_area_legal_proposta?: number;
+  reserva_area_legal_declarada?: number;
+  
   // Coordenadas
   coordenadas: {
     centro: [number, number];
@@ -262,7 +280,13 @@ export function PropertyMap({ property }: PropertyMapProps) {
         features: [
           {
             ...sicarData.poligono_imovel,
-            properties: { tipo: "imovel" },
+            properties: { 
+              tipo: "imovel",
+              car: sicarData.car,
+              area: sicarData.area_imovel,
+              municipio: sicarData.municipio,
+              estado: sicarData.estado
+            },
           },
         ],
       };
@@ -274,7 +298,11 @@ export function PropertyMap({ property }: PropertyMapProps) {
         features: [
           {
             ...sicarData.reserva_legal.poligono,
-            properties: { tipo: "reserva" },
+            properties: { 
+              tipo: "reserva",
+              area: sicarData.reserva_legal.area,
+              percentual: sicarData.reserva_legal.percentual
+            },
           },
         ],
       };
@@ -286,7 +314,11 @@ export function PropertyMap({ property }: PropertyMapProps) {
         features: [
           {
             ...sicarData.app.poligono,
-            properties: { tipo: "app" },
+            properties: { 
+              tipo: "app",
+              area: sicarData.app.area,
+              percentual: sicarData.app.percentual
+            },
           },
         ],
       };
@@ -304,15 +336,29 @@ export function PropertyMap({ property }: PropertyMapProps) {
       const features = [
         {
           ...sicarData.poligono_imovel,
-          properties: { tipo: "imovel" },
+          properties: { 
+            tipo: "imovel",
+            car: sicarData.car,
+            area: sicarData.area_imovel,
+            municipio: sicarData.municipio,
+            estado: sicarData.estado
+          },
         },
         {
           ...sicarData.reserva_legal.poligono,
-          properties: { tipo: "reserva" },
+          properties: { 
+            tipo: "reserva",
+            area: sicarData.reserva_legal.area,
+            percentual: sicarData.reserva_legal.percentual
+          },
         },
         {
           ...sicarData.app.poligono,
-          properties: { tipo: "app" },
+          properties: { 
+            tipo: "app",
+            area: sicarData.app.area,
+            percentual: sicarData.app.percentual
+          },
         },
       ];
 
@@ -647,6 +693,21 @@ export function PropertyMap({ property }: PropertyMapProps) {
                         </div>
                       </div>
                     )}
+                    
+                    {/* Vegetação Nativa (se disponível do InfoSimples) */}
+                    {sicarData.area_preservacao_permanente_area_remanescente_vegetacao_nativa && (
+                      <div className="mt-2">
+                        <p className="text-sm font-medium">
+                          Vegetação Nativa Remanescente
+                        </p>
+                        <p className="text-base">
+                          {Number(String(sicarData.area_preservacao_permanente_area_remanescente_vegetacao_nativa || 0))
+                            .toFixed(2)
+                            .replace(".", ",")}{" "}
+                          ha
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="sm:text-right">
@@ -664,6 +725,33 @@ export function PropertyMap({ property }: PropertyMapProps) {
                     <p className="text-xs text-muted-foreground mt-1">
                       Tipo: {sicarData.tipo || "-"}
                     </p>
+
+                    {/* Informações de regularidade ambiental */}
+                    {sicarData.regularidade_ambiental && (
+                      <div className="mt-4 text-left sm:text-right">
+                        <p className="text-sm font-medium">Regularidade Ambiental</p>
+                        {sicarData.reserva_situacao && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Situação da Reserva: <span className="font-medium">{sicarData.reserva_situacao}</span>
+                          </p>
+                        )}
+                        {sicarData.regularidade_ambiental.area_reserva_legal_recompor > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Reserva a Recompor: {sicarData.regularidade_ambiental.area_reserva_legal_recompor.toFixed(2).replace('.', ',')} ha
+                          </p>
+                        )}
+                        {sicarData.regularidade_ambiental.area_preservacao_permanente_recompor > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            APP a Recompor: {sicarData.regularidade_ambiental.area_preservacao_permanente_recompor.toFixed(2).replace('.', ',')} ha
+                          </p>
+                        )}
+                        {sicarData.reserva_area_averbada > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Reserva Averbada: {sicarData.reserva_area_averbada.toFixed(2).replace('.', ',')} ha
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Informações de cultivo */}
                     <div className="mt-4 text-left sm:text-right">
@@ -721,28 +809,6 @@ export function PropertyMap({ property }: PropertyMapProps) {
                         </div>
                       )}
 
-                      {/* Área em Pousio */}
-                      {sicarData.area_pousio && (
-                        <div className="mt-1">
-                          <p className="text-base">
-                            <span className="font-medium">Em Pousio:</span>{" "}
-                            {Number(String(sicarData.area_pousio.area || 0))
-                              .toFixed(2)
-                              .replace(".", ",")}{" "}
-                            ha
-                          </p>
-                          <div className="flex items-center gap-1 justify-end">
-                            <p className="text-xs text-muted-foreground">
-                              {Number(
-                                String(sicarData.area_pousio.percentual || 0)
-                              )
-                                .toFixed(2)
-                                .replace(".", ",")}
-                              % da área total
-                            </p>
-                          </div>
-                        </div>
-                      )}
 
                       {/* Ocupação e Área Cultivável */}
                       {sicarData.estatisticas && (

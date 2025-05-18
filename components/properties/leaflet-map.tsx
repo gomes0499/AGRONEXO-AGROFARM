@@ -216,10 +216,18 @@ export function LeafletMap({
                 fillOpacity: 0.5,
                 dashArray: "10, 5", // linha tracejada larga para destacar área cultivável
               };
-            } else {
+            } else if (feature.properties.tipo === "imovel") {
               return {
                 color: "#4338ca", // roxo para área do imóvel
                 weight: 3,
+                opacity: 0.9,
+                fillColor: "#4338ca",
+                fillOpacity: 0.1,
+              };
+            } else {
+              return {
+                color: "#4338ca", // roxo padrão
+                weight: 3, 
                 opacity: 0.9,
                 fillColor: "#4338ca",
                 fillOpacity: 0.1,
@@ -244,12 +252,24 @@ export function LeafletMap({
 
             if (feature.properties.tipo === "reserva") {
               popupContent = "<strong>Reserva Legal</strong>";
+              if (feature.properties.area) {
+                popupContent += `<br>Área: ${Number(feature.properties.area).toFixed(2).replace(".", ",")} ha`;
+              }
             } else if (feature.properties.tipo === "app") {
               popupContent = "<strong>Área de Preservação Permanente</strong>";
+              if (feature.properties.area) {
+                popupContent += `<br>Área: ${Number(feature.properties.area).toFixed(2).replace(".", ",")} ha`;
+              }
             } else if (feature.properties.tipo === "vegetacao") {
               popupContent = "<strong>Vegetação Nativa</strong>";
+              if (feature.properties.area) {
+                popupContent += `<br>Área: ${Number(feature.properties.area).toFixed(2).replace(".", ",")} ha`;
+              }
             } else if (feature.properties.tipo === "consolidada") {
               popupContent = "<strong>Área Consolidada</strong>";
+              if (feature.properties.area) {
+                popupContent += `<br>Área: ${Number(feature.properties.area).toFixed(2).replace(".", ",")} ha`;
+              }
             } else if (feature.properties.tipo === "cultivavel") {
               // Se temos informações sobre a área no próprio Feature
               if (feature.properties.area && feature.properties.percentual) {
@@ -263,6 +283,15 @@ export function LeafletMap({
               }
             } else if (feature.properties.tipo === "imovel") {
               popupContent = "<strong>Área do Imóvel Rural</strong>";
+              if (feature.properties.car) {
+                popupContent += `<br>CAR: ${feature.properties.car}`;
+              }
+              if (feature.properties.area) {
+                popupContent += `<br>Área: ${Number(feature.properties.area).toFixed(4).replace(".", ",")} ha`;
+              }
+              if (feature.properties.municipio) {
+                popupContent += `<br>Município: ${feature.properties.municipio}`;
+              }
             }
 
             if (popupContent) {

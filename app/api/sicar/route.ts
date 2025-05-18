@@ -15,7 +15,6 @@ interface GeometriaMultiPolygon {
 // Tipo união para diferentes geometrias
 type Geometria = GeometriaPolygon | GeometriaMultiPolygon;
 
-
 // Interface para estatísticas do CAR
 interface Estatisticas {
   area_total: number
@@ -61,6 +60,67 @@ interface DadosCAR {
   classe_imovel?: string;
 }
 
+// Interface para os dados da API InfoSimples
+interface InfoSimplesImovelResponse {
+  code: number;
+  code_message: string;
+  data: Array<{
+    area: number;
+    car: string;
+    coordenadas: number[][];
+    municipio: string;
+    status: string;
+    tipo: string;
+  }>;
+  errors: any[];
+}
+
+interface InfoSimplesDemonstrativoResponse {
+  code: number;
+  code_message: string;
+  data: Array<{
+    area_preservacao_permanente: number;
+    area_preservacao_permanente_area_remanescente_vegetacao_nativa: number;
+    area_preservacao_permanente_area_rural_consolidada: number;
+    area_uso_restrito: number;
+    car: string;
+    condicao_cadastro: string;
+    imovel: {
+      area: number;
+      modulos_fiscais: number;
+      endereco_municipio: string;
+      endereco_uf: string;
+      endereco_latitude: string;
+      endereco_longitude: string;
+      registro_data: string;
+      analise_data: string | null;
+      retificacao_data: string;
+    };
+    regularidade_ambiental: {
+      passivo_excedente_reserva_legal: number;
+      area_reserva_legal_recompor: number;
+      area_preservacao_permanente_recompor: number;
+    };
+    reserva: {
+      situacao: string;
+      justificativa: string | null;
+      area_averbada: number;
+      area_nao_averbada: number;
+      area_legal_proposta: number;
+      area_legal_declarada: number;
+    };
+    restricoes: any[];
+    situacao: string;
+    solo: {
+      area_nativa: number;
+      area_uso: number;
+      area_servidao_administrativa: number;
+    };
+    site_receipt: string;
+  }>;
+  errors: any[];
+}
+
 export async function GET(request: Request) {
   const session = await getSession();
   
@@ -84,132 +144,110 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Dados fixos para teste - substituindo a chamada à API externa
-    const rawData = {
-      "codigo_car": "BA-2933455-07DE4C04FC994BAC9D2A3ABE19C0A6B1",
-      "estado": "BA",
-      "municipio": "Wanderley",
-      "estatisticas": {
-        "area_total": 83.89683171042174,
-        "reserva_legal": 4.580004901657653,
-        "area_cultivo_total": 56.36962281957116,
-        "area_cultivo_ativa": 42.77517431816566,
-        "area_pousio": 13.594448501405502,
-        "area_protegida": 29.09138704425551,
-        "area_cultivavel_teorica": 54.805444666166224,
-        "recursos_hidricos": 2.434130821467923,
-        "percentual_ocupacao": 67.18921521868253,
-        "percentual_reserva_legal": 5.459091610832213,
-        "percentual_area_protegida": 34.6751914835918
+    // Buscar token da API InfoSimples do ambiente
+    const token = process.env.INFO_SIMPLES_TOKEN;
+    if (!token) {
+      throw new Error('Token da API InfoSimples não configurado');
+    }
+
+    // Buscar dados do imóvel na API InfoSimples
+    const imovelResponse = await fetch('https://api.infosimples.com/api/v2/consultas/car/imovel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      "geometrias": {
-        "geometria_total": {
-          "type": "MultiPolygon",
-          "coordinates": [
-            [[
-              [-43.8263726234436, -11.805375705573574],
-              [-43.83426904678345, -11.802519173390817],
-              [-43.83450508117676, -11.796322916748823],
-              [-43.829419612884514, -11.794453510143265],
-              [-43.82439851760864, -11.796364925739704],
-              [-43.8263726234436, -11.805375705573574]
-            ]]
-          ]
-        },
-        "geometria_reserva": {
-          "type": "MultiPolygon",
-          "coordinates": [
-            [[
-              [-43.8281966243818, -11.803650297872142],
-              [-43.82946120523308, -11.804258410704618],
-              [-43.82823944091797, -11.803611380386752],
-              [-43.8281966243818, -11.803650297872142]
-            ]],
-            [[
-              [-43.82948187845731, -11.804250932163031],
-              [-43.83285909913576, -11.803029222137988],
-              [-43.827595710754395, -11.802393149226702],
-              [-43.82948187845731, -11.804250932163031]
-            ]]
-          ]
-        },
-        "geometria_hidrica": {
-          "type": "MultiPolygon",
-          "coordinates": [
-            [[
-              [-43.83448362350464, -11.79682702421471],
-              [-43.83377552032471, -11.796322916748823],
-              [-43.834054470062256, -11.796700997435087],
-              [-43.83448362350464, -11.79682702421471]
-            ]],
-            [[
-              [-43.82725238800049, -11.805102655989696],
-              [-43.82823944091797, -11.803611380386752],
-              [-43.82952690124512, -11.80432551337779],
-              [-43.82896900177002, -11.803401340917732],
-              [-43.82811069488525, -11.80346435277533],
-              [-43.82744550704955, -11.80407346665218],
-              [-43.82725238800049, -11.805102655989696]
-            ]],
-            [[
-              [-43.83270465402896, -11.799518113026151],
-              [-43.83323967038744, -11.798322599811902],
-              [-43.8332195061826, -11.797794309394455],
-              [-43.833941752275415, -11.797782719412227],
-              [-43.83339266477481, -11.797842912355408],
-              [-43.8332604705493, -11.798437664244377],
-              [-43.832830382599866, -11.799494529473973],
-              [-43.833522286345854, -11.802961304026272],
-              [-43.832876158550164, -11.79949688375149],
-              [-43.83452038021349, -11.797734778159777],
-              [-43.83317984997008, -11.79775678833994],
-              [-43.83265922407133, -11.799510855706519],
-              [-43.833393884967286, -11.802919226684974],
-              [-43.83270465402896, -11.799518113026151]
-            ]]
-          ]
-        }
+      body: new URLSearchParams({
+        token,
+        car: numeroCAR
+      })
+    });
+
+    if (!imovelResponse.ok) {
+      throw new Error(`Erro ao buscar dados do imóvel: ${imovelResponse.statusText}`);
+    }
+
+    const imovelData: InfoSimplesImovelResponse = await imovelResponse.json();
+    
+    if (imovelData.code !== 200 || !imovelData.data || imovelData.data.length === 0) {
+      throw new Error(imovelData.code_message || 'Não foi possível obter dados do imóvel');
+    }
+
+    // Buscar dados do demonstrativo na API InfoSimples
+    const demonstrativoResponse = await fetch('https://api.infosimples.com/api/v2/consultas/car/demonstrativo', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        token,
+        car: numeroCAR
+      })
+    });
+
+    if (!demonstrativoResponse.ok) {
+      throw new Error(`Erro ao buscar dados do demonstrativo: ${demonstrativoResponse.statusText}`);
+    }
+
+    const demonstrativoData: InfoSimplesDemonstrativoResponse = await demonstrativoResponse.json();
+    
+    if (demonstrativoData.code !== 200 || !demonstrativoData.data || demonstrativoData.data.length === 0) {
+      throw new Error(demonstrativoData.code_message || 'Não foi possível obter dados do demonstrativo');
+    }
+
+    // Extrair dados das respostas
+    const imovel = imovelData.data[0];
+    const demonstrativo = demonstrativoData.data[0];
+
+    // Converter coordenadas da API para formato GeoJSON MultiPolygon
+    const coordenadasToGeoJsonPolygon = (coordenadas: number[][]): GeometriaMultiPolygon => {
+      return {
+        type: 'MultiPolygon',
+        coordinates: [
+          [coordenadas]
+        ]
+      };
+    };
+
+    // Como a API não fornece polígonos separados para reserva legal e APP,
+    // vamos criar geometrias estimadas baseadas na área total
+    const geometriaTotal = coordenadasToGeoJsonPolygon(imovel.coordenadas);
+    
+    // Criar dados no formato esperado pelo aplicativo
+    const data: DadosCAR = {
+      codigo_car: imovel.car,
+      municipio: imovel.municipio,
+      estado: demonstrativo.imovel.endereco_uf,
+      mod_fiscal: demonstrativo.imovel.modulos_fiscais,
+      ind_status: demonstrativo.situacao,
+      ind_tipo: imovel.tipo,
+      des_condic: demonstrativo.condicao_cadastro,
+      dat_criaca: demonstrativo.imovel.registro_data,
+      dat_atuali: demonstrativo.imovel.retificacao_data,
+      situacao_imovel: demonstrativo.situacao,
+      
+      // Construir estatísticas a partir dos dados do demonstrativo
+      estatisticas: {
+        area_total: demonstrativo.imovel.area,
+        reserva_legal: demonstrativo.reserva.area_legal_declarada,
+        area_cultivo_total: demonstrativo.solo.area_uso,
+        area_cultivo_ativa: demonstrativo.solo.area_uso,
+        area_pousio: 0, // Não fornecido diretamente pela API
+        area_protegida: demonstrativo.area_preservacao_permanente,
+        area_cultivavel_teorica: demonstrativo.solo.area_uso,
+        recursos_hidricos: demonstrativo.area_preservacao_permanente,
+        percentual_ocupacao: (demonstrativo.solo.area_uso / demonstrativo.imovel.area) * 100,
+        percentual_reserva_legal: (demonstrativo.reserva.area_legal_declarada / demonstrativo.imovel.area) * 100,
+        percentual_area_protegida: (demonstrativo.area_preservacao_permanente / demonstrativo.imovel.area) * 100
+      },
+      
+      // Construir geometrias a partir das coordenadas do imóvel
+      geometrias: {
+        geometria_total: geometriaTotal,
+        // Criar geometrias aproximadas para reserva e APP (já que a API não fornece polígonos separados)
+        geometria_reserva: geometriaTotal,
+        geometria_hidrica: geometriaTotal
       }
     };
-    
-    // Verificar se os dados recebidos seguem a estrutura esperada
-    // console.log("Dados recebidos da API SICAR:", JSON.stringify(rawData));
-    
-    // Garantir que temos as propriedades esperadas com valores padrão se não existirem
-    const data = {
-      codigo_car: rawData.codigo_car || "",
-      municipio: rawData.municipio || "",
-      estado: rawData.estado || "",
-      estatisticas: rawData.estatisticas || {
-        area_total: 0,
-        reserva_legal: 0,
-        area_cultivo_total: 0,
-        area_cultivo_ativa: 0,
-        area_pousio: 0,
-        area_protegida: 0,
-        area_cultivavel_teorica: 0,
-        recursos_hidricos: 0,
-        percentual_ocupacao: 0,
-        percentual_reserva_legal: 0,
-        percentual_area_protegida: 0
-      },
-      geometrias: rawData.geometrias || {
-        geometria_total: { type: 'MultiPolygon', coordinates: [] },
-        geometria_reserva: { type: 'MultiPolygon', coordinates: [] },
-        geometria_hidrica: { type: 'MultiPolygon', coordinates: [] }
-      }
-    } as DadosCAR;
-
-    // Adicione os campos opcionais explicitamente se existirem em rawData
-    if ('ind_status' in rawData) data.ind_status = rawData.ind_status as string;
-    if ('ind_tipo' in rawData) data.ind_tipo = rawData.ind_tipo as string;
-    if ('des_condic' in rawData) data.des_condic = rawData.des_condic as string;
-    if ('mod_fiscal' in rawData) data.mod_fiscal = rawData.mod_fiscal as number;
-    if ('dat_criaca' in rawData) data.dat_criaca = rawData.dat_criaca as string;
-    if ('dat_atuali' in rawData) data.dat_atuali = rawData.dat_atuali as string;
-    if ('nome_imovel' in rawData) data.nome_imovel = rawData.nome_imovel as string;
-    if ('situacao_imovel' in rawData) data.situacao_imovel = rawData.situacao_imovel as string;
-    if ('classe_imovel' in rawData) data.classe_imovel = rawData.classe_imovel as string;
 
     // Extrair valores com segurança usando operador opcional ?. e garantindo valores padrão
     const areaTotal = data.estatisticas?.area_total || 0;
@@ -224,9 +262,9 @@ export async function GET(request: Request) {
         const reservaLegal = estatisticas.reserva_legal || 0;
         const recursosHidricos = estatisticas.recursos_hidricos || 0; // APP
         
-        // Alguns valores podem não estar disponíveis na API, então usamos valores padrão
-        const vegetacaoNativa = estatisticas.vegetacao_nativa || 0;
-        const usoRestrito = estatisticas.uso_restrito || 0;
+        // Alguns valores do demonstrativo da API
+        const vegetacaoNativa = demonstrativo.solo.area_nativa || 0;
+        const usoRestrito = demonstrativo.area_uso_restrito || 0;
         
         // Calculamos a área cultivável
         let areaCultivavel = areaTotal - (reservaLegal + recursosHidricos + usoRestrito + vegetacaoNativa);
@@ -234,9 +272,9 @@ export async function GET(request: Request) {
         // Garantimos que não seja negativa
         areaCultivavel = Math.max(0, areaCultivavel);
         
-        // Se temos uma área cultivável teórica já calculada pela API, podemos usar ela também
+        // Se temos uma área cultivável teórica já calculada, podemos usar ela também
         if (estatisticas.area_cultivavel_teorica && estatisticas.area_cultivavel_teorica > 0) {
-          // Podemos usar a média entre o nosso cálculo e o valor teórico da API
+          // Podemos usar a média entre o nosso cálculo e o valor teórico 
           return (areaCultivavel + estatisticas.area_cultivavel_teorica) / 2;
         }
         
@@ -308,8 +346,8 @@ export async function GET(request: Request) {
       
       // Dados de reserva legal
       reserva_legal: {
-        area: data.estatisticas?.reserva_legal || 0,
-        percentual: data.estatisticas?.percentual_reserva_legal || 0,
+        area: demonstrativo.reserva.area_legal_declarada || 0,
+        percentual: (demonstrativo.reserva.area_legal_declarada / demonstrativo.imovel.area) * 100 || 0,
         poligono: {
           type: "Feature",
           geometry: data.geometrias?.geometria_reserva || { type: 'Polygon', coordinates: [[]] }
@@ -318,8 +356,8 @@ export async function GET(request: Request) {
       
       // Área de Preservação Permanente (Recursos Hídricos)
       app: {
-        area: data.estatisticas?.recursos_hidricos || 0,
-        percentual: areaTotal > 0 ? ((data.estatisticas?.recursos_hidricos || 0) / areaTotal) * 100 : 0,
+        area: demonstrativo.area_preservacao_permanente || 0,
+        percentual: (demonstrativo.area_preservacao_permanente / demonstrativo.imovel.area) * 100 || 0,
         poligono: {
           type: "Feature",
           geometry: data.geometrias?.geometria_hidrica || { type: 'Polygon', coordinates: [[]] }
@@ -328,8 +366,8 @@ export async function GET(request: Request) {
       
       // Área de Cultivo Ativa
       area_cultivo: {
-        area: data.estatisticas?.area_cultivo_ativa || 0,
-        percentual: areaTotal > 0 ? ((data.estatisticas?.area_cultivo_ativa || 0) / areaTotal) * 100 : 0,
+        area: demonstrativo.solo.area_uso || 0,
+        percentual: (demonstrativo.solo.area_uso / demonstrativo.imovel.area) * 100 || 0,
         // Vamos usar a área calculada, mas ainda sem geometria específica
         poligono: null 
       },
@@ -343,30 +381,40 @@ export async function GET(request: Request) {
         poligono: criarPoligonoAreaCultivavel(data.geometrias, data.estatisticas)
       },
       
-      // Área de Pousio
-      area_pousio: {
-        area: data.estatisticas?.area_pousio || 0,
-        percentual: areaTotal > 0 ? ((data.estatisticas?.area_pousio || 0) / areaTotal) * 100 : 0,
-        poligono: null // Não temos a geometria desta área
-      },
       
-      // Área Protegida
+      // Área Nativa (vegetação nativa)
       area_protegida: {
-        area: data.estatisticas?.area_protegida || 0,
-        percentual: data.estatisticas?.percentual_area_protegida || 0,
-        poligono: null // Não temos a geometria específica desta área
+        area: demonstrativo.solo.area_nativa || 0,
+        percentual: (demonstrativo.solo.area_nativa / demonstrativo.imovel.area) * 100 || 0,
+        poligono: null
       },
       
-      // Coordenadas do centro: calcular a partir do polígono principal com verificação de segurança
+      // Coordenadas do centro: calcular a partir do polígono principal
       coordenadas: {
         centro: calcularCentroPoligonoSeguro(data.geometrias?.geometria_total)
       },
       
-      // Adicionar estatísticas gerais
+      // Adicionar estatísticas adicionais do demonstrativo
       estatisticas: {
-        percentual_ocupacao: data.estatisticas?.percentual_ocupacao || 0,
-        area_cultivavel_teorica: data.estatisticas?.area_cultivavel_teorica || 0
-      }
+        percentual_ocupacao: (demonstrativo.solo.area_uso / demonstrativo.imovel.area) * 100 || 0,
+        area_cultivavel_teorica: demonstrativo.solo.area_uso || 0
+      },
+      
+      // Adicionar dados específicos da API InfoSimples
+      area_preservacao_permanente: demonstrativo.area_preservacao_permanente,
+      area_preservacao_permanente_area_remanescente_vegetacao_nativa: demonstrativo.area_preservacao_permanente_area_remanescente_vegetacao_nativa,
+      area_preservacao_permanente_area_rural_consolidada: demonstrativo.area_preservacao_permanente_area_rural_consolidada,
+      area_uso_restrito: demonstrativo.area_uso_restrito,
+      regularidade_ambiental: demonstrativo.regularidade_ambiental,
+      reserva_situacao: demonstrativo.reserva.situacao,
+      reserva_justificativa: demonstrativo.reserva.justificativa,
+      reserva_area_averbada: demonstrativo.reserva.area_averbada,
+      reserva_area_nao_averbada: demonstrativo.reserva.area_nao_averbada,
+      reserva_area_legal_proposta: demonstrativo.reserva.area_legal_proposta,
+      reserva_area_legal_declarada: demonstrativo.reserva.area_legal_declarada,
+      
+      // Adicionar dados do solo
+      solo: demonstrativo.solo
     };
 
     return NextResponse.json(formattedData);
