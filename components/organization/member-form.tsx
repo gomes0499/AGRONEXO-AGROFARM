@@ -23,13 +23,6 @@ import {
 } from "lucide-react";
 import { UserRole } from "@/lib/auth/roles";
 import { createMemberAccount } from "@/lib/actions/invitation-actions";
-import { fetchAddressByCep } from "@/lib/utils/format";
-import {
-  formatCPF,
-  formatRG,
-  formatCEP,
-  formatPhone,
-} from "@/lib/utils/format";
 
 import {
   Form,
@@ -50,7 +43,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/datepicker";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";

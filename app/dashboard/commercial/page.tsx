@@ -68,7 +68,6 @@ export default async function CommercialDashboardPage() {
     }),
   ]);
 
-  // Processar os resultados com tratamento de erros adequado
   const latestPrice =
     Array.isArray(pricesResponse) && pricesResponse.length > 0
       ? pricesResponse[0]

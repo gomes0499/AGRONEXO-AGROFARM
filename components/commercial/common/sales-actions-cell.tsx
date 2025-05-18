@@ -12,8 +12,8 @@ import { SeedSale, LivestockSale } from "@/schemas/commercial";
 
 interface SalesActionsCellProps {
   sale: SeedSale | LivestockSale;
-  onEdit: (sale: any) => void;
-  onDelete: (sale: any) => void;
+  onEdit: (sale: SeedSale | LivestockSale) => void;
+  onDelete: (sale: SeedSale | LivestockSale) => void;
 }
 
 export function SalesActionsCell(props: SalesActionsCellProps) {

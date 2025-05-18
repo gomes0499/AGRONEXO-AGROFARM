@@ -7,10 +7,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
 
-  // typescript: {
-  //   ignoreBuildErrors: true,
-  // },
-
   images: {
     remotePatterns: [
       {
@@ -18,6 +14,12 @@ const nextConfig: NextConfig = {
         hostname: "**.supabase.co",
       },
     ],
+  },
+
+  // Desabilita a minificação para debug
+  webpack(config, { dev, isServer }) {
+    config.optimization.minimize = false;
+    return config;
   },
 };
 
