@@ -26,7 +26,6 @@ interface SeedSalesTableProps {
 }
 
 export function SeedSalesTable(props: SeedSalesTableProps) {
-  // Extrair props diretamente
   const sales = props.sales || [];
   const onEdit = props.onEdit;
   const onDelete = props.onDelete;
@@ -34,7 +33,6 @@ export function SeedSalesTable(props: SeedSalesTableProps) {
   const properties = props.properties || [];
   const harvests = props.harvests || [];
 
-  // Obter funções de cálculo financeiro
   const financialCalculations = useFinancialCalculations();
   const calculateProfit = financialCalculations.calculateProfit;
   const calculateProfitMargin = financialCalculations.calculateProfitMargin;

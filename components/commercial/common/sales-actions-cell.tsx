@@ -10,7 +10,6 @@ import {
 import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import { SeedSale, LivestockSale } from "@/schemas/commercial";
 
-// Recebemos qualquer tipo de venda
 interface SalesActionsCellProps {
   sale: SeedSale | LivestockSale;
   onEdit: (sale: any) => void;
@@ -18,12 +17,10 @@ interface SalesActionsCellProps {
 }
 
 export function SalesActionsCell(props: SalesActionsCellProps) {
-  // Evitar desestruturação
   const sale = props.sale;
   const onEdit = props.onEdit;
   const onDelete = props.onDelete;
 
-  // Handlers locais para evitar inline functions
   function handleEdit() {
     if (onEdit && sale) {
       onEdit(sale);

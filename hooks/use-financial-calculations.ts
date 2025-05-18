@@ -18,7 +18,6 @@ export interface FinancialSummary {
 }
 
 export function useFinancialCalculations() {
-  // Calculando a receita operacional líquida
   const calculateNetRevenue = (sale: Sale) => {
     const salesDeductions =
       sale.impostos_vendas + sale.comissao_vendas + sale.logistica_entregas;

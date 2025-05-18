@@ -23,14 +23,13 @@ interface LivestockSalesTableProps {
   harvests: Harvest[];
 }
 
-export function LivestockSalesTable(props: LivestockSalesTableProps) {
-  // Extrair props diretamente
-  const sales = props.sales || [];
-  const onEdit = props.onEdit;
-  const onDelete = props.onDelete;
-  const properties = props.properties || [];
-  const harvests = props.harvests || [];
-
+export function LivestockSalesTable({
+  sales = [],
+  onEdit,
+  onDelete,
+  properties = [],
+  harvests = [],
+}: LivestockSalesTableProps) {
   // Obter funções de cálculo financeiro
   const financialCalculations = useFinancialCalculations();
   const calculateProfit = financialCalculations.calculateProfit;
