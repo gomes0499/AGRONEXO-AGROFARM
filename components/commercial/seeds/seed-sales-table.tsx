@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { formatCurrency, isNegativeValue } from "@/lib/utils/formatters";
-import { SeedSale } from "@/schemas/commercial";
+import { SeedSale, LivestockSale } from "@/schemas/commercial";
 import { Culture, Harvest } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
 import { useFinancialCalculations } from "@/hooks/use-financial-calculations";
@@ -18,8 +18,8 @@ import {
 
 interface SeedSalesTableProps {
   sales: SeedSale[];
-  onEdit: (sale: SeedSale) => void;
-  onDelete: (sale: SeedSale) => void;
+  onEdit: (sale: SeedSale | LivestockSale) => void;
+  onDelete: (sale: SeedSale | LivestockSale) => void;
   cultures: Culture[];
   properties: Property[];
   harvests: Harvest[];

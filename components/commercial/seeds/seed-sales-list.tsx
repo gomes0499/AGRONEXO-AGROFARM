@@ -1,6 +1,6 @@
 "use client";
 
-import { SeedSale } from "@/schemas/commercial";
+import { SeedSale, LivestockSale } from "@/schemas/commercial";
 import { Culture, Harvest } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
 import { deleteSeedSale, getSeedSales } from "@/lib/actions/commercial-actions";
@@ -56,7 +56,7 @@ export function SeedSalesList({
     setSelectedCulture,
     isEditDialogOpen,
     setIsEditDialogOpen,
-    isDeleteDialogOpen, 
+    isDeleteDialogOpen,
     setIsDeleteDialogOpen,
     selectedSale: selectedSeedSale,
     setSelectedSale: setSelectedSeedSale,
@@ -64,17 +64,17 @@ export function SeedSalesList({
     setIsRefreshing,
     uniqueSafraIds,
     uniquePropertyIds,
-    handleEdit,
-    handleDelete,
+    handleEdit: handleEditOriginal,
+    handleDelete: handleDeleteOriginal,
     confirmDelete,
-    handleUpdateSuccess
+    handleUpdateSuccess,
   } = useSalesListState<SeedSale>({
     initialSales: initialSeedSales,
     deleteSaleFn: deleteSeedSale,
   });
 
   const { calculateFinancialSummary } = useFinancialCalculations();
-  
+
   // Calcular o resumo financeiro
   const financialSummary = calculateFinancialSummary(filteredSeedSales);
 
@@ -92,6 +92,23 @@ export function SeedSalesList({
       setIsRefreshing(false);
     }
   };
+
+  // Funções compatíveis com SeedSale | LivestockSale
+  function handleEdit(sale: SeedSale | LivestockSale) {
+    if ("cultura_id" in sale) {
+      // Chame a função original do hook
+      // @ts-ignore
+      (handleEditOriginal as (sale: SeedSale) => void)(sale);
+    }
+  }
+
+  function handleDelete(sale: SeedSale | LivestockSale) {
+    if ("cultura_id" in sale) {
+      // Chame a função original do hook
+      // @ts-ignore
+      (handleDeleteOriginal as (sale: SeedSale) => void)(sale);
+    }
+  }
 
   return (
     <div className="space-y-4">
