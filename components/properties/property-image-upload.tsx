@@ -4,7 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import { ImageUploadCropper } from "@/components/ui/image-upload-cropper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { uploadPropertyImage, removePropertyImage } from "@/lib/actions/upload-actions";
+import {
+  uploadPropertyImage,
+  removePropertyImage,
+} from "@/lib/actions/upload-actions";
 import { Loader2 } from "lucide-react";
 
 interface PropertyImageUploadProps {
@@ -29,36 +32,38 @@ export function PropertyImageUpload({
 
   const handleImageCropped = async (file: File) => {
     setIsUploading(true);
-    
+
     try {
       // Se estamos no modo temporário (criação de propriedade),
       // apenas armazenamos o arquivo na memória e enviamos a URL temporária
       if (isTemporary) {
         setTemporaryImage(file);
-        
+
         // Convertemos o arquivo para uma URL temporária
         const tempUrl = URL.createObjectURL(file);
-        
+
         if (onSuccess) {
           onSuccess(tempUrl);
         }
-        
-        toast.success("Imagem selecionada com sucesso. Será salva ao criar a propriedade.");
-      } 
+
+        toast.success(
+          "Imagem selecionada com sucesso. Será salva ao criar a propriedade."
+        );
+      }
       // Para propriedades existentes, fazemos o upload para o servidor
       else if (propertyId) {
         // Cria um FormData para upload
         const formData = new FormData();
         formData.append("file", file);
-        
+
         // Chama a server action para upload
         const result = await uploadPropertyImage(propertyId, formData);
-        
+
         if (result.success) {
           // Salva o caminho do arquivo para possível exclusão futura
-          setFilePath(result.data?.path);
+          setFilePath(result.data?.path || null);
           toast.success("Imagem da propriedade atualizada com sucesso");
-          
+
           // Callback opcional
           if (onSuccess && result.data?.publicUrl) {
             onSuccess(result.data.publicUrl);
@@ -79,27 +84,27 @@ export function PropertyImageUpload({
     // Se estamos no modo temporário, apenas limpamos a referência
     if (isTemporary) {
       setTemporaryImage(null);
-      
+
       if (onRemove) {
         onRemove();
       }
-      
+
       return;
     }
-    
+
     // Para propriedades existentes, removemos do servidor
     if (!currentImageUrl || !filePath || !propertyId) return;
-    
+
     try {
       setIsUploading(true);
-      
+
       // Chama a server action para remover a imagem
       const result = await removePropertyImage(propertyId, filePath);
-      
+
       if (result.success) {
         toast.success("Imagem removida com sucesso");
         setFilePath(null);
-        
+
         // Callback opcional
         if (onRemove) {
           onRemove();
@@ -121,7 +126,7 @@ export function PropertyImageUpload({
   // Função para expor o arquivo temporário para o DOM
   // para que possamos acessá-lo quando o formulário for enviado
   const uploadRef = useRef<HTMLDivElement>(null);
-  
+
   // Expor o arquivo temporário no DOM para que o form possa acessá-lo
   useEffect(() => {
     if (uploadRef.current && temporaryImage) {
@@ -146,7 +151,7 @@ export function PropertyImageUpload({
               onImageCropped={handleImageCropped}
               currentImageUrl={currentImageUrl || undefined}
               onRemoveImage={currentImageUrl ? handleRemoveImage : undefined}
-              aspectRatio={16/9} // Proporção paisagem (16:9)
+              aspectRatio={16 / 9} // Proporção paisagem (16:9)
               maxWidth={800} // Limita o tamanho da imagem
               maxHeight={450}
               previewSize={{ width: 240, height: 135 }}

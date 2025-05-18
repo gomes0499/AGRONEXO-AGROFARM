@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { CommercialMaintenance } from "@/components/commercial/commercial-maintenance";
+import { CommercialMaintenance } from "@/components/commercial/common/commercial-maintenance";
 
 export default function CommercialErrorPage({
   error,

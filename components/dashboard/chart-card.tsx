@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { ApexChart } from "../ui/apexchart";
 
 interface ChartCardProps {
   title: string;

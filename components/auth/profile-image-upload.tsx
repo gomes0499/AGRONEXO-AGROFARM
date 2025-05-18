@@ -3,7 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useUser } from "./user-provider";
 import { ImageUploadCropper } from "@/components/ui/image-upload-cropper";
-import { uploadUserAvatar, removeUserAvatar } from "@/lib/actions/upload-actions";
+import {
+  uploadUserAvatar,
+  removeUserAvatar,
+} from "@/lib/actions/upload-actions";
 import { toast } from "sonner";
 
 interface ProfileImageUploadProps {
@@ -20,7 +23,9 @@ export function ProfileImageUpload({
   const { user } = useUser();
   const [isUploading, setIsUploading] = useState(false);
   const [temporaryImage, setTemporaryImage] = useState<File | null>(null);
-  const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(currentImageUrl || null);
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(
+    currentImageUrl || null
+  );
   const uploadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,8 +69,8 @@ export function ProfileImageUpload({
         throw new Error(result.error || "Erro ao fazer upload da imagem");
       }
 
-      setCurrentLogoUrl(result.data.publicUrl);
-      onImageChange(result.data.publicUrl);
+      setCurrentLogoUrl(result.data?.publicUrl || null);
+      onImageChange(result.data?.publicUrl || null);
       toast.success("Foto de perfil atualizada com sucesso");
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
@@ -93,7 +98,10 @@ export function ProfileImageUpload({
     try {
       // Extrair o caminho do arquivo da URL
       const urlObj = new URL(currentLogoUrl);
-      const filePath = urlObj.pathname.replace(`/storage/v1/object/public/${BUCKET_NAME}/`, "");
+      const filePath = urlObj.pathname.replace(
+        `/storage/v1/object/public/${BUCKET_NAME}/`,
+        ""
+      );
 
       // Enviar para o servidor
       const result = await removeUserAvatar(user.id, filePath);

@@ -1,12 +1,10 @@
 "use client";
 
 import {
-  BellIcon,
   LogOutIcon,
   MoreVerticalIcon,
   UserCircleIcon,
   BuildingIcon,
-  SunMoonIcon,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,7 +28,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function NavUser({
   user,

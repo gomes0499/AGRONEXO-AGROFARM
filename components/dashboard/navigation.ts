@@ -1,18 +1,13 @@
-import { HelpCircleIcon, SearchIcon, PieChartIcon, BuildingIcon, BrainCircuitIcon, Brain, Sun, Moon } from "lucide-react";
-import { 
-  BarChartIcon, CameraIcon, FileCodeIcon, FileTextIcon, FolderIcon, 
-  SettingsIcon, UsersIcon, WalletIcon, LineChartIcon, MapIcon, 
-  LandmarkIcon, AreaChartIcon, GaugeIcon, StoreIcon, PaintbrushIcon
+import { BuildingIcon, 
+  WalletIcon, LineChartIcon, MapIcon, 
+  LandmarkIcon, GaugeIcon, StoreIcon, PaintbrushIcon,
+  BarChartIcon,
+  Brain
 } from "lucide-react";
 import { LayoutDashboardIcon } from "lucide-react";
-import { ListIcon } from "lucide-react";
 
 export const data = {
-  user: {
-    name: "Usuário",
-    email: "usuario@exemplo.com",
-    avatar: "/avatars/user.jpg",
-  },
+
   navMain: [
     {
       title: "Visão Geral",

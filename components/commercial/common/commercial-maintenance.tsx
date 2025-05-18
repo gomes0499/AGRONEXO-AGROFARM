@@ -43,16 +43,14 @@ export function CommercialMaintenance({
             <div className="bg-amber-100 p-8 rounded-full">
               <Wrench className="h-12 w-12 text-amber-600" />
             </div>
-            
-            <p className="text-gray-700 max-w-lg">
-              {message}
-            </p>
-            
+
+            <p className="text-gray-700 max-w-lg">{message}</p>
+
             <p className="text-sm text-gray-500 max-w-md">
-              Se o problema persistir, entre em contato com o suporte técnico 
+              Se o problema persistir, entre em contato com o suporte técnico
               informando o código "COMM-MAINT-01".
             </p>
-            
+
             <div className="flex flex-wrap gap-4 justify-center mt-4">
               {showHomeButton && (
                 <Link href="/dashboard" passHref>
@@ -62,9 +60,9 @@ export function CommercialMaintenance({
                   </Button>
                 </Link>
               )}
-              
+
               {showRetryButton && (
-                <Button 
+                <Button
                   onClick={() => window.location.reload()}
                   className="bg-amber-600 hover:bg-amber-700 text-white"
                 >

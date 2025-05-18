@@ -1,8 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUpCircleIcon } from "lucide-react";
-
 import { NavMain } from "@/components/dashboard/nav-main";
 import { NavSecondary } from "@/components/dashboard/nav-secondary";
 import { NavUser } from "@/components/dashboard/nav-user";
@@ -17,28 +15,29 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { data } from "./navigation";
-import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/components/auth/user-provider";
-import { UserRole } from "@/lib/auth/roles";
 import Image from "next/image";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
   const [navItems, setNavItems] = React.useState(data.navMain);
-  const [userData, setUserData] = React.useState(data.user);
+  const [userData, setUserData] = React.useState({
+    name: "",
+    email: "",
+    avatar: "",
+  });
 
   React.useEffect(() => {
     async function loadUserData() {
       try {
         if (user) {
-          // Atualiza dados do usuário para exibição usando metadados
           setUserData({
             name:
               user.user_metadata?.name ||
               user.email?.split("@")[0] ||
               "Usuário",
             email: user.email || "",
-            avatar: user.user_metadata?.avatar_url || "/avatars/user.jpg",
+            avatar: user.user_metadata?.avatar_url || "",
           });
 
           // Verifica função do usuário nos metadados
@@ -52,16 +51,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           if (!isSuperAdmin) {
             // Lista de módulos restritos a superadmin
             const restrictedModules = [
-              "Organização", 
-              "Bens Imóveis", 
-              "Produção", 
+              "Organização",
+              "Bens Imóveis",
+              "Produção",
               "Comercial",
               "Financeiro",
               "Patrimonial",
               "Projeções",
-              "Indicadores"
+              "Indicadores",
             ];
-            
+
             filteredNavItems = filteredNavItems.filter(
               (item) => !restrictedModules.includes(item.title)
             );
