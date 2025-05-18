@@ -17,10 +17,10 @@ const nextConfig: NextConfig = {
   },
 
   // Desabilita a minificação para debug
-  webpack(config, { dev, isServer }) {
-    config.optimization.minimize = false;
-    return config;
-  },
+  // webpack(config, { dev, isServer }) {
+  //   config.optimization.minimize = false;
+  //   return config;
+  // },
 };
 
 export default nextConfig;

@@ -176,5 +176,4 @@ export type PriceAlert = z.infer<typeof priceAlertSchema>;
 export type PriceAlertFormValues = z.infer<typeof priceAlertFormSchema>;
 
 // Exportações consolidadas
-export * from './actions';
 export * from './seeds';
