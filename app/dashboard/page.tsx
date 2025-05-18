@@ -2,58 +2,7 @@ import { SiteHeader } from "@/components/dashboard/site-header";
 import { createClient } from "@/lib/supabase/server";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProductionDashboard } from "@/components/dashboard/production-dashboard";
-import { ProductionStatsDashboard } from "@/components/production/stats/production-stats-dashboard";
-import { MarketTicker } from "@/components/dashboard/market-ticker";
-import {
-  getProductionStats,
-  getCultures,
-  getSystems,
-  getHarvests,
-} from "@/lib/actions/production-actions";
 import { getPrices } from "@/lib/actions/commercial-actions";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { formatArea } from "@/lib/utils/formatters";
-import {
-  Building,
-  LandPlot,
-  Landmark,
-  Tractor,
-  MapPin,
-  Eye,
-  Plus,
-  LineChart,
-  DollarSign,
-  Warehouse,
-  Beef,
-} from "lucide-react";
-import {
-  formatCompactCurrency,
-  formatCompactNumber,
-  formatPercentage,
-} from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-import { WeatherTickerBar } from "@/components/dashboard/weather-ticker-bar";
-import { Cloud } from "lucide-react";
 import { UnderConstruction } from "@/components/ui/under-construction";
 import AgroKpiCards from "@/components/dashboard/visao-geral/kpi-cards";
 import { AreaPlantioChart } from "@/components/dashboard/visao-geral/area-plantio-chart";
@@ -152,14 +101,15 @@ export default async function DashboardPage() {
     organizationId = null;
     organizationName = "Minha Organização";
   }
-  
+
   // Busca os preços mais recentes para o Market Ticker
   let latestPrice = null;
   if (organizationId) {
     const pricesResponse = await getPrices(organizationId);
-    latestPrice = Array.isArray(pricesResponse) && pricesResponse.length > 0
-      ? pricesResponse[0]
-      : null;
+    latestPrice =
+      Array.isArray(pricesResponse) && pricesResponse.length > 0
+        ? pricesResponse[0]
+        : null;
   }
 
   if (!organizationId) {

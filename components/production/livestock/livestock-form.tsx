@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, DollarSign } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -23,7 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PriceUnitSelector, PRICE_UNITS, QUANTIDADE_LABELS } from "../common/price-unit-selector";
+import {
+  PriceUnitSelector,
+  QUANTIDADE_LABELS,
+} from "../common/price-unit-selector";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -286,7 +289,7 @@ export function LivestockForm({
       if (form.watch("categoria") === "Outro") {
         values.categoria = outraCategoria;
       }
-      
+
       // Garantir que número de cabeças seja salvo corretamente
       if (values.unidade_preco === "CABECA") {
         // Se for em cabeças, a quantidade é o número de cabeças
@@ -457,16 +460,19 @@ export function LivestockForm({
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="quantidade"
                 render={({ field }) => {
                   // Obter configuração baseada na unidade de preço
-                  const unidadePreco = form.watch("unidade_preco") as keyof typeof QUANTIDADE_LABELS;
-                  const config = QUANTIDADE_LABELS[unidadePreco] || QUANTIDADE_LABELS.CABECA;
-                  
+                  const unidadePreco = form.watch(
+                    "unidade_preco"
+                  ) as keyof typeof QUANTIDADE_LABELS;
+                  const config =
+                    QUANTIDADE_LABELS[unidadePreco] || QUANTIDADE_LABELS.CABECA;
+
                   // Quando a unidade muda, atualizamos os valores relacionados
                   useEffect(() => {
                     // Se mudar de CABECA para outra unidade, guarde o número de cabeças original
@@ -476,7 +482,7 @@ export function LivestockForm({
                         form.setValue("numero_cabecas", field.value);
                       }
                     }
-                    
+
                     // Se mudar para CABECA, restaure o número de cabeças
                     if (unidadePreco === "CABECA") {
                       const cabecas = form.getValues("numero_cabecas");
@@ -485,7 +491,7 @@ export function LivestockForm({
                       }
                     }
                   }, [unidadePreco]);
-                  
+
                   return (
                     <FormItem>
                       <FormLabel className="text-sm font-medium">
@@ -539,20 +545,31 @@ export function LivestockForm({
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {form.watch("unidade_preco") === "CABECA" 
-                    ? `${form.watch("quantidade") || 0} ${form.watch("quantidade") === 1 ? "animal" : "animais"} × ${formatCurrency(form.watch("preco_unitario") || 0)}`
-                    : form.watch("unidade_preco") === "KG" 
-                      ? `${form.watch("quantidade") || 0} kg × ${formatCurrency(form.watch("preco_unitario") || 0)}/kg`
-                      : form.watch("unidade_preco") === "ARROBA" 
-                        ? `${form.watch("quantidade") || 0} @ × ${formatCurrency(form.watch("preco_unitario") || 0)}/@`
-                        : `${form.watch("quantidade") || 0} ${form.watch("quantidade") === 1 ? "lote" : "lotes"} × ${formatCurrency(form.watch("preco_unitario") || 0)}`
-                  }
+                  {form.watch("unidade_preco") === "CABECA"
+                    ? `${form.watch("quantidade") || 0} ${
+                        form.watch("quantidade") === 1 ? "animal" : "animais"
+                      } × ${formatCurrency(form.watch("preco_unitario") || 0)}`
+                    : form.watch("unidade_preco") === "KG"
+                    ? `${form.watch("quantidade") || 0} kg × ${formatCurrency(
+                        form.watch("preco_unitario") || 0
+                      )}/kg`
+                    : form.watch("unidade_preco") === "ARROBA"
+                    ? `${form.watch("quantidade") || 0} @ × ${formatCurrency(
+                        form.watch("preco_unitario") || 0
+                      )}/@`
+                    : `${form.watch("quantidade") || 0} ${
+                        form.watch("quantidade") === 1 ? "lote" : "lotes"
+                      } × ${formatCurrency(form.watch("preco_unitario") || 0)}`}
                 </p>
-                {form.watch("unidade_preco") !== "CABECA" && form.watch("numero_cabecas") > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Total de {form.watch("numero_cabecas")} {form.watch("numero_cabecas") === 1 ? "cabeça" : "cabeças"}
-                  </p>
-                )}
+                {form.watch("unidade_preco") !== "CABECA" &&
+                  (form.watch("numero_cabecas") ?? 0) > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Total de {form.watch("numero_cabecas") ?? 0}{" "}
+                      {(form.watch("numero_cabecas") ?? 0) === 1
+                        ? "cabeça"
+                        : "cabeças"}
+                    </p>
+                  )}
               </CardContent>
             </Card>
           )}

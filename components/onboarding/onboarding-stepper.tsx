@@ -13,7 +13,6 @@ import {
   StepperTrigger,
 } from "@/components/ui/stepper";
 
-
 import { Card } from "@/components/ui/card";
 import { PersonalDataForm } from "./steps/personal-data-form";
 import { DocumentsForm } from "./steps/documents-form";

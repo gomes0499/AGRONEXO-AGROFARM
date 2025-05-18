@@ -12,49 +12,51 @@ export const metadata: Metadata = {
   description: "Cadastre um novo contrato de arrendamento para a propriedade.",
 };
 
-interface NewLeasePageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function NewLeasePage({ params }: NewLeasePageProps) {
+export default async function NewLeasePage({
+  params,
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
-  
+
   const session = await getSession();
-  
+
   if (!session?.organizationId) {
     redirect("/dashboard");
   }
-  
+
   try {
     const property = await getPropertyById(params.id);
-    
+
     // Verificar se a propriedade pertence à organização atual
     if (property.organizacao_id !== session.organizationId) {
       notFound();
     }
-    
+
     return (
       <>
-        <SiteHeader 
-          title="Novo Arrendamento" 
-          showBackButton 
-          backUrl={`/dashboard/properties/${params.id}/leases`} 
+        <SiteHeader
+          title="Novo Arrendamento"
+          showBackButton
+          backUrl={`/dashboard/properties/${params.id}/leases`}
           backLabel="Voltar para Arrendamentos"
         />
         <div className="flex flex-col gap-6 p-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Novo Arrendamento</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Novo Arrendamento
+            </h1>
             <p className="text-muted-foreground">
-              Cadastre um novo contrato de arrendamento para a propriedade {property.nome}.
+              Cadastre um novo contrato de arrendamento para a propriedade{" "}
+              {property.nome}.
             </p>
           </div>
           <Separator />
-          <LeaseForm 
-            propertyId={params.id} 
-            organizationId={session.organizationId} 
+          <LeaseForm
+            propertyId={params.id}
+            organizationId={session.organizationId}
           />
         </div>
       </>

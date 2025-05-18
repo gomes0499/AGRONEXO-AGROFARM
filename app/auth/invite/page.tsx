@@ -6,17 +6,7 @@ export const metadata: Metadata = {
   description: "Aceite seu convite para a plataforma SR-Consultoria",
 };
 
-export interface PageProps {
-  params: { [key: string]: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default function InvitePage({ 
-  searchParams 
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-
+export default function InvitePage({ searchParams }: any) {
   const token =
     typeof searchParams.token === "string"
       ? searchParams.token

@@ -13,7 +13,6 @@ interface CommercialSafeWrapperProps {
  * seguindo a mesma estrutura do módulo de produção.
  */
 export function CommercialSafeWrapper(props: CommercialSafeWrapperProps) {
-  // Evitando desestruturação
   const seedsComponent = props.seedsComponent;
   const livestockComponent = props.livestockComponent;
 
@@ -25,7 +24,6 @@ export function CommercialSafeWrapper(props: CommercialSafeWrapperProps) {
       />
     );
   } catch (error) {
-    // Fallback em caso de erro
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     return (

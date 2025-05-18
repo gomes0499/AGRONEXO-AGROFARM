@@ -1240,6 +1240,6 @@ export async function getProductionStats(organizationId: string, propertyIds?: s
     costsByCategory,
     costsByCulture,
     costsBySystem,
-    totalCosts: Object.values(costsByCategory).reduce((sum, value) => sum + value, 0)
+    totalCosts: (Object.values(costsByCategory) as number[]).reduce((sum, value) => sum + value, 0)
   };
 }

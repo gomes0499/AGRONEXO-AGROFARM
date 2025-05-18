@@ -252,7 +252,7 @@ export async function uploadPropertyImage(
         'image/webp': 'webp',
         'image/gif': 'gif'
       };
-      fileExt = mimeToExt[file.type] || 'jpg';
+      fileExt = mimeToExt[file.type as keyof typeof mimeToExt] || 'jpg';
     }
     
     // Cria nome único para o arquivo (propertyId + timestamp + extensão)

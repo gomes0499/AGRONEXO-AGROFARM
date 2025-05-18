@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 
 export interface ProductionNavClientProps {
   plantingAreasComponent: React.ReactNode;

@@ -4,16 +4,12 @@ import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { MemberDetails } from "@/components/organization/member-details";
 import { notFound } from "next/navigation";
 
-interface MemberDetailPageProps {
-  params: {
-    id: string;
-    memberId: string;
-  };
-}
-
 export default async function MemberDetailPage({
   params,
-}: MemberDetailPageProps) {
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   // Verifica autenticação e obtém dados do usuário
   const user = await verifyUserPermission();
 

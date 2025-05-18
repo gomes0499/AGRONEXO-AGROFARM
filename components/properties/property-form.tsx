@@ -42,7 +42,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Loader2, Building2Icon, AreaChartIcon, ImageIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from "@/components/ui/datepicker";
@@ -246,7 +245,7 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
 
                 // Fazer o upload usando a server action
                 const uploadResult = await uploadPropertyImage(
-                  newProperty.id,
+                  newProperty.id!,
                   formData
                 );
 

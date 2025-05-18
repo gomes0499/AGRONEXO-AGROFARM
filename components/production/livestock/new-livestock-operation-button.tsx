@@ -19,7 +19,6 @@ import {
   DrawerFooter,
 } from "@/components/ui/drawer";
 import { LivestockOperationForm } from "./livestock-operation-form";
-import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Harvest, LivestockOperation } from "@/schemas/production";
 import { cn } from "@/lib/utils";

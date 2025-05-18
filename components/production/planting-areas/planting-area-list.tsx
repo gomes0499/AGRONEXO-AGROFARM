@@ -18,17 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+
 import { deletePlantingArea } from "@/lib/actions/production-actions";
 import { PlantingAreaForm } from "./planting-area-form";
 import { formatArea } from "@/lib/utils/formatters";

@@ -5,7 +5,11 @@ import { CheckCircle2 } from "lucide-react";
 import { redirect } from "next/navigation";
 
 // Tela de conclusão do onboarding
-export function OnboardingComplete() {
+export function OnboardingComplete({
+  onComplete,
+}: {
+  onComplete?: () => void | Promise<void>;
+}) {
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center space-y-6">
       <CheckCircle2 className="h-16 w-16 text-primary" />
@@ -18,8 +22,8 @@ export function OnboardingComplete() {
       </div>
 
       <Button
-        onClick={() => {
-          // Redirecionar para o dashboard
+        onClick={async () => {
+          if (onComplete) await onComplete();
           redirect("/dashboard");
         }}
         className="mt-4"

@@ -6,7 +6,11 @@ import { getSession } from "@/lib/auth";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { Separator } from "@/components/ui/separator";
 
-export async function generateMetadata({ params }: LeaseDetailsPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: any;
+}): Promise<Metadata> {
   try {
     const lease = await getLeaseById(params.leaseId);
     return {
@@ -21,46 +25,43 @@ export async function generateMetadata({ params }: LeaseDetailsPageProps): Promi
   }
 }
 
-interface LeaseDetailsPageProps {
-  params: {
-    id: string;
-    leaseId: string;
-  };
-}
-
-export default async function LeaseDetailsPage({ params }: LeaseDetailsPageProps) {
+export default async function LeaseDetailsPage({
+  params,
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   const session = await getSession();
-  
+
   if (!session?.organizationId) {
     redirect("/dashboard");
   }
-  
+
   try {
     const [property, lease] = await Promise.all([
       getPropertyById(params.id),
-      getLeaseById(params.leaseId)
+      getLeaseById(params.leaseId),
     ]);
-    
+
     // Verificar se a propriedade e o arrendamento pertencem à organização atual
-    if (property.organizacao_id !== session.organizationId || 
-        lease.organizacao_id !== session.organizationId ||
-        lease.propriedade_id !== params.id) {
+    if (
+      property.organizacao_id !== session.organizationId ||
+      lease.organizacao_id !== session.organizationId ||
+      lease.propriedade_id !== params.id
+    ) {
       notFound();
     }
-    
+
     return (
       <>
-        <SiteHeader 
-          title={`Arrendamento: ${lease.nome_fazenda}`} 
-          showBackButton 
-          backUrl={`/dashboard/properties/${params.id}`} 
+        <SiteHeader
+          title={`Arrendamento: ${lease.nome_fazenda}`}
+          showBackButton
+          backUrl={`/dashboard/properties/${params.id}`}
           backLabel="Voltar"
         />
         <div className="flex flex-col gap-6 p-6">
-          <LeaseDetail 
-            lease={lease}
-            propertyId={params.id}
-          />
+          <LeaseDetail lease={lease} propertyId={params.id} />
         </div>
       </>
     );

@@ -141,19 +141,21 @@ export function LeafletMap({
     if (marker) {
       // Criar um ícone personalizado para o marcador
       const customIcon = L.icon({
-        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+        iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+        iconRetinaUrl:
+          "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
+        shadowUrl:
+          "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
         iconSize: [25, 41], // tamanho do ícone
         iconAnchor: [12, 41], // ponto do ícone que corresponderá à localização do marcador
         popupAnchor: [1, -34], // ponto a partir do qual o popup deve abrir em relação ao iconAnchor
-        shadowSize: [41, 41] // tamanho da sombra
+        shadowSize: [41, 41], // tamanho da sombra
       });
 
       // Adicionar o marcador ao mapa
       const markerInstance = L.marker(marker, { icon: customIcon })
         .addTo(map)
-        .bindPopup('Localização do Escritório')
+        .bindPopup("Localização do Escritório")
         .openPopup();
     }
 
@@ -252,7 +254,9 @@ export function LeafletMap({
               // Se temos informações sobre a área no próprio Feature
               if (feature.properties.area && feature.properties.percentual) {
                 popupContent = `<strong>Área Cultivável</strong><br>
-                                Área: ${Number(feature.properties.area).toFixed(4).replace(".", ",")} ha<br>
+                                Área: ${Number(feature.properties.area)
+                                  .toFixed(4)
+                                  .replace(".", ",")} ha<br>
                                 Percentual: ${feature.properties.percentual}`;
               } else {
                 popupContent = "<strong>Área Cultivável</strong>";
@@ -263,10 +267,10 @@ export function LeafletMap({
 
             if (popupContent) {
               layer.bindPopup(popupContent);
-              layer.on("mouseover", function () {
+              layer.on("mouseover", function (this: any) {
                 this.openPopup();
               });
-              layer.on("mouseout", function () {
+              layer.on("mouseout", function (this: any) {
                 this.closePopup();
               });
             }

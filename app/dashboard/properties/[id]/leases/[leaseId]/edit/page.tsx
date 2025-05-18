@@ -11,14 +11,12 @@ export const metadata: Metadata = {
   description: "Edite os dados de um contrato de arrendamento.",
 };
 
-interface EditLeasePageProps {
-  params: {
-    id: string;
-    leaseId: string;
-  };
-}
-
-export default async function EditLeasePage({ params }: EditLeasePageProps) {
+export default async function EditLeasePage({
+  params,
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   const session = await getSession();
   
   if (!session?.organizationId) {

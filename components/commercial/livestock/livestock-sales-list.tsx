@@ -57,7 +57,6 @@ export function LivestockSalesList({
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
     selectedSale,
-    setSelectedSale,
     isRefreshing,
     setIsRefreshing,
     uniqueSafraIds,

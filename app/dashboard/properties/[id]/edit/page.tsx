@@ -12,13 +12,12 @@ export const metadata: Metadata = {
   description: "Edite os dados de uma propriedade rural.",
 };
 
-interface EditPropertyPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function EditPropertyPage({ params }: EditPropertyPageProps) {
+export default async function EditPropertyPage({
+  params,
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
   

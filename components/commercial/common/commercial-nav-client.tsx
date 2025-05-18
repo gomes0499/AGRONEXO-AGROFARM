@@ -39,7 +39,7 @@ export function CommercialNavClient(props: CommercialNavClientProps) {
 
   // Renderizar o conteúdo da tab ativa
   const renderTabContent = function () {
-    var content = null;
+    let content = null;
 
     if (activeTab === "seeds") {
       content = seedsComponent || (

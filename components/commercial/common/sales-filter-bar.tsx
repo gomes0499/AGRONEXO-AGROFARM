@@ -29,7 +29,6 @@ interface SalesFilterBarProps {
 }
 
 export function SalesFilterBar(props: SalesFilterBarProps) {
-  // Acessando props diretamente para evitar desestruturação
   const selectedSafraId = props.selectedSafraId;
   const setSelectedSafraId = props.setSelectedSafraId;
   const selectedPropertyId = props.selectedPropertyId;

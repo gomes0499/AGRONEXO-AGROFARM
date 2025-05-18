@@ -12,13 +12,12 @@ export const metadata: Metadata = {
   description: "Gerenciamento de contratos de arrendamento para a propriedade.",
 };
 
-interface LeasesPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function LeasesPage({ params }: LeasesPageProps) {
+export default async function LeasesPage({
+  params,
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
   

@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -19,21 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  deleteProductionCost,
-  getProductionCosts,
-} from "@/lib/actions/production-actions";
+
+import { deleteProductionCost } from "@/lib/actions/production-actions";
 import { ProductionCostForm } from "./production-cost-form";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";

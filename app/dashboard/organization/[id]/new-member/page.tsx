@@ -3,13 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { MemberForm } from "@/components/organization/member-form";
 
-interface NewMemberPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function NewMemberPage({ params }: NewMemberPageProps) {
+export default async function NewMemberPage({
+  params,
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   // Verifica autenticação e obtém dados do usuário
   const user = await verifyUserPermission();
 
@@ -32,7 +31,7 @@ export default async function NewMemberPage({ params }: NewMemberPageProps) {
   if (!association) {
     return (
       <div className="flex flex-col">
-        <SiteHeader 
+        <SiteHeader
           title="Novo Membro"
           showBackButton={true}
           backUrl={`/dashboard/organization/${params.id}`}
@@ -40,9 +39,7 @@ export default async function NewMemberPage({ params }: NewMemberPageProps) {
         />
         <div className="flex flex-1 flex-col items-start justify-start p-6">
           <div className="max-w-md text-left">
-            <h2 className="text-2xl font-semibold">
-              Acesso não autorizado
-            </h2>
+            <h2 className="text-2xl font-semibold">Acesso não autorizado</h2>
             <p className="mt-2 text-muted-foreground">
               Você não tem permissão para adicionar membros a esta organização.
             </p>
@@ -54,7 +51,7 @@ export default async function NewMemberPage({ params }: NewMemberPageProps) {
 
   return (
     <div className="flex flex-col">
-      <SiteHeader 
+      <SiteHeader
         title="Adicionar Novo Membro"
         showBackButton={true}
         backUrl={`/dashboard/organization/${params.id}`}
@@ -62,9 +59,9 @@ export default async function NewMemberPage({ params }: NewMemberPageProps) {
       />
       <main className="flex-1 p-6">
         <div className="max-w-3xl">
-          <MemberForm 
-            organizationId={params.id} 
-            organizationName={organization?.nome || "Organização"} 
+          <MemberForm
+            organizationId={params.id}
+            organizationName={organization?.nome || "Organização"}
           />
         </div>
       </main>

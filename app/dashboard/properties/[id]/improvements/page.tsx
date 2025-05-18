@@ -15,15 +15,12 @@ export const metadata: Metadata = {
   description: "Gerenciamento de benfeitorias e melhorias da propriedade.",
 };
 
-interface ImprovementsPageProps {
-  params: {
-    id: string;
-  };
-}
-
 export default async function ImprovementsPage({
   params,
-}: ImprovementsPageProps) {
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
   

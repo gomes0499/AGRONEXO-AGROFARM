@@ -18,18 +18,15 @@ export const metadata = {
   },
 };
 
-interface PropertyDetailsPageProps {
-  params: {
-    id: string;
-  };
-}
-
 export default async function PropertyDetailsPage({
   params,
-}: PropertyDetailsPageProps) {
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
-  
+
   const session = await getSession();
 
   if (!session?.organizationId) {

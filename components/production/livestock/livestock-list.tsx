@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,17 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+
 import { deleteLivestock } from "@/lib/actions/production-actions";
 import { LivestockForm } from "./livestock-form";
 import { formatCurrency } from "@/lib/utils/formatters";
@@ -155,27 +145,33 @@ export function LivestockList({
                       <TableCell>{item.tipo_animal}</TableCell>
                       <TableCell>{item.categoria}</TableCell>
                       <TableCell>
-                        {item.unidade_preco === "CABECA" 
-                          ? item.quantidade 
-                          : item.unidade_preco === "KG" 
-                            ? `${item.quantidade} kg` 
-                            : item.unidade_preco === "ARROBA" 
-                              ? `${item.quantidade} @` 
-                              : `${item.quantidade} ${item.quantidade === 1 ? "lote" : "lotes"}`}
-                        {item.unidade_preco !== "CABECA" && item.numero_cabecas 
-                          ? ` (${item.numero_cabecas} ${item.numero_cabecas === 1 ? "cabeça" : "cabeças"})` 
+                        {item.unidade_preco === "CABECA"
+                          ? item.quantidade
+                          : item.unidade_preco === "KG"
+                          ? `${item.quantidade} kg`
+                          : item.unidade_preco === "ARROBA"
+                          ? `${item.quantidade} @`
+                          : `${item.quantidade} ${
+                              item.quantidade === 1 ? "lote" : "lotes"
+                            }`}
+                        {item.unidade_preco !== "CABECA" && item.numero_cabecas
+                          ? ` (${item.numero_cabecas} ${
+                              item.numero_cabecas === 1 ? "cabeça" : "cabeças"
+                            })`
                           : ""}
                       </TableCell>
                       <TableCell>
-                        {PRICE_UNITS[item.unidade_preco as keyof typeof PRICE_UNITS]?.split(' ')[0] || "Por cabeça"}
+                        {PRICE_UNITS[
+                          item.unidade_preco as keyof typeof PRICE_UNITS
+                        ]?.split(" ")[0] || "Por cabeça"}
                       </TableCell>
                       <TableCell>
                         {formatCurrency(item.preco_unitario)}
-                        {item.unidade_preco === "KG" 
-                          ? "/kg" 
-                          : item.unidade_preco === "ARROBA" 
-                            ? "/@" 
-                            : ""}
+                        {item.unidade_preco === "KG"
+                          ? "/kg"
+                          : item.unidade_preco === "ARROBA"
+                          ? "/@"
+                          : ""}
                       </TableCell>
                       <TableCell>{formatCurrency(totalValue)}</TableCell>
                       <TableCell>{propertyName}</TableCell>

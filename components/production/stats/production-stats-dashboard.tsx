@@ -3,9 +3,8 @@
 import { StatsCard } from "./stats-card";
 import { StatsGroup } from "./stats-group";
 import { DashboardCharts } from "./dashboard-charts";
-import { ProductionStats } from "@/components/dashboard/production-dashboard";
 import { PropertyFilterClient } from "@/components/production/property-filter-client";
-import { formatArea, formatCurrency } from "@/lib/utils/formatters";
+import { formatCurrency } from "@/lib/utils/formatters";
 import { formatCompactCurrency, formatCompactNumber } from "@/lib/utils";
 import { LandPlot, LineChart, Beef, DollarSign, Warehouse } from "lucide-react";
 
@@ -28,6 +27,28 @@ function formatCurrencyCompact(value: number): string {
   } else {
     return formatCurrency(value);
   }
+}
+
+// Defina um tipo para os itens de produtividade:
+export interface ProductivityByCultureAndSystem {
+  produtividade: number;
+  unidade: string;
+  cultura: string;
+  sistema: string;
+  // adicione outros campos se necessário
+}
+
+// E use na interface principal:
+export interface ProductionStats {
+  totalPlantingArea: number;
+  areasByCulture: Record<string, number>;
+  areasBySystem: Record<string, number>;
+  areasByCycle: Record<string, number>;
+  productivityByCultureAndSystem: ProductivityByCultureAndSystem[];
+  costsByCategory: Record<string, number>;
+  costsByCulture: Record<string, number>;
+  costsBySystem: Record<string, number>;
+  totalCosts: number;
 }
 
 interface ProductionStatsDashboardProps {

@@ -12,16 +12,6 @@ import { OrganizationDetailInvites } from "@/components/organization/organizatio
 import { OrganizationDetailEdit } from "@/components/organization/organization-detail-edit";
 import { OrganizationSettings } from "@/components/organization/organization-settings";
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-interface SearchParams {
-  tab?: string;
-}
-
 // Define a member type to fix the implicit any type error
 interface Member {
   id: string;
@@ -44,7 +34,10 @@ interface Member {
 export default async function ManageOrganizationPage({
   params,
   searchParams,
-}: PageProps & { searchParams: SearchParams }) {
+}: {
+  params: any;
+  searchParams: any;
+}) {
   // Verifica autenticação e obtém dados do usuário
   const user = await verifyUserPermission();
 

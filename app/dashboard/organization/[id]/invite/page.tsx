@@ -2,23 +2,28 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { InviteForm } from "@/components/organization/invite-form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { notFound, redirect } from "next/navigation";
 import { UserRole } from "@/lib/auth/roles";
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function InvitePage({ params }: PageProps) {
+export default async function InvitePage({
+  params,
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   // Verifica autenticação e obtém dados do usuário
   const user = await verifyUserPermission();
-  
+
   // Verifica se o usuário é super admin
   const isSuperAdmin = user.app_metadata?.is_super_admin === true;
-  
+
   // Obtém dados da organização específica
   const supabase = await createClient();
   const { data: organization, error } = await supabase
@@ -47,9 +52,10 @@ export default async function InvitePage({ params }: PageProps) {
     }
 
     // Verifica se tem permissão de proprietário ou admin
-    const canManage = membership.funcao === UserRole.PROPRIETARIO || 
-                      membership.funcao === UserRole.ADMINISTRADOR;
-    
+    const canManage =
+      membership.funcao === UserRole.PROPRIETARIO ||
+      membership.funcao === UserRole.ADMINISTRADOR;
+
     if (!canManage) {
       return redirect("/dashboard/organization");
     }
@@ -64,7 +70,8 @@ export default async function InvitePage({ params }: PageProps) {
             <CardHeader>
               <CardTitle>Convidar Novo Membro</CardTitle>
               <CardDescription>
-                Envie convites para que outras pessoas possam participar da organização
+                Envie convites para que outras pessoas possam participar da
+                organização
               </CardDescription>
             </CardHeader>
             <CardContent>

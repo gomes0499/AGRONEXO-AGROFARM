@@ -15,30 +15,6 @@ interface GeometriaMultiPolygon {
 // Tipo união para diferentes geometrias
 type Geometria = GeometriaPolygon | GeometriaMultiPolygon;
 
-// Interfaces para as áreas especiais
-interface ReservaLegal {
-  area_ha: number
-  percentual: number
-  geometria: Geometria
-}
-
-interface APP {
-  area_ha: number
-  percentual: number
-  geometria: Geometria
-}
-
-interface VegetacaoNativa {
-  area_ha: number
-  percentual: number
-  geometria: Geometria
-}
-
-interface AreaConsolidada {
-  area_ha: number
-  percentual: number
-  geometria: Geometria
-}
 
 // Interface para estatísticas do CAR
 interface Estatisticas {
@@ -64,26 +40,25 @@ interface Geometrias {
 
 // Interface principal dos dados do CAR
 interface DadosCAR {
-  codigo_car: string
-  municipio: string
-  estado: string
-  estatisticas: Estatisticas
-  geometrias: Geometrias
-  
-  // Campos opcionais que podem não estar presentes neste endpoint
-  cod_tema?: string
-  nom_tema?: string
-  mod_fiscal?: number
-  num_area?: number
-  ind_status?: string
-  ind_tipo?: string
-  des_condic?: string
-  cod_estado?: string
-  dat_criaca?: string
-  dat_atuali?: string
-  nome_imovel?: string
-  situacao_imovel?: string
-  classe_imovel?: string
+  codigo_car: string;
+  municipio: string;
+  estado: string;
+  estatisticas: Estatisticas;
+  geometrias: Geometrias;
+  // Campos opcionais
+  cod_tema?: string;
+  nom_tema?: string;
+  mod_fiscal?: number;
+  num_area?: number;
+  ind_status?: string;
+  ind_tipo?: string;
+  des_condic?: string;
+  cod_estado?: string;
+  dat_criaca?: string;
+  dat_atuali?: string;
+  nome_imovel?: string;
+  situacao_imovel?: string;
+  classe_imovel?: string;
 }
 
 export async function GET(request: Request) {
@@ -129,15 +104,17 @@ export async function GET(request: Request) {
       },
       "geometrias": {
         "geometria_total": {
-          "type": "Polygon",
-          "coordinates": [[
-            [-43.8263726234436, -11.805375705573574],
-            [-43.83426904678345, -11.802519173390817],
-            [-43.83450508117676, -11.796322916748823],
-            [-43.829419612884514, -11.794453510143265],
-            [-43.82439851760864, -11.796364925739704],
-            [-43.8263726234436, -11.805375705573574]
-          ]]
+          "type": "MultiPolygon",
+          "coordinates": [
+            [[
+              [-43.8263726234436, -11.805375705573574],
+              [-43.83426904678345, -11.802519173390817],
+              [-43.83450508117676, -11.796322916748823],
+              [-43.829419612884514, -11.794453510143265],
+              [-43.82439851760864, -11.796364925739704],
+              [-43.8263726234436, -11.805375705573574]
+            ]]
+          ]
         },
         "geometria_reserva": {
           "type": "MultiPolygon",
@@ -199,7 +176,7 @@ export async function GET(request: Request) {
     // console.log("Dados recebidos da API SICAR:", JSON.stringify(rawData));
     
     // Garantir que temos as propriedades esperadas com valores padrão se não existirem
-    const data: DadosCAR = {
+    const data = {
       codigo_car: rawData.codigo_car || "",
       municipio: rawData.municipio || "",
       estado: rawData.estado || "",
@@ -217,21 +194,22 @@ export async function GET(request: Request) {
         percentual_area_protegida: 0
       },
       geometrias: rawData.geometrias || {
-        geometria_total: { type: 'Polygon', coordinates: [[]] },
-        geometria_reserva: { type: 'Polygon', coordinates: [[]] },
-        geometria_hidrica: { type: 'Polygon', coordinates: [[]] }
-      },
-      // Campos opcionais da API antiga
-      ind_status: rawData.ind_status,
-      ind_tipo: rawData.ind_tipo,
-      des_condic: rawData.des_condic,
-      mod_fiscal: rawData.mod_fiscal,
-      dat_criaca: rawData.dat_criaca,
-      dat_atuali: rawData.dat_atuali,
-      nome_imovel: rawData.nome_imovel,
-      situacao_imovel: rawData.situacao_imovel,
-      classe_imovel: rawData.classe_imovel
-    };
+        geometria_total: { type: 'MultiPolygon', coordinates: [] },
+        geometria_reserva: { type: 'MultiPolygon', coordinates: [] },
+        geometria_hidrica: { type: 'MultiPolygon', coordinates: [] }
+      }
+    } as DadosCAR;
+
+    // Adicione os campos opcionais explicitamente se existirem em rawData
+    if ('ind_status' in rawData) data.ind_status = rawData.ind_status as string;
+    if ('ind_tipo' in rawData) data.ind_tipo = rawData.ind_tipo as string;
+    if ('des_condic' in rawData) data.des_condic = rawData.des_condic as string;
+    if ('mod_fiscal' in rawData) data.mod_fiscal = rawData.mod_fiscal as number;
+    if ('dat_criaca' in rawData) data.dat_criaca = rawData.dat_criaca as string;
+    if ('dat_atuali' in rawData) data.dat_atuali = rawData.dat_atuali as string;
+    if ('nome_imovel' in rawData) data.nome_imovel = rawData.nome_imovel as string;
+    if ('situacao_imovel' in rawData) data.situacao_imovel = rawData.situacao_imovel as string;
+    if ('classe_imovel' in rawData) data.classe_imovel = rawData.classe_imovel as string;
 
     // Extrair valores com segurança usando operador opcional ?. e garantindo valores padrão
     const areaTotal = data.estatisticas?.area_total || 0;
@@ -421,20 +399,17 @@ export async function GET(request: Request) {
 }
 
 // Função auxiliar para calcular o centro de um polígono
-function calcularCentroPoligono(coords: number[][]) {
-  if (!coords || coords.length === 0) {
+function calcularCentroPoligono(coords: number[][]): [number, number] {
+  if (!coords || coords.length < 2) {
     return [0, 0];
   }
-  
   let sumLat = 0;
   let sumLng = 0;
-  
   for (const point of coords) {
     sumLng += point[0];
     sumLat += point[1];
   }
-  
-  return [sumLat / coords.length, sumLng / coords.length];
+  return [sumLat / coords.length, sumLng / coords.length] as [number, number];
 }
 
 // Função auxiliar segura para calcular o centro com verificações
@@ -443,17 +418,13 @@ function calcularCentroPoligonoSeguro(geometria: any): [number, number] {
     if (!geometria) {
       return [0, 0];
     }
-    
     // Validar o tipo de geometria e extrair coordenadas conforme necessário
-    if (geometria.type === 'Polygon' && geometria.coordinates && geometria.coordinates.length > 0) {
+    if (geometria.type === 'Polygon' && Array.isArray(geometria.coordinates[0]) && geometria.coordinates[0].length >= 2) {
       return calcularCentroPoligono(geometria.coordinates[0]);
     } 
-    else if (geometria.type === 'MultiPolygon' && geometria.coordinates && geometria.coordinates.length > 0) {
-      if (geometria.coordinates[0] && geometria.coordinates[0].length > 0) {
-        return calcularCentroPoligono(geometria.coordinates[0][0]);
-      }
+    else if (geometria.type === 'MultiPolygon' && Array.isArray(geometria.coordinates[0]) && Array.isArray(geometria.coordinates[0][0]) && geometria.coordinates[0][0].length >= 2) {
+      return calcularCentroPoligono(geometria.coordinates[0][0]);
     }
-    
     // Caso não consiga extrair, retorna valores padrão
     return [0, 0];
   } catch (error) {

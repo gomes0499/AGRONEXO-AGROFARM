@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LivestockForm } from "./livestock-form";
-import { toast } from "sonner";
 import {
   Drawer,
   DrawerContent,
@@ -41,11 +40,11 @@ export function NewLivestockButton({
 }: NewLivestockButtonProps) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const isMobile = useIsMobile();
-  
+
   const handleSuccess = () => {
     setIsOpen(false);
   };
-  
+
   if (isMobile) {
     return (
       <>
@@ -53,7 +52,7 @@ export function NewLivestockButton({
           <Plus className="h-4 w-4 mr-2" />
           Novo Animal
         </Button>
-        
+
         <Drawer open={isOpen} onOpenChange={setIsOpen} direction="right">
           <DrawerContent className="h-full max-h-none">
             <DrawerHeader className="text-left">
@@ -80,14 +79,14 @@ export function NewLivestockButton({
       </>
     );
   }
-  
+
   return (
     <>
       <Button onClick={() => setIsOpen(true)}>
         <Plus className="h-4 w-4 mr-2" />
         Novo Animal
       </Button>
-      
+
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
           <DialogHeader>

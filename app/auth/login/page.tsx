@@ -9,18 +9,17 @@ export const metadata: Metadata = {
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { 
-    email?: string; 
-    invite_token?: string;
-    token?: string;
-    redirectAfterLogin?: string;
-  };
+  searchParams: any;
 }) {
   return (
-    <LoginForm 
-      email={searchParams.email} 
+    <LoginForm
+      email={searchParams.email}
       inviteToken={searchParams.invite_token || searchParams.token}
-      redirectAfterLogin={searchParams.redirectAfterLogin === "true" || !!searchParams.token || !!searchParams.invite_token}
+      redirectAfterLogin={
+        searchParams.redirectAfterLogin === "true" ||
+        !!searchParams.token ||
+        !!searchParams.invite_token
+      }
     />
   );
 }

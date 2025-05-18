@@ -210,7 +210,7 @@ export const livestockSchema = z.object({
   categoria: z.string().min(1, "Categoria é obrigatória"),
   quantidade: z.coerce.number().min(0, "Quantidade deve ser positiva"),
   preco_unitario: z.coerce.number().min(0, "Preço unitário deve ser positivo"),
-  unidade_preco: priceUnitEnum.default("CABECA"),
+  unidade_preco: priceUnitEnum,
   numero_cabecas: z.coerce.number().int().min(0, "Número de cabeças deve ser positivo").optional(),
   propriedade_id: z.string().uuid(),
   created_at: z.date().optional(),

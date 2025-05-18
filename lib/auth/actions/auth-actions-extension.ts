@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { UserRole } from '@/lib/auth/roles';
 import { sendEmail } from '@/lib/resend';
-import { generateRandomPassword } from '@/lib/utils';
+import { generateRandomPassword } from '@/lib/utils/';
 
 // Interface para criação direta de membro com perfil completo
 interface CreateMemberWithProfileParams {
@@ -135,11 +135,20 @@ export async function createMemberWithProfile(params: CreateMemberWithProfilePar
     
     // Enviar email com as credenciais
     try {
-      // TODO: Criar template de email para novas contas
       await sendEmail({
         to: params.email,
         subject: `Sua conta foi criada na ${organizacao?.nome || 'plataforma'}`,
-        text: `Olá ${params.name},\n\nSua conta foi criada com sucesso.\n\nAcesse com seu email: ${params.email}\nSenha inicial: ${randomPassword}\n\nRecomendamos que altere sua senha no primeiro acesso.\n\nAtenciosamente,\nEquipe da ${organizacao?.nome || 'plataforma'}`
+        text: `Olá ${params.name},
+
+Sua conta foi criada com sucesso.
+
+Acesse com seu email: ${params.email}
+Senha inicial: ${randomPassword}
+
+Recomendamos que altere sua senha no primeiro acesso.
+
+Atenciosamente,
+Equipe da ${organizacao?.nome || 'plataforma'}`
       });
     } catch (emailError) {
       console.error('Erro ao enviar email com credenciais:', emailError);

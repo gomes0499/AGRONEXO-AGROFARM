@@ -193,13 +193,15 @@ export function ResultadosChart() {
               cursor={false}
               content={
                 <ChartTooltipContent
-                  formatter={(value: number) => {
+                  formatter={(value) => {
+                    const v = Array.isArray(value) ? value[0] : value;
+                    const num = typeof v === "number" ? v : Number(v);
                     return new Intl.NumberFormat("pt-BR", {
                       style: "currency",
                       currency: "BRL",
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
-                    }).format(value);
+                    }).format(num);
                   }}
                   indicator="dot"
                 />

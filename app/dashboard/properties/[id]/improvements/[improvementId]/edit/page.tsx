@@ -11,14 +11,12 @@ export const metadata: Metadata = {
   description: "Edite os dados de uma benfeitoria ou melhoria.",
 };
 
-interface EditImprovementPageProps {
-  params: {
-    id: string;
-    improvementId: string;
-  };
-}
-
-export default async function EditImprovementPage({ params }: EditImprovementPageProps) {
+export default async function EditImprovementPage({
+  params,
+}: {
+  params: any;
+  searchParams?: any;
+}) {
   const session = await getSession();
   
   if (!session?.organizationId) {

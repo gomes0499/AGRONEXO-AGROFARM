@@ -14,8 +14,9 @@ const DEFAULT_FROM_EMAIL = `${COMPANY_NAME} <noreply@byteconta.com.br>`;
 interface SendEmailParams {
   to: string | string[];
   subject: string;
-  react: React.ReactNode;
+  react?: React.ReactNode;
   from?: string;
+  text?: any;
   cc?: string | string[];
   bcc?: string | string[];
   replyTo?: string;

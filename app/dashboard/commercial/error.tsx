@@ -5,10 +5,8 @@ import { CommercialMaintenance } from "@/components/commercial/common/commercial
 
 export default function CommercialErrorPage({
   error,
-  reset,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
 }) {
   useEffect(() => {
     // Log do erro no console ou em um serviço de monitoramento

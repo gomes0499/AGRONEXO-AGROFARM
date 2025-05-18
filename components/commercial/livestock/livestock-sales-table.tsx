@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { formatCurrency, isNegativeValue } from "@/lib/utils/formatters";
 import { LivestockSale } from "@/schemas/commercial";
 import { Harvest } from "@/schemas/production";
@@ -75,17 +74,17 @@ export function LivestockSalesTable(props: LivestockSalesTableProps) {
     }
 
     // Lista para armazenar as linhas renderizadas
-    var rows = [];
+    const rows: React.ReactNode[] = [];
 
     // Gerar cada linha com for tradicional em vez de map
-    for (var i = 0; i < sales.length; i++) {
-      var sale = sales[i];
+    for (let i = 0; i < sales.length; i++) {
+      let sale = sales[i];
       if (!sale) continue;
 
       // Calcular valores financeiros
-      var profit = 0;
-      var profitMargin = 0;
-      var totalCosts = 0;
+      let profit = 0;
+      let profitMargin = 0;
+      let totalCosts = 0;
 
       // Verificações extras para melhorar a segurança
       try {
@@ -97,7 +96,7 @@ export function LivestockSalesTable(props: LivestockSalesTableProps) {
       }
 
       // Criar a linha da tabela
-      var row = (
+      let row = (
         <TableRow key={sale.id || i}>
           <TableCell>{getPropertyName(sale.propriedade_id)}</TableCell>
           <TableCell>{getSafraName(sale.safra_id)}</TableCell>
