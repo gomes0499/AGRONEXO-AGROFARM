@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useUser } from "./user-provider";
-import { ImageUploadCropper } from "@/components/ui/image-upload-cropper";
+import { ImageUploadCropper } from "@/components/shared/image-upload-cropper";
 import {
   uploadUserAvatar,
   removeUserAvatar,

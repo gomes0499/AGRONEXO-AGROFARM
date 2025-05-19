@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Harvest } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
-import { CurrencyField } from "@/components/ui/currency-field";
+import { CurrencyField } from "@/components/shared/currency-field";
 
 interface LivestockSaleFormProps {
   organizationId: string;

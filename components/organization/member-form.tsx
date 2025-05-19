@@ -42,11 +42,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/datepicker";
+import { DatePicker } from "@/components/shared/datepicker";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { FormattedInput } from "@/components/ui/formatted-input";
+import { FormattedInput } from "@/components/shared/formatted-input";
 
 // Schema para formulário de adição de membro
 const memberSchema = z.object({

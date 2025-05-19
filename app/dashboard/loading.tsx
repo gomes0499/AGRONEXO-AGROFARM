@@ -55,7 +55,7 @@ export default function DashboardLoading() {
                       <Skeleton className="h-8 w-20" />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      <Skeleton as="span" className="h-3 w-32 mt-1" />
+                      <Skeleton className="h-3 w-32 mt-1" />
                     </p>
                   </CardContent>
                 </Card>

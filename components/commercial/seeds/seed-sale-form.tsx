@@ -33,7 +33,7 @@ import {
 import { Harvest } from "@/schemas/production";
 import { Culture } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
-import { CurrencyField } from "@/components/ui/currency-field";
+import { CurrencyField } from "@/components/shared/currency-field";
 
 interface SeedSaleFormProps {
   harvests: Harvest[];

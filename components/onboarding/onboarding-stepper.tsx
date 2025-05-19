@@ -11,7 +11,7 @@ import {
   StepperSeparator,
   StepperTitle,
   StepperTrigger,
-} from "@/components/ui/stepper";
+} from "@/components/shared/stepper";
 
 import { Card } from "@/components/ui/card";
 import { PersonalDataForm } from "./steps/personal-data-form";

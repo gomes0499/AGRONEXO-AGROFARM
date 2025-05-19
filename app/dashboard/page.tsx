@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getPrices } from "@/lib/actions/commercial-actions";
-import { UnderConstruction } from "@/components/ui/under-construction";
+import { UnderConstruction } from "@/components/shared/under-construction";
 import AgroKpiCards from "@/components/dashboard/visao-geral/kpi-cards";
 import { AreaPlantioChart } from "@/components/dashboard/visao-geral/area-plantio-chart";
 import { ResultadosChart } from "@/components/dashboard/visao-geral/resultados-chart";

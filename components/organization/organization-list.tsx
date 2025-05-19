@@ -19,7 +19,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -250,14 +250,14 @@ export function OrganizationList({
             <TableHeader>
               <TableRow>
                 <TableHead>{renderSortableHeader("Nome", "nome")}</TableHead>
-                <TableHead>{renderSortableHeader("Identificador", "slug")}</TableHead>
+                <TableHead>
+                  {renderSortableHeader("Identificador", "slug")}
+                </TableHead>
                 <TableHead>{renderSortableHeader("Email", "email")}</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {renderLoadingState()}
-            </TableBody>
+            <TableBody>{renderLoadingState()}</TableBody>
           </Table>
         </div>
       ) : filteredAndSortedOrganizations.length > 0 ? (
@@ -266,7 +266,9 @@ export function OrganizationList({
             <TableHeader>
               <TableRow>
                 <TableHead>{renderSortableHeader("Nome", "nome")}</TableHead>
-                <TableHead>{renderSortableHeader("Identificador", "slug")}</TableHead>
+                <TableHead>
+                  {renderSortableHeader("Identificador", "slug")}
+                </TableHead>
                 <TableHead>{renderSortableHeader("Email", "email")}</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -281,22 +283,17 @@ export function OrganizationList({
                           org.nome
                         )}`}
                       >
-                        <AvatarImage 
+                        <AvatarImage
                           src={org.logo || ""}
                           alt={`Logo de ${org.nome}`}
                         />
-                        <AvatarFallback>
-                          {getInitials(org.nome)}
-                        </AvatarFallback>
+                        <AvatarFallback>{getInitials(org.nome)}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
                         <span className="font-medium">
                           {org.nome || "Sem nome"}
                         </span>
-                        <Badge
-                          variant="outline"
-                          className="w-fit text-xs mt-1"
-                        >
+                        <Badge variant="outline" className="w-fit text-xs mt-1">
                           {getOrganizationType(org)}
                         </Badge>
                       </div>
@@ -319,11 +316,7 @@ export function OrganizationList({
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                    >
+                    <Button variant="outline" size="sm" asChild>
                       <Link
                         href={`/dashboard/organization/${org.id}`}
                         className="cursor-pointer"

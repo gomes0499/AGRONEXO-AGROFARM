@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/datepicker";
+import { DatePicker } from "@/components/shared/datepicker";
 
 export function FullProfileForm() {
   const { user } = useUser();

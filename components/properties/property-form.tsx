@@ -44,7 +44,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Building2Icon, AreaChartIcon, ImageIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DatePicker } from "@/components/ui/datepicker";
+import { DatePicker } from "@/components/shared/datepicker";
 
 interface PropertyFormProps {
   property?: Property;

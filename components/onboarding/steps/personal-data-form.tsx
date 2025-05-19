@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/datepicker";
+import { DatePicker } from "@/components/shared/datepicker";
 import { personalInfoSchema, spouseSchema } from "@/schemas/auth";
 import { formatCPF, formatRG } from "@/lib/utils/format";
 import { Card } from "@/components/ui/card";

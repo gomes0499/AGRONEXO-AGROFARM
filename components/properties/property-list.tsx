@@ -26,7 +26,7 @@ import {
   Loader2Icon,
 } from "lucide-react";
 import Link from "next/link";
-import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatArea } from "@/lib/utils/formatters";
 import {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ImageUploadCropper } from "@/components/ui/image-upload-cropper";
+import { ImageUploadCropper } from "@/components/shared/image-upload-cropper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import {

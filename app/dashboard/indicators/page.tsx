@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/dashboard/site-header";
 import { IndicatorDashboard } from "@/components/indicators/indicator-dashboard";
 import { getIndicatorConfigs } from "@/lib/actions/indicator-actions";
 import { defaultIndicatorConfigs } from "@/schemas/indicators";
-import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyState } from "@/components/shared/empty-state";
 import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
@@ -71,21 +71,31 @@ export default async function IndicatorsPage() {
     // Buscar ou inicializar preços de commodities
     try {
       // Inicializar preços padrão de commodities
-      console.log("Inicializando preços de commodities para organizacao:", organizationId);
+      console.log(
+        "Inicializando preços de commodities para organizacao:",
+        organizationId
+      );
       const initResult = await ensureCommodityPricesExist(organizationId);
-      
+
       if (initResult.error) {
-        console.error("Erro ao inicializar preços de commodities:", initResult.error);
+        console.error(
+          "Erro ao inicializar preços de commodities:",
+          initResult.error
+        );
       } else {
         console.log("Preços de commodities inicializados com sucesso");
       }
-      
+
       // Buscar preços de commodities
-      const commodityPricesResult = await getCommodityPricesByOrganizationId(organizationId);
-      
+      const commodityPricesResult = await getCommodityPricesByOrganizationId(
+        organizationId
+      );
+
       if (commodityPricesResult.data) {
         commodityPrices = commodityPricesResult.data;
-        console.log(`Encontrados ${commodityPrices.length} preços de commodities`);
+        console.log(
+          `Encontrados ${commodityPrices.length} preços de commodities`
+        );
       } else if (commodityPricesResult.error) {
         console.error(
           "Erro ao buscar preços de commodities:",
@@ -93,10 +103,7 @@ export default async function IndicatorsPage() {
         );
       }
     } catch (commodityError) {
-      console.error(
-        "Erro ao buscar preços de commodities:",
-        commodityError
-      );
+      console.error("Erro ao buscar preços de commodities:", commodityError);
       // Continue with empty prices array
     }
   } catch (error) {

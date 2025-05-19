@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { UnderConstruction } from "@/components/ui/under-construction";
+import { UnderConstruction } from "@/components/shared/under-construction";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 

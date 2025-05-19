@@ -51,7 +51,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { UserRole } from "@/lib/auth/roles";
 import { toast } from "sonner";
-import { FormattedInput } from "@/components/ui/formatted-input";
+import { FormattedInput } from "@/components/shared/formatted-input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

@@ -12,7 +12,7 @@ import { OrganizationSwitcher } from "@/components/dashboard/organization-switch
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ReportGeneratorModal } from "@/components/ui/report-generator-modal";
+import { ReportGeneratorModal } from "@/components/shared/report-generator-modal";
 
 export function NavMain({
   items,
