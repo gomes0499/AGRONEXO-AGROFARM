@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/dashboard/site-header";
 import { IndicatorDashboard } from "@/components/indicators/indicator-dashboard";
 import { getIndicatorConfigs } from "@/lib/actions/indicator-actions";
 import { defaultIndicatorConfigs } from "@/schemas/indicators";
-import { EmptyState } from "@/components/shared/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";

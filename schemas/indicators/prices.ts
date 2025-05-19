@@ -25,9 +25,9 @@ export const commodityDisplayNames: Record<CommodityTypeEnum, string> = {
   ARROZ_IRRIGADO: "Arroz Irrigado",
   SORGO: "Sorgo",
   FEIJAO: "Feijão (sem tipo)",
-  DOLAR_ALGODAO: "Dólar Algodão - 30/09",
-  DOLAR_SOJA: "Dólar Soja - 31/05",
-  DOLAR_FECHAMENTO: "Dólar Fechamento - 31/12"
+  DOLAR_ALGODAO: "Dólar Algodão",
+  DOLAR_SOJA: "Dólar Soja",
+  DOLAR_FECHAMENTO: "Dólar Fechamento"
 };
 
 // Mapping for units
