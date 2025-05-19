@@ -364,7 +364,24 @@ export function PropertyMap({ property }: PropertyMapProps) {
 
       // Adicionar área cultivável se disponível
       if (sicarData.area_cultivavel?.poligono) {
-        features.push(sicarData.area_cultivavel.poligono);
+        // Criar uma cópia com a estrutura correta
+        const areaPoligono = sicarData.area_cultivavel.poligono;
+        const percentual = typeof areaPoligono.properties.percentual === 'string' 
+          ? parseFloat(areaPoligono.properties.percentual) 
+          : areaPoligono.properties.percentual;
+        
+        // Criar nova feature com as propriedades corretamente tipadas
+        const areaCultivavelFeature = {
+          type: areaPoligono.type,
+          geometry: areaPoligono.geometry,
+          properties: {
+            tipo: areaPoligono.properties.tipo,
+            area: areaPoligono.properties.area,
+            percentual: percentual // Garantir que é número
+          }
+        };
+        
+        features.push(areaCultivavelFeature);
       }
 
       return {
@@ -745,7 +762,7 @@ export function PropertyMap({ property }: PropertyMapProps) {
                             APP a Recompor: {sicarData.regularidade_ambiental.area_preservacao_permanente_recompor.toFixed(2).replace('.', ',')} ha
                           </p>
                         )}
-                        {sicarData.reserva_area_averbada > 0 && (
+                        {sicarData.reserva_area_averbada !== undefined && sicarData.reserva_area_averbada > 0 && (
                           <p className="text-xs text-muted-foreground mt-1">
                             Reserva Averbada: {sicarData.reserva_area_averbada.toFixed(2).replace('.', ',')} ha
                           </p>

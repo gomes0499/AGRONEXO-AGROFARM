@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { IndicatorThreshold } from "@/schemas/indicators";
 import { getIndicatorLevelClient } from "@/lib/actions/indicator-actions";
+import { useEffect, useState } from "react";
 
 type IndicatorValueBadgeProps = {
   value: number;
@@ -23,10 +24,19 @@ export function IndicatorValueBadge({
   size = "md",
   className,
 }: IndicatorValueBadgeProps) {
-  // Obter o nível do indicador com base no valor
-  const currentThreshold = getIndicatorLevelClient(value, thresholds);
+  const [threshold, setThreshold] = useState<IndicatorThreshold | null>(null);
   
-  if (!currentThreshold) {
+  // Obter o nível do indicador com base no valor usando useEffect para lidar com a Promise
+  useEffect(() => {
+    const fetchThreshold = async () => {
+      const result = await getIndicatorLevelClient(value, thresholds);
+      setThreshold(result);
+    };
+    
+    fetchThreshold();
+  }, [value, thresholds]);
+  
+  if (!threshold) {
     return null;
   }
   
@@ -42,9 +52,9 @@ export function IndicatorValueBadge({
       variant="outline"
       className={`font-medium transition-all ${sizeClasses[size]} ${className}`}
       style={{
-        backgroundColor: `${currentThreshold.color}20`,
-        color: currentThreshold.color,
-        borderColor: currentThreshold.color,
+        backgroundColor: `${threshold.color}20`,
+        color: threshold.color,
+        borderColor: threshold.color,
       }}
     >
       {showValue && (
@@ -54,7 +64,7 @@ export function IndicatorValueBadge({
           {suffix}
         </span>
       )}
-      {currentThreshold.level === "THRESHOLD" ? "LIMITE CRÍTICO" : currentThreshold.level}
+      {threshold.level === "THRESHOLD" ? "LIMITE CRÍTICO" : threshold.level}
     </Badge>
   );
 }

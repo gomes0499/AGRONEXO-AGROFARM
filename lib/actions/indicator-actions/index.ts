@@ -93,7 +93,7 @@ export async function getIndicatorConfigs() {
           indicatorType: type,
           thresholds,
           active: true,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date()
         })) as IndicatorConfig[];
       }
       
@@ -123,7 +123,7 @@ export async function getIndicatorConfigs() {
       indicatorType: type,
       thresholds,
       active: true,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date()
     })) as IndicatorConfig[];
   }
 }
@@ -203,7 +203,7 @@ export async function updateIndicatorConfig(formData: z.infer<typeof UpdateIndic
     }
     
     // Atualizar ou inserir
-    const updatedAt = new Date().toISOString();
+    const updatedAt = new Date();
     
     if (existingConfig) {
       // Atualizar configuração existente
@@ -272,7 +272,7 @@ async function initializeDefaultConfigs(organizationId: string) {
         indicatorType: type,
         thresholds,
         active: true,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       }));
     
     // Se não houver novas configurações a inserir, retornar sucesso
@@ -329,7 +329,7 @@ async function initializeConfigForType(organizationId: string, indicatorType: st
         indicatorType,
         thresholds: [], // Vazio para indicar erro
         active: true,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       } as IndicatorConfig;
     }
     
@@ -338,7 +338,7 @@ async function initializeConfigForType(organizationId: string, indicatorType: st
       indicatorType,
       thresholds,
       active: true,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date()
     };
     
     const { data, error } = await supabase
@@ -371,7 +371,7 @@ async function initializeConfigForType(organizationId: string, indicatorType: st
         indicatorType,
         thresholds,
         active: true,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       } as IndicatorConfig;
     }
     
@@ -389,7 +389,7 @@ async function initializeConfigForType(organizationId: string, indicatorType: st
       indicatorType,
       thresholds,
       active: true,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date()
     } as IndicatorConfig;
   }
 }
