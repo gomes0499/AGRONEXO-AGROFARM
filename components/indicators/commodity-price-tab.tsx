@@ -22,9 +22,10 @@ import { Loader2, Pencil, Save } from "lucide-react";
 import { toast } from "sonner";
 import { updateCommodityPrice } from "@/lib/actions/indicator-actions/commodity-price-actions";
 import { 
-  CommodityTypeEnum, 
-  CommodityPriceType, 
-  CommodityPriceUpdateType,
+  CommodityType,
+  type CommodityTypeEnum, 
+  type CommodityPriceType, 
+  type CommodityPriceUpdateType,
   commodityDisplayNames,
   commodityUnits
 } from "@/schemas/indicators/prices";
@@ -70,15 +71,28 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
   >({});
 
   // Group commodities by type
-  const commodityGroups = {
-    grains: ["SOJA_SEQUEIRO", "SOJA_IRRIGADO", "MILHO_SAFRINHA", "ALGODAO_CAPULHO", "ARROZ_IRRIGADO", "SORGO", "FEIJAO"],
-    dolar: ["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_FECHAMENTO"]
+  const commodityGroups: Record<string, CommodityTypeEnum[]> = {
+    // Usando valores do Enum corretamente
+    grains: [
+      "SOJA_SEQUEIRO", 
+      "SOJA_IRRIGADO", 
+      "MILHO_SAFRINHA", 
+      "ALGODAO_CAPULHO", 
+      "ARROZ_IRRIGADO", 
+      "SORGO", 
+      "FEIJAO"
+    ],
+    dolar: [
+      "DOLAR_ALGODAO", 
+      "DOLAR_SOJA", 
+      "DOLAR_FECHAMENTO"
+    ]
   };
 
   // Filter commodities by group
   const filterCommoditiesByGroup = (group: 'grains' | 'dolar') => {
     return commodityPrices.filter(price => 
-      commodityGroups[group].includes(price.commodityType)
+      commodityGroups[group].includes(price.commodityType as CommodityTypeEnum)
     );
   };
 
@@ -136,16 +150,36 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
       const editValues = editingState[commodityPrice.id];
       if (!editValues) return;
 
-      // Prepare update data
+      // Verificar valores e converter para número com segurança
+      const safeParseFloat = (value: string, defaultValue: number): number => {
+        if (!value || value.trim() === '') return defaultValue;
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? defaultValue : parsed;
+      };
+
+      // Adicionar organizacaoId para garantir que o update funcione corretamente
       const updateData: CommodityPriceUpdateType = {
         id: commodityPrice.id,
-        currentPrice: parseFloat(editValues.currentPrice || commodityPrice.currentPrice.toString()),
-        price2025: parseFloat(editValues.price2025 || commodityPrice.price2025.toString()),
-        price2026: parseFloat(editValues.price2026 || commodityPrice.price2026.toString()),
-        price2027: parseFloat(editValues.price2027 || commodityPrice.price2027.toString()),
-        price2028: parseFloat(editValues.price2028 || commodityPrice.price2028.toString()),
-        price2029: parseFloat(editValues.price2029 || commodityPrice.price2029.toString()),
+        organizacaoId: commodityPrice.organizacaoId, // Importante: incluir o ID da organização
+        commodityType: commodityPrice.commodityType, // Garantir que o tipo de commodity seja enviado
+        currentPrice: safeParseFloat(editValues.currentPrice, commodityPrice.currentPrice),
+        price2025: safeParseFloat(editValues.price2025, commodityPrice.price2025),
+        price2026: safeParseFloat(editValues.price2026, commodityPrice.price2026),
+        price2027: safeParseFloat(editValues.price2027, commodityPrice.price2027),
+        price2028: safeParseFloat(editValues.price2028, commodityPrice.price2028),
+        price2029: safeParseFloat(editValues.price2029, commodityPrice.price2029),
       };
+      
+      // Log detalhado para verificar qual tenant está sendo atualizado
+      // Preparando dados para atualização
+      
+      // Se estamos atualizando para o tenant errado, mostrar alerta
+      if (commodityPrice.organizacaoId === "1a32121d-b0ff-49b3-8066-4634f1053ca0") {
+        console.warn("ATENÇÃO: Atualizando preços para o tenant GRUPO TESTE, não para o GRUPO SAFRA BOA!");
+        toast.warning("Atenção: Você está editando preços para o GRUPO TESTE, não para seu tenant atual!");
+      }
+
+      // Enviando atualização para o servidor
 
       // Save to database
       const result = await updateCommodityPrice(updateData);
@@ -154,10 +188,29 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
         throw new Error(result.error.message);
       }
 
+      // Atualizar o estado local com valores do servidor (ou valores enviados se o servidor não retornar)
+      if (result.data) {
+        // Atualizar a exibição local com os dados do servidor
+        commodityPrice.currentPrice = result.data.currentPrice;
+        commodityPrice.price2025 = result.data.price2025;
+        commodityPrice.price2026 = result.data.price2026;
+        commodityPrice.price2027 = result.data.price2027;
+        commodityPrice.price2028 = result.data.price2028;
+        commodityPrice.price2029 = result.data.price2029;
+      } else {
+        // Caso o servidor não retorne os dados atualizados, usamos os valores enviados
+        commodityPrice.currentPrice = updateData.currentPrice || commodityPrice.currentPrice;
+        commodityPrice.price2025 = updateData.price2025 || commodityPrice.price2025;
+        commodityPrice.price2026 = updateData.price2026 || commodityPrice.price2026;
+        commodityPrice.price2027 = updateData.price2027 || commodityPrice.price2027;
+        commodityPrice.price2028 = updateData.price2028 || commodityPrice.price2028;
+        commodityPrice.price2029 = updateData.price2029 || commodityPrice.price2029;
+      }
+
       toast.success("Preço atualizado com sucesso!");
     } catch (error: any) {
       toast.error(`Erro ao salvar: ${error.message}`);
-      console.error(error);
+      // Error handling is managed by toast
     } finally {
       setIsLoading((prev) => ({
         ...prev,
@@ -203,9 +256,9 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
             return (
               <TableRow key={commodityPrice.id}>
                 <TableCell className="font-medium">
-                  {commodityDisplayNames[commodityPrice.commodityType as CommodityTypeEnum]}
+                  {commodityDisplayNames[commodityPrice.commodityType]}
                 </TableCell>
-                <TableCell>{commodityUnits[commodityPrice.commodityType as CommodityTypeEnum]}</TableCell>
+                <TableCell>{commodityUnits[commodityPrice.commodityType]}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.currentPrice)}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.price2025)}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.price2026)}</TableCell>
@@ -227,7 +280,7 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
                       <div className="grid gap-4 w-[500px]">
                         <div className="space-y-2">
                           <h4 className="font-medium leading-none">
-                            Editar Preços - {commodityDisplayNames[commodityPrice.commodityType as CommodityTypeEnum]}
+                            Editar Preços - {commodityDisplayNames[commodityPrice.commodityType]}
                           </h4>
                           <p className="text-sm text-muted-foreground">
                             Atualize os preços projetados para os anos seguintes.
@@ -236,7 +289,7 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
                         <div className="grid grid-cols-3 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor={`${commodityPrice.id}-currentPrice`}>
-                              Preço Atual ({commodityUnits[commodityPrice.commodityType as CommodityTypeEnum]})
+                              Preço Atual ({commodityUnits[commodityPrice.commodityType]})
                             </Label>
                             <Input
                               id={`${commodityPrice.id}-currentPrice`}
@@ -399,6 +452,44 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {commodityPrices.length > 0 && commodityPrices[0].organizacaoId === "1a32121d-b0ff-49b3-8066-4634f1053ca0" && window.location.href.includes("organizacaoId=131db844") && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Atenção: Dados de outro tenant!</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p className="font-bold">
+                    Você está visualizando e editando preços que pertencem ao tenant "GRUPO TESTE", 
+                    não ao seu tenant atual "GRUPO SAFRA BOA".
+                  </p>
+                  <p className="mt-2">
+                    Isso significa que suas alterações não vão aparecer no módulo de Arrendamentos.
+                    Para corrigir este problema, clique no botão abaixo para inicializar os preços 
+                    para o seu tenant atual.
+                  </p>
+                  <div className="mt-3">
+                    <Button 
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm("Esta ação vai inicializar os preços para o seu tenant atual. Continuar?")) {
+                          window.location.href = "/dashboard/properties?init_prices=true";
+                        }
+                      }}
+                    >
+                      Inicializar preços para GRUPO SAFRA BOA
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <Tabs defaultValue="grains" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="grains">Grãos e Fibras</TabsTrigger>

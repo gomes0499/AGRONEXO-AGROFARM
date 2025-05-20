@@ -20,7 +20,7 @@ export default async function LeasesPage({
 }) {
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
-  
+
   const session = await getSession();
 
   if (!session?.organizationId) {
@@ -40,19 +40,17 @@ export default async function LeasesPage({
 
     return (
       <>
-        <SiteHeader 
-          title={`Arrendamentos: ${property.nome}`} 
-          showBackButton 
-          backUrl={`/dashboard/properties/${params.id}`} 
-          backLabel="Voltar à Propriedade"
+        <SiteHeader
+          title={`Arrendamentos: ${property.nome}`}
+          showBackButton
+          backUrl={`/dashboard/properties/${params.id}`}
         />
         <div className="flex flex-col gap-6 p-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Arrendamentos
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight">Arrendamentos</h1>
             <p className="text-muted-foreground">
-              Gerenciamento de contratos de arrendamento para a propriedade {property.nome}.
+              Gerenciamento de contratos de arrendamento para a propriedade{" "}
+              {property.nome}.
             </p>
           </div>
           <Separator />

@@ -12,11 +12,26 @@ export const metadata: Metadata = {
     "Gerencie suas propriedades rurais, arrendamentos e benfeitorias.",
 };
 
-export default async function PropertiesPage() {
+export default async function PropertiesPage({ searchParams }: { searchParams?: { init_prices?: string } }) {
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
   
   const session = await getSession();
+  
+  // Verificar se há parâmetro para inicializar preços
+  if (searchParams?.init_prices === "true" && session?.organizationId) {
+    // Importar a função para inicializar preços e chamá-la
+    const { initializeDefaultCommodityPrices } = await import('@/lib/actions/indicator-actions/commodity-price-actions');
+    console.log(`Inicializando preços para tenant: ${session.organizationId}`);
+    
+    try {
+      const result = await initializeDefaultCommodityPrices(session.organizationId);
+      console.log(`Resultado da inicialização: ${JSON.stringify(result)}`);
+    } catch (error) {
+      console.error(`Erro ao inicializar preços: ${error}`);
+    }
+  }
+  
   const properties = await getProperties(session?.organizationId);
 
   return (
@@ -29,6 +44,31 @@ export default async function PropertiesPage() {
             Gerencie seus bens imóveis, arrendamentos e benfeitorias.
           </p>
         </div>
+        
+        {/* Exibir alerta se os preços foram inicializados */}
+        {searchParams?.init_prices === "true" && (
+          <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-2">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-green-800">
+                  Preços de commodities inicializados com sucesso para seu tenant!
+                </p>
+                <div className="mt-2 text-xs text-green-700">
+                  <p>
+                    Agora você pode acessar o módulo de <a href="/dashboard/indicators" className="font-bold underline">Indicadores</a> para personalizar os preços ou 
+                    voltar para o módulo de <a href="/dashboard/properties" className="font-bold underline">Arrendamentos</a> para continuar seu trabalho.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <PropertyList properties={properties} />
       </div>
     </>

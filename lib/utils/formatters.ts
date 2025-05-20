@@ -127,10 +127,10 @@ export function formatArea(value: number | null | undefined): string {
 export function formatSacas(value: number | null | undefined): string {
   if (value === null || value === undefined) return '0 sc';
   
-  // Formata com separador de milhar mas sem casas decimais
+  // Formata com separador de milhar e até 2 casas decimais
   return `${value.toLocaleString('pt-BR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
   })} sc`;
 }
 

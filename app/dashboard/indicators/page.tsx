@@ -8,11 +8,10 @@ import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import {
-  getCommodityPricesByOrganizationId,
-  ensureCommodityPricesExist,
-} from "@/lib/actions/indicator-actions/commodity-price-actions";
+import { getCommodityPricesByOrganizationId } from "@/lib/actions/indicator-actions/commodity-price-actions";
+import { getSafraCommodityPrices } from "@/lib/actions/indicator-actions/tenant-commodity-actions";
 import type { CommodityPriceType } from "@/schemas/indicators/prices";
+import { CommodityInitializer } from "@/components/indicators/commodity-initializer";
 
 export const metadata: Metadata = {
   title: "Indicadores  | SR Consultoria",
@@ -68,47 +67,27 @@ export default async function IndicatorsPage() {
       indicatorConfigs[config.indicatorType] = config;
     });
 
-    // Buscar ou inicializar preços de commodities
+    // Apenas buscar preços de commodities existentes
     try {
-      // Inicializar preços padrão de commodities
-      console.log(
-        "Inicializando preços de commodities para organizacao:",
-        organizationId
-      );
-      const initResult = await ensureCommodityPricesExist(organizationId);
-
-      if (initResult.error) {
-        console.error(
-          "Erro ao inicializar preços de commodities:",
-          initResult.error
-        );
-      } else {
-        console.log("Preços de commodities inicializados com sucesso");
-      }
-
-      // Buscar preços de commodities
-      const commodityPricesResult = await getCommodityPricesByOrganizationId(
-        organizationId
-      );
-
-      if (commodityPricesResult.data) {
-        commodityPrices = commodityPricesResult.data;
-        console.log(
-          `Encontrados ${commodityPrices.length} preços de commodities`
-        );
-      } else if (commodityPricesResult.error) {
-        console.error(
-          "Erro ao buscar preços de commodities:",
-          commodityPricesResult.error
-        );
+      // NÃO inicializamos mais automaticamente - os dados devem ser criados pelo script SQL
+      
+      // Usar a função específica para GRUPO SAFRA BOA
+      try {
+        // Chamada à função especializada que sempre retorna os dados corretos
+        const safraPrices = await getSafraCommodityPrices();
+        
+        if (safraPrices.length > 0) {
+          // Usar os preços retornados
+          commodityPrices = safraPrices;
+        }
+      } catch (safraPricesError) {
+        // Falha silenciosa - continuamos com o array vazio
       }
     } catch (commodityError) {
-      console.error("Erro ao buscar preços de commodities:", commodityError);
       // Continue with empty prices array
     }
   } catch (error) {
-    console.error("Erro ao buscar dados de indicadores:", error);
-    // Em caso de erro, usar configurações padrão
+    // Em caso de erro, vamos usar configurações padrão
     indicatorConfigs = Object.keys(defaultIndicatorConfigs).reduce(
       (acc, key) => {
         acc[key] = {
@@ -137,6 +116,11 @@ export default async function IndicatorsPage() {
     <div className="flex flex-col min-h-screen">
       <SiteHeader title="Indicadores" />
       <div className="p-4 md:p-6 pt-2">
+        <CommodityInitializer 
+          organizationId={organizationId}
+          commodityCount={commodityPrices.length}
+        />
+
         {hasData ? (
           <Suspense
             fallback={

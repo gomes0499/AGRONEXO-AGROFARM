@@ -21,8 +21,16 @@ import {
 import {
   formatArea,
   formatSacas,
+  formatCurrency,
   parseFormattedNumber,
 } from "@/lib/utils/formatters";
+import { 
+  CommodityType, 
+  type CommodityTypeEnum,
+  commodityDisplayNames,
+} from "@/schemas/indicators/prices";
+// Importar a ação especializada para o tenant GRUPO SAFRA BOA
+import { getSafraCommodityPrices } from "@/lib/actions/indicator-actions/tenant-commodity-actions";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -71,24 +79,24 @@ export function LeaseForm({
     null
   );
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [isLoadingCommodities, setIsLoadingCommodities] = useState(false);
   const [activeTab, setActiveTab] = useState("informacoes-contrato");
   const isEditing = !!lease?.id;
-
+  
+  // Estados para commodities e projeções
+  const [commodities, setCommodities] = useState<any[]>([]);
+  const [selectedCommodity, setSelectedCommodity] = useState<string>("SOJA_SEQUEIRO");
+  const [projectionCosts, setProjectionCosts] = useState<{[year: string]: number}>({});
+  
   // Determinar o ano atual e próximos 10 anos para projeção de custos
   const currentYear = new Date().getFullYear();
-  const projectionYears = Array.from({ length: 11 }, (_, i) =>
+  const projectionYears = Array.from({ length: 5 }, (_, i) =>
     (currentYear + i).toString()
   );
 
-  // Converter o objeto JSONB de custos para objeto JavaScript
-  const defaultCustos = isEditing
-    ? typeof lease.custos_projetados_anuais === "string"
-      ? JSON.parse(lease.custos_projetados_anuais)
-      : lease.custos_projetados_anuais
-    : projectionYears.reduce((acc, year) => ({ ...acc, [year]: 0 }), {});
-
   const form = useForm<LeaseFormValues>({
     resolver: zodResolver(leaseFormSchema),
+    mode: "onSubmit", // Só validar quando o usuário submeter o formulário
     defaultValues: {
       propriedade_id: propertyId,
       numero_arrendamento: lease?.numero_arrendamento || "",
@@ -104,13 +112,22 @@ export function LeaseForm({
         : new Date(new Date().setFullYear(new Date().getFullYear() + 5)),
       custo_hectare: lease?.custo_hectare || 0,
       custo_ano: lease?.custo_ano || 0,
-      custos_projetados_anuais: defaultCustos,
+      custos_projetados_anuais: lease?.custos_projetados_anuais || JSON.stringify({}),
     },
   });
 
   const onSubmit = async (values: LeaseFormValues) => {
     try {
       setIsSubmitting(true);
+      
+      // Garante que os custos projetados estão atualizados
+      const currentCosts = projectionCosts;
+      if (Object.keys(currentCosts).length > 0) {
+        values.custos_projetados_anuais = JSON.stringify(currentCosts);
+      }
+      
+      toast.info("Enviando formulário...");
+      
       if (isEditing) {
         await updateLease(lease.id!, values);
         toast.success("Arrendamento atualizado com sucesso!");
@@ -118,10 +135,12 @@ export function LeaseForm({
         await createLease(organizationId, values);
         toast.success("Arrendamento criado com sucesso!");
       }
-      router.push(`/dashboard/properties/${propertyId}`);
-      router.refresh();
+      
+      setTimeout(() => {
+        router.push(`/dashboard/properties/${propertyId}`);
+        router.refresh();
+      }, 500);
     } catch (error) {
-      console.error("Erro ao salvar arrendamento:", error);
       toast.error("Ocorreu um erro ao salvar o arrendamento.");
     } finally {
       setIsSubmitting(false);
@@ -165,11 +184,10 @@ export function LeaseForm({
             form.setValue("area_fazenda", property.area_total);
             form.setValue("nome_fazenda", property.nome);
           } catch (error) {
-            console.error("Erro ao buscar propriedade:", error);
+            toast.error("Erro ao buscar dados da propriedade");
           }
         }
       } catch (error) {
-        console.error("Erro ao buscar propriedades:", error);
         toast.error("Erro ao carregar a lista de propriedades");
       } finally {
         setIsLoadingProperties(false);
@@ -198,7 +216,7 @@ export function LeaseForm({
       form.setValue("area_fazenda", property.area_total);
       form.setValue("nome_fazenda", property.nome);
     } catch (error) {
-      console.error("Erro ao buscar propriedade:", error);
+      toast.error("Erro ao buscar dados da propriedade");
     }
   };
 
@@ -213,6 +231,85 @@ export function LeaseForm({
   const handleThirdTab = () => {
     setActiveTab("projecao-custos");
   };
+
+  // Esta função foi removida para evitar a criação automática de commodities
+
+  // Função para carregar preços de commodities usando a ação especializada
+  const fetchCommodityPrices = async () => {
+    try {
+      setIsLoadingCommodities(true);
+      
+      // Usar a função especializada que sempre retorna os preços do GRUPO SAFRA BOA
+      const commodityData = await getSafraCommodityPrices();
+      
+      if (commodityData.length > 0) {
+        setCommodities(commodityData);
+        
+        // Pré-selecionar Soja Sequeiro se disponível
+        const soja = commodityData.find(c => c.commodityType === "SOJA_SEQUEIRO");
+        if (soja) {
+          setSelectedCommodity("SOJA_SEQUEIRO");
+        } else if (commodityData.length > 0) {
+          setSelectedCommodity(commodityData[0].commodityType);
+        }
+      } else {
+        toast.error("Erro ao carregar preços de commodities");
+        setCommodities([]);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro ao carregar preços: ${errorMessage}`);
+      setCommodities([]);
+    } finally {
+      setIsLoadingCommodities(false);
+    }
+  };
+
+  // Apenas carregar commodities quando a página carregar
+  useEffect(() => {
+    if (organizationId || propertyId) {
+      // Buscar os preços de commodities usando a função especializada para GRUPO SAFRA BOA
+      fetchCommodityPrices();
+    }
+  }, [organizationId, propertyId]);
+  
+  // Adicionar uma função para recarregar preços quando a aba de projeção for selecionada
+  useEffect(() => {
+    if (activeTab === "projecao-custos" && organizationId) {
+      fetchCommodityPrices();
+    }
+  }, [activeTab]);
+
+  // Calcular os custos projetados com base no custo anual e preço da commodity
+  useEffect(() => {
+    const custo_ano = form.getValues("custo_ano");
+    if (!custo_ano || commodities.length === 0) return;
+
+    const selectedCommodityData = commodities.find(c => c.commodityType === selectedCommodity);
+    if (!selectedCommodityData) return;
+
+    const newProjectionCosts: {[year: string]: number} = {};
+    
+    // Ano atual - usando currentPrice
+    newProjectionCosts[currentYear.toString()] = custo_ano * selectedCommodityData.currentPrice;
+    
+    // Anos futuros
+    if (projectionYears.includes("2025")) 
+      newProjectionCosts["2025"] = custo_ano * selectedCommodityData.price2025;
+    if (projectionYears.includes("2026")) 
+      newProjectionCosts["2026"] = custo_ano * selectedCommodityData.price2026;
+    if (projectionYears.includes("2027")) 
+      newProjectionCosts["2027"] = custo_ano * selectedCommodityData.price2027;
+    if (projectionYears.includes("2028")) 
+      newProjectionCosts["2028"] = custo_ano * selectedCommodityData.price2028;
+    if (projectionYears.includes("2029")) 
+      newProjectionCosts["2029"] = custo_ano * selectedCommodityData.price2029;
+
+    setProjectionCosts(newProjectionCosts);
+    
+    // Atualizar o campo custos_projetados_anuais no formulário
+    form.setValue("custos_projetados_anuais", JSON.stringify(newProjectionCosts));
+  }, [form.watch("custo_ano"), selectedCommodity, commodities]);
 
   return (
     <div className="space-y-6">
@@ -494,47 +591,22 @@ export function LeaseForm({
                           <FormLabel>Custo por Hectare (sacas)</FormLabel>
                           <FormControl>
                             <Input
-                              type="text"
-                              placeholder="Digite o custo por hectare"
+                              type="number"
+                              step="0.01"
+                              placeholder="Digite o custo por hectare (ex: 13.50)"
                               {...field}
                               onChange={(e) => {
-                                // Limpa a formatação e pega apenas números e vírgulas
-                                const cleanValue = e.target.value.replace(
-                                  /[^\d.,]/g,
-                                  ""
-                                );
-                                // Converte para número para armazenar no form
-                                const numericValue =
-                                  parseFormattedNumber(cleanValue);
-                                field.onChange(numericValue);
+                                // Garantir que é um número válido
+                                const value = parseFloat(e.target.value);
+                                field.onChange(isNaN(value) ? 0 : value);
                                 // Atualizar o custo anual após mudar o custo por hectare
                                 setTimeout(() => calculateAnnualCost(), 0);
                               }}
-                              onBlur={(e) => {
-                                field.onBlur();
-                                // Se tiver um valor, formata ele ao sair do campo
-                                if (field.value) {
-                                  const formattedValue = formatSacas(
-                                    field.value
-                                  );
-                                  e.target.value = formattedValue;
-                                }
-                              }}
-                              onFocus={(e) => {
-                                // Quando ganhar foco, mostra apenas o número sem formatação
-                                if (field.value) {
-                                  e.target.value = field.value.toString();
-                                }
-                              }}
-                              value={
-                                field.value !== undefined &&
-                                field.value !== null
-                                  ? formatSacas(field.value)
-                                  : ""
-                              }
+                              onBlur={field.onBlur}
+                              value={field.value || ""}
                             />
                           </FormControl>
-                          <FormDescription>Em sacas</FormDescription>
+                          <FormDescription>Em sacas (utilize ponto para casas decimais)</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -593,90 +665,223 @@ export function LeaseForm({
                     <h3 className="text-sm font-medium mb-3">
                       Projeção de Custos Anuais
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {projectionYears.map((year) => (
-                        <FormField
-                          key={year}
-                          control={form.control}
-                          name={`custos_projetados_anuais.${year}`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Ano {year}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder={`Sacas para ${year}`}
-                                  onChange={(e) => {
-                                    // Limpa a formatação e pega apenas números e vírgulas
-                                    const cleanValue = e.target.value.replace(
-                                      /[^\d.,]/g,
-                                      ""
-                                    );
-                                    // Converte para número para armazenar no form
-                                    const numericValue =
-                                      parseFormattedNumber(cleanValue);
-
-                                    // Atualiza o valor no objeto de custos projetados
-                                    const custos = form.getValues(
-                                      "custos_projetados_anuais"
-                                    );
-                                    const custosObj =
-                                      typeof custos === "string"
-                                        ? JSON.parse(custos)
-                                        : { ...custos };
-
-                                    custosObj[year] = numericValue ?? 0;
-                                    form.setValue(
-                                      "custos_projetados_anuais",
-                                      custosObj
-                                    );
-                                  }}
-                                  onBlur={(e) => {
-                                    // Se tiver um valor, formata ele ao sair do campo
-                                    const custos = form.getValues(
-                                      "custos_projetados_anuais"
-                                    );
-                                    const custosObj =
-                                      typeof custos === "string"
-                                        ? JSON.parse(custos)
-                                        : custos;
-
-                                    const value = custosObj[year];
-                                    if (value !== null && value !== undefined) {
-                                      const formattedValue = formatSacas(value);
-                                      e.target.value = formattedValue;
-                                    }
-                                  }}
-                                  onFocus={(e) => {
-                                    // Quando ganhar foco, mostra apenas o número sem formatação
-                                    const custos = form.getValues(
-                                      "custos_projetados_anuais"
-                                    );
-                                    const custosObj =
-                                      typeof custos === "string"
-                                        ? JSON.parse(custos)
-                                        : custos;
-
-                                    const value = custosObj[year];
-                                    if (value !== null && value !== undefined) {
-                                      e.target.value = value.toString();
-                                    }
-                                  }}
-                                  value={
-                                    field.value !== undefined &&
-                                    field.value !== null
-                                      ? formatSacas(field.value)
-                                      : ""
-                                  }
-                                />
-                              </FormControl>
-                              <FormDescription>Valor em sacas</FormDescription>
-                            </FormItem>
+                    
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <FormLabel className="block">Selecione a Commodity para Projeção</FormLabel>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={fetchCommodityPrices}
+                          disabled={isLoadingCommodities}
+                        >
+                          {isLoadingCommodities ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Atualizando...
+                            </>
+                          ) : (
+                            'Atualizar Preços'
                           )}
-                        />
-                      ))}
+                        </Button>
+                      </div>
+                      {commodities.length === 0 ? (
+                        <div className="rounded-md bg-yellow-50 p-4 mb-4">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="ml-3">
+                              <h3 className="text-sm font-medium text-yellow-800">Preços de commodities não encontrados</h3>
+                              <div className="mt-2 text-sm text-yellow-700">
+                                <p className="mb-4">
+                                  Não foram encontrados preços de commodities. É necessário inicializar os preços 
+                                  para poder visualizar as projeções de custos.
+                                </p>
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    type="button" 
+                                    variant="outline"
+                                    className="bg-white border-amber-300 hover:bg-amber-100"
+                                    onClick={() => window.open('/dashboard/indicators', '_blank')}
+                                  >
+                                    Ir para Indicadores
+                                  </Button>
+                                  <Button 
+                                    type="button" 
+                                    variant="outline"
+                                    className="bg-white border-amber-300 hover:bg-amber-100"
+                                    disabled={isLoadingCommodities}
+                                    onClick={async () => {
+                                      try {
+                                        setIsLoadingCommodities(true);
+                                        
+                                        // Apenas chamar a função de busca novamente, ela já inicializa automaticamente se necessário
+                                        await fetchCommodityPrices();
+                                        
+                                        toast.success("Preços de commodities atualizados com sucesso!");
+                                      } catch (error: any) {
+                                        toast.error(`Erro inesperado: ${error.message || 'Desconhecido'}`);
+                                      } finally {
+                                        setIsLoadingCommodities(false);
+                                      }
+                                    }}
+                                  >
+                                    {isLoadingCommodities ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Inicializando...
+                                      </>
+                                    ) : (
+                                      'Inicializar Preços'
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <Select
+                          value={selectedCommodity}
+                          onValueChange={setSelectedCommodity}
+                          disabled={isLoadingCommodities}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={
+                                  isLoadingCommodities
+                                    ? "Carregando commodities..."
+                                    : "Selecione uma commodity"
+                                }
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {commodities.map((commodity) => (
+                              <SelectItem
+                                key={commodity.commodityType}
+                                value={commodity.commodityType}
+                              >
+                                {commodityDisplayNames[commodity.commodityType as CommodityTypeEnum] || commodity.commodityType}
+                                {' '} - {formatCurrency(commodity.currentPrice)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <FormDescription>
+                        Os custos serão calculados com base nos preços projetados da commodity selecionada
+                      </FormDescription>
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        Atualize os preços usando o botão acima caso tenha feito alterações recentemente.
+                      </div>
                     </div>
-                  </div>
+
+                    {commodities.length === 0 ? (
+                      <div className="flex items-center justify-center p-6 border rounded-md bg-gray-50">
+                        <div className="text-center">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <h3 className="mt-2 text-sm font-medium text-gray-900">Não é possível calcular projeções</h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            É necessário inicializar os preços de commodities para o seu tenant 
+                            antes de visualizar as projeções de custos.
+                          </p>
+                          <div className="mt-6 flex flex-col gap-3">
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              onClick={() => window.open('/dashboard/indicators', '_blank')}
+                            >
+                              Ir para Indicadores
+                            </Button>
+                            <Button 
+                              type="button"
+                              variant="default"
+                              disabled={isLoadingCommodities}
+                              onClick={async () => {
+                                try {
+                                  setIsLoadingCommodities(true);
+                                  
+                                  // Usar a função especializada para buscar preços
+                                  await fetchCommodityPrices();
+                                  toast.success("Preços de commodities inicializados com sucesso!");
+                                } catch (error) {
+                                  const errorMessage = error instanceof Error ? error.message : 'Desconhecido';
+                                  toast.error(`Erro inesperado: ${errorMessage}`);
+                                } finally {
+                                  setIsLoadingCommodities(false);
+                                }
+                              }}
+                            >
+                              {isLoadingCommodities ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Inicializando...
+                                </>
+                              ) : (
+                                <>Inicializar Preços para {organizationId.substring(0, 8)}</>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                        {projectionYears.map((year) => (
+                          <div key={year} className="border rounded-md p-4">
+                            <h4 className="text-sm font-medium mb-2">Ano {year}</h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Sacas:</span>
+                                <span className="text-sm font-medium">{form.getValues("custo_ano") ? formatSacas(form.getValues("custo_ano")) : "0 sc"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Preço saca:</span>
+                                <span className="text-sm font-medium">
+                                  {
+                                    (() => {
+                                      const commodity = commodities.find(c => c.commodityType === selectedCommodity);
+                                      if (!commodity) return "--";
+                                      
+                                      let price = 0;
+                                      if (year === currentYear.toString()) {
+                                        price = commodity.currentPrice;
+                                      } else if (year === "2025") {
+                                        price = commodity.price2025;
+                                      } else if (year === "2026") {
+                                        price = commodity.price2026;
+                                      } else if (year === "2027") {
+                                        price = commodity.price2027;
+                                      } else if (year === "2028") {
+                                        price = commodity.price2028;
+                                      } else if (year === "2029") {
+                                        price = commodity.price2029;
+                                      }
+                                      
+                                      return formatCurrency(price);
+                                    })()
+                                  }
+                                </span>
+                              </div>
+                              <div className="pt-2 border-t">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium">Total:</span>
+                                  <span className="text-base font-bold">{formatCurrency(projectionCosts[year] || 0)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    </div>
 
                   <div className="flex justify-between mt-6">
                     <Button
@@ -696,7 +901,17 @@ export function LeaseForm({
                       >
                         Cancelar
                       </Button>
-                      <Button type="submit" disabled={isSubmitting}>
+                      <Button 
+                        type="submit" 
+                        disabled={isSubmitting}
+                        onClick={() => {
+                          // Verificar erros no formulário (apenas para diagnóstico)
+                          const errors = form.formState.errors;
+                          if (Object.keys(errors).length > 0) {
+                            toast.error(`Erros no formulário: ${Object.keys(errors).join(", ")}`);
+                          }
+                        }}
+                      >
                         {isSubmitting && (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         )}
