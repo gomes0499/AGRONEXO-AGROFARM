@@ -18,11 +18,7 @@ import { errorHandler } from '@/utils/error-handler';
 import { formatISO } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 
-// ==== PRICE ACTIONS ====
 
-/**
- * Obtém todos os preços da organização
- */
 export async function getPrices(organizacaoId: string, safraId?: string) {
   try {
     const supabase = await createClient();

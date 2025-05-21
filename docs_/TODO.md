@@ -1,280 +1,226 @@
-Descrição: Administra a comercialização de produtos agrícolas, registra preços de commodities, contratos de venda, estratégias comerciais e gestão da comercialização de sementes. Permite acompanhamento de cotações e análise de margens.
+# MÓDULO FINANCEIRO - TAREFAS (ORGANIZADO POR TABS)
 
-# MÓDULO COMERCIAL - TAREFAS (ORGANIZADO POR TABS) SEGUIR LAYOUT IGUAL DOS OUTROS MODULOS EX: MODULO DE PRODUÇÃO
+## 1. ESTRUTURA BÁSICA
 
-## 1. Tab: Preços de Mercado (Dados da API)
+### 1.1 Schemas e Tipos (Zod)
 
-- [x] Implementar conexão com APIs de mercado financeiro para obtenção automática de cotações (mockado temporariamente)
-- [x] Criar interface de visualização de lista de cotações atuais com filtro por commodity
-      Dólar Algodão
-      Dólar Milho
-      Dólar Soja
-      Dólar Fechamento
+- [x] Criar arquivo `/schemas/financial/index.ts` para exportações
+- [x] Criar arquivo `/schemas/financial/bank-debts.ts` para schemas de dívidas bancárias
+- [x] Criar arquivo `/schemas/financial/trading-debts.ts` para schemas de dívidas com tradings
+- [x] Criar arquivo `/schemas/financial/property-debts.ts` para schemas de dívidas de imóveis
+- [x] Criar arquivo `/schemas/financial/suppliers.ts` para schemas de fornecedores
+- [x] Criar arquivo `/schemas/financial/liquidity.ts` para schemas de fatores de liquidez
+- [x] Criar arquivo `/schemas/financial/inventory.ts` para schemas de estoques
+- [x] Criar arquivo `/schemas/financial/receivables.ts` para schemas de contratos recebíveis
+- [x] Criar arquivo `/schemas/financial/advances.ts` para schemas de adiantamentos a fornecedores
+- [x] Criar arquivo `/schemas/financial/loans.ts` para schemas de empréstimos a terceiros
+- [x] Criar tipos enumerados (DebtModalityEnum, CurrencyEnum, LiquidityFactorEnum, InventoryTypeEnum, CommodityTypeEnum)
 
-      Algodão - Preços(USD/lb)
-      R$/@ de pluma
-      R$/ton de caroço
-      R$/@ (caroço)
-      R$/@ de algodão em capulho
+### 1.2 Ações do Servidor (Server Actions)
 
-      Milho	R$/Saca
+- [x] Criar arquivo `/lib/actions/financial-actions/index.ts` para exportações
+- [x] Criar arquivo `/lib/actions/financial-actions/bank-debt-actions.ts` para CRUD de dívidas bancárias
+- [x] Criar arquivo `/lib/actions/financial-actions/trading-debt-actions.ts` para CRUD de dívidas com tradings
+- [x] Criar arquivo `/lib/actions/financial-actions/property-debt-actions.ts` para CRUD de dívidas de imóveis
+- [x] Criar arquivo `/lib/actions/financial-actions/supplier-actions.ts` para CRUD de fornecedores
+- [x] Criar arquivo `/lib/actions/financial-actions/liquidity-factor-actions.ts` para CRUD de fatores de liquidez
+- [x] Criar arquivo `/lib/actions/financial-actions/inventory-actions.ts` para CRUD de estoques e estoques de commodities
+- [x] Criar arquivo `/lib/actions/financial-actions/receivable-actions.ts` para CRUD de contratos recebíveis
+- [x] Criar arquivo `/lib/actions/financial-actions/advance-actions.ts` para CRUD de adiantamentos a fornecedores
+- [x] Criar arquivo `/lib/actions/financial-actions/loan-actions.ts` para CRUD de empréstimos a terceiros
 
-      Soja	U$/Saca
-      Soja	R$/Saca
+### 1.3 Layout e Navegação
 
-      Milheto	R$/Saca
-      Sorgo	R$/Saca
+- [x] Criar arquivo `/app/dashboard/financial/page.tsx` para a página principal do módulo financeiro
+- [x] Criar arquivo `/app/dashboard/financial/layout.tsx` para o layout do módulo financeiro
+- [x] Criar arquivo `/app/dashboard/financial/loading.tsx` para o estado de carregamento
+- [x] Atualizar `/components/dashboard/navigation.ts` para incluir as rotas do módulo financeiro
+- [x] Criar componente `/components/dashboard/financial-navigation.tsx` para navegação secundária
+- [x] Atualizar menu lateral para incluir o novo módulo financeiro
 
-      Feijão Gurutuba	R$/Saca
-      Feijão Carioca	R$/Saca
+## 2. COMPONENTES COMUNS E REUTILIZÁVEIS
 
-      Mamona	R$/Kg
+### 2.1 Componentes de Formulário
 
-      Sem. Pastagem 	R$/Kg
+- [x] Criar `/components/financial/common/financial-form-modal.tsx` para o modal padrão de formulários (usado em todos os formulários)
+- [x] Reutilizar `/components/shared/currency-field.tsx` para entrada de valores monetários
+- [x] Criar `/components/financial/common/year-value-editor.tsx` para edição de valores por ano (para JSON)
+- [x] Criar `/components/financial/common/currency-selector.tsx` para seleção de moeda (BRL/USD)
+- [x] Criar `/components/financial/common/financial-delete-alert.tsx` para modal de confirmação de exclusão
+- [x] Criar `/components/financial/common/date-range-picker.tsx` para seleção de datas de início/fim
+- [x] Criar `/components/financial/common/indexer-input.tsx` para seleção de indexadores (SELIC, CDI, etc.)
 
-      Café	R$/Saca
+### 2.2 Componentes de UI
 
-      Trigo	R$/Saca
+- [x] Reutilizar componentes de cards existentes para exibir dados financeiros
+- [x] Reutilizar `/components/shared/empty-state.tsx` para estado vazio de listagens
+- [x] Criar `/components/financial/common/currency-badge.tsx` para exibir valores com indicação de moeda
+- [x] Criar `/components/financial/common/financial-header.tsx` para cabeçalhos padronizados de seções
+- [x] Criar `/components/financial/common/financial-filter-bar.tsx` para filtros de listagens
 
-- [x] Implementar ferramenta de conversão entre moedas (BRL/USD)
+## 3. IMPLEMENTAÇÃO POR TAB
 
-## 2. Tab: Vendas de Sementes
+### 3.1 Tab: Dívidas Bancárias
 
-- [X] Criar lista de visualização de registros da tabela vendas_sementes
-- [X] Implementar formulário para adicionar nova venda de sementes com validação
-- [X] Desenvolver formulário de edição de registros existentes
-- [X] Adicionar exclusão 
-- [X] Adicionar filtros por cultura, ano e valor
+- [x] Criar `/components/financial/bank-debts/bank-debt-listing.tsx` para a listagem de dívidas bancárias
+- [x] Criar `/components/financial/bank-debts/bank-debt-form.tsx` para o formulário em modal
+- [x] Criar `/components/financial/bank-debts/bank-debt-card.tsx` para visualização em card
+- [x] Criar `/components/financial/bank-debts/new-bank-debt-button.tsx` para o botão de criação
+- [x] Criar `/components/financial/bank-debts/bank-debt-row-actions.tsx` para ações em linha da tabela
+- [x] Criar `/app/dashboard/financial/bank-debts/page.tsx` para a página de dívidas bancárias
 
-## 3. Tab: Vendas Pecuárias
+### 3.2 Tab: Dívidas Trading
 
-- [ ] Criar lista de visualização de registros da tabela vendas_pecuaria
-- [ ] Implementar formulário para adicionar nova venda pecuária com validação
-- [ ] Desenvolver formulário de edição de registros existentes
-- [ ] Adicionar filtros por ano, valor e tipo de venda
-- [ ] Implementar visualização detalhada de registro específico
-- [ ] Criar relatório de vendas por período
-- [ ] Adicionar calculadora de margens para vendas pecuárias
+- [x] Criar `/components/financial/trading-debts/trading-debt-listing.tsx` para a listagem de dívidas com tradings
+- [x] Criar `/components/financial/trading-debts/trading-debt-form.tsx` para o formulário em modal
+- [ ] Criar `/components/financial/trading-debts/trading-debt-card.tsx` para visualização em card
+- [ ] Criar `/components/financial/trading-debts/new-trading-debt-button.tsx` para o botão de criação
+- [x] Criar `/components/financial/trading-debts/trading-debt-row-actions.tsx` para ações em linha da tabela
+- [x] Criar `/app/dashboard/financial/trading-debts/page.tsx` para a página de dívidas trading
 
-## 4. Tab: Contratos de Venda
+### 3.3 Tab: Dívidas de Imóveis
 
-- [ ] Criar estrutura da tabela contratos_venda no banco de dados
-- [ ] Implementar lista de visualização de contratos com status
-- [ ] Desenvolver formulário para cadastro de novos contratos
-- [ ] Adicionar funcionalidade de monitoramento de status do contrato
-- [ ] Implementar alertas para vencimentos próximos
-- [ ] Criar relatório de contratos por commodity e status
-- [ ] Adicionar vinculação com estoques disponíveis
+- [x] Criar `/components/financial/property-debts/property-debt-listing.tsx` para a listagem de dívidas de imóveis
+- [x] Criar `/components/financial/property-debts/property-debt-form.tsx` para o formulário em modal
+- [x] Criar `/components/financial/property-debts/property-debt-row-actions.tsx` para ações em linha da tabela
+- [x] Criar `/components/financial/property-debts/property-selector.tsx` para seleção de propriedades
+- [x] Criar `/app/dashboard/financial/property-debts/page.tsx` para a página de dívidas de imóveis
 
-## 5. Tab: Estratégias Comerciais
+### 3.4 Tab: Fornecedores
 
-- [ ] Criar estrutura da tabela estrategias_comerciais no banco de dados
-- [ ] Implementar interface para cadastro de novas estratégias
-- [ ] Desenvolver visualização de estratégias ativas e histórico
-- [ ] Adicionar simulador de resultados baseado em preços das APIs
-- [ ] Implementar sistema de notificações para preços-alvo atingidos
-- [ ] Criar relatório de desempenho das estratégias
+- [x] Criar `/components/financial/suppliers/supplier-listing.tsx` para a listagem de fornecedores
+- [x] Criar `/components/financial/suppliers/supplier-form.tsx` para o formulário em modal
+- [x] Criar `/components/financial/suppliers/supplier-row-actions.tsx` para ações em linha da tabela
+- [x] Criar `/app/dashboard/financial/suppliers/page.tsx` para a página de fornecedores
 
-## 6. Tab: Gestão de Insumos
+### 3.5 Tab: Fatores de Liquidez
 
-- [ ] Criar estrutura da tabela precos_insumos no banco de dados
-- [ ] Implementar lista de visualização de preços por fornecedor
-- [ ] Desenvolver formulário para cadastro de cotações
-- [ ] Adicionar comparativo visual entre fornecedores
-- [ ] Implementar histórico de preços por insumo
-- [ ] Criar relatório de variação de preços por categoria de insumo
+- [x] Criar `/components/financial/liquidity/liquidity-factor-listing.tsx` para a listagem de fatores de liquidez
+- [x] Criar `/components/financial/liquidity/liquidity-factor-form.tsx` para o formulário em modal
+- [x] Criar `/components/financial/liquidity/liquidity-factor-row-actions.tsx` para ações em linha da tabela
+- [x] Criar `/app/dashboard/financial/liquidity/page.tsx` para a página de fatores de liquidez
 
-# PRÓXIMOS PASSOS
+### 3.6 Tab: Estoques
 
-1. Implementar a tab de Vendas de Sementes
+- [x] Criar `/components/financial/inventory/inventory-listing.tsx` para a listagem de estoques
+- [x] Criar `/components/financial/inventory/inventory-form.tsx` para o formulário em modal
+- [x] Criar `/components/financial/inventory/inventory-row-actions.tsx` para ações em linha da tabela
+- [x] Criar `/app/dashboard/financial/inventories/page.tsx` para a página de estoques
 
-   - Criar componente de lista
-   - Implementar formulário de criação/edição
-   - Adicionar filtros e relatórios
+### 3.7 Tab: Estoques de Commodities
 
-2. Implementar a tab de Vendas Pecuárias
+- [x] Criar `/components/financial/commodity-inventory/commodity-inventory-listing.tsx` para a listagem
+- [x] Criar `/components/financial/commodity-inventory/commodity-inventory-form.tsx` para o formulário em modal
+- [x] Criar `/components/financial/commodity-inventory/commodity-inventory-row-actions.tsx` para ações em linha
+- [x] Criar `/app/dashboard/financial/commodity-stocks/page.tsx` para a página de estoques de commodities
 
-   - Criar componente de lista
-   - Implementar formulário de criação/edição
-   - Adicionar filtros e relatórios
+### 3.8 Tab: Contratos Recebíveis
 
-3. Implementar sistema de alertas de preços
+- [x] Criar `/components/financial/receivables/receivable-listing.tsx` para a listagem de contratos recebíveis
+- [x] Criar `/components/financial/receivables/receivable-form.tsx` para o formulário em modal
+- [x] Criar `/components/financial/receivables/receivable-row-actions.tsx` para ações em linha da tabela
+- [x] Criar `/app/dashboard/financial/receivables/page.tsx` para a página de contratos recebíveis
 
-   - Criar componente para definição de alertas
-   - Implementar notificações quando limites são atingidos
+### 3.9 Tab: Adiantamentos a Fornecedores
 
-4. Criar script SQL para novas tabelas
-   - Finalizar scripts de contratos_venda
-   - Finalizar scripts de estrategias_comerciais
-   - Finalizar scripts de precos_insumos
+- [X] Criar `/components/financial/advances/advance-listing.tsx` para a listagem de adiantamentos
+- [X] Criar `/components/financial/advances/advance-form.tsx` para o formulário em modal
+- [X] Criar `/components/financial/advances/advance-row-actions.tsx` para ações em linha da tabela
+- [X] Criar `/app/dashboard/financial/supplier-advances/page.tsx` para a página de adiantamentos
 
-# DETALHES DAS OPERAÇÕES POR TAB
+### 3.10 Tab: Empréstimos a Terceiros
 
-## Tab: Preços de Mercado
+- [X] Criar `/components/financial/loans/loan-listing.tsx` para a listagem de empréstimos
+- [X] Criar `/components/financial/loans/loan-form.tsx` para o formulário em modal
+- [X] Criar `/components/financial/loans/loan-row-actions.tsx` para ações em linha da tabela
+- [X] Criar `/app/dashboard/financial/third-party-loans/page.tsx` para a página de empréstimos
 
-- Funcionalidade principal: Visualização de dados obtidos via API
-- Interação: Consulta e exibição apenas (sem inserção de dados pelo usuário)
-- Filtros: Por commodity, período e moeda
-- Exibições: Tabelas, gráficos de linha e velas (candlestick)
+## 4. PÁGINA PRINCIPAL DO MÓDULO FINANCEIRO
 
-## Tab: Vendas de Sementes
+### 4.1 Componentes da Página Principal
 
-- Funcionalidade principal: CRUD na tabela vendas_sementes
-- Campos do formulário:
-  - Organização
-  - Cultura
-  - Ano
-  - Receita operacional bruta
-  - Impostos sobre vendas
-  - Comissão sobre vendas
-  - Logística e entregas
-  - Custo mercadorias vendidas
-  - Despesas gerais
-  - Imposto de renda
-- Validações: Todos os valores monetários devem ser positivos
+- [X] Criar `/components/financial/dashboard/financial-debt-distribution-chart.tsx` para gráfico de distribuição de dívidas
+- [X] Criar `/components/financial/dashboard/financial-payment-flow-chart.tsx` para gráfico de fluxo de pagamentos
+- [X] Reutilizar componentes de cards para resumo de dados financeiros
 
-## Tab: Vendas Pecuárias
+### 4.2 Implementação da Página Principal
 
-- Funcionalidade principal: CRUD na tabela vendas_pecuaria
-- Campos do formulário:
-  - Organização
-  - Ano
-  - Receita operacional bruta
-  - Impostos sobre vendas
-  - Comissão sobre vendas
-  - Logística e entregas
-  - Custo mercadorias vendidas
-  - Despesas gerais
-  - Imposto de renda
-- Validações: Todos os valores monetários devem ser positivos
+- [X] Implementar `/app/dashboard/financial/page.tsx` com os gráficos
+- [X] Adicionar cards de resumo na página principal
+- [X] Integrar visualizações gráficas dos dados financeiros
 
-# ESTRUTURAS DE NOVAS TABELAS
+## 5. IMPLEMENTAÇÃO DETALHADA
 
-## Tabela: contratos_venda
+### 5.1 Schemas e Validação Zod
 
-```sql
-CREATE TABLE public.contratos_venda (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  organizacao_id UUID NOT NULL REFERENCES public.organizacoes(id) ON DELETE CASCADE,
-  commodity_tipo commodity_tipo NOT NULL,
-  comprador VARCHAR(255) NOT NULL,
-  quantidade DECIMAL(12, 2) NOT NULL,
-  unidade VARCHAR(10) NOT NULL, -- sc, @, kg, ton
-  preco_unitario DECIMAL(10, 2) NOT NULL,
-  valor_total DECIMAL(15, 2) NOT NULL,
-  data_contrato DATE NOT NULL,
-  data_entrega DATE NOT NULL,
-  local_entrega VARCHAR(255) NOT NULL,
-  status VARCHAR(50) NOT NULL, -- PENDENTE, PARCIAL, CONCLUIDO, CANCELADO
-  porcentagem_executada DECIMAL(5, 2) DEFAULT 0,
-  observacoes TEXT,
-  safra_id UUID REFERENCES public.safras(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+- [x] Implementar schemas para todas as entidades com validações apropriadas:
+  - [x] Modalidade de dívidas (CUSTEIO, INVESTIMENTOS)
+  - [x] Valores monetários (mínimo 0)
+  - [x] Formatos de data corretos
+  - [x] Validação de JSON para fluxo de pagamento anual
+  - [x] Tipagem correta para todos os campos
 
-CREATE INDEX idx_contratos_venda_organizacao_id ON public.contratos_venda(organizacao_id);
-CREATE INDEX idx_contratos_venda_commodity_tipo ON public.contratos_venda(commodity_tipo);
-CREATE INDEX idx_contratos_venda_status ON public.contratos_venda(status);
-CREATE INDEX idx_contratos_venda_data_entrega ON public.contratos_venda(data_entrega);
-CREATE INDEX idx_contratos_venda_safra_id ON public.contratos_venda(safra_id);
+### 5.2 Server Actions
 
--- Trigger para atualizar o campo updated_at
-CREATE TRIGGER update_timestamp_contratos_venda
-BEFORE UPDATE ON public.contratos_venda
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+- [x] Implementar funções CRUD para todas as entidades
+- [x] Adicionar validação de permissões para todas as actions
+- [x] Implementar tratamento de erros consistente
+- [x] Garantir revalidação de cache após mutações
+- [ ] Implementar cálculos automáticos:
+  - [ ] Totais de valores anuais
+  - [ ] Conversão entre moedas
 
--- Trigger para calcular o valor_total automaticamente
-CREATE OR REPLACE FUNCTION public.calcular_valor_total_contrato()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.valor_total := NEW.quantidade * NEW.preco_unitario;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+### 5.3 UI e Interface
 
-CREATE TRIGGER calcular_total_contrato_venda
-BEFORE INSERT OR UPDATE ON public.contratos_venda
-FOR EACH ROW EXECUTE FUNCTION public.calcular_valor_total_contrato();
+- [x] Implementar todos os formulários com React Hook Form + Zod
+- [x] Criar listagens com paginação, ordenação e filtragem
+- [x] Implementar cards para exibição de dados
+- [x] Implementar componentes para edição de dados estruturados (JSON)
+- [x] Garantir feedback adequado para sucesso/erro em todas as operações
+- [x] Implementar modal de confirmação para operações destrutivas
 
--- Trigger para auditoria
-CREATE TRIGGER audit_changes_contratos_venda
-AFTER INSERT OR UPDATE OR DELETE ON public.contratos_venda
-FOR EACH ROW EXECUTE FUNCTION public.audit_changes();
-```
+## 6. INTEGRAÇÃO COM OUTROS MÓDULOS
 
-## Tabela: estrategias_comerciais
+### 6.1 Integração com Módulo de Propriedades
 
-```sql
-CREATE TABLE public.estrategias_comerciais (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  organizacao_id UUID NOT NULL REFERENCES public.organizacoes(id) ON DELETE CASCADE,
-  nome VARCHAR(100) NOT NULL,
-  descricao TEXT,
-  commodity_tipo commodity_tipo NOT NULL,
-  safra_id UUID REFERENCES public.safras(id) ON DELETE SET NULL,
-  tipo_estrategia VARCHAR(50) NOT NULL, -- VENDA_FUTURA, HEDGE, SPOT, OPÇÃO, BALCÃO
-  preco_alvo DECIMAL(10, 2),
-  preco_gatilho DECIMAL(10, 2),
-  quantidade_alvo DECIMAL(12, 2),
-  unidade VARCHAR(10) NOT NULL, -- sc, @, kg, ton
-  percentual_producao DECIMAL(5, 2),
-  data_inicio DATE,
-  data_limite DATE,
-  status VARCHAR(50) NOT NULL DEFAULT 'ATIVA', -- ATIVA, CONCLUIDA, CANCELADA
-  observacoes TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+- [ ] Conectar dívidas de imóveis com propriedades existentes
+- [ ] Compartilhar seletores de propriedades entre módulos
 
-CREATE INDEX idx_estrategias_comerciais_organizacao_id ON public.estrategias_comerciais(organizacao_id);
-CREATE INDEX idx_estrategias_comerciais_commodity_tipo ON public.estrategias_comerciais(commodity_tipo);
-CREATE INDEX idx_estrategias_comerciais_safra_id ON public.estrategias_comerciais(safra_id);
-CREATE INDEX idx_estrategias_comerciais_status ON public.estrategias_comerciais(status);
+### 6.2 Integração com Módulo de Indicadores
 
-CREATE TRIGGER update_timestamp_estrategias_comerciais
-BEFORE UPDATE ON public.estrategias_comerciais
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+- [ ] Fornecer dados para cálculo de indicadores financeiros
+- [ ] Compartilhar componentes de exibição de valores
 
-CREATE TRIGGER audit_changes_estrategias_comerciais
-AFTER INSERT OR UPDATE OR DELETE ON public.estrategias_comerciais
-FOR EACH ROW EXECUTE FUNCTION public.audit_changes();
-```
+### 6.3 Integração com Módulo de Projeções
 
-## Tabela: precos_insumos
+- [ ] Fornecer dados de dívidas para projeções financeiras
 
-```sql
-CREATE TABLE public.precos_insumos (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  organizacao_id UUID NOT NULL REFERENCES public.organizacoes(id) ON DELETE CASCADE,
-  nome VARCHAR(255) NOT NULL,
-  categoria VARCHAR(100) NOT NULL, -- FERTILIZANTE, DEFENSIVO, SEMENTE, COMBUSTÍVEL, OUTROS
-  fabricante VARCHAR(255),
-  fornecedor VARCHAR(255) NOT NULL,
-  preco_unitario DECIMAL(15, 2) NOT NULL,
-  unidade VARCHAR(20) NOT NULL, -- kg, L, sc, ton
-  data_cotacao DATE NOT NULL,
-  data_validade_cotacao DATE,
-  safra_id UUID REFERENCES public.safras(id) ON DELETE SET NULL,
-  condicao_pagamento VARCHAR(255),
-  prazo_entrega INT, -- em dias
-  frete_incluso BOOLEAN DEFAULT FALSE,
-  observacoes TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+## 7. IMPLANTAÇÃO GRADUAL (PRIORIZAÇÃO)
 
-CREATE INDEX idx_precos_insumos_organizacao_id ON public.precos_insumos(organizacao_id);
-CREATE INDEX idx_precos_insumos_categoria ON public.precos_insumos(categoria);
-CREATE INDEX idx_precos_insumos_fornecedor ON public.precos_insumos(fornecedor);
-CREATE INDEX idx_precos_insumos_data_cotacao ON public.precos_insumos(data_cotacao);
-CREATE INDEX idx_precos_insumos_safra_id ON public.precos_insumos(safra_id);
+### 7.1 Fase 1: Estrutura e Navegação Básica
 
-CREATE TRIGGER update_timestamp_precos_insumos
-BEFORE UPDATE ON public.precos_insumos
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+- [x] Criar schemas e tipos
+- [x] Implementar navegação e estrutura básica
+- [x] Criar componentes comuns reutilizáveis
 
-CREATE TRIGGER audit_changes_precos_insumos
-AFTER INSERT OR UPDATE OR DELETE ON public.precos_insumos
-FOR EACH ROW EXECUTE FUNCTION public.audit_changes();
-```
+### 7.2 Fase 2: Dívidas
+
+- [x] Implementar gerenciamento de dívidas bancárias
+- [x] Implementar gerenciamento de dívidas com tradings
+- [x] Implementar gerenciamento de dívidas de imóveis (API implementada, falta interface)
+
+### 7.3 Fase 3: Liquidez e Fornecedores
+
+- [x] Implementar gerenciamento de fatores de liquidez
+- [x] Implementar gerenciamento de fornecedores
+
+### 7.4 Fase 4: Estoques
+
+- [x] Implementar gerenciamento de estoques
+- [x] Implementar gerenciamento de estoques de commodities
+
+### 7.5 Fase 5: Contratos, Adiantamentos e Empréstimos
+
+- [X] Implementar gerenciamento de contratos recebíveis
+- [X] Implementar gerenciamento de adiantamentos a fornecedores
+- [X] Implementar gerenciamento de empréstimos a terceiros

@@ -49,12 +49,59 @@ export function isNegativeValue(value: number | null | undefined): boolean {
   return value !== null && value !== undefined && value < 0;
 }
 
+// Formata moeda Euro (€) com feedback visual melhorado
+export function formatEurCurrency(value: number | null | undefined, decimals: number = 2): string {
+  if (value === null || value === undefined) return '€ 0,00';
+  
+  // Detecta se é um valor negativo para aplicar cor vermelha em componentes UI
+  const isNegative = value < 0;
+  const absValue = Math.abs(value);
+  
+  // Formata com símbolo de moeda, separador de milhar e com casas decimais conforme especificado
+  const formatted = new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(absValue);
+  
+  // Para valores negativos, adiciona o sinal de menos manualmente
+  return isNegative ? `-${formatted}` : formatted;
+}
+
+// Formata quantidade em sacas de soja
+export function formatSojaCurrency(value: number | null | undefined, decimals: number = 2): string {
+  if (value === null || value === undefined) return '0 sc';
+  
+  // Detecta se é um valor negativo para aplicar cor vermelha em componentes UI
+  const isNegative = value < 0;
+  const absValue = Math.abs(value);
+  
+  // Formata com separador de milhar e casas decimais conforme especificado
+  const formatted = new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(absValue);
+  
+  // Adiciona unidade "sc" (sacas)
+  const formattedWithUnit = `${formatted} sc`;
+  
+  // Para valores negativos, adiciona o sinal de menos manualmente
+  return isNegative ? `-${formattedWithUnit}` : formattedWithUnit;
+}
+
 // Formata moeda genérica (útil para formulários onde a moeda pode mudar)
-export function formatGenericCurrency(value: number | null | undefined, currency: 'BRL' | 'USD' = 'BRL', decimals: number = 2): string {
-  if (currency === 'USD') {
-    return formatUsdCurrency(value, decimals);
-  } else {
-    return formatCurrency(value, decimals);
+export function formatGenericCurrency(value: number | null | undefined, currency: 'BRL' | 'USD' | 'EUR' | 'SOJA' = 'BRL', decimals: number = 2): string {
+  switch(currency) {
+    case 'USD':
+      return formatUsdCurrency(value, decimals);
+    case 'EUR':
+      return formatEurCurrency(value, decimals);
+    case 'SOJA':
+      return formatSojaCurrency(value, decimals);
+    case 'BRL':
+    default:
+      return formatCurrency(value, decimals);
   }
 }
 

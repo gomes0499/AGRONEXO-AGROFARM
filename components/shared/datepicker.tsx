@@ -37,15 +37,13 @@ function CustomPopoverContent({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
-    <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Content
-        className={cn(
-          "z-[9999] bg-popover text-popover-foreground rounded-md border p-0 shadow-md outline-hidden",
-          className
-        )}
-        {...props}
-      />
-    </PopoverPrimitive.Portal>
+    <PopoverPrimitive.Content
+      className={cn(
+        "z-[9999] bg-popover text-popover-foreground rounded-md border p-0 shadow-md outline-hidden",
+        className
+      )}
+      {...props}
+    />
   );
 }
 
@@ -100,7 +98,7 @@ export function DatePicker({
 
   // Gerar anos para o select (30 anos anteriores e 30 anos futuros)
   const thisYear = getYear(new Date());
-  const years = Array.from({ length: 61 }, (_, i) => thisYear - 30 + i);
+  const years = Array.from({ length: 101 }, (_, i) => thisYear - 80 + i);
 
   // Handler para mudança de ano
   const handleYearChange = (value: string) => {
