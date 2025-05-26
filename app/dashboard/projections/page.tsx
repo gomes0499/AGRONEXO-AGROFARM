@@ -2,11 +2,7 @@ import { Metadata } from "next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { 
-  BarChart3, 
-  TrendingDown, 
-  TrendingUp
-} from "lucide-react";
+import { BarChart3, TrendingDown, TrendingUp } from "lucide-react";
 
 // Tabs components
 import { CultureProjectionTab } from "@/components/projections/cultures/culture-projection-tab";

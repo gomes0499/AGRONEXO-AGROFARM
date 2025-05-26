@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 
 export default function ProjectionDetailsPage({ params }: any) {
-  // Mock data - replace with actual API calls
   const projectionSummary = {
     totalReceitas: 15600000,
     totalCustos: 11200000,

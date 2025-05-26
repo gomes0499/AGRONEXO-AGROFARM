@@ -1,6 +1,12 @@
 import { Metadata } from "next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Settings, Download, Share2 } from "lucide-react";
@@ -11,16 +17,7 @@ export const metadata: Metadata = {
   description: "Visualize e gerencie os detalhes de uma projeção específica",
 };
 
-interface ProjectionDetailsLayoutProps {
-  children: React.ReactNode;
-  params: { id: string };
-}
-
-export default function ProjectionDetailsLayout({
-  children,
-  params,
-}: ProjectionDetailsLayoutProps) {
-  // Mock data - replace with actual API call
+export default function ProjectionDetailsLayout({ children, params }: any) {
   const projection = {
     id: params.id,
     nome: "Projeção 2024-2026",
@@ -44,20 +41,26 @@ export default function ProjectionDetailsLayout({
               Voltar
             </Button>
           </Link>
-          
+
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-2xl font-bold">{projection.nome}</h1>
               <Badge variant={projection.eh_padrao ? "default" : "secondary"}>
                 {projection.eh_padrao ? "Padrão" : "Alternativa"}
               </Badge>
-              <Badge variant={projection.status === "ATIVO" ? "default" : "secondary"}>
+              <Badge
+                variant={
+                  projection.status === "ATIVO" ? "default" : "secondary"
+                }
+              >
                 {projection.status}
               </Badge>
             </div>
             <p className="text-muted-foreground mt-1">{projection.descricao}</p>
             <p className="text-sm text-muted-foreground">
-              Período: {new Date(projection.periodo_inicio).toLocaleDateString()} - {new Date(projection.periodo_fim).toLocaleDateString()}
+              Período:{" "}
+              {new Date(projection.periodo_inicio).toLocaleDateString()} -{" "}
+              {new Date(projection.periodo_fim).toLocaleDateString()}
             </p>
           </div>
         </div>
@@ -88,18 +91,11 @@ export default function ProjectionDetailsLayout({
           <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="cultures">{children}</TabsContent>
 
-        <TabsContent value="cultures">
-          {children}
-        </TabsContent>
+        <TabsContent value="debts">{children}</TabsContent>
 
-        <TabsContent value="debts">
-          {children}
-        </TabsContent>
-
-        <TabsContent value="cashflow">
-          {children}
-        </TabsContent>
+        <TabsContent value="cashflow">{children}</TabsContent>
       </Tabs>
     </div>
   );
