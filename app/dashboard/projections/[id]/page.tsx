@@ -1,22 +1,24 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Target, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Target,
   Calendar,
   AlertTriangle,
   CheckCircle,
-  Activity
+  Activity,
 } from "lucide-react";
 
-interface ProjectionDetailsPageProps {
-  params: { id: string };
-}
-
-export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageProps) {
+export default function ProjectionDetailsPage({ params }: any) {
   // Mock data - replace with actual API calls
   const projectionSummary = {
     totalReceitas: 15600000,
@@ -31,26 +33,26 @@ export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageP
   };
 
   const yearlyData = [
-    { 
-      ano: 2024, 
-      receitas: 5000000, 
-      custos: 3600000, 
+    {
+      ano: 2024,
+      receitas: 5000000,
+      custos: 3600000,
       ebitda: 1400000,
-      status: "realizado"
+      status: "realizado",
     },
-    { 
-      ano: 2025, 
-      receitas: 5300000, 
-      custos: 3800000, 
+    {
+      ano: 2025,
+      receitas: 5300000,
+      custos: 3800000,
       ebitda: 1500000,
-      status: "projetado"
+      status: "projetado",
     },
-    { 
-      ano: 2026, 
-      receitas: 5300000, 
-      custos: 3800000, 
+    {
+      ano: 2026,
+      receitas: 5300000,
+      custos: 3800000,
       ebitda: 900000,
-      status: "projetado"
+      status: "projetado",
     },
   ];
 
@@ -94,9 +96,9 @@ export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageP
   ];
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -118,10 +120,9 @@ export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageP
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${kpi.color}`}>
-                {kpi.format === "currency" 
+                {kpi.format === "currency"
                   ? formatCurrency(kpi.value)
-                  : formatPercentage(kpi.value)
-                }
+                  : formatPercentage(kpi.value)}
               </div>
               <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                 {kpi.trend === "up" ? (
@@ -129,8 +130,13 @@ export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageP
                 ) : (
                   <TrendingDown className="h-3 w-3 text-red-500" />
                 )}
-                <span className={kpi.trend === "up" ? "text-green-600" : "text-red-600"}>
-                  {kpi.trend === "up" ? "+" : ""}{kpi.trendValue}%
+                <span
+                  className={
+                    kpi.trend === "up" ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  {kpi.trend === "up" ? "+" : ""}
+                  {kpi.trendValue}%
                 </span>
                 <span>vs ano anterior</span>
               </div>
@@ -150,17 +156,24 @@ export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageP
         <CardContent>
           <div className="space-y-4">
             {yearlyData.map((year) => (
-              <div key={year.ano} className="flex items-center justify-between p-4 border rounded-lg">
+              <div
+                key={year.ano}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{year.ano}</span>
-                    <Badge variant={year.status === "realizado" ? "default" : "secondary"}>
+                    <Badge
+                      variant={
+                        year.status === "realizado" ? "default" : "secondary"
+                      }
+                    >
                       {year.status === "realizado" ? "Realizado" : "Projetado"}
                     </Badge>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-3 gap-8 text-sm">
                   <div>
                     <p className="text-muted-foreground">Receitas</p>
@@ -200,7 +213,10 @@ export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageP
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Liquidez Corrente</span>
               <div className="flex items-center space-x-2">
-                <Progress value={projectionSummary.liquidezCorrente * 50} className="w-20" />
+                <Progress
+                  value={projectionSummary.liquidezCorrente * 50}
+                  className="w-20"
+                />
                 <span className="text-sm font-bold">
                   {projectionSummary.liquidezCorrente.toFixed(1)}x
                 </span>
@@ -241,7 +257,9 @@ export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageP
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">ROI (Return on Investment)</span>
+              <span className="text-sm font-medium">
+                ROI (Return on Investment)
+              </span>
               <div className="flex items-center space-x-2">
                 <Progress value={projectionSummary.roi * 5} className="w-20" />
                 <span className="text-sm font-bold text-green-600">
@@ -263,7 +281,10 @@ export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageP
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Margem EBITDA</span>
               <div className="flex items-center space-x-2">
-                <Progress value={projectionSummary.margemEbitda * 4} className="w-20" />
+                <Progress
+                  value={projectionSummary.margemEbitda * 4}
+                  className="w-20"
+                />
                 <span className="text-sm font-bold text-purple-600">
                   {formatPercentage(projectionSummary.margemEbitda)}
                 </span>
@@ -285,7 +306,9 @@ export default function ProjectionDetailsPage({ params }: ProjectionDetailsPageP
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <h4 className="font-medium text-green-700">Receitas Projetadas</h4>
+              <h4 className="font-medium text-green-700">
+                Receitas Projetadas
+              </h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Soja</span>
