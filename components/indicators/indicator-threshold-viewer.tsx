@@ -21,8 +21,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { updateIndicatorConfig } from "@/lib/actions/indicator-actions";
 import { toast } from "sonner";
-import { Loader2, Pencil, Save } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, Pencil, Save, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 type IndicatorThresholdViewerProps = {
   indicatorConfigs: Record<string, any>;
@@ -156,164 +156,183 @@ export function IndicatorThresholdViewer({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {Object.entries(indicatorLabels).map(([indicatorType, label]) => (
-        <Card
-          key={indicatorType}
-          className="border rounded-lg p-4 hover:shadow-md transition-all"
-        >
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold">{label}</h3>
-            <p className="text-sm text-muted-foreground">
-              {indicatorDescriptions[indicatorType as keyof typeof indicatorDescriptions]}
-            </p>
+    <Card className="shadow-sm border-muted/80">
+      <CardHeader className="bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="rounded-full p-2 bg-white/20">
+            <TrendingUp className="h-4 w-4 text-white" />
           </div>
+          <div>
+            <CardTitle className="text-white">Limiares de Indicadores</CardTitle>
+            <CardDescription className="text-white/80">
+              Configure os limiares para análise dos indicadores financeiros
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="mt-4">
+        <div className="rounded-md border">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+            {Object.entries(indicatorLabels).map(([indicatorType, label]) => (
+              <div key={indicatorType} className="space-y-4">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2">{label}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {indicatorDescriptions[indicatorType as keyof typeof indicatorDescriptions]}
+                  </p>
+                </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nível</TableHead>
-                <TableHead>Mínimo</TableHead>
-                <TableHead>Máximo</TableHead>
-                <TableHead>Cor</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {getThresholds(indicatorType).map(
-                (threshold: any, idx: number) => {
-                  // Inicializar o estado de edição para este threshold
-                  initThresholdEditState(indicatorType, idx, threshold);
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-primary hover:bg-primary">
+                        <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nível</TableHead>
+                        <TableHead className="font-semibold text-primary-foreground">Mínimo</TableHead>
+                        <TableHead className="font-semibold text-primary-foreground">Máximo</TableHead>
+                        <TableHead className="font-semibold text-primary-foreground rounded-tr-md">Cor</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                  <TableBody>
+                    {getThresholds(indicatorType).map(
+                      (threshold: any, idx: number) => {
+                        // Inicializar o estado de edição para este threshold
+                        initThresholdEditState(indicatorType, idx, threshold);
 
-                  return (
-                    <TableRow key={idx}>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          style={{
-                            backgroundColor: `${threshold.color}20`,
-                            color: threshold.color,
-                            borderColor: threshold.color,
-                          }}
-                        >
-                          {threshold.level === "THRESHOLD"
-                            ? "LIMITE CRÍTICO"
-                            : threshold.level}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{threshold.min.toFixed(2)}</TableCell>
-                      <TableCell>{formatMax(threshold.max)}</TableCell>
-                      <TableCell>
-                        <div className="flex justify-between items-center">
-                          <div
-                            className="w-6 h-6 rounded-full border"
-                            style={{ backgroundColor: threshold.color }}
-                          />
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="ml-2 h-8 w-8"
+                        return (
+                          <TableRow key={idx}>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                style={{
+                                  backgroundColor: `${threshold.color}20`,
+                                  color: threshold.color,
+                                  borderColor: threshold.color,
+                                }}
                               >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent align="end" className="w-auto p-4">
-                              <div className="grid grid-cols-1 gap-3">
-                                <div className="grid grid-cols-3 gap-2">
-                                  <div className="space-y-2">
-                                    <Label
-                                      htmlFor={`${indicatorType}-${idx}-min`}
-                                    >
-                                      Mínimo
-                                    </Label>
-                                    <Input
-                                      id={`${indicatorType}-${idx}-min`}
-                                      type="number"
-                                      value={
-                                        editingState[indicatorType]?.[idx]
-                                          ?.min || threshold.min.toString()
-                                      }
-                                      onChange={(e) =>
-                                        handleInputChange(
-                                          indicatorType,
-                                          idx,
-                                          "min",
-                                          e.target.value
-                                        )
-                                      }
-                                      step="0.01"
-                                      className="w-24"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label
-                                      htmlFor={`${indicatorType}-${idx}-max`}
-                                    >
-                                      Máximo
-                                    </Label>
-                                    <Input
-                                      id={`${indicatorType}-${idx}-max`}
-                                      type="number"
-                                      value={
-                                        editingState[indicatorType]?.[idx]
-                                          ?.max ??
-                                        (threshold.max?.toString() || "")
-                                      }
-                                      onChange={(e) =>
-                                        handleInputChange(
-                                          indicatorType,
-                                          idx,
-                                          "max",
-                                          e.target.value
-                                        )
-                                      }
-                                      step="0.01"
-                                      placeholder="∞"
-                                      className="w-24"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label className="opacity-0">Ações</Label>
+                                {threshold.level === "THRESHOLD"
+                                  ? "LIMITE CRÍTICO"
+                                  : threshold.level}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{threshold.min.toFixed(2)}</TableCell>
+                            <TableCell>{formatMax(threshold.max)}</TableCell>
+                            <TableCell>
+                              <div className="flex justify-between items-center">
+                                <div
+                                  className="w-6 h-6 rounded-full border"
+                                  style={{ backgroundColor: threshold.color }}
+                                />
+                                <Popover>
+                                  <PopoverTrigger asChild>
                                     <Button
-                                      onClick={() =>
-                                        handleSave(
-                                          indicatorType,
-                                          idx,
-                                          threshold
-                                        )
-                                      }
-                                      disabled={isLoading[indicatorType]?.[idx]}
-                                      size="sm"
-                                      className="w-full"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="ml-2 h-8 w-8"
                                     >
-                                      {isLoading[indicatorType]?.[idx] ? (
-                                        <>
-                                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                          Salvar
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Save className="mr-1 h-3 w-3" />
-                                          Salvar
-                                        </>
-                                      )}
+                                      <Pencil className="h-4 w-4" />
                                     </Button>
-                                  </div>
-                                </div>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="end" className="w-auto p-4">
+                                    <div className="grid grid-cols-1 gap-3">
+                                      <div className="grid grid-cols-3 gap-2">
+                                        <div className="space-y-2">
+                                          <Label
+                                            htmlFor={`${indicatorType}-${idx}-min`}
+                                          >
+                                            Mínimo
+                                          </Label>
+                                          <Input
+                                            id={`${indicatorType}-${idx}-min`}
+                                            type="number"
+                                            value={
+                                              editingState[indicatorType]?.[idx]
+                                                ?.min || threshold.min.toString()
+                                            }
+                                            onChange={(e) =>
+                                              handleInputChange(
+                                                indicatorType,
+                                                idx,
+                                                "min",
+                                                e.target.value
+                                              )
+                                            }
+                                            step="0.01"
+                                            className="w-24"
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label
+                                            htmlFor={`${indicatorType}-${idx}-max`}
+                                          >
+                                            Máximo
+                                          </Label>
+                                          <Input
+                                            id={`${indicatorType}-${idx}-max`}
+                                            type="number"
+                                            value={
+                                              editingState[indicatorType]?.[idx]
+                                                ?.max ??
+                                              (threshold.max?.toString() || "")
+                                            }
+                                            onChange={(e) =>
+                                              handleInputChange(
+                                                indicatorType,
+                                                idx,
+                                                "max",
+                                                e.target.value
+                                              )
+                                            }
+                                            step="0.01"
+                                            placeholder="∞"
+                                            className="w-24"
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label className="opacity-0">Ações</Label>
+                                          <Button
+                                            onClick={() =>
+                                              handleSave(
+                                                indicatorType,
+                                                idx,
+                                                threshold
+                                              )
+                                            }
+                                            disabled={isLoading[indicatorType]?.[idx]}
+                                            size="sm"
+                                            className="w-full"
+                                          >
+                                            {isLoading[indicatorType]?.[idx] ? (
+                                              <>
+                                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                                Salvar
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Save className="mr-1 h-3 w-3" />
+                                                Salvar
+                                              </>
+                                            )}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
                               </div>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }
-              )}
-            </TableBody>
-          </Table>
-        </Card>
-      ))}
-    </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                    )}
+                  </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,12 +1,15 @@
 "use client";
 
+import { Suspense } from "react";
 import { StatsCard } from "./stats-card";
 import { StatsGroup } from "./stats-group";
 import { DashboardCharts } from "./dashboard-charts";
 import { PropertyFilterClient } from "@/components/production/property-filter-client";
+import { ProductionKpiCards } from "./production-kpi-cards";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { formatCompactCurrency, formatCompactNumber } from "@/lib/utils";
 import { LandPlot, LineChart, Beef, DollarSign, Warehouse } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export interface Property {
   id: string;
@@ -64,6 +67,9 @@ interface ProductionStatsDashboardProps {
     livestock: { value: number; positive: boolean };
     costs: { value: number; positive: boolean };
   };
+  organizationId: string;
+  safraId?: string;
+  culturaId?: string;
 }
 
 export function ProductionStatsDashboard({
@@ -74,6 +80,9 @@ export function ProductionStatsDashboard({
   totalAnimals,
   totalLivestockValue,
   trends,
+  organizationId,
+  safraId,
+  culturaId,
 }: ProductionStatsDashboardProps) {
   return (
     <div className="space-y-6">
@@ -91,6 +100,35 @@ export function ProductionStatsDashboard({
           />
         </div>
       </div>
+
+      {/* KPI Cards no estilo de propriedades */}
+      <Suspense fallback={
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="relative overflow-hidden">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="h-3 bg-muted rounded w-24 mb-2 animate-pulse" />
+                    <div className="h-6 bg-muted rounded w-16 mb-2 animate-pulse" />
+                    <div className="h-3 bg-muted rounded w-20 animate-pulse" />
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted animate-pulse">
+                    <div className="h-5 w-5 bg-muted-foreground/20 rounded" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      }>
+        <ProductionKpiCards 
+          organizationId={organizationId}
+          propertyIds={defaultSelectedPropertyIds}
+          safraId={safraId}
+          culturaId={culturaId}
+        />
+      </Suspense>
 
       {/* Áreas de Plantio */}
       <StatsGroup

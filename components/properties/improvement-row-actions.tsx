@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Edit2Icon, Trash2Icon } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,12 +19,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { deleteImprovement } from "@/lib/actions/property-actions";
 import { cn } from "@/lib/utils";
 import type { Improvement } from "@/schemas/properties";
 import { ImprovementModal } from "./improvement-modal";
+import { toast } from "sonner";
 
 interface ImprovementRowActionsProps {
   improvement: Improvement;
@@ -29,21 +35,27 @@ export function ImprovementRowActions({
   improvement,
   propertyId,
 }: ImprovementRowActionsProps) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const router = useRouter();
 
-  const handleDelete = async (id: string, improvementPropertyId: string) => {
+  const handleDelete = async () => {
+    if (!improvement.id) return;
+
+    setIsDeleting(true);
     try {
-      setDeletingId(id);
       // Use propertyId se disponível, senão use o ID da propriedade da própria benfeitoria
-      const propId = propertyId || improvementPropertyId;
-      await deleteImprovement(id, propId);
+      const propId = propertyId || improvement.propriedade_id;
+      await deleteImprovement(improvement.id, propId);
+      toast.success("Benfeitoria excluída com sucesso!");
       router.refresh();
+      setShowDeleteAlert(false);
     } catch (error) {
       console.error("Erro ao excluir benfeitoria:", error);
+      toast.error("Erro ao excluir benfeitoria. Tente novamente.");
     } finally {
-      setDeletingId(null);
+      setIsDeleting(false);
     }
   };
 
@@ -53,7 +65,29 @@ export function ImprovementRowActions({
   };
 
   return (
-    <div className="flex justify-end gap-2">
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">Abrir menu</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Editar
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setShowDeleteAlert(true)}
+            className="text-destructive"
+          >
+            <Trash className="mr-2 h-4 w-4" />
+            Excluir
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       {/* Edit Modal */}
       <ImprovementModal
         propertyId={propertyId || improvement.propriedade_id}
@@ -65,54 +99,30 @@ export function ImprovementRowActions({
         isEditing={true}
       />
 
-      {/* Edit Button */}
-      <Button 
-        variant="outline" 
-        size="icon"
-        onClick={() => setShowEditModal(true)}
-      >
-        <Edit2Icon className="h-4 w-4" />
-        <span className="sr-only">Editar</span>
-      </Button>
-
-      {/* Delete Dialog */}
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className="text-destructive hover:text-destructive"
-            disabled={deletingId === improvement.id}
-          >
-            <Trash2Icon className="h-4 w-4" />
-            <span className="sr-only">Excluir</span>
-          </Button>
-        </AlertDialogTrigger>
+      {/* Delete Alert */}
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir benfeitoria</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a benfeitoria &quot;
-              {improvement.descricao}&quot;? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir a benfeitoria "{improvement.descricao}"? 
+              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() =>
-                handleDelete(improvement.id!, improvement.propriedade_id)
-              }
+              onClick={handleDelete}
               className={cn(
                 "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-                deletingId === improvement.id &&
-                  "opacity-50 pointer-events-none"
+                isDeleting && "opacity-50 pointer-events-none"
               )}
             >
-              {deletingId === improvement.id ? "Excluindo..." : "Excluir"}
+              {isDeleting ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

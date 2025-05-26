@@ -14,11 +14,14 @@ import { PlusCircle } from "lucide-react";
 import { Supplier } from "@/schemas/financial/suppliers";
 import { SupplierForm } from "./supplier-form";
 import { SupplierRowActions } from "./supplier-row-actions";
-import { FinancialHeader } from "../common/financial-header";
-import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { Users } from "lucide-react";
+import { FinancialFilterBar } from "../common/financial-filter-bar";
+import { FinancialPagination } from "../common/financial-pagination";
+import { useFinancialFilters } from "@/hooks/use-financial-filters";
 
 interface SupplierListingProps {
   organization: { id: string; nome: string };
@@ -30,13 +33,27 @@ export function SupplierListing({
   initialSuppliers,
 }: SupplierListingProps) {
   const [suppliers, setSuppliers] = useState(initialSuppliers);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
 
-  // Filtrar fornecedores baseado no termo de busca
-  const filteredSuppliers = suppliers.filter((supplier) => {
-    return supplier.nome.toLowerCase().includes(searchTerm.toLowerCase());
+  const {
+    filteredItems: filteredSuppliers,
+    paginatedItems: paginatedData,
+    searchTerm,
+    filters,
+    filterOptions,
+    handleSearchChange,
+    handleFilterChange,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange,
+    totalItems: totalSuppliers,
+    filteredCount
+  } = useFinancialFilters(suppliers, {
+    searchFields: ['nome'],
+    moedaField: 'moeda'
   });
 
   // Calcular valor total por fornecedor
@@ -79,27 +96,42 @@ export function SupplierListing({
   };
 
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<Users className="h-5 w-5" />}
         title="Fornecedores"
-        description="Gerencie fornecedores e pagamentos anuais programados"
+        description="Gestão dos fornecedores e valores a pagar por ano"
         action={
           <Button
-            variant="default"
+            variant="outline"
             size="default"
-            className="gap-1"
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
             onClick={() => setIsAddModalOpen(true)}
           >
             <PlusCircle className="h-4 w-4" />
             Novo Fornecedor
           </Button>
         }
+        className="mb-4"
       />
+      <CardContent className="space-y-4">
+        <FinancialFilterBar
+          searchTerm={searchTerm}
+          onSearchChange={handleSearchChange}
+          filters={filters}
+          onFiltersChange={handleFilterChange}
+          filterOptions={filterOptions}
+          searchPlaceholder="Buscar por nome do fornecedor..."
+        />
+        
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {paginatedData.length} de {totalSuppliers} fornecedores
+          </p>
+        </div>
 
-      <FinancialFilterBar onSearch={setSearchTerm} />
-
-      <Card>
-        <CardContent className="p-0">
+        <Card>
+          <CardContent className="p-0">
           {suppliers.length === 0 ? (
             <EmptyState
               title="Nenhum fornecedor cadastrado"
@@ -110,25 +142,25 @@ export function SupplierListing({
                 </Button>
               }
             />
-          ) : filteredSuppliers.length === 0 ? (
+          ) : paginatedData.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-muted-foreground">
-                Nenhum fornecedor encontrado para "{searchTerm}"
+                Nenhum fornecedor encontrado para os filtros aplicados
               </p>
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome do Fornecedor</TableHead>
-                    <TableHead>Moeda</TableHead>
-                    <TableHead>Valor Total</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome do Fornecedor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Moeda</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground rounded-tr-md w-24">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSuppliers.map((supplier) => (
+                  {paginatedData.map((supplier) => (
                     <TableRow key={supplier.id}>
                       <TableCell>{supplier.nome}</TableCell>
                       <TableCell>{supplier.moeda}</TableCell>
@@ -147,38 +179,19 @@ export function SupplierListing({
                 </TableBody>
               </Table>
               
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total de Fornecedores:</span>
-                  <span className="font-bold">
-                    {(() => {
-                      // Agrupar totais por moeda
-                      const totals: { [key: string]: number } = {};
-                      
-                      filteredSuppliers.forEach(supplier => {
-                        const moeda = supplier.moeda || 'BRL';
-                        const total = getSupplierTotal(supplier);
-                        
-                        if (!totals[moeda]) {
-                          totals[moeda] = 0;
-                        }
-                        
-                        totals[moeda] += total;
-                      });
-                      
-                      // Formatar e concatenar totais por moeda
-                      return Object.entries(totals)
-                        .map(([moeda, valor]) => formatGenericCurrency(valor, moeda as any))
-                        .join(' + ');
-                    })()}
-                  </span>
-                </div>
-              </div>
+              <FinancialPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                totalItems={totalSuppliers}
+              />
             </>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </CardContent>
 
       {/* Modal para adicionar novo fornecedor */}
       <SupplierForm
@@ -198,6 +211,6 @@ export function SupplierListing({
           onSubmit={handleUpdateSupplier}
         />
       )}
-    </div>
+    </Card>
   );
 }

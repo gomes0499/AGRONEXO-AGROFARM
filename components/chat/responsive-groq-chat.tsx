@@ -7,8 +7,6 @@ import {
   Card,
   CardContent,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,16 +27,17 @@ import {
   Trash2,
   User,
   CheckCircle2,
-  Sparkles,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 
 interface ResponsiveGroqChatProps {
   initialPrompt?: string;
   suggestions?: string[];
   title?: string;
-  subtitle?: string;
+  description?: string;
 }
 
 export function ResponsiveGroqChat({
@@ -50,6 +49,7 @@ export function ResponsiveGroqChat({
     "Quais fatores afetam o preço da soja?",
   ],
   title = "Assistente Agrícola",
+  description,
 }: ResponsiveGroqChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -124,57 +124,50 @@ export function ResponsiveGroqChat({
   );
 
   return (
-    <Card style={{ height: isMobile ? "calc(100vh - 200px)" : "700px" }}>
-      <CardHeader className="px-4 py-3 flex flex-row items-center justify-between border-b bg-card shrink-0">
-        <div className="flex items-center">
-          <Avatar className="h-8 w-8 mr-2 bg-primary/10">
-            <AvatarImage src="/ai-assistant-icon.png" alt="AI" />
-            <AvatarFallback className="bg-primary/10 text-primary">
-              <Bot className="h-4 w-4" />
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <CardTitle className="text-lg font-medium flex items-center flex-wrap">
-              {title}
-              <Badge variant="outline" className="ml-2 text-xs font-normal">
-                <Sparkles className="h-3 w-3 mr-1 text-amber-500" />
-              </Badge>
-            </CardTitle>
+    <Card 
+      className="shadow-sm border-muted/80 flex flex-col" 
+      style={{ height: isMobile ? "calc(100vh - 200px)" : "700px" }}
+    >
+      <CardHeaderPrimary
+        icon={<MessageCircle className="h-5 w-5 text-white" />}
+        title={title}
+        description={description}
+        action={
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={isLoading ? "secondary" : "outline"}
+              className={cn(
+                "text-xs transition-colors bg-white/20 text-white border-white/30",
+                isLoading && "animate-pulse"
+              )}
+            >
+              {isLoading ? "Processando..." : "Pronto"}
+            </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleClearChat}
+                    disabled={messages.length === 0 || isLoading}
+                    className="text-white hover:bg-white/20"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Limpar conversa</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant={isLoading ? "secondary" : "outline"}
-            className={cn(
-              "text-xs transition-colors",
-              isLoading && "animate-pulse"
-            )}
-          >
-            {isLoading ? "Processando..." : "Pronto"}
-          </Badge>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleClearChat}
-                  disabled={messages.length === 0 || isLoading}
-                >
-                  <Trash2 className="h-4 w-4 text-secondary-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Limpar conversa</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </CardHeader>
+        }
+      />
 
-      <CardContent className="flex-1 p-0 relative overflow-hidden">
-        <ScrollArea className="h-full w-full">
-          <div className="p-4 space-y-4">
+      <CardContent className="flex-1 overflow-hidden p-0">
+        <ScrollArea className="h-full">
+          <div className="p-4 pt-6 space-y-4 min-h-0">
             {visibleMessages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[400px] text-center">
                 <div className="bg-primary/5 p-4 rounded-full mb-4">
@@ -214,7 +207,7 @@ export function ResponsiveGroqChat({
                   <div
                     key={message.id}
                     className={cn(
-                      "flex gap-3 group",
+                      "flex gap-3 group w-full",
                       isUser ? "justify-end" : "justify-start"
                     )}
                   >
@@ -228,22 +221,27 @@ export function ResponsiveGroqChat({
                     )}
                     <div
                       className={cn(
-                        "flex flex-col",
-                        isUser ? "items-end" : "",
-                        "max-w-[75%]"
+                        "flex flex-col min-w-0 max-w-[calc(100%-3rem)]",
+                        isUser ? "items-end ml-auto" : "items-start mr-auto"
                       )}
                     >
                       <div className="flex items-center mb-1 text-xs text-secondary-foreground">
                         <span>{isUser ? "Você" : "Assistente"}</span>
                       </div>
-                      <div className="group relative">
+                      <div className="group relative w-full">
                         <div
                           className={cn(
-                            "p-3 rounded-lg whitespace-pre-wrap break-words",
+                            "p-3 rounded-lg break-words overflow-hidden hyphens-auto",
+                            "whitespace-pre-wrap [word-break:break-word] [overflow-wrap:anywhere]",
                             isUser
                               ? "bg-primary text-primary-foreground rounded-tr-none"
                               : "bg-muted rounded-tl-none"
                           )}
+                          style={{ 
+                            maxWidth: "100%",
+                            wordBreak: "break-word",
+                            overflowWrap: "anywhere"
+                          }}
                         >
                           {message.content || "Carregando..."}
                         </div>
@@ -298,13 +296,13 @@ export function ResponsiveGroqChat({
               })
             )}
             {isLoading && visibleMessages.length > 0 && (
-              <div className="flex gap-3">
+              <div className="flex gap-3 w-full">
                 <Avatar className="h-8 w-8 mt-1 bg-primary/10 flex-shrink-0">
                   <AvatarFallback className="bg-primary/10 text-primary">
                     <Bot className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col max-w-[75%]">
+                <div className="flex flex-col min-w-0 max-w-[calc(100%-3rem)]">
                   <div className="flex items-center mb-1 text-xs text-secondary-foreground">
                     <span>Assistente</span>
                   </div>

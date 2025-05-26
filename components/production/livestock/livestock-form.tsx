@@ -319,15 +319,46 @@ export function LivestockForm({
     }
   };
 
-  // Encontrar a propriedade selecionada
-  const selectedProperty = properties.find(
-    (p) => p.id === form.watch("propriedade_id")
-  );
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="propriedade_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">
+                  Propriedade
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={isSubmitting}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione a propriedade" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {properties.map((property: Property) => (
+                      <SelectItem key={property.id} value={property.id}>
+                        {property.nome}
+                        {property.cidade && property.estado && (
+                          <span className="text-muted-foreground ml-1">
+                            ({property.cidade}/{property.estado})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <div className="grid grid-cols-1 gap-2">
             <FormField
               control={form.control}
@@ -572,62 +603,6 @@ export function LivestockForm({
                   )}
               </CardContent>
             </Card>
-          )}
-
-          <FormField
-            control={form.control}
-            name="propriedade_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">
-                  Propriedade
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={isSubmitting}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a propriedade" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {properties.map((property: Property) => (
-                      <SelectItem key={property.id} value={property.id}>
-                        {property.nome}
-                        {property.cidade && property.estado && (
-                          <span className="text-muted-foreground ml-1">
-                            ({property.cidade}/{property.estado})
-                          </span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {selectedProperty && (
-            <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border border-muted">
-              <p className="font-medium text-foreground">
-                Propriedade selecionada:
-              </p>
-              <p className="mt-1">
-                {selectedProperty.nome}
-                {selectedProperty.cidade && selectedProperty.estado && (
-                  <span>
-                    {" "}
-                    - {selectedProperty.cidade}/{selectedProperty.estado}
-                  </span>
-                )}
-              </p>
-              {selectedProperty.area && (
-                <p className="mt-1">Área: {selectedProperty.area} hectares</p>
-              )}
-            </div>
           )}
         </div>
 

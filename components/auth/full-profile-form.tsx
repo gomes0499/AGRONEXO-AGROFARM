@@ -18,7 +18,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -109,14 +108,6 @@ export function FullProfileForm() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Dados Completos</h3>
-        <p className="text-sm text-muted-foreground">
-          Preencha seus dados pessoais completos para facilitar operações
-          financeiras e cadastrais.
-        </p>
-      </div>
-
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -133,8 +124,6 @@ export function FullProfileForm() {
           <AlertDescription>Dados atualizados com sucesso!</AlertDescription>
         </Alert>
       )}
-
-      <Separator />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

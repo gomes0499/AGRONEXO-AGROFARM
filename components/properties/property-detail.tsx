@@ -1,301 +1,243 @@
 "use client";
 
 import type { Property } from "@/schemas/properties";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatArea } from "@/lib/utils/formatters";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Building2Icon,
-  AreaChartIcon,
-  CalendarIcon,
+  Building2,
+  User,
+  Calendar,
   FileText,
-  Landmark,
-  MapPinIcon,
-  FileIcon,
-  CalendarCheckIcon,
-  CalendarOffIcon,
-  CheckCircleIcon,
-  XCircleIcon,
+  DollarSign,
+  Ruler,
+  MapPin,
+  Hash,
+  CheckCircle,
+  XCircle,
+  Calendar as CalendarIcon,
 } from "lucide-react";
-import Image from "next/image";
+import { InfoField } from "@/components/organization/common/data-display/info-field";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { PropertyMap } from "./property-map";
 
 interface PropertyDetailProps {
   property: Property;
 }
 
 export function PropertyDetail({ property }: PropertyDetailProps) {
-  // Calcular a porcentagem de área cultivada
-  const cultivationPercentage = property.area_cultivada
-    ? Math.round((property.area_cultivada / property.area_total) * 100)
-    : 0;
+  // Função para renderizar o tipo de propriedade
+  const renderTypeField = () => {
+    const typeInfo = {
+      PROPRIO: { label: "Própria", variant: "default" as const },
+      ARRENDADO: { label: "Arrendada", variant: "secondary" as const },
+    };
 
-  // Determinar o tipo de propriedade e suas características visuais
-  const propertyTypeInfo = {
-    PROPRIO: { label: "Próprio", variant: "default" as const },
-    ARRENDADO: { label: "Arrendado", variant: "secondary" as const },
+    const type = typeInfo[property.tipo] || typeInfo.PROPRIO;
+    
+    return (
+      <InfoField
+        icon={<Building2 className="h-4 w-4" />}
+        label="Tipo de Propriedade"
+        copyable={false}
+      >
+        <Badge variant={type.variant} className="mt-0.5 font-medium">
+          {type.label}
+        </Badge>
+      </InfoField>
+    );
   };
 
-  const typeInfo = propertyTypeInfo[property.tipo] || propertyTypeInfo.PROPRIO;
+  // Função para renderizar localização
+  const renderLocationField = () => {
+    const location = [property.cidade, property.estado].filter(Boolean).join(", ");
+    
+    return (
+      <InfoField
+        icon={<MapPin className="h-4 w-4" />}
+        label="Localização"
+        value={location}
+      />
+    );
+  };
 
-  // Calcular duração do arrendamento em anos
-  const arrendamentoDuration =
-    property.tipo === "ARRENDADO" &&
-    property.data_inicio &&
-    property.data_termino
-      ? Math.round(
-          (new Date(property.data_termino).getTime() -
-            new Date(property.data_inicio).getTime()) /
-            (365.25 * 24 * 60 * 60 * 1000)
-        )
-      : null;
+  // Função para renderizar área cultivada com porcentagem
+  const renderCultivatedAreaField = () => {
+    if (!property.area_cultivada) return null;
 
-  // Preparar URL da imagem para exibição
-  const imageUrl = property.imagem ? property.imagem : null;
-
-  // Para diagnóstico
-  if (imageUrl) {
-    console.log("URL da imagem da propriedade:", imageUrl);
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        {imageUrl && (
-          <div className="w-full h-[240px] overflow-hidden rounded-t-lg">
-            <Image
-              src={imageUrl}
-              alt={`Imagem da propriedade ${property.nome}`}
-              className="w-full h-full object-cover"
-              width={1000}
-              height={1000}
-              loading="eager"
-              quality={100}
+    const cultivationPercentage = Math.round((property.area_cultivada / property.area_total) * 100);
+    
+    return (
+      <InfoField
+        icon={<Ruler className="h-4 w-4" />}
+        label="Área Cultivada"
+        copyable={false}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{formatArea(property.area_cultivada)}</span>
+            <Badge variant="outline" className="text-xs">
+              {cultivationPercentage}%
+            </Badge>
+          </div>
+          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all"
+              style={{ width: `${cultivationPercentage}%` }}
             />
           </div>
-        )}
-      </CardHeader>
-      <div className="grid grid-cols-1 md:grid-cols-2">
-        {/* Seção de Informações Básicas */}
-        <div>
-          <CardHeader className="py-3 px-4 border-b border-border/60">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <Building2Icon size={18} />
-                Informações Básicas
-              </CardTitle>
-              <Badge variant={typeInfo.variant}>{typeInfo.label}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="space-y-5">
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Proprietário
-                </h3>
-                <p className="font-medium flex items-center gap-1.5">
-                  <Building2Icon size={16} className="text-muted-foreground" />
-                  {property.proprietario}
-                </p>
-              </div>
-
-              {/* Exibir Ano de Aquisição apenas para propriedades do tipo PROPRIO */}
-              {property.tipo === "PROPRIO" && property.ano_aquisicao && (
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Ano de Aquisição
-                  </h3>
-                  <p className="font-medium flex items-center gap-1.5">
-                    <CalendarIcon size={16} className="text-muted-foreground" />
-                    {property.ano_aquisicao}
-                  </p>
-                </div>
-              )}
-
-              {/* Informações específicas de arrendamento */}
-              {property.tipo === "ARRENDADO" && (
-                <>
-                  {property.tipo_anuencia && (
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Tipo de Anuência
-                      </h3>
-                      <p className="font-medium flex items-center gap-1.5">
-                        {property.tipo_anuencia === "COM_ANUENCIA" ? (
-                          <CheckCircleIcon
-                            size={16}
-                            className="text-green-500"
-                          />
-                        ) : (
-                          <XCircleIcon size={16} className="text-yellow-500" />
-                        )}
-                        {property.tipo_anuencia === "COM_ANUENCIA"
-                          ? "Com Anuência"
-                          : "Sem Anuência"}
-                      </p>
-                    </div>
-                  )}
-
-                  {property.data_inicio && (
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Início do Arrendamento
-                      </h3>
-                      <p className="font-medium flex items-center gap-1.5">
-                        <CalendarCheckIcon
-                          size={16}
-                          className="text-muted-foreground"
-                        />
-                        {format(
-                          new Date(property.data_inicio),
-                          "dd 'de' MMMM 'de' yyyy",
-                          { locale: ptBR }
-                        )}
-                      </p>
-                    </div>
-                  )}
-
-                  {property.data_termino && (
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Término do Arrendamento
-                      </h3>
-                      <p className="font-medium flex items-center gap-1.5">
-                        <CalendarOffIcon
-                          size={16}
-                          className="text-muted-foreground"
-                        />
-                        {format(
-                          new Date(property.data_termino),
-                          "dd 'de' MMMM 'de' yyyy",
-                          { locale: ptBR }
-                        )}
-                      </p>
-                    </div>
-                  )}
-
-                  {arrendamentoDuration !== null && (
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        Duração do Arrendamento
-                      </h3>
-                      <p className="font-medium flex items-center gap-1.5">
-                        <CalendarIcon
-                          size={16}
-                          className="text-muted-foreground"
-                        />
-                        {arrendamentoDuration}{" "}
-                        {arrendamentoDuration === 1 ? "ano" : "anos"}
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Matrícula
-                </h3>
-                <p className="font-medium flex items-center gap-1.5">
-                  <FileText size={16} className="text-muted-foreground" />
-                  {property.numero_matricula}
-                </p>
-              </div>
-
-              {property.numero_car && (
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Número CAR
-                  </h3>
-                  <p className="font-medium flex items-center gap-1.5">
-                    <FileIcon size={16} className="text-muted-foreground" />
-                    {property.numero_car}
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
         </div>
+      </InfoField>
+    );
+  };
 
-        {/* Seção de Área e Valoração */}
-        <div className="md:border-l border-border/60">
-          <CardHeader className="py-3 px-4 border-b border-border/60">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <AreaChartIcon size={18} />
-              Área e Valoração
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-6">
-            <div className="space-y-1">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Área Total
-              </h3>
-              <p className="text-2xl font-bold tracking-tight">
-                {formatArea(property.area_total)}
-              </p>
-            </div>
+  // Função para renderizar datas de arrendamento
+  const renderLeaseFields = () => {
+    if (property.tipo !== "ARRENDADO") return null;
 
-            {property.area_cultivada && (
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Área Cultivável
-                </h3>
-                <div className="flex items-center gap-1.5">
-                  <p className="font-medium">
-                    {formatArea(property.area_cultivada)}
-                  </p>
-                  <Badge variant="outline" className="ml-1 font-normal">
-                    {cultivationPercentage}%
-                  </Badge>
-                </div>
-                <div className="w-full h-2 bg-muted rounded-full mt-2 overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full"
-                    style={{ width: `${cultivationPercentage}%` }}
-                  ></div>
-                </div>
-              </div>
+    const fields = [];
+
+    if (property.data_inicio) {
+      fields.push(
+        <InfoField
+          key="data_inicio"
+          icon={<Calendar className="h-4 w-4" />}
+          label="Início do Arrendamento"
+          value={format(new Date(property.data_inicio), "dd/MM/yyyy")}
+        />
+      );
+    }
+
+    if (property.data_termino) {
+      fields.push(
+        <InfoField
+          key="data_termino"
+          icon={<Calendar className="h-4 w-4" />}
+          label="Término do Arrendamento"
+          value={format(new Date(property.data_termino), "dd/MM/yyyy")}
+        />
+      );
+    }
+
+    if (property.tipo_anuencia) {
+      const hasAnnuity = property.tipo_anuencia === "COM_ANUENCIA";
+      fields.push(
+        <InfoField
+          key="tipo_anuencia"
+          icon={hasAnnuity ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+          label="Anuência"
+          copyable={false}
+        >
+          <Badge variant={hasAnnuity ? "default" : "secondary"} className="mt-0.5">
+            {hasAnnuity ? "Com Anuência" : "Sem Anuência"}
+          </Badge>
+        </InfoField>
+      );
+    }
+
+    return fields;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Card de Informações da Propriedade */}
+      <Card className="shadow-sm border-muted/80">
+        <CardHeaderPrimary 
+          icon={<Building2 className="h-4 w-4" />}
+          title="Dados da Propriedade"
+          description="Informações gerais e documentação da propriedade"
+        />
+        <CardContent className="mt-4">
+          {/* Grid principal com informações em cards */}
+          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {/* Informações básicas */}
+            <InfoField
+              icon={<Building2 className="h-4 w-4" />}
+              label="Nome da Propriedade"
+              value={property.nome}
+            />
+            
+            <InfoField
+              icon={<User className="h-4 w-4" />}
+              label="Proprietário"
+              value={property.proprietario}
+            />
+
+            {renderTypeField()}
+
+            {/* Localização */}
+            {renderLocationField()}
+
+            {/* Documentação */}
+            <InfoField
+              icon={<FileText className="h-4 w-4" />}
+              label="Número da Matrícula"
+              value={property.numero_matricula}
+            />
+
+            {property.numero_car && (
+              <InfoField
+                icon={<Hash className="h-4 w-4" />}
+                label="Número CAR"
+                value={property.numero_car}
+              />
             )}
 
-            <Separator />
+            {/* Ano de aquisição - apenas para propriedades próprias */}
+            {property.tipo === "PROPRIO" && property.ano_aquisicao && (
+              <InfoField
+                icon={<CalendarIcon className="h-4 w-4" />}
+                label="Ano de Aquisição"
+                value={property.ano_aquisicao.toString()}
+              />
+            )}
 
+            {/* Campos específicos de arrendamento */}
+            {renderLeaseFields()}
+
+            {/* Áreas */}
+            <InfoField
+              icon={<Ruler className="h-4 w-4" />}
+              label="Área Total"
+              value={formatArea(property.area_total)}
+            />
+
+            {renderCultivatedAreaField()}
+
+            {/* Valores */}
             {property.valor_atual && (
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Valor Atual
-                </h3>
-                <p className="text-xl font-bold tracking-tight flex items-center gap-1.5">
-                  <Landmark size={16} className="text-muted-foreground" />
-                  {formatCurrency(property.valor_atual)}
-                </p>
-              </div>
+              <InfoField
+                icon={<DollarSign className="h-4 w-4" />}
+                label="Valor Atual"
+                value={formatCurrency(property.valor_atual)}
+              />
             )}
 
             {property.avaliacao_banco && (
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Avaliação do Imóvel
-                </h3>
-                <p className="font-medium">
-                  {formatCurrency(property.avaliacao_banco)}
-                </p>
-              </div>
+              <InfoField
+                icon={<DollarSign className="h-4 w-4" />}
+                label="Avaliação do Banco"
+                value={formatCurrency(property.avaliacao_banco)}
+              />
             )}
-          </CardContent>
-        </div>
-      </div>
 
-      {/* Informações adicionais */}
-      {property.onus && (
-        <div className="mt-4 bg-card p-4 rounded-lg border">
-          <h2 className="text-lg font-bold mb-2">Ônus e Observações</h2>
-          <p className="text-muted-foreground">
-            <strong>Ônus:</strong> {property.onus}
-          </p>
-        </div>
-      )}
-    </Card>
+            {/* Ônus - ocupa toda a largura se presente */}
+            {property.onus && (
+              <InfoField
+                icon={<FileText className="h-4 w-4" />}
+                label="Ônus e Observações"
+                value={property.onus}
+                className="col-span-full"
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Card do Mapa SICAR */}
+      <PropertyMap property={property} />
+    </div>
   );
 }

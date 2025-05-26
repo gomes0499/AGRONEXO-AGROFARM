@@ -10,16 +10,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, FileText } from "lucide-react";
 import { ReceivableContract } from "@/schemas/financial/receivables";
 import { ReceivableForm } from "./receivable-form";
 import { ReceivableRowActions } from "./receivable-row-actions";
-import { FinancialHeader } from "../common/financial-header";
-import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { formatCurrency as formatCurrencyUtil } from "@/lib/utils/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { FinancialFilterBar } from "../common/financial-filter-bar";
+import { FinancialPagination } from "../common/financial-pagination";
+import { useFinancialFilters } from "@/hooks/use-financial-filters";
 
 interface ReceivableListingProps {
   organization: { id: string; nome: string };
@@ -31,17 +33,31 @@ export function ReceivableListing({
   initialReceivables,
 }: ReceivableListingProps) {
   const [receivables, setReceivables] = useState(initialReceivables);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingReceivable, setEditingReceivable] = useState<ReceivableContract | null>(null);
 
-  // Filtrar contratos recebíveis baseado no termo de busca
-  const filteredReceivables = receivables.filter((receivable) => {
-    return receivable.commodity?.toLowerCase().includes(searchTerm.toLowerCase());
+  const {
+    filteredItems: filteredReceivables,
+    paginatedItems: paginatedData,
+    searchTerm,
+    filters,
+    filterOptions,
+    handleSearchChange,
+    handleFilterChange,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange,
+    totalItems: totalReceivables,
+    filteredCount
+  } = useFinancialFilters(receivables, {
+    searchFields: ['commodity'],
+    categoriaField: 'commodity'
   });
 
   // Calcular total de contratos recebíveis
-  const totalReceivables = filteredReceivables.reduce((sum, receivable) => sum + receivable.valor, 0);
+  const totalReceivablesValue = filteredReceivables.reduce((sum, receivable) => sum + receivable.valor, 0);
 
   // Converter o código da commodity para nome legível
   const getCommodityLabel = (code?: string) => {
@@ -88,53 +104,66 @@ export function ReceivableListing({
   };
 
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<FileText className="h-5 w-5" />}
         title="Contratos Recebíveis"
-        description="Gerencie os contratos recebíveis e valores a receber"
+        description="Controle de valores a receber de contratos firmados"
         action={
           <Button
-            variant="default"
-            size="default"
-            className="gap-1"
             onClick={() => setIsAddModalOpen(true)}
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
           >
-            <PlusCircle className="h-4 w-4" />
+            <PlusCircle className="w-4 h-4 mr-2" />
             Novo Contrato
           </Button>
         }
+        className="mb-4"
       />
+      <CardContent>
+        <div className="space-y-4">
+          <FinancialFilterBar
+            searchTerm={searchTerm}
+            onSearchChange={handleSearchChange}
+            filters={filters}
+            onFiltersChange={handleFilterChange}
+            filterOptions={filterOptions}
+            searchPlaceholder="Buscar por commodity..."
+          />
+          
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {paginatedData.length} de {totalReceivables} contratos recebíveis
+            </p>
+          </div>
 
-      <FinancialFilterBar onSearch={setSearchTerm} />
-
-      <Card>
-        <CardContent className="p-0">
           {receivables.length === 0 ? (
-            <EmptyState
-              title="Nenhum contrato recebível cadastrado"
-              description="Clique no botão abaixo para adicionar seu primeiro contrato recebível."
-              action={
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                  Adicionar Contrato
-                </Button>
-              }
-            />
-          ) : filteredReceivables.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">Nenhum contrato recebível encontrado para "{searchTerm}"</p>
+            <div className="text-center py-10 text-muted-foreground space-y-4">
+              <div>Nenhum contrato recebível cadastrado.</div>
+              <Button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Adicionar Primeiro Contrato
+              </Button>
+            </div>
+          ) : paginatedData.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div>Nenhum contrato encontrado para os filtros aplicados</div>
             </div>
           ) : (
-            <>
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Commodity</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Fornecedor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredReceivables.map((receivable) => (
+                  {paginatedData.map((receivable) => (
                     <TableRow key={receivable.id}>
                       <TableCell>
                         <Badge variant="outline">
@@ -144,7 +173,7 @@ export function ReceivableListing({
                       <TableCell>
                         {formatCurrencyUtil(receivable.valor)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">
                         <ReceivableRowActions
                           receivable={receivable}
                           onEdit={() => setEditingReceivable(receivable)}
@@ -156,17 +185,18 @@ export function ReceivableListing({
                 </TableBody>
               </Table>
               
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total Recebível:</span>
-                  <span className="font-bold">{formatCurrencyUtil(totalReceivables)}</span>
-                </div>
-              </div>
-            </>
+              <FinancialPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                totalItems={totalReceivables}
+              />
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
 
       {/* Modal para adicionar novo contrato recebível */}
       <ReceivableForm
@@ -186,6 +216,6 @@ export function ReceivableListing({
           onSubmit={handleUpdateReceivable}
         />
       )}
-    </div>
+    </Card>
   );
 }

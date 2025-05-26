@@ -7,6 +7,7 @@ import { Culture, Harvest } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
 import { useFinancialCalculations } from "@/hooks/use-financial-calculations";
 import { SalesActionsCell } from "@/components/commercial/common/sales-actions-cell";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -122,29 +123,17 @@ export function SeedSalesTable(props: SeedSalesTableProps) {
           >
             {formatCurrency(totalCosts)}
           </TableCell>
-          <TableCell
-            className={
-              profit > 0
-                ? "text-green-600"
-                : profit < 0
-                ? "text-red-600"
-                : "text-gray-600"
-            }
-          >
-            {formatCurrency(profit)}
-          </TableCell>
-          <TableCell
-            className={
-              profitMargin > 0
-                ? "text-green-600"
-                : profitMargin < 0
-                ? "text-red-600"
-                : "text-gray-600"
-            }
-          >
-            {profitMargin.toFixed(2)}%
+          <TableCell>
+            <Badge variant="default">
+              {formatCurrency(profit)}
+            </Badge>
           </TableCell>
           <TableCell>
+            <Badge variant="default">
+              {profitMargin.toFixed(2)}%
+            </Badge>
+          </TableCell>
+          <TableCell className="text-right">
             <SalesActionsCell sale={sale} onEdit={onEdit} onDelete={onDelete} />
           </TableCell>
         </TableRow>
@@ -160,15 +149,15 @@ export function SeedSalesTable(props: SeedSalesTableProps) {
     <div className="rounded-md border">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Propriedade</TableHead>
-            <TableHead>Cultura</TableHead>
-            <TableHead>Safra</TableHead>
-            <TableHead>Receita Bruta</TableHead>
-            <TableHead>Custos Totais</TableHead>
-            <TableHead>Lucro Líquido</TableHead>
-            <TableHead>Margem (%)</TableHead>
-            <TableHead className="w-[80px]">Ações</TableHead>
+          <TableRow className="bg-primary hover:bg-primary">
+            <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Propriedade</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">Cultura</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">Safra</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">Receita Bruta</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">Custos Totais</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">Lucro Líquido</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">Margem (%)</TableHead>
+            <TableHead className="text-right font-semibold text-primary-foreground rounded-tr-md">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>{renderTableRows()}</TableBody>

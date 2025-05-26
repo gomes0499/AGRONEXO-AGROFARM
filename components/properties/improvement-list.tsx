@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Improvement } from "@/schemas/properties";
 import { formatCurrency } from "@/lib/utils/formatters";
 import {
@@ -8,11 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Building } from "lucide-react";
-import { ImprovementListActions } from "@/components/properties/improvement-list-actions";
+import { Building, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ImprovementRowActions } from "@/components/properties/improvement-row-actions";
+import { ImprovementModal } from "@/components/properties/improvement-modal";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 
 interface ImprovementListProps {
   improvements: Improvement[];
@@ -25,41 +31,62 @@ export function ImprovementList({
   propertyId,
   organizationId,
 }: ImprovementListProps) {
+  const [showModal, setShowModal] = useState(false);
+  const router = useRouter();
+  
   const totalValue = improvements.reduce(
     (sum, imp) => sum + (imp.valor || 0),
     0
   );
 
+  const handleNewImprovement = () => {
+    if (!propertyId || !organizationId) {
+      console.error("Erro: IDs inválidos para criar benfeitoria", { propertyId, organizationId });
+      return;
+    }
+    setShowModal(true);
+  };
+
+  const handleSuccess = () => {
+    setShowModal(false);
+    router.refresh();
+  };
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Benfeitorias</CardTitle>
-          {improvements.length > 0 && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Valor total: {formatCurrency(totalValue)}
-            </p>
-          )}
-        </div>
-        {propertyId && (
-          <ImprovementListActions
-            propertyId={propertyId}
-            organizationId={organizationId || ""}
-            useModal={true}
-          />
-        )}
-      </CardHeader>
-      <CardContent>
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary 
+        icon={<Building className="h-4 w-4" />}
+        title="Benfeitorias"
+        description="Infraestrutura e melhorias realizadas na propriedade"
+        subtitle={
+          improvements.length > 0 
+            ? `${improvements.length} ${improvements.length === 1 ? 'item' : 'itens'} • Valor total: ${formatCurrency(totalValue)}`
+            : undefined
+        }
+        action={
+          propertyId && (
+            <Button 
+              variant="secondary"
+              onClick={handleNewImprovement}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Benfeitoria
+            </Button>
+          )
+        }
+      />
+      <CardContent className="mt-4">
         {improvements.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Dimensões</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-primary hover:bg-primary">
+                  <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Descrição</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Dimensões</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
+                  <TableHead className="text-right font-semibold text-primary-foreground rounded-tr-md">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
               {improvements.map((improvement) => (
                 <TableRow key={improvement.id}>
@@ -77,7 +104,8 @@ export function ImprovementList({
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         ) : (
           <EmptyState
             title="Nenhuma benfeitoria cadastrada"
@@ -85,16 +113,26 @@ export function ImprovementList({
             icon={<Building size={48} className="text-muted-foreground" />}
             action={
               propertyId && (
-                <ImprovementListActions
-                  propertyId={propertyId}
-                  organizationId={organizationId || ""}
-                  useModal={true}
-                />
+                <Button onClick={handleNewImprovement}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Cadastrar Primeira Benfeitoria
+                </Button>
               )
             }
           />
         )}
       </CardContent>
+
+      {/* Modal para nova benfeitoria */}
+      {showModal && (
+        <ImprovementModal
+          propertyId={propertyId}
+          organizationId={organizationId || ""}
+          open={showModal}
+          onOpenChange={setShowModal}
+          onSuccess={handleSuccess}
+        />
+      )}
     </Card>
   );
 }

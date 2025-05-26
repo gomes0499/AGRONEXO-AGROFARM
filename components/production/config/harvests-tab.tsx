@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { useState, forwardRef, useImperativeHandle } from "react";
+import { Plus, Edit2Icon, MoreHorizontal, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -51,7 +57,7 @@ interface HarvestsTabProps {
   organizationId: string;
 }
 
-export function HarvestsTab({ initialHarvests, organizationId }: HarvestsTabProps) {
+export const HarvestsTab = forwardRef<any, HarvestsTabProps>(function HarvestsTab({ initialHarvests, organizationId }, ref) {
   const [harvests, setHarvests] = useState<Harvest[]>(initialHarvests);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -65,6 +71,10 @@ export function HarvestsTab({ initialHarvests, organizationId }: HarvestsTabProp
       ano_fim: new Date().getFullYear() + 1,
     },
   });
+
+  useImperativeHandle(ref, () => ({
+    handleCreate,
+  }));
   
   // Função para abrir o diálogo de edição
   const handleEdit = (harvest: Harvest) => {
@@ -82,7 +92,7 @@ export function HarvestsTab({ initialHarvests, organizationId }: HarvestsTabProp
     setEditingHarvest(null);
     const currentYear = new Date().getFullYear();
     form.reset({
-      nome: "",
+      nome: `${currentYear}/${String(currentYear + 1).slice(-2)}`,
       ano_inicio: currentYear,
       ano_fim: currentYear + 1,
     });
@@ -132,80 +142,80 @@ export function HarvestsTab({ initialHarvests, organizationId }: HarvestsTabProp
     const anoInicio = form.getValues("ano_inicio");
     const anoFim = form.getValues("ano_fim");
     
-    if (anoInicio && anoFim) {
-      const shortYearStart = String(anoInicio).slice(-2);
+    if (anoInicio && anoFim && anoInicio > 0 && anoFim > 0) {
       const shortYearEnd = String(anoFim).slice(-2);
       form.setValue("nome", `${anoInicio}/${shortYearEnd}`);
     }
   };
   
   return (
-    <div className="space-y-4 py-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Safras</h3>
-        <Button onClick={handleCreate} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Safra
-        </Button>
-      </div>
-      
+    <div className="space-y-4">
       {harvests.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
-          Nenhuma safra cadastrada. Clique em "Nova Safra" para adicionar.
+          Nenhuma safra cadastrada.
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Ano Início</TableHead>
-              <TableHead>Ano Fim</TableHead>
-              <TableHead className="w-[150px] text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {harvests.map((harvest) => (
-              <TableRow key={harvest.id}>
-                <TableCell>{harvest.nome}</TableCell>
-                <TableCell>{harvest.ano_inicio}</TableCell>
-                <TableCell>{harvest.ano_fim}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(harvest)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir Safra</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir a safra "{harvest.nome}"? Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-destructive text-white hover:bg-destructive/90"
-                          onClick={() => handleDelete(harvest.id!)}
-                        >
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-primary hover:bg-primary">
+                <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome</TableHead>
+                <TableHead className="font-semibold text-primary-foreground">Ano Início</TableHead>
+                <TableHead className="font-semibold text-primary-foreground">Ano Fim</TableHead>
+                <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {harvests.map((harvest) => (
+                <TableRow key={harvest.id}>
+                  <TableCell>{harvest.nome}</TableCell>
+                  <TableCell>{harvest.ano_inicio}</TableCell>
+                  <TableCell>{harvest.ano_fim}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(harvest)}>
+                          <Edit2Icon className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Trash2 className="h-4 w-4 mr-2 text-destructive" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Safra</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir a safra "{harvest.nome}"? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-white hover:bg-destructive/90"
+                                onClick={() => handleDelete(harvest.id!)}
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
       
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
@@ -236,8 +246,10 @@ export function HarvestsTab({ initialHarvests, organizationId }: HarvestsTabProp
                           max={2100} 
                           {...field}
                           onChange={(e) => {
-                            field.onChange(parseInt(e.target.value));
-                            setTimeout(updateHarvestName, 0);
+                            const value = parseInt(e.target.value) || 0;
+                            field.onChange(value);
+                            // Usar requestAnimationFrame para garantir que o valor seja setado antes
+                            requestAnimationFrame(updateHarvestName);
                           }}
                           value={field.value}
                         />
@@ -260,8 +272,10 @@ export function HarvestsTab({ initialHarvests, organizationId }: HarvestsTabProp
                           max={2100} 
                           {...field}
                           onChange={(e) => {
-                            field.onChange(parseInt(e.target.value));
-                            setTimeout(updateHarvestName, 0);
+                            const value = parseInt(e.target.value) || 0;
+                            field.onChange(value);
+                            // Usar requestAnimationFrame para garantir que o valor seja setado antes
+                            requestAnimationFrame(updateHarvestName);
                           }}
                           value={field.value}
                         />
@@ -311,4 +325,4 @@ export function HarvestsTab({ initialHarvests, organizationId }: HarvestsTabProp
       </Dialog>
     </div>
   );
-}
+});

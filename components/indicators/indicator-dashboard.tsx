@@ -4,6 +4,8 @@ import { IndicatorThresholdViewer } from "./indicator-threshold-viewer";
 import { CommodityPriceTab } from "./commodity-price-tab";
 import { defaultIndicatorConfigs, indicatorLabels } from "@/schemas/indicators";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { TrendingUp, DollarSign } from "lucide-react";
 import type { CommodityPriceType } from "@/schemas/indicators/prices";
 
 // Função para obter o nível de um indicador
@@ -74,15 +76,6 @@ export function IndicatorsComponent({
 }: IndicatorDashboardProps) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Indicadores</h1>
-          <p className="text-muted-foreground">
-            Gerencie indicadores financeiros e preços de commodities para análises e projeções
-          </p>
-        </div>
-      </div>
-      
       <Tabs defaultValue="thresholds" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="thresholds">Limiares</TabsTrigger>
@@ -90,10 +83,20 @@ export function IndicatorsComponent({
         </TabsList>
         
         <TabsContent value="thresholds" className="w-full">
+          <CardHeaderPrimary
+            title="Limiares de Indicadores"
+            icon={<TrendingUp className="h-5 w-5" />}
+            className="mb-4"
+          />
           <IndicatorThresholdViewer indicatorConfigs={indicatorConfigs} />
         </TabsContent>
         
         <TabsContent value="prices" className="w-full">
+          <CardHeaderPrimary
+            title="Preços das Commodities"
+            icon={<DollarSign className="h-5 w-5" />}
+            className="mb-4"
+          />
           <CommodityPriceTab commodityPrices={commodityPrices} />
         </TabsContent>
       </Tabs>

@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil } from "lucide-react";
+import { Edit2Icon, Trash2, MoreHorizontal, DollarSign, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -18,13 +15,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 
 import { deleteProductionCost } from "@/lib/actions/production-actions";
 import { ProductionCostForm } from "./production-cost-form";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
-import { DeleteButton } from "../common/delete-button";
+import { ProductionTableFilter } from "../common/production-table-filter";
+import { ProductionTablePagination } from "../common/production-table-pagination";
+import { useProductionTable } from "@/hooks/use-production-table";
 import { ProductionCost, Culture, System, Harvest } from "@/schemas/production";
 
 // Define interface for the property entity
@@ -63,6 +81,27 @@ export function ProductionCostList({
   const [costs, setCosts] = useState<ProductionCost[]>(initialCosts);
   const [editingItem, setEditingItem] = useState<ProductionCost | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+
+  // Hook para gerenciar filtros e paginação
+  const {
+    searchTerm,
+    filters,
+    currentPage,
+    pageSize,
+    paginatedData,
+    totalPages,
+    totalItems,
+    setSearchTerm,
+    setFilters,
+    setCurrentPage,
+    setPageSize,
+  } = useProductionTable({
+    data: costs,
+    searchFields: ["valor", "categoria"], // Campos para busca textual
+    initialPageSize: 20,
+  });
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -78,19 +117,19 @@ export function ProductionCostList({
   // Função para excluir um item
   const handleDelete = async (id: string) => {
     try {
+      setDeletingItemId(id);
       await deleteProductionCost(id);
-      // Ainda mantemos a atualização local para uma UI responsiva
-      // mas o revalidatePath no servidor vai garantir dados frescos na próxima renderização
       setCosts(costs.filter((item) => item.id !== id));
       toast.success("Registro de custo excluído com sucesso!");
     } catch (error) {
       toast.error("Ocorreu um erro ao excluir o registro de custo.");
+    } finally {
+      setDeletingItemId(null);
     }
   };
 
   // Função para atualizar a lista após edição
   const handleUpdate = (updatedItem: ProductionCost) => {
-    // Atualização local para UI responsiva
     setCosts(
       costs.map((item) => (item.id === updatedItem.id ? updatedItem : item))
     );
@@ -98,8 +137,42 @@ export function ProductionCostList({
     setEditingItem(null);
   };
 
-  // Ordenar itens por safra, categoria e cultura
-  const sortedItems = [...costs].sort((a, b) => {
+  // Função para adicionar novo item à lista
+  const handleAdd = (newItem: ProductionCost) => {
+    setCosts([...costs, newItem]);
+    setIsCreateModalOpen(false);
+  };
+
+  // Função para abrir modal de criação
+  const handleCreate = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  // Criar opções para filtros
+  const categoriaOptions = [
+    { value: "CALCARIO", label: "Calcário" },
+    { value: "FERTILIZANTE", label: "Fertilizante" },
+    { value: "SEMENTES", label: "Sementes" },
+    { value: "TRATAMENTO_SEMENTES", label: "Tratamento de Sementes" },
+    { value: "HERBICIDA", label: "Herbicida" },
+    { value: "INSETICIDA", label: "Inseticida" },
+    { value: "FUNGICIDA", label: "Fungicida" },
+    { value: "OUTROS", label: "Outros" },
+    { value: "BENEFICIAMENTO", label: "Beneficiamento" },
+    { value: "SERVICOS", label: "Serviços" },
+    { value: "ADMINISTRATIVO", label: "Administrativo" },
+  ];
+
+  const filterOptions = {
+    safras: harvests.map(h => ({ value: h.id, label: h.nome })),
+    culturas: cultures.map(c => ({ value: c.id, label: c.nome })),
+    sistemas: systems.map(s => ({ value: s.id, label: s.nome })),
+    propriedades: properties.map(p => ({ value: p.id, label: p.nome })),
+    categorias: categoriaOptions,
+  };
+
+  // Ordenar itens paginados por safra, categoria e cultura
+  const sortedItems = [...paginatedData].sort((a, b) => {
     const safraA = harvests.find((h) => h.id === a.safra_id)?.nome || "";
     const safraB = harvests.find((h) => h.id === b.safra_id)?.nome || "";
 
@@ -153,87 +226,193 @@ export function ProductionCostList({
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Registros de Custos</CardTitle>
-          <CardDescription>
-            Custos de produção por categoria, cultura, sistema e safra.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {costs.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              Nenhum registro de custo cadastrado. Clique no botão "Novo Custo"
-              para adicionar.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Safra</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Cultura</TableHead>
-                  <TableHead>Sistema</TableHead>
-                  <TableHead>Propriedade</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedItems.map((item) => {
-                  const refs = getRefNames(item);
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell>{refs.harvest}</TableCell>
-                      <TableCell>{translateCategory(item.categoria)}</TableCell>
-                      <TableCell>{refs.culture}</TableCell>
-                      <TableCell>{refs.system}</TableCell>
-                      <TableCell>{refs.property}</TableCell>
-                      <TableCell>{formatCurrency(item.valor)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(item)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <DeleteButton
-                          title="Excluir Registro"
-                          description="Tem certeza que deseja excluir este registro de custo? Esta ação não pode ser desfeita."
-                          onDelete={() => handleDelete(item.id || "")}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        title="Registros de Custos"
+        icon={<DollarSign className="h-5 w-5" />}
+        description="Controle dos custos de produção por categoria e cultura"
+        action={
+          <Button 
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            onClick={handleCreate}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Custo
+          </Button>
+        }
+        className="mb-4"
+      />
+      <CardContent>
+        {/* Filtros e busca */}
+        <ProductionTableFilter
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={filters}
+          onFiltersChange={setFilters}
+          safras={filterOptions.safras}
+          culturas={filterOptions.culturas}
+          sistemas={filterOptions.sistemas}
+          propriedades={filterOptions.propriedades}
+          categorias={filterOptions.categorias}
+          showCategoriaFilter={true}
+        />
 
-      {/* Modal de edição */}
-      <FormModal
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        title="Editar Custo"
-        description="Faça as alterações necessárias no registro de custo."
-      >
-        {editingItem && (
+        {costs.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground space-y-4">
+            <div>Nenhum registro de custo cadastrado.</div>
+            <Button 
+              onClick={handleCreate}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Custo
+            </Button>
+          </div>
+        ) : totalItems === 0 ? (
+          <div className="text-center py-10 text-muted-foreground space-y-4">
+            <div>Nenhum registro de custo encontrado com os filtros aplicados.</div>
+            <Button 
+              onClick={handleCreate}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Custo
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Safra</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Categoria</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Cultura</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Sistema</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Propriedade</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedItems.map((item) => {
+                    const refs = getRefNames(item);
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{refs.harvest}</TableCell>
+                        <TableCell>{translateCategory(item.categoria)}</TableCell>
+                        <TableCell>{refs.culture}</TableCell>
+                        <TableCell>{refs.system}</TableCell>
+                        <TableCell>{refs.property}</TableCell>
+                        <TableCell>{formatCurrency(item.valor)}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={deletingItemId === item.id}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Ações</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                <Edit2Icon className="h-4 w-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem 
+                                    onSelect={(e) => e.preventDefault()}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Excluir Registro de Custo</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja excluir este registro de custo? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDelete(item.id || "")}
+                                      className="bg-destructive text-white hover:bg-destructive/90"
+                                    >
+                                      {deletingItemId === item.id ? "Excluindo..." : "Excluir"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Paginação */}
+            <ProductionTablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
+        )}
+
+        {/* Modal de criação */}
+        <FormModal
+          open={isCreateModalOpen}
+          onOpenChange={setIsCreateModalOpen}
+          title="Novo Custo"
+          description="Adicione um novo registro de custo."
+        >
           <ProductionCostForm
             cultures={cultures}
             systems={systems}
             harvests={harvests}
             properties={properties}
             organizationId={organizationId}
-            cost={editingItem}
-            onSuccess={handleUpdate}
-            onCancel={() => setIsEditModalOpen(false)}
+            onSuccess={handleAdd}
+            onCancel={() => setIsCreateModalOpen(false)}
           />
-        )}
-      </FormModal>
-    </div>
+        </FormModal>
+
+        {/* Modal de edição */}
+        <FormModal
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          title="Editar Custo"
+          description="Faça as alterações necessárias no registro de custo."
+        >
+          {editingItem && (
+            <ProductionCostForm
+              cultures={cultures}
+              systems={systems}
+              harvests={harvests}
+              properties={properties}
+              organizationId={organizationId}
+              cost={editingItem}
+              onSuccess={handleUpdate}
+              onCancel={() => setIsEditModalOpen(false)}
+            />
+          )}
+        </FormModal>
+      </CardContent>
+    </Card>
   );
 }

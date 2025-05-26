@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -429,9 +430,14 @@ export function PropertyMap({ property }: PropertyMapProps) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
-          <CardContent className="p-6">
-            <h3 className="text-sm font-medium text-gray-500">Área Total</h3>
-            <p className="text-2xl font-bold mt-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Área Total</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Área total cadastrada no SICAR
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-bold">
               {Number(sicarData.area_imovel || 0)
                 .toFixed(2)
                 .replace(".", ",")}{" "}
@@ -441,11 +447,14 @@ export function PropertyMap({ property }: PropertyMapProps) {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <h3 className="text-sm font-medium text-gray-500">
-              Área Cultivável
-            </h3>
-            <p className="text-2xl font-bold mt-1 ">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Área Cultivável</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Área disponível para cultivo agrícola
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-bold">
               {Number(String(sicarData.area_cultivavel?.area || 0))
                 .toFixed(2)
                 .replace(".", ",")}{" "}
@@ -455,9 +464,14 @@ export function PropertyMap({ property }: PropertyMapProps) {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <h3 className="text-sm font-medium text-gray-500">Reserva Legal</h3>
-            <p className="text-2xl font-bold mt-1 ">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Reserva Legal</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Área destinada à conservação ambiental
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-bold">
               {Number(String(sicarData.reserva_legal?.area || 0))
                 .toFixed(2)
                 .replace(".", ",")}{" "}
@@ -467,9 +481,14 @@ export function PropertyMap({ property }: PropertyMapProps) {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <h3 className="text-sm font-medium text-gray-500">Cultivo Ativo</h3>
-            <p className="text-2xl font-bold mt-1 ">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Cultivo Ativo</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Área atualmente em produção agrícola
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-bold">
               {Number(String(sicarData.area_cultivo?.area || 0))
                 .toFixed(2)
                 .replace(".", ",")}{" "}
@@ -482,15 +501,15 @@ export function PropertyMap({ property }: PropertyMapProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Cards de resumo no topo quando os dados estiverem disponíveis */}
-      {sicarData && renderPropertyCards()}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Dados do CAR/SICAR</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary 
+        icon={<MapPin className="h-4 w-4" />}
+        title="Mapa SICAR"
+        description="Visualização interativa dos dados cadastrais ambientais"
+      />
+      <CardContent className="mt-4">
+        {/* Cards de resumo no topo quando os dados estiverem disponíveis */}
+        {sicarData && renderPropertyCards()}
           <div className="grid gap-4">
             {property.numero_car ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
@@ -928,8 +947,7 @@ export function PropertyMap({ property }: PropertyMapProps) {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

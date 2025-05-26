@@ -10,12 +10,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, ArrowUpRight } from "lucide-react";
 import { SupplierAdvance } from "@/schemas/financial/advances";
 import { AdvanceForm } from "./advance-form";
 import { AdvanceRowActions } from "./advance-row-actions";
-import { FinancialHeader } from "../common/financial-header";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
+import { FinancialPagination } from "../common/financial-pagination";
+import { useFinancialFilters } from "@/hooks/use-financial-filters";
 import { formatCurrency, formatGenericCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -30,34 +32,32 @@ export function AdvanceListing({
   initialAdvances,
 }: AdvanceListingProps) {
   const [advances, setAdvances] = useState(initialAdvances);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingAdvance, setEditingAdvance] = useState<SupplierAdvance | null>(
     null
   );
 
-  // Filtrar adiantamentos baseado no termo de busca
-  const filteredAdvances = advances.filter((advance) => {
-    if (searchTerm === "") return true;
-    
-    const searchTermLower = searchTerm.toLowerCase();
-    
-    // Busca mais robusta pelo nome do fornecedor
-    const fornecedorNome = advance.fornecedor?.nome || '';
-    
-    // Verifica se o termo está em qualquer campo relevante
-    return (
-      // Verifica pelo nome do fornecedor, se disponível
-      fornecedorNome.toLowerCase().includes(searchTermLower) ||
-      // Verifica pelo UUID do fornecedor
-      (advance.fornecedor_id && advance.fornecedor_id.toLowerCase().includes(searchTermLower)) ||
-      // Verifica pelo valor (convertido para string)
-      (advance.valor && advance.valor.toString().includes(searchTerm))
-    );
+  const {
+    filteredItems: filteredAdvances,
+    paginatedItems: paginatedData,
+    searchTerm,
+    filters,
+    filterOptions,
+    handleSearchChange,
+    handleFilterChange,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange,
+    totalItems: totalAdvances,
+    filteredCount
+  } = useFinancialFilters(advances, {
+    searchFields: ['fornecedor_id']
   });
 
   // Calcular total de adiantamentos
-  const totalAdvances = filteredAdvances.reduce(
+  const totalAdvancesValue = filteredAdvances.reduce(
     (sum, advance) => sum + advance.valor,
     0
   );
@@ -86,55 +86,66 @@ export function AdvanceListing({
   };
 
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<ArrowUpRight className="h-5 w-5" />}
         title="Adiantamentos a Fornecedores"
-        description="Gerencie os adiantamentos realizados a fornecedores"
+        description="Gestão de valores adiantados para fornecedores"
         action={
           <Button
-            variant="default"
-            size="default"
-            className="gap-1"
             onClick={() => setIsAddModalOpen(true)}
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
           >
-            <PlusCircle className="h-4 w-4" />
+            <PlusCircle className="w-4 h-4 mr-2" />
             Novo Adiantamento
           </Button>
         }
+        className="mb-4"
       />
+      <CardContent>
+        <div className="space-y-4">
+          <FinancialFilterBar
+            searchTerm={searchTerm}
+            onSearchChange={handleSearchChange}
+            filters={filters}
+            onFiltersChange={handleFilterChange}
+            filterOptions={filterOptions}
+            searchPlaceholder="Buscar por fornecedor..."
+          />
+          
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {paginatedData.length} de {totalAdvances} adiantamentos
+            </p>
+          </div>
 
-      <FinancialFilterBar onSearch={setSearchTerm} />
-
-      <Card>
-        <CardContent className="p-0">
           {advances.length === 0 ? (
-            <EmptyState
-              title="Nenhum adiantamento cadastrado"
-              description="Clique no botão abaixo para adicionar seu primeiro adiantamento a fornecedor."
-              action={
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                  Adicionar Adiantamento
-                </Button>
-              }
-            />
-          ) : filteredAdvances.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">
-                Nenhum adiantamento encontrado para "{searchTerm}"
-              </p>
+            <div className="text-center py-10 text-muted-foreground space-y-4">
+              <div>Nenhum adiantamento cadastrado.</div>
+              <Button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Adicionar Primeiro Adiantamento
+              </Button>
+            </div>
+          ) : paginatedData.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div>Nenhum adiantamento encontrado para os filtros aplicados</div>
             </div>
           ) : (
-            <>
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Fornecedor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAdvances.map((advance) => (
+                  {paginatedData.map((advance) => (
                     <TableRow key={advance.id}>
                       <TableCell>
                         {/* Exibir nome do fornecedor ou ID formatado */}
@@ -146,7 +157,7 @@ export function AdvanceListing({
                       <TableCell>
                         {formatCurrency(advance.valor)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">
                         <AdvanceRowActions
                           advance={advance}
                           onEdit={() => setEditingAdvance(advance)}
@@ -157,20 +168,19 @@ export function AdvanceListing({
                   ))}
                 </TableBody>
               </Table>
-
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total em Adiantamentos:</span>
-                  <span className="font-bold">
-                    {formatCurrency(totalAdvances)}
-                  </span>
-                </div>
-              </div>
-            </>
+              
+              <FinancialPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                totalItems={totalAdvances}
+              />
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
 
       {/* Modal para adicionar novo adiantamento */}
       <AdvanceForm
@@ -190,6 +200,6 @@ export function AdvanceListing({
           onSubmit={handleUpdateAdvance}
         />
       )}
-    </div>
+    </Card>
   );
 }

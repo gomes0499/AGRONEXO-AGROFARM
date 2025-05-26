@@ -19,8 +19,11 @@ import { TradingDebtRowActions } from "./trading-debt-row-actions";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
-import { FinancialHeader } from "../common/financial-header";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { TrendingDown } from "lucide-react";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
+import { FinancialPagination } from "../common/financial-pagination";
+import { useFinancialFilters } from "@/hooks/use-financial-filters";
 
 interface TradingDebtListingProps {
   organization: { id: string; nome: string };
@@ -52,16 +55,28 @@ export function TradingDebtListing({
       };
     });
   });
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<TradingDebt | null>(null);
 
-  // Filtrar dívidas baseado no termo de busca
-  const filteredDebts = tradingDebts.filter((debt) => {
-    return (
-      debt.empresa_trading.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      debt.modalidade.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const {
+    filteredItems: filteredTradingDebts,
+    paginatedItems: paginatedData,
+    searchTerm,
+    filters,
+    filterOptions,
+    handleSearchChange,
+    handleFilterChange,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange,
+    totalItems: totalTradingDebts,
+    filteredCount
+  } = useFinancialFilters(tradingDebts, {
+    searchFields: ['empresa_trading', 'indexador'],
+    modalidadeField: 'modalidade',
+    moedaField: 'moeda'
   });
 
   // Adicionar nova dívida
@@ -149,27 +164,42 @@ export function TradingDebtListing({
   };
 
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<TrendingDown className="h-5 w-5" />}
         title="Dívidas com Trading"
-        description="Gerencie dívidas relacionadas às empresas de trading"
+        description="Controle das dívidas contraídas com empresas de trading"
         action={
           <Button
-            variant="default"
+            variant="outline"
             size="default"
-            className="gap-1"
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
             onClick={() => setIsAddModalOpen(true)}
           >
             <PlusIcon className="h-4 w-4" />
             Nova Dívida
           </Button>
         }
+        className="mb-4"
       />
+      <CardContent className="space-y-4">
+        <FinancialFilterBar
+          searchTerm={searchTerm}
+          onSearchChange={handleSearchChange}
+          filters={filters}
+          onFiltersChange={handleFilterChange}
+          filterOptions={filterOptions}
+          searchPlaceholder="Buscar por empresa trading ou indexador..."
+        />
+        
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {paginatedData.length} de {totalTradingDebts} dívidas com trading
+          </p>
+        </div>
 
-      <FinancialFilterBar onSearch={setSearchTerm} />
-
-      <Card>
-        <CardContent className="p-0">
+        <Card>
+          <CardContent className="p-0">
           {tradingDebts.length === 0 ? (
             <EmptyState
               title="Nenhuma dívida com trading cadastrada"
@@ -180,25 +210,25 @@ export function TradingDebtListing({
                 </Button>
               }
             />
-          ) : filteredDebts.length === 0 ? (
+          ) : paginatedData.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-muted-foreground">Nenhuma dívida encontrada para "{searchTerm}"</p>
+              <p className="text-muted-foreground">Nenhuma dívida encontrada para os filtros aplicados</p>
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Empresa Trading</TableHead>
-                    <TableHead>Modalidade</TableHead>
-                    <TableHead>Indexador</TableHead>
-                    <TableHead>Taxa Real</TableHead>
-                    <TableHead>Valor Total</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Empresa Trading</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Modalidade</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Indexador</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Taxa Real</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground rounded-tr-md w-24">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDebts.map((debt) => (
+                  {paginatedData.map((debt) => (
                     <TableRow key={debt.id}>
                       <TableCell>{debt.empresa_trading}</TableCell>
                       <TableCell>{debt.modalidade}</TableCell>
@@ -224,38 +254,19 @@ export function TradingDebtListing({
                 </TableBody>
               </Table>
               
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total de Dívidas com Trading:</span>
-                  <span className="font-bold">
-                    {(() => {
-                      // Agrupar totais por moeda
-                      const totals: { [key: string]: number } = {};
-                      
-                      filteredDebts.forEach(debt => {
-                        const moeda = debt.moeda || 'BRL';
-                        const total = calculateTotal(debt);
-                        
-                        if (!totals[moeda]) {
-                          totals[moeda] = 0;
-                        }
-                        
-                        totals[moeda] += total;
-                      });
-                      
-                      // Formatar e concatenar totais por moeda
-                      return Object.entries(totals)
-                        .map(([moeda, valor]) => formatGenericCurrency(valor, moeda as any))
-                        .join(' + ');
-                    })()}
-                  </span>
-                </div>
-              </div>
+              <FinancialPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                totalItems={totalTradingDebts}
+              />
             </>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </CardContent>
 
       {/* Modal para adicionar nova dívida */}
       <TradingDebtForm
@@ -275,6 +286,6 @@ export function TradingDebtListing({
           onSubmit={handleUpdateDebt}
         />
       )}
-    </div>
+    </Card>
   );
 }

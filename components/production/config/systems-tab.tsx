@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { useState, forwardRef, useImperativeHandle } from "react";
+import { Plus, Edit2Icon, Trash2, Loader2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -53,16 +53,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SystemsTabProps {
   initialSystems: System[];
   organizationId: string;
 }
 
-export function SystemsTab({
+export const SystemsTab = forwardRef<any, SystemsTabProps>(function SystemsTab({
   initialSystems,
   organizationId,
-}: SystemsTabProps) {
+}, ref) {
   const [systems, setSystems] = useState<System[]>(initialSystems);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -74,6 +81,10 @@ export function SystemsTab({
       nome: "",
     },
   });
+
+  useImperativeHandle(ref, () => ({
+    handleCreate,
+  }));
 
   // Função para abrir o diálogo de edição
   const handleEdit = (system: System) => {
@@ -130,69 +141,79 @@ export function SystemsTab({
   };
 
   return (
-    <div className="space-y-4 py-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Sistemas</h3>
-        <Button onClick={handleCreate} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Sistema
-        </Button>
-      </div>
-
+    <div className="space-y-4">
       {systems.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
-          Nenhum sistema cadastrado. Clique em "Novo Sistema" para adicionar.
+          Nenhum sistema cadastrado.
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead className="w-[150px] text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {systems.map((system) => (
-              <TableRow key={system.id}>
-                <TableCell>{system.nome}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(system)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir Sistema</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir o sistema "
-                          {system.nome}"? Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-destructive text-white hover:bg-destructive/90"
-                          onClick={() => handleDelete(system.id!)}
-                        >
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-primary hover:bg-primary">
+                <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome</TableHead>
+                <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {systems.map((system) => (
+                <TableRow key={system.id}>
+                  <TableCell className="font-medium">{system.nome}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Ações</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(system)}>
+                          <Edit2Icon className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem 
+                              onSelect={(e) => e.preventDefault()}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Sistema</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir o sistema "
+                                {system.nome}"? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-white hover:bg-destructive/90"
+                                onClick={() => handleDelete(system.id!)}
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
@@ -244,4 +265,4 @@ export function SystemsTab({
       </Dialog>
     </div>
   );
-}
+});

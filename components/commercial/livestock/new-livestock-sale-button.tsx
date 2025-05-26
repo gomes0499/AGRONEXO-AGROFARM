@@ -5,6 +5,7 @@ import { LivestockSale } from "@/schemas/commercial";
 import { Button } from "@/components/ui/button";
 import { Harvest } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -36,14 +37,15 @@ export function NewLivestockSaleButton({
   size = "default",
 }: NewLivestockSaleButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const router = useRouter();
 
   const handleSuccess = (newSale: LivestockSale) => {
     setIsDialogOpen(false);
+    
+    // Chamar o callback se fornecido
     if (onSaleCreated) {
       onSaleCreated(newSale);
     }
-    // Refresh the page to show the new sale
-    window.location.reload();
   };
 
   return (

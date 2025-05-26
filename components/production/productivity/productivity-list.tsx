@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Edit2Icon, Trash2, MoreHorizontal, TrendingUp, Plus } from "lucide-react";
+import { ProductionTableFilter } from "../common/production-table-filter";
+import { ProductionTablePagination } from "../common/production-table-pagination";
+import { useProductionTable } from "@/hooks/use-production-table";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -18,12 +18,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 
 import { deleteProductivity } from "@/lib/actions/production-actions";
 import { ProductivityForm } from "./productivity-form";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
-import { DeleteButton } from "../common/delete-button";
 import { Productivity, Culture, System, Harvest } from "@/schemas/production";
 
 // Define interface for the property entity
@@ -64,6 +82,27 @@ export function ProductivityList({
   );
   const [editingItem, setEditingItem] = useState<Productivity | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+
+  // Hook para gerenciar filtros e paginação
+  const {
+    searchTerm,
+    filters,
+    currentPage,
+    pageSize,
+    paginatedData,
+    totalPages,
+    totalItems,
+    setSearchTerm,
+    setFilters,
+    setCurrentPage,
+    setPageSize,
+  } = useProductionTable({
+    data: productivities,
+    searchFields: ["produtividade", "unidade"],
+    initialPageSize: 20,
+  });
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -79,12 +118,15 @@ export function ProductivityList({
   // Função para excluir um item
   const handleDelete = async (id: string) => {
     try {
+      setDeletingItemId(id);
       await deleteProductivity(id);
       setProductivities(productivities.filter((item) => item.id !== id));
       toast.success("Registro de produtividade excluído com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir registro de produtividade:", error);
       toast.error("Ocorreu um erro ao excluir o registro de produtividade.");
+    } finally {
+      setDeletingItemId(null);
     }
   };
 
@@ -102,10 +144,24 @@ export function ProductivityList({
   // Função para adicionar novo item à lista
   const handleAdd = (newItem: Productivity) => {
     setProductivities([...productivities, newItem]);
+    setIsCreateModalOpen(false);
   };
 
-  // Ordenar itens por safra e cultura
-  const sortedItems = [...productivities].sort((a, b) => {
+  // Função para abrir modal de criação
+  const handleCreate = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  // Criar opções para filtros
+  const filterOptions = {
+    safras: harvests.map(h => ({ value: h.id, label: h.nome })),
+    culturas: cultures.map(c => ({ value: c.id, label: c.nome })),
+    sistemas: systems.map(s => ({ value: s.id, label: s.nome })),
+    propriedades: properties.map(p => ({ value: p.id, label: p.nome })),
+  };
+
+  // Ordenar itens paginados por safra e cultura
+  const sortedItems = [...paginatedData].sort((a, b) => {
     const safraA = harvests.find((h) => h.id === a.safra_id)?.nome || "";
     const safraB = harvests.find((h) => h.id === b.safra_id)?.nome || "";
 
@@ -135,87 +191,191 @@ export function ProductivityList({
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Registros de Produtividade</CardTitle>
-          <CardDescription>
-            Produtividade registrada por cultura, sistema e safra.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {productivities.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              Nenhum registro de produtividade cadastrado. Clique no botão "Nova
-              Produtividade" para adicionar.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Safra</TableHead>
-                  <TableHead>Cultura</TableHead>
-                  <TableHead>Sistema</TableHead>
-                  <TableHead>Propriedade</TableHead>
-                  <TableHead>Produtividade</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedItems.map((item) => {
-                  const refs = getRefNames(item);
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell>{refs.harvest}</TableCell>
-                      <TableCell>{refs.culture}</TableCell>
-                      <TableCell>{refs.system}</TableCell>
-                      <TableCell>{refs.property}</TableCell>
-                      <TableCell>
-                        {item.produtividade} {item.unidade}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(item)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <DeleteButton
-                          title="Excluir Registro"
-                          description="Tem certeza que deseja excluir este registro de produtividade? Esta ação não pode ser desfeita."
-                          onDelete={() => handleDelete(item.id || "")}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        title="Registros de Produtividade"
+        icon={<TrendingUp className="h-5 w-5" />}
+        description="Controle da produtividade por cultura, sistema e safra"
+        action={
+          <Button 
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            onClick={handleCreate}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Produtividade
+          </Button>
+        }
+        className="mb-4"
+      />
+      <CardContent>
+        {/* Filtros e busca */}
+        <ProductionTableFilter
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={filters}
+          onFiltersChange={setFilters}
+          safras={filterOptions.safras}
+          culturas={filterOptions.culturas}
+          sistemas={filterOptions.sistemas}
+          propriedades={filterOptions.propriedades}
+        />
 
-      {/* Modal de edição */}
-      <FormModal
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        title="Editar Produtividade"
-        description="Faça as alterações necessárias no registro de produtividade."
-      >
-        {editingItem && (
+        {productivities.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground space-y-4">
+            <div>Nenhum registro de produtividade cadastrado.</div>
+            <Button 
+              onClick={handleCreate}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Produtividade
+            </Button>
+          </div>
+        ) : totalItems === 0 ? (
+          <div className="text-center py-10 text-muted-foreground space-y-4">
+            <div>Nenhum registro de produtividade encontrado com os filtros aplicados.</div>
+            <Button 
+              onClick={handleCreate}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Produtividade
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Safra</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Cultura</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Sistema</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Propriedade</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Produtividade</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedItems.map((item) => {
+                    const refs = getRefNames(item);
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{refs.harvest}</TableCell>
+                        <TableCell>{refs.culture}</TableCell>
+                        <TableCell>{refs.system}</TableCell>
+                        <TableCell>{refs.property}</TableCell>
+                        <TableCell>
+                          {item.produtividade} {item.unidade}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={deletingItemId === item.id}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Ações</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                <Edit2Icon className="h-4 w-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem 
+                                    onSelect={(e) => e.preventDefault()}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Excluir Registro de Produtividade</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja excluir este registro de produtividade? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDelete(item.id || "")}
+                                      className="bg-destructive text-white hover:bg-destructive/90"
+                                    >
+                                      {deletingItemId === item.id ? "Excluindo..." : "Excluir"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Paginação */}
+            <ProductionTablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
+        )}
+
+        {/* Modal de criação */}
+        <FormModal
+          open={isCreateModalOpen}
+          onOpenChange={setIsCreateModalOpen}
+          title="Nova Produtividade"
+          description="Adicione um novo registro de produtividade."
+        >
           <ProductivityForm
             cultures={cultures}
             systems={systems}
             harvests={harvests}
             properties={properties}
             organizationId={organizationId}
-            productivity={editingItem}
-            onSuccess={handleUpdate}
-            onCancel={() => setIsEditModalOpen(false)}
+            onSuccess={handleAdd}
+            onCancel={() => setIsCreateModalOpen(false)}
           />
-        )}
-      </FormModal>
-    </div>
+        </FormModal>
+
+        {/* Modal de edição */}
+        <FormModal
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          title="Editar Produtividade"
+          description="Faça as alterações necessárias no registro de produtividade."
+        >
+          {editingItem && (
+            <ProductivityForm
+              cultures={cultures}
+              systems={systems}
+              harvests={harvests}
+              properties={properties}
+              organizationId={organizationId}
+              productivity={editingItem}
+              onSuccess={handleUpdate}
+              onCancel={() => setIsEditModalOpen(false)}
+            />
+          )}
+        </FormModal>
+      </CardContent>
+    </Card>
   );
 }

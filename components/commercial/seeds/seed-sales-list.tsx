@@ -1,14 +1,15 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { SeedSale, LivestockSale } from "@/schemas/commercial";
 import { Culture, Harvest } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
-import { deleteSeedSale, getSeedSales } from "@/lib/actions/commercial-actions";
-import { useSalesListState } from "@/hooks/use-sales-list-state";
+import { deleteSeedSale } from "@/lib/actions/commercial-actions";
 import { useFinancialCalculations } from "@/hooks/use-financial-calculations";
-import { SalesFilterBar } from "@/components/commercial/common/sales-filter-bar";
+import { toast } from "sonner";
 import { FinancialSummary } from "@/components/commercial/common/financial-summary";
 import { SeedSalesTable } from "@/components/commercial/seeds/seed-sales-table";
+import { NewSeedSaleButton } from "@/components/commercial/seeds/new-seed-sale-button";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { SeedSaleForm } from "@/components/commercial/seeds/seed-sale-form";
+import { Sprout } from "lucide-react";
 
 interface SeedSalesListProps {
   initialSeedSales: SeedSale[];
@@ -43,104 +48,104 @@ export function SeedSalesList({
   harvests,
   properties,
 }: SeedSalesListProps) {
-  // Use nossos hooks personalizados para gerenciar estado e cálculos
-  const {
-    sales: seedSales,
-    setSales: setSeedSales,
-    filteredSales: filteredSeedSales,
-    selectedSafraId,
-    setSelectedSafraId,
-    selectedPropertyId,
-    setSelectedPropertyId,
-    selectedCulture,
-    setSelectedCulture,
-    isEditDialogOpen,
-    setIsEditDialogOpen,
-    isDeleteDialogOpen,
-    setIsDeleteDialogOpen,
-    selectedSale: selectedSeedSale,
-    setSelectedSale: setSelectedSeedSale,
-    isRefreshing,
-    setIsRefreshing,
-    uniqueSafraIds,
-    uniquePropertyIds,
-    handleEdit: handleEditOriginal,
-    handleDelete: handleDeleteOriginal,
-    confirmDelete,
-    handleUpdateSuccess,
-  } = useSalesListState<SeedSale>({
-    initialSales: initialSeedSales,
-    deleteSaleFn: deleteSeedSale,
-  });
+  // Gerenciar estado local das vendas
+  const [seedSales, setSeedSales] = useState<SeedSale[]>(initialSeedSales);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedSeedSale, setSelectedSeedSale] = useState<SeedSale | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Atualizar o estado local sempre que os dados do servidor mudarem
+  useEffect(() => {
+    setSeedSales(initialSeedSales);
+  }, [initialSeedSales]);
 
   const { calculateFinancialSummary } = useFinancialCalculations();
 
   // Calcular o resumo financeiro
-  const financialSummary = calculateFinancialSummary(filteredSeedSales);
+  const financialSummary = calculateFinancialSummary(seedSales);
 
-  // Função para atualizar os dados
-  const refreshData = async () => {
-    try {
-      setIsRefreshing(true);
-      const data = await getSeedSales(organizationId);
-      if (Array.isArray(data)) {
-        setSeedSales(data);
-      }
-    } catch (error) {
-      console.error("Erro ao atualizar dados:", error);
-    } finally {
-      setIsRefreshing(false);
+  // Função para adicionar nova venda à lista
+  const handleAdd = (newSale: SeedSale) => {
+    setSeedSales([...seedSales, newSale]);
+  };
+
+  // Função para editar uma venda
+  const handleEdit = (sale: SeedSale | LivestockSale) => {
+    if ("cultura_id" in sale) {
+      setSelectedSeedSale(sale as SeedSale);
+      setIsEditDialogOpen(true);
     }
   };
 
-  // Funções compatíveis com SeedSale | LivestockSale
-  function handleEdit(sale: SeedSale | LivestockSale) {
-    if ("cultura_id" in sale) {
-      // Chame a função original do hook
-      // @ts-ignore
-      (handleEditOriginal as (sale: SeedSale) => void)(sale);
-    }
-  }
+  // Função para atualizar venda após edição
+  const handleUpdate = (updatedSale: SeedSale) => {
+    setSeedSales(seedSales.map(sale => 
+      sale.id === updatedSale.id ? updatedSale : sale
+    ));
+    setIsEditDialogOpen(false);
+    setSelectedSeedSale(null);
+  };
 
-  function handleDelete(sale: SeedSale | LivestockSale) {
+  // Função para iniciar exclusão
+  const handleDelete = (sale: SeedSale | LivestockSale) => {
     if ("cultura_id" in sale) {
-      // Chame a função original do hook
-      // @ts-ignore
-      (handleDeleteOriginal as (sale: SeedSale) => void)(sale);
+      setSelectedSeedSale(sale as SeedSale);
+      setIsDeleteDialogOpen(true);
     }
-  }
+  };
+
+  // Função para confirmar exclusão
+  const confirmDelete = async () => {
+    if (!selectedSeedSale?.id) return;
+
+    try {
+      setDeletingId(selectedSeedSale.id);
+      await deleteSeedSale(selectedSeedSale.id);
+      setSeedSales(seedSales.filter(sale => sale.id !== selectedSeedSale.id));
+      toast.success("Venda de semente excluída com sucesso!");
+    } catch (error) {
+      console.error("Erro ao excluir venda de semente:", error);
+      toast.error("Ocorreu um erro ao excluir a venda de semente.");
+    } finally {
+      setDeletingId(null);
+      setIsDeleteDialogOpen(false);
+      setSelectedSeedSale(null);
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Filtros */}
-      <SalesFilterBar
-        selectedSafraId={selectedSafraId}
-        setSelectedSafraId={setSelectedSafraId}
-        selectedPropertyId={selectedPropertyId}
-        setSelectedPropertyId={setSelectedPropertyId}
-        uniqueSafraIds={uniqueSafraIds}
-        uniquePropertyIds={uniquePropertyIds}
-        properties={properties}
-        harvests={harvests}
-        onRefresh={refreshData}
-        isRefreshing={isRefreshing}
-        selectedCulture={selectedCulture}
-        setSelectedCulture={setSelectedCulture}
-        cultures={cultures}
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<Sprout className="h-5 w-5" />}
+        title="Vendas de Sementes"
+        description="Gestão das receitas e despesas com vendas de sementes"
+        action={
+          <NewSeedSaleButton
+            cultures={cultures}
+            properties={properties}
+            organizationId={organizationId}
+            harvests={harvests}
+            onSeedSaleCreated={handleAdd}
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+          />
+        }
+        className="mb-4"
       />
+      <CardContent className="space-y-4">
+        {/* Resumo Financeiro */}
+        <FinancialSummary summary={financialSummary} />
 
-      {/* Resumo Financeiro */}
-      <FinancialSummary summary={financialSummary} />
-
-      {/* Tabela de Vendas */}
-      <SeedSalesTable
-        sales={filteredSeedSales}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        cultures={cultures}
-        properties={properties}
-        harvests={harvests}
-      />
+        {/* Tabela de Vendas */}
+        <SeedSalesTable
+          sales={seedSales}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          cultures={cultures}
+          properties={properties}
+          harvests={harvests}
+        />
+      </CardContent>
 
       {/* Diálogo de Edição */}
       {selectedSeedSale && (
@@ -158,7 +163,7 @@ export function SeedSalesList({
               properties={properties}
               organizationId={organizationId}
               seedSale={selectedSeedSale}
-              onSuccess={handleUpdateSuccess}
+              onSuccess={handleUpdate}
               onCancel={() => setIsEditDialogOpen(false)}
             />
           </DialogContent>
@@ -189,6 +194,6 @@ export function SeedSalesList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Card>
   );
 }

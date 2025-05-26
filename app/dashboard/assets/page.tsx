@@ -1,29 +1,76 @@
-import { Metadata } from "next";
-import { UnderConstruction } from "@/components/shared/under-construction";
-import { SiteHeader } from "@/components/dashboard/site-header";
-import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { EquipmentsTab } from "@/components/assets/equipment/equipments-tab";
+import { InvestmentsTab } from "@/components/assets/investments/investments-tab";
+import { AssetSalesTab } from "@/components/assets/asset-sales/asset-sales-tab";
+import { LandPlansTab } from "@/components/assets/land-plans/land-plans-tab";
+import { Wrench, TrendingUp, HandCoins, MapPin } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Patrimonial | SR Consultoria",
-  description: "Gestão patrimonial e controle de ativos",
-};
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function AssetsPage() {
-  // Verificar se o usuário é superadmin
-  await requireSuperAdmin();
-  return (
-    <div className="flex flex-col min-h-screen">
-      <SiteHeader title="Patrimonial" />
-      <div className="p-4 md:p-6 pt-2 space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">Patrimonial</h1>
+  const session = await getSession();
 
-        <UnderConstruction
-          variant="coming-soon"
-          title="Módulo Patrimonial em Desenvolvimento"
-          message="O módulo patrimonial permitirá o gerenciamento completo de todos os seus ativos, incluindo maquinário agrícola, veículos, benfeitorias e investimentos em terra."
-          icon="database"
-        />
-      </div>
+  if (!session?.organization || !session?.organizationId) {
+    redirect("/auth/login");
+  }
+
+  const organizationId = session.organizationId;
+
+  return (
+    <div className="-mt-6 -mx-4 md:-mx-6">
+      <Tabs defaultValue="equipments">
+        <div className="bg-muted/50 border-b">
+          <div className="container mx-auto px-4 md:px-6 py-2">
+            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+              <TabsTrigger
+                value="equipments"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Equipamentos
+              </TabsTrigger>
+              <TabsTrigger
+                value="investments"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Investimentos
+              </TabsTrigger>
+              <TabsTrigger
+                value="asset-sales"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Vendas de Ativos
+              </TabsTrigger>
+              <TabsTrigger
+                value="land-plans"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Aquisição de Áreas
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
+
+        <div className="p-4 md:p-6 pt-4">
+          <TabsContent value="equipments" className="space-y-4">
+            <EquipmentsTab organizationId={organizationId} />
+          </TabsContent>
+
+          <TabsContent value="investments" className="space-y-4">
+            <InvestmentsTab organizationId={organizationId} />
+          </TabsContent>
+
+          <TabsContent value="asset-sales" className="space-y-4">
+            <AssetSalesTab organizationId={organizationId} />
+          </TabsContent>
+
+          <TabsContent value="land-plans" className="space-y-4">
+            <LandPlansTab organizationId={organizationId} />
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 }

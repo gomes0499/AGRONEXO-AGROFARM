@@ -10,16 +10,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, HandCoins } from "lucide-react";
 import { ThirdPartyLoan } from "@/schemas/financial/loans";
 import { LoanForm } from "./loan-form";
 import { LoanRowActions } from "./loan-row-actions";
-import { FinancialHeader } from "../common/financial-header";
-import { FinancialFilterBar } from "../common/financial-filter-bar";
-import { formatCurrency, formatGenericCurrency } from "@/lib/utils/formatters";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { formatCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent } from "@/components/ui/card";
-import { EmptyState } from "@/components/shared/empty-state";
-import { Badge } from "@/components/ui/badge";
 
 interface LoanListingProps {
   organization: { id: string; nome: string };
@@ -28,26 +25,8 @@ interface LoanListingProps {
 
 export function LoanListing({ organization, initialLoans }: LoanListingProps) {
   const [loans, setLoans] = useState(initialLoans);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<ThirdPartyLoan | null>(null);
-
-  // Filtrar empréstimos baseado no termo de busca - simplificado
-  const filteredLoans = loans.filter((loan) => {
-    if (searchTerm === "") return true;
-    
-    const searchTermLower = searchTerm.toLowerCase();
-    
-    return (
-      // Busca pelo nome do beneficiário
-      loan.beneficiario.toLowerCase().includes(searchTermLower) ||
-      // Busca pelo valor
-      loan.valor.toString().includes(searchTerm)
-    );
-  });
-
-  // Calcular total de empréstimos
-  const totalLoans = filteredLoans.reduce((sum, loan) => sum + loan.valor, 0);
 
   // Função de formatação de data removida
 
@@ -71,85 +50,65 @@ export function LoanListing({ organization, initialLoans }: LoanListingProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<HandCoins className="h-5 w-5" />}
         title="Empréstimos a Terceiros"
-        description="Gerencie os empréstimos concedidos a terceiros (onde você é o credor e o terceiro é o beneficiário)"
+        description="Controle de valores emprestados a terceiros"
         action={
           <Button
-            variant="default"
-            size="default"
-            className="gap-1"
             onClick={() => setIsAddModalOpen(true)}
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
           >
-            <PlusCircle className="h-4 w-4" />
+            <PlusCircle className="w-4 h-4 mr-2" />
             Novo Empréstimo
           </Button>
         }
+        className="mb-4"
       />
-
-      <FinancialFilterBar onSearch={setSearchTerm} />
-
-      <Card>
-        <CardContent className="p-0">
-          {loans.length === 0 ? (
-            <EmptyState
-              title="Nenhum empréstimo cadastrado"
-              description="Clique no botão abaixo para adicionar seu primeiro empréstimo a terceiros."
-              action={
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                  Adicionar Empréstimo
-                </Button>
-              }
-            />
-          ) : filteredLoans.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">
-                Nenhum empréstimo encontrado para "{searchTerm}"
-              </p>
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Beneficiário</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+      <CardContent>
+        {loans.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground space-y-4">
+            <div>Nenhum empréstimo cadastrado.</div>
+            <Button 
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Adicionar Primeiro Empréstimo
+            </Button>
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-primary hover:bg-primary">
+                  <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Beneficiário</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loans.map((loan) => (
+                  <TableRow key={loan.id}>
+                    <TableCell>{loan.beneficiario}</TableCell>
+                    <TableCell>
+                      {formatCurrency(loan.valor)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <LoanRowActions
+                        loan={loan}
+                        onEdit={() => setEditingLoan(loan)}
+                        onDelete={() => handleDeleteLoan(loan.id!)}
+                      />
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLoans.map((loan) => (
-                    <TableRow key={loan.id}>
-                      <TableCell>{loan.beneficiario}</TableCell>
-                      <TableCell>
-                        {formatCurrency(loan.valor)}
-                      </TableCell>
-                      <TableCell>
-                        <LoanRowActions
-                          loan={loan}
-                          onEdit={() => setEditingLoan(loan)}
-                          onDelete={() => handleDeleteLoan(loan.id!)}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total em Empréstimos:</span>
-                  <span className="font-bold">
-                    {formatCurrency(totalLoans)}
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
 
       {/* Modal para adicionar novo empréstimo */}
       <LoanForm
@@ -169,6 +128,6 @@ export function LoanListing({ organization, initialLoans }: LoanListingProps) {
           onSubmit={handleUpdateLoan}
         />
       )}
-    </div>
+    </Card>
   );
 }

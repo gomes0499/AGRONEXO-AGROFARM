@@ -18,6 +18,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { ChartLegendMultirow } from "@/components/ui/chart-legend-multirow";
 import {
   Select,
   SelectContent,
@@ -239,7 +240,7 @@ export function ResultadosChart() {
               dot={{ r: 3 }}
               activeDot={{ r: 5 }}
             />
-            <ChartLegend content={<ChartLegendContent />} />
+            <ChartLegend content={<ChartLegendMultirow itemsPerRow={3} />} />
           </LineChart>
         </ChartContainer>
       </CardContent>

@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Pencil, Save } from "lucide-react";
+import { Loader2, Pencil, Save, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { updateCommodityPrice } from "@/lib/actions/indicator-actions/commodity-price-actions";
 import { 
@@ -29,24 +29,32 @@ import {
   commodityDisplayNames,
   commodityUnits
 } from "@/schemas/indicators/prices";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type CommodityPriceTabProps = {
   commodityPrices: CommodityPriceType[] | undefined;
 };
 
 export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabProps) {
+  
   // If no commodity prices exist yet, show a message with reload button
   if (commodityPrices.length === 0) {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Preços das Commodities</CardTitle>
-          <CardDescription>
-            Gerencie os preços atuais e projeções para as commodities utilizadas nas análises e projeções financeiras.
-          </CardDescription>
+      <Card className="w-full shadow-sm border-muted/80">
+        <CardHeader className="bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full p-2 bg-white/20">
+              <DollarSign className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-white">Preços das Commodities</CardTitle>
+              <CardDescription className="text-white/80">
+                Gerencie os preços atuais e projeções para as commodities
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        
+        <CardContent className="mt-4">
           <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4">
             <p className="text-amber-700 mb-4">
               Não encontramos preços de commodities configurados. Se você acabou de criar a tabela, tente recarregar a página para inicializar os valores padrão.
@@ -70,32 +78,6 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
     Record<string, boolean>
   >({});
 
-  // Group commodities by type
-  const commodityGroups: Record<string, CommodityTypeEnum[]> = {
-    // Usando valores do Enum corretamente
-    grains: [
-      "SOJA_SEQUEIRO", 
-      "SOJA_IRRIGADO", 
-      "MILHO_SAFRINHA", 
-      "ALGODAO_CAPULHO", 
-      "ARROZ_IRRIGADO", 
-      "SORGO", 
-      "FEIJAO"
-    ],
-    dolar: [
-      "DOLAR_ALGODAO", 
-      "DOLAR_SOJA", 
-      "DOLAR_FECHAMENTO"
-    ]
-  };
-
-  // Filter commodities by group
-  const filterCommoditiesByGroup = (group: 'grains' | 'dolar') => {
-    return commodityPrices.filter(price => 
-      commodityGroups[group].includes(price.commodityType as CommodityTypeEnum)
-    );
-  };
-
   // Initialize the editing state for a price entry
   const initPriceEditState = (
     commodityPrice: CommodityPriceType
@@ -105,11 +87,17 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
         ...prev,
         [commodityPrice.id]: {
           currentPrice: commodityPrice.currentPrice.toString(),
+          price2020: commodityPrice.price2020?.toString() || "0",
+          price2021: commodityPrice.price2021?.toString() || "0",
+          price2022: commodityPrice.price2022?.toString() || "0",
+          price2023: commodityPrice.price2023?.toString() || "0",
+          price2024: commodityPrice.price2024?.toString() || "0",
           price2025: commodityPrice.price2025.toString(),
           price2026: commodityPrice.price2026.toString(),
           price2027: commodityPrice.price2027.toString(),
           price2028: commodityPrice.price2028.toString(),
           price2029: commodityPrice.price2029.toString(),
+          price2030: commodityPrice.price2030?.toString() || "0",
         },
       }));
     }
@@ -163,11 +151,17 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
         organizacaoId: commodityPrice.organizacaoId, // Importante: incluir o ID da organização
         commodityType: commodityPrice.commodityType, // Garantir que o tipo de commodity seja enviado
         currentPrice: safeParseFloat(editValues.currentPrice, commodityPrice.currentPrice),
+        price2020: safeParseFloat(editValues.price2020, commodityPrice.price2020 || 0),
+        price2021: safeParseFloat(editValues.price2021, commodityPrice.price2021 || 0),
+        price2022: safeParseFloat(editValues.price2022, commodityPrice.price2022 || 0),
+        price2023: safeParseFloat(editValues.price2023, commodityPrice.price2023 || 0),
+        price2024: safeParseFloat(editValues.price2024, commodityPrice.price2024 || 0),
         price2025: safeParseFloat(editValues.price2025, commodityPrice.price2025),
         price2026: safeParseFloat(editValues.price2026, commodityPrice.price2026),
         price2027: safeParseFloat(editValues.price2027, commodityPrice.price2027),
         price2028: safeParseFloat(editValues.price2028, commodityPrice.price2028),
         price2029: safeParseFloat(editValues.price2029, commodityPrice.price2029),
+        price2030: safeParseFloat(editValues.price2030, commodityPrice.price2030 || 0),
       };
       
       // Log detalhado para verificar qual tenant está sendo atualizado
@@ -192,19 +186,31 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
       if (result.data) {
         // Atualizar a exibição local com os dados do servidor
         commodityPrice.currentPrice = result.data.currentPrice;
+        commodityPrice.price2020 = result.data.price2020;
+        commodityPrice.price2021 = result.data.price2021;
+        commodityPrice.price2022 = result.data.price2022;
+        commodityPrice.price2023 = result.data.price2023;
+        commodityPrice.price2024 = result.data.price2024;
         commodityPrice.price2025 = result.data.price2025;
         commodityPrice.price2026 = result.data.price2026;
         commodityPrice.price2027 = result.data.price2027;
         commodityPrice.price2028 = result.data.price2028;
         commodityPrice.price2029 = result.data.price2029;
+        commodityPrice.price2030 = result.data.price2030;
       } else {
         // Caso o servidor não retorne os dados atualizados, usamos os valores enviados
         commodityPrice.currentPrice = updateData.currentPrice || commodityPrice.currentPrice;
+        commodityPrice.price2020 = updateData.price2020 || commodityPrice.price2020;
+        commodityPrice.price2021 = updateData.price2021 || commodityPrice.price2021;
+        commodityPrice.price2022 = updateData.price2022 || commodityPrice.price2022;
+        commodityPrice.price2023 = updateData.price2023 || commodityPrice.price2023;
+        commodityPrice.price2024 = updateData.price2024 || commodityPrice.price2024;
         commodityPrice.price2025 = updateData.price2025 || commodityPrice.price2025;
         commodityPrice.price2026 = updateData.price2026 || commodityPrice.price2026;
         commodityPrice.price2027 = updateData.price2027 || commodityPrice.price2027;
         commodityPrice.price2028 = updateData.price2028 || commodityPrice.price2028;
         commodityPrice.price2029 = updateData.price2029 || commodityPrice.price2029;
+        commodityPrice.price2030 = updateData.price2030 || commodityPrice.price2030;
       }
 
       toast.success("Preço atualizado com sucesso!");
@@ -236,16 +242,22 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
     return (
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead className="w-[200px]">Commodity</TableHead>
-            <TableHead>Unidade</TableHead>
-            <TableHead>Preço Atual</TableHead>
-            <TableHead>2025</TableHead>
-            <TableHead>2026</TableHead>
-            <TableHead>2027</TableHead>
-            <TableHead>2028</TableHead>
-            <TableHead>2029</TableHead>
-            <TableHead className="w-[60px]">Ações</TableHead>
+          <TableRow className="bg-primary hover:bg-primary">
+            <TableHead className="font-semibold text-primary-foreground rounded-tl-md w-[200px]">Commodity</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">Unidade</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">Atual</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2020</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2021</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2022</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2023</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2024</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2025</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2026</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2027</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2028</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2029</TableHead>
+            <TableHead className="font-semibold text-primary-foreground">2030</TableHead>
+            <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[60px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -260,11 +272,17 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
                 </TableCell>
                 <TableCell>{commodityUnits[commodityPrice.commodityType]}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.currentPrice)}</TableCell>
+                <TableCell>{commodityPrice.price2020 !== undefined && commodityPrice.price2020 !== null ? formatNumber(commodityPrice.price2020) : "-"}</TableCell>
+                <TableCell>{commodityPrice.price2021 !== undefined && commodityPrice.price2021 !== null ? formatNumber(commodityPrice.price2021) : "-"}</TableCell>
+                <TableCell>{commodityPrice.price2022 !== undefined && commodityPrice.price2022 !== null ? formatNumber(commodityPrice.price2022) : "-"}</TableCell>
+                <TableCell>{commodityPrice.price2023 !== undefined && commodityPrice.price2023 !== null ? formatNumber(commodityPrice.price2023) : "-"}</TableCell>
+                <TableCell>{commodityPrice.price2024 !== undefined && commodityPrice.price2024 !== null ? formatNumber(commodityPrice.price2024) : "-"}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.price2025)}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.price2026)}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.price2027)}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.price2028)}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.price2029)}</TableCell>
+                <TableCell>{commodityPrice.price2030 !== undefined && commodityPrice.price2030 !== null ? formatNumber(commodityPrice.price2030) : "-"}</TableCell>
                 <TableCell>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -277,7 +295,7 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent align="end" className="w-auto p-4">
-                      <div className="grid gap-4 w-[500px]">
+                      <div className="grid gap-4 w-[800px] max-h-[500px] overflow-y-auto">
                         <div className="space-y-2">
                           <h4 className="font-medium leading-none">
                             Editar Preços - {commodityDisplayNames[commodityPrice.commodityType]}
@@ -286,10 +304,10 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
                             Atualize os preços projetados para os anos seguintes.
                           </p>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-3">
                           <div className="space-y-2">
                             <Label htmlFor={`${commodityPrice.id}-currentPrice`}>
-                              Preço Atual ({commodityUnits[commodityPrice.commodityType]})
+                              Atual ({commodityUnits[commodityPrice.commodityType]})
                             </Label>
                             <Input
                               id={`${commodityPrice.id}-currentPrice`}
@@ -302,6 +320,111 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
                                 handleInputChange(
                                   commodityPrice.id,
                                   "currentPrice",
+                                  e.target.value
+                                )
+                              }
+                              step="0.01"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`${commodityPrice.id}-price2020`}>
+                              2020
+                            </Label>
+                            <Input
+                              id={`${commodityPrice.id}-price2020`}
+                              type="number"
+                              value={
+                                editingState[commodityPrice.id]?.price2020 ||
+                                commodityPrice.price2020?.toString() || "0"
+                              }
+                              onChange={(e) =>
+                                handleInputChange(
+                                  commodityPrice.id,
+                                  "price2020",
+                                  e.target.value
+                                )
+                              }
+                              step="0.01"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`${commodityPrice.id}-price2021`}>
+                              2021
+                            </Label>
+                            <Input
+                              id={`${commodityPrice.id}-price2021`}
+                              type="number"
+                              value={
+                                editingState[commodityPrice.id]?.price2021 ||
+                                commodityPrice.price2021?.toString() || "0"
+                              }
+                              onChange={(e) =>
+                                handleInputChange(
+                                  commodityPrice.id,
+                                  "price2021",
+                                  e.target.value
+                                )
+                              }
+                              step="0.01"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`${commodityPrice.id}-price2022`}>
+                              2022
+                            </Label>
+                            <Input
+                              id={`${commodityPrice.id}-price2022`}
+                              type="number"
+                              value={
+                                editingState[commodityPrice.id]?.price2022 ||
+                                commodityPrice.price2022?.toString() || "0"
+                              }
+                              onChange={(e) =>
+                                handleInputChange(
+                                  commodityPrice.id,
+                                  "price2022",
+                                  e.target.value
+                                )
+                              }
+                              step="0.01"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`${commodityPrice.id}-price2023`}>
+                              2023
+                            </Label>
+                            <Input
+                              id={`${commodityPrice.id}-price2023`}
+                              type="number"
+                              value={
+                                editingState[commodityPrice.id]?.price2023 ||
+                                commodityPrice.price2023?.toString() || "0"
+                              }
+                              onChange={(e) =>
+                                handleInputChange(
+                                  commodityPrice.id,
+                                  "price2023",
+                                  e.target.value
+                                )
+                              }
+                              step="0.01"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`${commodityPrice.id}-price2024`}>
+                              2024
+                            </Label>
+                            <Input
+                              id={`${commodityPrice.id}-price2024`}
+                              type="number"
+                              value={
+                                editingState[commodityPrice.id]?.price2024 ||
+                                commodityPrice.price2024?.toString() || "0"
+                              }
+                              onChange={(e) =>
+                                handleInputChange(
+                                  commodityPrice.id,
+                                  "price2024",
                                   e.target.value
                                 )
                               }
@@ -413,6 +536,27 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
                               step="0.01"
                             />
                           </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`${commodityPrice.id}-price2030`}>
+                              2030
+                            </Label>
+                            <Input
+                              id={`${commodityPrice.id}-price2030`}
+                              type="number"
+                              value={
+                                editingState[commodityPrice.id]?.price2030 ||
+                                commodityPrice.price2030?.toString() || "0"
+                              }
+                              onChange={(e) =>
+                                handleInputChange(
+                                  commodityPrice.id,
+                                  "price2030",
+                                  e.target.value
+                                )
+                              }
+                              step="0.01"
+                            />
+                          </div>
                         </div>
                         <Button
                           onClick={() => handleSave(commodityPrice)}
@@ -444,14 +588,22 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Preços das Commodities</CardTitle>
-        <CardDescription>
-          Gerencie os preços atuais e projeções para as commodities utilizadas nas análises e projeções financeiras.
-        </CardDescription>
+    <Card className="w-full shadow-sm border-muted/80">
+      <CardHeader className="bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="rounded-full p-2 bg-white/20">
+            <DollarSign className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <CardTitle className="text-white">Preços das Commodities</CardTitle>
+            <CardDescription className="text-white/80">
+              Gerencie os preços atuais e projeções para as commodities
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
+      
+      <CardContent className="mt-4">
         {commodityPrices.length > 0 && commodityPrices[0].organizacaoId === "1a32121d-b0ff-49b3-8066-4634f1053ca0" && window.location.href.includes("organizacaoId=131db844") && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
             <div className="flex">
@@ -490,22 +642,11 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
             </div>
           </div>
         )}
-        <Tabs defaultValue="grains" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="grains">Grãos e Fibras</TabsTrigger>
-            <TabsTrigger value="dolar">Dólar</TabsTrigger>
-          </TabsList>
-          <TabsContent value="grains" className="w-full">
-            <div className="rounded-md border">
-              {renderPriceTable(filterCommoditiesByGroup('grains'))}
-            </div>
-          </TabsContent>
-          <TabsContent value="dolar" className="w-full">
-            <div className="rounded-md border">
-              {renderPriceTable(filterCommoditiesByGroup('dolar'))}
-            </div>
-          </TabsContent>
-        </Tabs>
+        <div className="rounded-md border overflow-x-auto">
+          <div className="min-w-[1200px]">
+            {renderPriceTable(commodityPrices)}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

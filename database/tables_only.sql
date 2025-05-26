@@ -550,6 +550,7 @@ CREATE TABLE public.emprestimos_terceiros (
 -- ==========================================
 
 -- Tabela de máquinas e equipamentos
+
 CREATE TABLE public.maquinas_equipamentos (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   organizacao_id UUID NOT NULL REFERENCES public.organizacoes(id) ON DELETE CASCADE,
@@ -618,6 +619,21 @@ CREATE TABLE public.planos_aquisicao_terras (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE public.planos_vendas_ativos (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organizacao_id UUID NOT NULL REFERENCES public.organizacoes(id) ON DELETE CASCADE,
+  categoria VARCHAR(100) NOT NULL,
+  ano INT NOT NULL,
+  quantidade INT NOT NULL,
+  valor_unitario DECIMAL(15, 2) NOT NULL,
+  valor_total DECIMAL(15, 2) NOT NULL,
+  data_venda DATE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
 
 -- ==========================================
 -- Módulo de Projeções

@@ -22,8 +22,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProfileImageUpload } from "./profile-image-upload";
@@ -96,13 +94,6 @@ export function ProfileForm() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Perfil</h3>
-        <p className="text-sm text-muted-foreground">
-          Atualize suas informações de perfil e contato.
-        </p>
-      </div>
-
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -120,17 +111,17 @@ export function ProfileForm() {
         </Alert>
       )}
 
-      <Separator />
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Avatar Upload */}
-          <div className="space-y-3 justify-start">
-            <Label>Foto de Perfil</Label>
-            <ProfileImageUpload 
-              currentImageUrl={form.watch("image")} 
-              onImageChange={handleImageChange}
-            />
+          <div className="flex items-start space-x-4">
+            <div className="space-y-3">
+              <Label>Foto de Perfil</Label>
+              <ProfileImageUpload 
+                currentImageUrl={form.watch("image")} 
+                onImageChange={handleImageChange}
+              />
+            </div>
           </div>
 
           <FormField

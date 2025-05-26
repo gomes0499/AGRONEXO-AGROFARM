@@ -76,12 +76,18 @@ export async function createCommodityPrice(
       organizacaoId: newCommodityPrice.organizacao_id,
       commodityType: newCommodityPrice.commodity_type as CommodityTypeEnum,
       unit: newCommodityPrice.unit,
-      currentPrice: newCommodityPrice.current_price,
-      price2025: newCommodityPrice.price_2025,
-      price2026: newCommodityPrice.price_2026,
-      price2027: newCommodityPrice.price_2027,
-      price2028: newCommodityPrice.price_2028,
-      price2029: newCommodityPrice.price_2029,
+      currentPrice: newCommodityPrice.current_price || 0,
+      price2020: newCommodityPrice.price_2020 !== null && newCommodityPrice.price_2020 !== undefined ? Number(newCommodityPrice.price_2020) : undefined,
+      price2021: newCommodityPrice.price_2021 !== null && newCommodityPrice.price_2021 !== undefined ? Number(newCommodityPrice.price_2021) : undefined,
+      price2022: newCommodityPrice.price_2022 !== null && newCommodityPrice.price_2022 !== undefined ? Number(newCommodityPrice.price_2022) : undefined,
+      price2023: newCommodityPrice.price_2023 !== null && newCommodityPrice.price_2023 !== undefined ? Number(newCommodityPrice.price_2023) : undefined,
+      price2024: newCommodityPrice.price_2024 !== null && newCommodityPrice.price_2024 !== undefined ? Number(newCommodityPrice.price_2024) : undefined,
+      price2025: newCommodityPrice.price_2025 || 0,
+      price2026: newCommodityPrice.price_2026 || 0,
+      price2027: newCommodityPrice.price_2027 || 0,
+      price2028: newCommodityPrice.price_2028 || 0,
+      price2029: newCommodityPrice.price_2029 || 0,
+      price2030: newCommodityPrice.price_2030 !== null && newCommodityPrice.price_2030 !== undefined ? Number(newCommodityPrice.price_2030) : undefined,
       createdAt: new Date(newCommodityPrice.created_at),
       updatedAt: new Date(newCommodityPrice.updated_at),
     };
@@ -143,12 +149,18 @@ export async function getCommodityPriceById(
       organizacaoId: data.organizacao_id,
       commodityType: data.commodity_type as CommodityTypeEnum,
       unit: data.unit,
-      currentPrice: data.current_price,
-      price2025: data.price_2025,
-      price2026: data.price_2026,
-      price2027: data.price_2027,
-      price2028: data.price_2028,
-      price2029: data.price_2029,
+      currentPrice: data.current_price || 0,
+      price2020: data.price_2020 !== null && data.price_2020 !== undefined ? Number(data.price_2020) : undefined,
+      price2021: data.price_2021 !== null && data.price_2021 !== undefined ? Number(data.price_2021) : undefined,
+      price2022: data.price_2022 !== null && data.price_2022 !== undefined ? Number(data.price_2022) : undefined,
+      price2023: data.price_2023 !== null && data.price_2023 !== undefined ? Number(data.price_2023) : undefined,
+      price2024: data.price_2024 !== null && data.price_2024 !== undefined ? Number(data.price_2024) : undefined,
+      price2025: data.price_2025 || 0,
+      price2026: data.price_2026 || 0,
+      price2027: data.price_2027 || 0,
+      price2028: data.price_2028 || 0,
+      price2029: data.price_2029 || 0,
+      price2030: data.price_2030 !== null && data.price_2030 !== undefined ? Number(data.price_2030) : undefined,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     };
@@ -206,6 +218,26 @@ export async function updateCommodityPrice(
       dbUpdateData.current_price = updateData.currentPrice;
     }
     
+    if (updateData.price2020 !== undefined && !isNaN(updateData.price2020)) {
+      dbUpdateData.price_2020 = updateData.price2020;
+    }
+    
+    if (updateData.price2021 !== undefined && !isNaN(updateData.price2021)) {
+      dbUpdateData.price_2021 = updateData.price2021;
+    }
+    
+    if (updateData.price2022 !== undefined && !isNaN(updateData.price2022)) {
+      dbUpdateData.price_2022 = updateData.price2022;
+    }
+    
+    if (updateData.price2023 !== undefined && !isNaN(updateData.price2023)) {
+      dbUpdateData.price_2023 = updateData.price2023;
+    }
+    
+    if (updateData.price2024 !== undefined && !isNaN(updateData.price2024)) {
+      dbUpdateData.price_2024 = updateData.price2024;
+    }
+    
     if (updateData.price2025 !== undefined && !isNaN(updateData.price2025)) {
       dbUpdateData.price_2025 = updateData.price2025;
     }
@@ -224,6 +256,10 @@ export async function updateCommodityPrice(
     
     if (updateData.price2029 !== undefined && !isNaN(updateData.price2029)) {
       dbUpdateData.price_2029 = updateData.price2029;
+    }
+    
+    if (updateData.price2030 !== undefined && !isNaN(updateData.price2030)) {
+      dbUpdateData.price_2030 = updateData.price2030;
     }
     
     // Add the updated timestamp
@@ -258,12 +294,18 @@ export async function updateCommodityPrice(
       organizacaoId: updatedCommodityPrice.organizacao_id,
       commodityType: updatedCommodityPrice.commodity_type as CommodityTypeEnum,
       unit: updatedCommodityPrice.unit,
-      currentPrice: updatedCommodityPrice.current_price,
-      price2025: updatedCommodityPrice.price_2025,
-      price2026: updatedCommodityPrice.price_2026,
-      price2027: updatedCommodityPrice.price_2027,
-      price2028: updatedCommodityPrice.price_2028,
-      price2029: updatedCommodityPrice.price_2029,
+      currentPrice: updatedCommodityPrice.current_price || 0,
+      price2020: updatedCommodityPrice.price_2020 !== null && updatedCommodityPrice.price_2020 !== undefined ? Number(updatedCommodityPrice.price_2020) : undefined,
+      price2021: updatedCommodityPrice.price_2021 !== null && updatedCommodityPrice.price_2021 !== undefined ? Number(updatedCommodityPrice.price_2021) : undefined,
+      price2022: updatedCommodityPrice.price_2022 !== null && updatedCommodityPrice.price_2022 !== undefined ? Number(updatedCommodityPrice.price_2022) : undefined,
+      price2023: updatedCommodityPrice.price_2023 !== null && updatedCommodityPrice.price_2023 !== undefined ? Number(updatedCommodityPrice.price_2023) : undefined,
+      price2024: updatedCommodityPrice.price_2024 !== null && updatedCommodityPrice.price_2024 !== undefined ? Number(updatedCommodityPrice.price_2024) : undefined,
+      price2025: updatedCommodityPrice.price_2025 || 0,
+      price2026: updatedCommodityPrice.price_2026 || 0,
+      price2027: updatedCommodityPrice.price_2027 || 0,
+      price2028: updatedCommodityPrice.price_2028 || 0,
+      price2029: updatedCommodityPrice.price_2029 || 0,
+      price2030: updatedCommodityPrice.price_2030 !== null && updatedCommodityPrice.price_2030 !== undefined ? Number(updatedCommodityPrice.price_2030) : undefined,
       createdAt: new Date(updatedCommodityPrice.created_at),
       updatedAt: new Date(updatedCommodityPrice.updated_at),
     };
@@ -562,12 +604,18 @@ export async function getCommodityPricesByOrganizationId(
       organizacaoId: item.organizacao_id,
       commodityType: item.commodity_type as CommodityTypeEnum,
       unit: item.unit,
-      currentPrice: item.current_price,
-      price2025: item.price_2025,
-      price2026: item.price_2026,
-      price2027: item.price_2027,
-      price2028: item.price_2028,
-      price2029: item.price_2029,
+      currentPrice: item.current_price || 0,
+      price2020: item.price_2020 !== null && item.price_2020 !== undefined ? Number(item.price_2020) : undefined,
+      price2021: item.price_2021 !== null && item.price_2021 !== undefined ? Number(item.price_2021) : undefined,
+      price2022: item.price_2022 !== null && item.price_2022 !== undefined ? Number(item.price_2022) : undefined,
+      price2023: item.price_2023 !== null && item.price_2023 !== undefined ? Number(item.price_2023) : undefined,
+      price2024: item.price_2024 !== null && item.price_2024 !== undefined ? Number(item.price_2024) : undefined,
+      price2025: item.price_2025 || 0,
+      price2026: item.price_2026 || 0,
+      price2027: item.price_2027 || 0,
+      price2028: item.price_2028 || 0,
+      price2029: item.price_2029 || 0,
+      price2030: item.price_2030 !== null && item.price_2030 !== undefined ? Number(item.price_2030) : undefined,
       createdAt: new Date(item.created_at),
       updatedAt: new Date(item.updated_at),
     }));
@@ -622,12 +670,18 @@ export async function getCommodityPriceByType(
       organizacaoId: data.organizacao_id,
       commodityType: data.commodity_type as CommodityTypeEnum,
       unit: data.unit,
-      currentPrice: data.current_price,
-      price2025: data.price_2025,
-      price2026: data.price_2026,
-      price2027: data.price_2027,
-      price2028: data.price_2028,
-      price2029: data.price_2029,
+      currentPrice: data.current_price || 0,
+      price2020: data.price_2020 !== null && data.price_2020 !== undefined ? Number(data.price_2020) : undefined,
+      price2021: data.price_2021 !== null && data.price_2021 !== undefined ? Number(data.price_2021) : undefined,
+      price2022: data.price_2022 !== null && data.price_2022 !== undefined ? Number(data.price_2022) : undefined,
+      price2023: data.price_2023 !== null && data.price_2023 !== undefined ? Number(data.price_2023) : undefined,
+      price2024: data.price_2024 !== null && data.price_2024 !== undefined ? Number(data.price_2024) : undefined,
+      price2025: data.price_2025 || 0,
+      price2026: data.price_2026 || 0,
+      price2027: data.price_2027 || 0,
+      price2028: data.price_2028 || 0,
+      price2029: data.price_2029 || 0,
+      price2030: data.price_2030 !== null && data.price_2030 !== undefined ? Number(data.price_2030) : undefined,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     };
@@ -933,6 +987,26 @@ export async function updateCommodityPricesBatch(
         dbUpdateData.current_price = updateData.currentPrice;
       }
       
+      if (updateData.price2020 !== undefined) {
+        dbUpdateData.price_2020 = updateData.price2020;
+      }
+      
+      if (updateData.price2021 !== undefined) {
+        dbUpdateData.price_2021 = updateData.price2021;
+      }
+      
+      if (updateData.price2022 !== undefined) {
+        dbUpdateData.price_2022 = updateData.price2022;
+      }
+      
+      if (updateData.price2023 !== undefined) {
+        dbUpdateData.price_2023 = updateData.price2023;
+      }
+      
+      if (updateData.price2024 !== undefined) {
+        dbUpdateData.price_2024 = updateData.price2024;
+      }
+      
       if (updateData.price2025 !== undefined) {
         dbUpdateData.price_2025 = updateData.price2025;
       }
@@ -951,6 +1025,10 @@ export async function updateCommodityPricesBatch(
       
       if (updateData.price2029 !== undefined) {
         dbUpdateData.price_2029 = updateData.price2029;
+      }
+      
+      if (updateData.price2030 !== undefined) {
+        dbUpdateData.price_2030 = updateData.price2030;
       }
       
       // Add the updated timestamp

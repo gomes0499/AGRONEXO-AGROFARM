@@ -1,6 +1,5 @@
-import { Metadata } from "next";
-import { SiteHeader } from "@/components/dashboard/site-header";
-import { IndicatorDashboard } from "@/components/indicators/indicator-dashboard";
+import { IndicatorThresholdViewer } from "@/components/indicators/indicator-threshold-viewer";
+import { CommodityPriceTab } from "@/components/indicators/commodity-price-tab";
 import { getIndicatorConfigs } from "@/lib/actions/indicator-actions";
 import { defaultIndicatorConfigs } from "@/schemas/indicators";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -12,12 +11,7 @@ import { getCommodityPricesByOrganizationId } from "@/lib/actions/indicator-acti
 import { getSafraCommodityPrices } from "@/lib/actions/indicator-actions/tenant-commodity-actions";
 import type { CommodityPriceType } from "@/schemas/indicators/prices";
 import { CommodityInitializer } from "@/components/indicators/commodity-initializer";
-
-export const metadata: Metadata = {
-  title: "Indicadores  | SR Consultoria",
-  description:
-    "Análise e configuração de indicadores financeiros para monitoramento da saúde financeira da operação",
-};
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -70,12 +64,12 @@ export default async function IndicatorsPage() {
     // Apenas buscar preços de commodities existentes
     try {
       // NÃO inicializamos mais automaticamente - os dados devem ser criados pelo script SQL
-      
+
       // Usar a função específica para GRUPO SAFRA BOA
       try {
         // Chamada à função especializada que sempre retorna os dados corretos
         const safraPrices = await getSafraCommodityPrices();
-        
+
         if (safraPrices.length > 0) {
           // Usar os preços retornados
           commodityPrices = safraPrices;
@@ -112,36 +106,68 @@ export default async function IndicatorsPage() {
     (value) => value !== undefined
   );
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      <SiteHeader title="Indicadores" />
-      <div className="p-4 md:p-6 pt-2">
-        <CommodityInitializer 
-          organizationId={organizationId}
-          commodityCount={commodityPrices.length}
-        />
+  // Componente de Limiares
+  const ThresholdsComponent = (
+    <IndicatorThresholdViewer indicatorConfigs={indicatorConfigs} />
+  );
 
-        {hasData ? (
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center h-40">
-                <Loader2 className="h-8 w-8 animate-spin" />
-              </div>
-            }
-          >
-            <IndicatorDashboard
-              indicatorData={indicatorData}
-              indicatorConfigs={indicatorConfigs}
-              commodityPrices={commodityPrices}
+  // Componente de Preços
+  const PricesComponent = (
+    <CommodityPriceTab commodityPrices={commodityPrices} />
+  );
+
+  return (
+    <div className="-mt-6 -mx-4 md:-mx-6">
+      <CommodityInitializer
+        organizationId={organizationId}
+        commodityCount={commodityPrices.length}
+      />
+
+      <Tabs defaultValue="thresholds">
+        <div className="bg-muted/50 border-b">
+          <div className="container mx-auto px-4 md:px-6 py-2">
+            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+              <TabsTrigger
+                value="thresholds"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Limiares
+              </TabsTrigger>
+              <TabsTrigger
+                value="prices"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Preços
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
+
+        <div className="p-4 md:p-6 pt-4">
+          {hasData ? (
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-40">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              }
+            >
+              <TabsContent value="thresholds" className="space-y-4">
+                {ThresholdsComponent}
+              </TabsContent>
+
+              <TabsContent value="prices" className="space-y-4">
+                {PricesComponent}
+              </TabsContent>
+            </Suspense>
+          ) : (
+            <EmptyState
+              title="Sem dados de indicadores"
+              description="Não há dados de indicadores financeiros disponíveis no momento."
             />
-          </Suspense>
-        ) : (
-          <EmptyState
-            title="Sem dados de indicadores"
-            description="Não há dados de indicadores financeiros disponíveis no momento."
-          />
-        )}
-      </div>
+          )}
+        </div>
+      </Tabs>
     </div>
   );
 }

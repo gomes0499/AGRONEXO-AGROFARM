@@ -14,12 +14,15 @@ import { PlusCircle } from "lucide-react";
 import { LiquidityFactor } from "@/schemas/financial/liquidity";
 import { LiquidityFactorForm } from "./liquidity-factor-form";
 import { LiquidityFactorRowActions } from "./liquidity-factor-row-actions";
-import { FinancialHeader } from "../common/financial-header";
-import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { FinancialFilterBar } from "../common/financial-filter-bar";
+import { FinancialPagination } from "../common/financial-pagination";
+import { useFinancialFilters } from "@/hooks/use-financial-filters";
+import { Droplets } from "lucide-react";
 
 interface LiquidityFactorListingProps {
   organization: { id: string; nome: string };
@@ -33,50 +36,31 @@ export function LiquidityFactorListing({
   const [liquidityFactors, setLiquidityFactors] = useState(
     initialLiquidityFactors
   );
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingFactor, setEditingFactor] = useState<LiquidityFactor | null>(
     null
   );
 
-  // Filtros para o tipo de fator de liquidez
-  const [filters, setFilters] = useState<{
-    [key: string]: {
-      label: string;
-      options: Array<{ value: string; label: string }>;
-      value: string | null;
-    };
-  }>({
-    tipo: {
-      label: "Tipo",
-      options: [
-        { value: "CAIXA", label: "CAIXA" },
-        { value: "SALDO_CC", label: "SALDO C/C" },
-        { value: "APLICACOES", label: "APLICAÇÕES" },
-      ],
-      value: null,
-    },
+  const {
+    filteredItems: filteredLiquidityFactors,
+    paginatedItems: paginatedData,
+    searchTerm,
+    filters,
+    filterOptions,
+    handleSearchChange,
+    handleFilterChange,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange,
+    totalItems: totalLiquidityFactors,
+    filteredCount
+  } = useFinancialFilters(liquidityFactors, {
+    searchFields: ['tipo', 'banco'],
+    categoriaField: 'tipo'
   });
 
-  // Filtrar fatores de liquidez baseado no termo de busca e filtros
-  const filteredFactors = liquidityFactors.filter((factor) => {
-    // Verificar filtro de tipo
-    if (filters.tipo.value && factor.tipo !== filters.tipo.value) {
-      return false;
-    }
-
-    // Verificar termo de busca (no tipo do fator ou nome do banco)
-    return (
-      factor.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (factor.banco && factor.banco.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  });
-
-  // Calcular o total de liquidez
-  const totalLiquidity = filteredFactors.reduce(
-    (sum, factor) => sum + factor.valor,
-    0
-  );
 
   // Traduzir o tipo de fator para exibição
   const getFactorTypeLabel = (type: string) => {
@@ -109,42 +93,42 @@ export function LiquidityFactorListing({
     setLiquidityFactors((prev) => prev.filter((factor) => factor.id !== id));
   };
 
-  // Atualizar filtros
-  const handleFilterChange = (key: string, value: string | null) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        value,
-      },
-    }));
-  };
-
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<Droplets className="h-5 w-5" />}
         title="Fatores de Liquidez"
-        description="Gerencie recursos financeiros disponíveis como caixa, bancos e investimentos"
+        description="Gestão dos recursos disponíveis em caixa, bancos e aplicações"
         action={
           <Button
-            variant="default"
+            variant="outline"
             size="default"
-            className="gap-1"
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
             onClick={() => setIsAddModalOpen(true)}
           >
             <PlusCircle className="h-4 w-4" />
             Novo Fator
           </Button>
         }
+        className="mb-4"
       />
+      <CardContent className="space-y-4">
+        <FinancialFilterBar
+          searchTerm={searchTerm}
+          onSearchChange={handleSearchChange}
+          filters={filters}
+          onFiltersChange={handleFilterChange}
+          filterOptions={filterOptions}
+          searchPlaceholder="Buscar por tipo ou banco..."
+        />
+        
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {paginatedData.length} de {totalLiquidityFactors} fatores de liquidez
+          </p>
+        </div>
 
-      <FinancialFilterBar
-        onSearch={setSearchTerm}
-        filters={filters}
-        onFilterChange={handleFilterChange}
-      />
-
-      <Card>
+        <Card>
         <CardContent className="p-0">
           {liquidityFactors.length === 0 ? (
             <EmptyState
@@ -156,25 +140,25 @@ export function LiquidityFactorListing({
                 </Button>
               }
             />
-          ) : filteredFactors.length === 0 ? (
+          ) : paginatedData.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-muted-foreground">
-                Nenhum fator de liquidez encontrado com os filtros atuais
+                Nenhum fator de liquidez encontrado para os filtros aplicados
               </p>
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Banco</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Tipo</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Banco</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground rounded-tr-md w-24">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredFactors.map((factor) => (
+                  {paginatedData.map((factor) => (
                     <TableRow key={factor.id}>
                       <TableCell>
                         <Badge variant="outline">
@@ -194,20 +178,20 @@ export function LiquidityFactorListing({
                   ))}
                 </TableBody>
               </Table>
-
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total de Liquidez:</span>
-                  <span className="font-bold">
-                    {formatCurrency(totalLiquidity)}
-                  </span>
-                </div>
-              </div>
+              
+              <FinancialPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                totalItems={totalLiquidityFactors}
+              />
             </>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </CardContent>
 
       {/* Modal para adicionar novo fator */}
       <LiquidityFactorForm
@@ -227,6 +211,6 @@ export function LiquidityFactorListing({
           onSubmit={handleUpdateFactor}
         />
       )}
-    </div>
+    </Card>
   );
 }

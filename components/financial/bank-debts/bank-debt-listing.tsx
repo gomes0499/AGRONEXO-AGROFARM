@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BankDebt } from "@/schemas/financial";
 import { Button } from "@/components/ui/button";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, Building2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,8 +19,10 @@ import { BankDebtRowActions } from "./bank-debt-row-actions";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
-import { FinancialHeader } from "../common/financial-header";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
+import { FinancialPagination } from "../common/financial-pagination";
+import { useFinancialFilters } from "@/hooks/use-financial-filters";
 
 interface BankDebtListingProps {
   organization: { id: string; nome: string };
@@ -54,16 +56,29 @@ export function BankDebtListing({
       };
     });
   });
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<BankDebt | null>(null);
 
-  // Filtrar dívidas baseado no termo de busca
-  const filteredDebts = bankDebts.filter((debt) => {
-    return (
-      debt.instituicao_bancaria.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      debt.modalidade.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const {
+    filteredItems: filteredBankDebts,
+    paginatedItems: paginatedData,
+    searchTerm,
+    filters,
+    filterOptions,
+    handleSearchChange,
+    handleFilterChange,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange,
+    totalItems: totalBankDebts,
+    filteredCount
+  } = useFinancialFilters(bankDebts, {
+    searchFields: ['instituicao_bancaria', 'indexador'],
+    modalidadeField: 'modalidade',
+    moedaField: 'moeda',
+    yearField: 'ano_contratacao'
   });
 
   // Adicionar nova dívida
@@ -151,115 +166,110 @@ export function BankDebtListing({
   };
 
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<Building2 className="h-5 w-5" />}
         title="Dívidas Bancárias"
-        description="Gerencie dívidas bancárias e financiamentos"
+        description="Controle das dívidas contraídas junto a instituições bancárias"
         action={
           <Button
-            variant="default"
+            variant="outline"
             size="default"
-            className="gap-1"
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
             onClick={() => setIsAddModalOpen(true)}
           >
             <PlusIcon className="h-4 w-4" />
             Nova Dívida
           </Button>
         }
+        className="mb-4"
       />
+      <CardContent>
+        <div className="space-y-4">
+          <FinancialFilterBar
+            searchTerm={searchTerm}
+            onSearchChange={handleSearchChange}
+            filters={filters}
+            onFiltersChange={handleFilterChange}
+            filterOptions={filterOptions}
+            searchPlaceholder="Buscar por instituição ou indexador..."
+          />
+          
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {paginatedData.length} de {totalBankDebts} dívidas bancárias
+            </p>
+          </div>
 
-      <FinancialFilterBar onSearch={setSearchTerm} />
-
-      <Card>
-        <CardContent className="p-0">
           {bankDebts.length === 0 ? (
-            <EmptyState
-              title="Nenhuma dívida bancária cadastrada"
-              description="Clique no botão acima para adicionar uma nova dívida bancária."
-              action={
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                  Adicionar Dívida
-                </Button>
-              }
-            />
-          ) : filteredDebts.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">Nenhuma dívida encontrada para "{searchTerm}"</p>
+            <div className="text-center py-10 text-muted-foreground space-y-4">
+              <div>Nenhuma dívida bancária cadastrada.</div>
+              <Button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Adicionar Primeira Dívida
+              </Button>
+            </div>
+          ) : paginatedData.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div>Nenhuma dívida encontrada para os filtros aplicados.</div>
             </div>
           ) : (
-            <>
+            <div className="rounded-md border">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Instituição</TableHead>
-                    <TableHead>Modalidade</TableHead>
-                    <TableHead>Ano Contratação</TableHead>
-                    <TableHead>Indexador</TableHead>
-                    <TableHead>Taxa Real</TableHead>
-                    <TableHead>Valor Total</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDebts.map((debt) => (
-                    <TableRow key={debt.id}>
-                      <TableCell>{debt.instituicao_bancaria}</TableCell>
-                      <TableCell>{debt.modalidade}</TableCell>
-                      <TableCell>{debt.ano_contratacao}</TableCell>
-                      <TableCell>{debt.indexador || "-"}</TableCell>
-                      <TableCell>
-                        {debt.taxa_real ? `${debt.taxa_real}%` : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {formatGenericCurrency(
-                          calculateTotal(debt),
-                          debt.moeda || "BRL"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <BankDebtRowActions
-                          bankDebt={debt}
-                          onEdit={() => setEditingDebt(debt)}
-                          onDelete={() => handleDeleteDebt(debt.id!)}
-                        />
-                      </TableCell>
+                  <TableHeader>
+                    <TableRow className="bg-primary hover:bg-primary">
+                      <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Instituição</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Modalidade</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Ano Contratação</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Indexador</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Taxa Real</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total de Dívidas Bancárias:</span>
-                  <span className="font-bold">
-                    {(() => {
-                      // Agrupar totais por moeda
-                      const totals: { [key: string]: number } = {};
-                      
-                      filteredDebts.forEach(debt => {
-                        const moeda = debt.moeda || 'BRL';
-                        const total = calculateTotal(debt);
-                        
-                        if (!totals[moeda]) {
-                          totals[moeda] = 0;
-                        }
-                        
-                        totals[moeda] += total;
-                      });
-                      
-                      // Formatar e concatenar totais por moeda
-                      return Object.entries(totals)
-                        .map(([moeda, valor]) => formatGenericCurrency(valor, moeda as any))
-                        .join(' + ');
-                    })()}
-                  </span>
-                </div>
-              </div>
-            </>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedData.map((debt) => (
+                      <TableRow key={debt.id}>
+                        <TableCell>{debt.instituicao_bancaria}</TableCell>
+                        <TableCell>{debt.modalidade}</TableCell>
+                        <TableCell>{debt.ano_contratacao}</TableCell>
+                        <TableCell>{debt.indexador || "-"}</TableCell>
+                        <TableCell>
+                          {debt.taxa_real ? `${debt.taxa_real}%` : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {formatGenericCurrency(
+                            calculateTotal(debt),
+                            debt.moeda || "BRL"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <BankDebtRowActions
+                            bankDebt={debt}
+                            onEdit={() => setEditingDebt(debt)}
+                            onDelete={() => handleDeleteDebt(debt.id!)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                
+                <FinancialPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  itemsPerPage={itemsPerPage}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                  totalItems={totalBankDebts}
+                />
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
 
       {/* Modal para adicionar nova dívida */}
       <BankDebtForm
@@ -279,6 +289,6 @@ export function BankDebtListing({
           onSubmit={handleUpdateDebt}
         />
       )}
-    </div>
+    </Card>
   );
 }

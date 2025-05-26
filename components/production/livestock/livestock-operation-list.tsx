@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Edit2Icon, Trash2, MoreHorizontal, Factory, Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import {
   Table,
@@ -18,11 +18,35 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { deleteLivestockOperation } from "@/lib/actions/production-actions";
 import { LivestockOperationForm } from "./livestock-operation-form";
 import { toast } from "sonner";
-import { FormModal } from "../common/form-modal";
 import { DeleteButton } from "../common/delete-button";
 import {
   LivestockOperation,
@@ -53,10 +77,11 @@ export function LivestockOperationList({
 }: LivestockOperationListProps) {
   const [operations, setOperations] =
     useState<LivestockOperation[]>(initialOperations);
-  const [editingItem, setEditingItem] = useState<LivestockOperation | null>(
+  const [editingOperation, setEditingOperation] = useState<LivestockOperation | null>(
     null
   );
-  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -65,36 +90,46 @@ export function LivestockOperationList({
 
   // Função para editar um item
   const handleEdit = (item: LivestockOperation) => {
-    setEditingItem(item);
-    setIsEditModalOpen(true);
+    setEditingOperation(item);
+    setIsCreateModalOpen(true);
   };
 
   // Função para excluir um item
   const handleDelete = async (id: string) => {
     try {
+      setDeletingItemId(id);
       await deleteLivestockOperation(id);
       setOperations(operations.filter((item) => item.id !== id));
       toast.success("Operação pecuária excluída com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir operação pecuária:", error);
       toast.error("Ocorreu um erro ao excluir a operação pecuária.");
+    } finally {
+      setDeletingItemId(null);
     }
   };
 
-  // Função para atualizar a lista após edição
-  const handleUpdate = (updatedItem: LivestockOperation) => {
-    setOperations(
-      operations.map((item) =>
-        item.id === updatedItem.id ? updatedItem : item
-      )
-    );
-    setIsEditModalOpen(false);
-    setEditingItem(null);
+  // Função para criar nova operação
+  const handleCreate = () => {
+    setEditingOperation(null);
+    setIsCreateModalOpen(true);
   };
 
-  // Função para adicionar novo item à lista
-  const handleAdd = (newItem: LivestockOperation) => {
-    setOperations([...operations, newItem]);
+  // Função para lidar com submissão do formulário
+  const handleSubmit = (operation: LivestockOperation) => {
+    if (editingOperation) {
+      // Edição
+      setOperations(
+        operations.map((item) =>
+          item.id === operation.id ? operation : item
+        )
+      );
+    } else {
+      // Criação
+      setOperations([...operations, operation]);
+    }
+    setIsCreateModalOpen(false);
+    setEditingOperation(null);
   };
 
   // Ordenar itens por ciclo e propriedade
@@ -169,29 +204,44 @@ export function LivestockOperationList({
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Operações Pecuárias</CardTitle>
-          <CardDescription>
-            Operações de confinamento e abate por propriedade.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {operations.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              Nenhuma operação pecuária cadastrada. Clique no botão "Nova
-              Operação" para adicionar.
-            </div>
-          ) : (
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        title="Operações Pecuárias"
+        icon={<Factory className="h-5 w-5" />}
+        description="Gestão de operações de confinamento e ciclos produtivos"
+        action={
+          <Button 
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            onClick={handleCreate}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Operação
+          </Button>
+        }
+        className="mb-4"
+      />
+      <CardContent>
+        {operations.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground space-y-4">
+            <div>Nenhuma operação pecuária cadastrada.</div>
+            <Button 
+              onClick={handleCreate}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Operação
+            </Button>
+          </div>
+        ) : (
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Ciclo</TableHead>
-                  <TableHead>Origem</TableHead>
-                  <TableHead>Propriedade</TableHead>
-                  <TableHead>Volume de Abate</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                <TableRow className="bg-primary hover:bg-primary">
+                  <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Ciclo</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Origem</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Propriedade</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Volume de Abate</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -204,46 +254,80 @@ export function LivestockOperationList({
                       <TableCell>{propertyName}</TableCell>
                       <TableCell>{getSlaughterVolumes(item)}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(item)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <DeleteButton
-                          title="Excluir Operação"
-                          description="Tem certeza que deseja excluir esta operação pecuária? Esta ação não pode ser desfeita."
-                          onDelete={() => item.id && handleDelete(item.id)}
-                        />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Abrir menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(item)}>
+                              <Edit2Icon className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem 
+                                  onSelect={(e) => e.preventDefault()}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir Operação Pecuária</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir esta operação pecuária? Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => item.id && handleDelete(item.id)}
+                                    className="bg-destructive text-white hover:bg-destructive/90"
+                                  >
+                                    {deletingItemId === item.id ? "Excluindo..." : "Excluir"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </CardContent>
 
-      {/* Modal de edição */}
-      <FormModal
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        title="Editar Operação Pecuária"
-        description="Faça as alterações necessárias na operação pecuária."
-      >
-        {editingItem && (
+      {/* Modal de criação/edição */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingOperation ? 'Editar Operação' : 'Nova Operação Pecuária'}
+            </DialogTitle>
+          </DialogHeader>
           <LivestockOperationForm
             properties={properties}
             harvests={harvests}
             organizationId={organizationId}
-            operation={editingItem}
-            onSuccess={handleUpdate}
-            onCancel={() => setIsEditModalOpen(false)}
+            operation={editingOperation}
+            onSuccess={handleSubmit}
+            onCancel={() => {
+              setIsCreateModalOpen(false);
+              setEditingOperation(null);
+            }}
           />
-        )}
-      </FormModal>
-    </div>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }

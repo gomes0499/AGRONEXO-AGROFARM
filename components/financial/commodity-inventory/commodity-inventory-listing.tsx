@@ -10,11 +10,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Wheat } from "lucide-react";
 import { CommodityInventory } from "@/schemas/financial/inventory";
 import { CommodityInventoryForm } from "./commodity-inventory-form";
 import { CommodityInventoryRowActions } from "./commodity-inventory-row-actions";
-import { FinancialHeader } from "../common/financial-header";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent } from "@/components/ui/card";
@@ -144,55 +144,48 @@ export function CommodityInventoryListing({
   };
 
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<Wheat className="h-5 w-5" />}
         title="Estoques de Commodities"
-        description="Gerencie os estoques de commodities agrícolas"
+        description="Controle de estoques de grãos e produtos agrícolas"
         action={
           <Button
-            variant="default"
-            size="default"
-            className="gap-1"
             onClick={() => setIsAddModalOpen(true)}
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
           >
-            <PlusCircle className="h-4 w-4" />
+            <PlusCircle className="w-4 h-4 mr-2" />
             Novo Estoque
           </Button>
         }
+        className="mb-4"
       />
+      <CardContent>
+        <div className="space-y-4">
 
-      <FinancialFilterBar
-        onSearch={setSearchTerm}
-        filters={filters}
-        onFilterChange={handleFilterChange}
-      />
-
-      <Card>
-        <CardContent className="p-0">
           {commodityInventories.length === 0 ? (
-            <EmptyState
-              title="Nenhum estoque de commodity cadastrado"
-              description="Clique no botão abaixo para adicionar seu primeiro estoque de commodity."
-              action={
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                  Adicionar Estoque
-                </Button>
-              }
-            />
+            <div className="text-center py-10 text-muted-foreground space-y-4">
+              <div>Nenhum estoque de commodity cadastrado.</div>
+              <Button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Adicionar Primeiro Estoque
+              </Button>
+            </div>
           ) : filteredInventories.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">
-                Nenhum estoque de commodity encontrado com os filtros atuais
-              </p>
+            <div className="text-center py-10 text-muted-foreground">
+              <div>Nenhum estoque encontrado com os filtros atuais</div>
             </div>
           ) : (
-            <>
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Commodity</TableHead>
-                    <TableHead>Valor Total</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Commodity</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -206,7 +199,7 @@ export function CommodityInventoryListing({
                       <TableCell>
                         {formatCurrency(inventory.valor_total)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">
                         <CommodityInventoryRowActions
                           commodityInventory={inventory}
                           onEdit={() => setEditingInventory(inventory)}
@@ -217,20 +210,10 @@ export function CommodityInventoryListing({
                   ))}
                 </TableBody>
               </Table>
-
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Valor Total:</span>
-                  <span className="font-bold">
-                    {formatCurrency(totalInventoryValue)}
-                  </span>
-                </div>
-              </div>
-            </>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
 
       {/* Modal para adicionar novo estoque */}
       <CommodityInventoryForm
@@ -250,6 +233,6 @@ export function CommodityInventoryListing({
           onSubmit={handleUpdateInventory}
         />
       )}
-    </div>
+    </Card>
   );
 }

@@ -49,6 +49,8 @@ import { DatePicker } from "@/components/shared/datepicker";
 interface PropertyFormProps {
   property?: Property;
   organizationId: string;
+  onSuccess?: () => void;
+  isDrawer?: boolean;
 }
 
 // Lista de estados brasileiros
@@ -158,7 +160,7 @@ const CurrencyField = ({
   />
 );
 
-export function PropertyForm({ property, organizationId }: PropertyFormProps) {
+export function PropertyForm({ property, organizationId, onSuccess, isDrawer = false }: PropertyFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("informacoes-basicas");
@@ -222,7 +224,11 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
       if (isEditing) {
         await updateProperty(property.id!, dataWithImage);
         toast.success("Propriedade atualizada com sucesso!");
-        router.push(`/dashboard/properties/${property.id}`);
+        if (isDrawer && onSuccess) {
+          onSuccess();
+        } else {
+          router.push(`/dashboard/properties/${property.id}`);
+        }
       } else {
         // Primeiro criamos a propriedade
         const newProperty = await createProperty(organizationId, dataWithImage);
@@ -272,7 +278,11 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
         }
 
         toast.success("Propriedade criada com sucesso!");
-        router.push(`/dashboard/properties/${newProperty.id}`);
+        if (isDrawer && onSuccess) {
+          onSuccess();
+        } else {
+          router.push(`/dashboard/properties/${newProperty.id}`);
+        }
       }
     } catch (error) {
       console.error("Erro ao salvar propriedade:", error);
@@ -300,6 +310,19 @@ export function PropertyForm({ property, organizationId }: PropertyFormProps) {
 
   return (
     <div>
+      {isDrawer && (
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold">
+            {isEditing ? "Editar Propriedade" : "Nova Propriedade"}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {isEditing 
+              ? "Atualize as informações da propriedade" 
+              : "Cadastre uma nova propriedade rural no sistema"
+            }
+          </p>
+        </div>
+      )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Tabs

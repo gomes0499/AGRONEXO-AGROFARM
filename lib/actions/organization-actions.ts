@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { UserRole } from "@/lib/auth/roles";
@@ -269,5 +269,59 @@ export async function deleteOrganization(formData: FormData) {
       throw error; // Relançar para que o Next.js possa processar o redirecionamento
     }
     return { error: "Erro ao processar a solicitação de exclusão" };
+  }
+}
+
+/**
+ * Busca os detalhes completos de um membro da organização
+ */
+export async function getMemberDetails(userId: string, organizationId: string): Promise<{
+  success: boolean;
+  data?: any;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Primeiro buscar a associação
+    const { data: associationData, error: associationError } = await supabase
+      .from("associacoes")
+      .select("*")
+      .eq("usuario_id", userId)
+      .eq("organizacao_id", organizationId)
+      .single();
+
+    if (associationError || !associationData) {
+      console.error('Error fetching association:', associationError);
+      return { success: false, error: 'Associação não encontrada' };
+    }
+
+    // Usar admin client para buscar dados do usuário do auth.users
+    const adminClient = await createAdminClient();
+    
+    const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(associationData.usuario_id);
+
+    if (userError || !userData?.user) {
+      console.error('Error fetching user data:', userError);
+      return { success: false, error: 'Dados do usuário não encontrados' };
+    }
+
+    // Combinar os dados da associação com os dados do usuário
+    const memberAssociation = {
+      ...associationData,
+      user: {
+        id: userData.user.id,
+        email: userData.user.email,
+        nome: userData.user.user_metadata?.name || userData.user.email?.split("@")[0],
+        telefone: userData.user.user_metadata?.telefone,
+        imagem: userData.user.user_metadata?.avatar_url,
+        metadados: userData.user.user_metadata || {},
+      },
+    };
+
+    return { success: true, data: memberAssociation };
+  } catch (error) {
+    console.error('Error in getMemberDetails:', error);
+    return { success: false, error: 'Erro interno do servidor' };
   }
 }

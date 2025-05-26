@@ -165,23 +165,24 @@ export function OrganizationSwitcher() {
   const getInitials = React.useMemo(() => {
     // Inicializamos com um valor memorizado para evitar problemas de hidratação
     const cache: Record<string, string> = {};
-    
+
     return (name: string): string => {
       // Se já calculamos antes, retorna do cache
       if (cache[name]) return cache[name];
-      
+
       if (!name || name.trim() === "") return "OR";
-      
+
       // Calculamos e armazenamos em cache
-      const initials = name
-        .trim()
-        .split(" ")
-        .map((part) => (part && part.length > 0 ? part[0] : ""))
-        .filter(Boolean)
-        .join("")
-        .toUpperCase()
-        .substring(0, 2) || "OR";
-        
+      const initials =
+        name
+          .trim()
+          .split(" ")
+          .map((part) => (part && part.length > 0 ? part[0] : ""))
+          .filter(Boolean)
+          .join("")
+          .toUpperCase()
+          .substring(0, 2) || "OR";
+
       cache[name] = initials;
       return initials;
     };
@@ -192,9 +193,9 @@ export function OrganizationSwitcher() {
       <SidebarMenuItem className="flex items-center gap-2">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <SidebarMenuButton className="flex w-full justify-between ">
+            <SidebarMenuButton className="flex w-full justify-between bg-gray-100 h-10">
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6 rounded-md">
+                <Avatar className="h-7 w-7 rounded-md">
                   {organization && organization.logo ? (
                     <AvatarImage
                       src={organization.logo}
@@ -202,13 +203,12 @@ export function OrganizationSwitcher() {
                     />
                   ) : null}
                   <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
-                    {organization && organization.nome ? 
-                      getInitials(organization.nome) 
-                      : "OR"
-                    }
+                    {organization && organization.nome
+                      ? getInitials(organization.nome)
+                      : "OR"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="truncate text-sm">
+                <span className="truncate text-sm font-medium text-primary ">
                   {loading ? (
                     <Skeleton className="h-4 w-24" />
                   ) : (

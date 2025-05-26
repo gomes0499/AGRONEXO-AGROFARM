@@ -69,14 +69,14 @@ export function NavMain({
                 <SidebarMenuButton
                   tooltip={item.title}
                   asChild
-                  className={active ? "bg-primary/10 dark:bg-primary/20" : ""}
+                  className={active ? "bg-primary dark:bg-primary/20" : ""}
                   data-active={active}
                 >
                   <Link href={item.url}>
                     {item.icon && (
-                      <item.icon className={active ? "text-primary" : ""} />
+                      <item.icon className={active ? "text-white" : ""} />
                     )}
-                    <span className={active ? "font-medium text-primary" : ""}>
+                    <span className={active ? "font-medium text-white" : ""}>
                       {item.title}
                     </span>
                   </Link>
@@ -89,12 +89,12 @@ export function NavMain({
         {/* Report Generator Button */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <ReportGeneratorModal 
+            <ReportGeneratorModal
               buttonText="Gerar Relatório"
               buttonVariant="default"
               buttonSize="default"
               buttonIcon={true}
-              className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90"
+              className="w-full justify-start bg-gray-100 shadow-none text-primary hover:bg-gray-200/90"
             />
           </SidebarMenuItem>
         </SidebarMenu>

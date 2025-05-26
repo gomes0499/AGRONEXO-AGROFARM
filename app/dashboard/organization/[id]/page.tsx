@@ -6,11 +6,10 @@ import { UserRole } from "@/lib/auth/roles";
 import { notFound, redirect } from "next/navigation";
 
 // Componentes da organização
-import { OrganizationDetailInfo } from "@/components/organization/organization-detail-info";
-import { OrganizationDetailMembers } from "@/components/organization/organization-detail-members";
-import { OrganizationDetailInvites } from "@/components/organization/organization-detail-invites";
-import { OrganizationDetailEdit } from "@/components/organization/organization-detail-edit";
-import { OrganizationSettings } from "@/components/organization/organization-settings";
+import { OrganizationDetailInfo } from "@/components/organization/organization/info-tab";
+import { OrganizationDetailMembers } from "@/components/organization/member/list-tab";
+import { OrganizationDetailInvites } from "@/components/organization/invite/list-tab";
+import { OrganizationSettings } from "@/components/organization/organization/settings-tab";
 
 // Define a member type to fix the implicit any type error
 interface Member {
@@ -224,29 +223,45 @@ export default async function ManageOrganizationPage({
         backUrl="/dashboard/organization"
       />
 
-      <div className="container mx-auto p-6">
-        <h1 className="text-3xl font-semibold tracking-tight mb-6">
-          {organization.nome}
-        </h1>
+      {/* Tabs Navigation - logo abaixo do site header */}
+      <Tabs defaultValue={activeTab}>
+        <div className="bg-muted/50 border-b">
+          <div className="container mx-auto px-4 md:px-6 py-2">
+            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+              <TabsTrigger
+                value="info"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Informações
+              </TabsTrigger>
+              <TabsTrigger
+                value="members"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Membros ({members?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger
+                value="invites"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Convites ({invites?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger
+                value="settings"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Configurações
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
-        <Tabs defaultValue={activeTab} className="">
-          <TabsList>
-            <TabsTrigger value="info">Informações</TabsTrigger>
-            <TabsTrigger value="members">
-              Membros ({members?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="invites">
-              Convites ({invites?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="edit">Editar Organização</TabsTrigger>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="info" className="mt-0 pt-2">
+        <main className="flex-1 p-4">
+          <TabsContent value="info" className="space-y-4">
             <OrganizationDetailInfo organization={organization} />
           </TabsContent>
 
-          <TabsContent value="members" className="mt-0 pt-2">
+          <TabsContent value="members" className="space-y-4">
             <OrganizationDetailMembers
               members={members}
               organizationId={organizationId}
@@ -254,7 +269,7 @@ export default async function ManageOrganizationPage({
             />
           </TabsContent>
 
-          <TabsContent value="invites" className="mt-0 pt-2">
+          <TabsContent value="invites" className="space-y-4">
             <OrganizationDetailInvites
               invites={invites || []}
               organizationId={organizationId}
@@ -262,18 +277,11 @@ export default async function ManageOrganizationPage({
             />
           </TabsContent>
 
-          <TabsContent value="edit" className="mt-0 pt-2">
-            <OrganizationDetailEdit
-              userId={user.id}
-              organization={organization}
-            />
-          </TabsContent>
-
-          <TabsContent value="settings" className="mt-0 pt-2">
+          <TabsContent value="settings" className="space-y-4">
             <OrganizationSettings organizationId={organizationId} />
           </TabsContent>
-        </Tabs>
-      </div>
+        </main>
+      </Tabs>
     </div>
   );
 }

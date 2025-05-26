@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sprout } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,7 @@ interface NewSeedSaleButtonProps {
   className?: string;
   variant?: "default" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
-  onSeedSaleCreated?: () => void;
+  onSeedSaleCreated?: (seedSale: SeedSale) => void;
   harvests: Harvest[];
 }
 
@@ -37,11 +38,14 @@ export function NewSeedSaleButton({
   harvests,
 }: NewSeedSaleButtonProps) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   const handleSuccess = (seedSale: SeedSale) => {
     setOpen(false);
+    
+    // Chamar o callback se fornecido
     if (onSeedSaleCreated) {
-      onSeedSaleCreated();
+      onSeedSaleCreated(seedSale);
     }
   };
 

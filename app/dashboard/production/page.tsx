@@ -14,28 +14,16 @@ import {
   getLivestockOperations,
 } from "@/lib/actions/production-actions";
 import { getProperties } from "@/lib/actions/property-actions";
-import { ProductionNavClient } from "@/components/production/production-nav-client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Componentes
 import { PlantingAreaList } from "@/components/production/planting-areas/planting-area-list";
-import { NewPlantingAreaButton } from "@/components/production/planting-areas/new-planting-area-button";
 import { ProductionCostList } from "@/components/production/costs/production-cost-list";
-import { NewProductionCostButton } from "@/components/production/costs/new-production-cost-button";
 import { ProductivityList } from "@/components/production/productivity/productivity-list";
-import { NewProductivityButton } from "@/components/production/productivity/new-productivity-button";
 import { LivestockList } from "@/components/production/livestock/livestock-list";
-import { NewLivestockButton } from "@/components/production/livestock/new-livestock-button";
 import { LivestockOperationList } from "@/components/production/livestock/livestock-operation-list";
-import { NewLivestockOperationButton } from "@/components/production/livestock/new-livestock-operation-button";
-import { ConfigTabs } from "@/components/production/config/config-tabs";
+import { UnifiedConfig } from "@/components/production/config/unified-config";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -57,19 +45,14 @@ interface Property {
 }
 
 export default async function ProductionPage() {
-  // Verificar se o usuário é superadmin
   await requireSuperAdmin();
-  
-  const organizationId = await getOrganizationId();
 
-  // Buscar dados comuns
+  const organizationId = await getOrganizationId();
   const propertiesData = await getProperties(organizationId);
   const cultures = await getCultures(organizationId);
   const systems = await getSystems(organizationId);
   const cycles = await getCycles(organizationId);
   const harvests = await getHarvests(organizationId);
-
-  // Buscar dados específicos de cada seção
   const plantingAreas = await getPlantingAreas(organizationId);
   const productionCosts = await getProductionCosts(organizationId);
   const productivityData = await getProductivities(organizationId);
@@ -78,7 +61,7 @@ export default async function ProductionPage() {
 
   // Converter propriedades para o formato esperado pelos componentes
   const properties: Property[] = propertiesData.map((p) => ({
-    id: p.id || "", // Garantir que id nunca será undefined
+    id: p.id || "",
     nome: p.nome,
     cidade: p.cidade,
     estado: p.estado,
@@ -87,208 +70,152 @@ export default async function ProductionPage() {
 
   // Componente de Configurações
   const ConfigComponent = (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Configurações de Produção
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie culturas, sistemas, ciclos e safras para a produção
-            agrícola.
-          </p>
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Parâmetros de Produção</CardTitle>
-          <CardDescription>
-            Configure os parâmetros básicos para o módulo de produção.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ConfigTabs
-            cultures={cultures}
-            systems={systems}
-            cycles={cycles}
-            harvests={harvests}
-            organizationId={organizationId}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <UnifiedConfig
+      cultures={cultures}
+      systems={systems}
+      cycles={cycles}
+      harvests={harvests}
+      organizationId={organizationId}
+    />
   );
 
   // Componente de Áreas de Plantio
   const PlantingAreasComponent = (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Áreas de Plantio
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie as áreas de plantio por propriedade, cultura e safra.
-          </p>
-        </div>
-        <NewPlantingAreaButton
-          properties={properties}
-          cultures={cultures}
-          systems={systems}
-          cycles={cycles}
-          harvests={harvests}
-          organizationId={organizationId}
-        />
-      </div>
-
-      <PlantingAreaList
-        initialPlantingAreas={plantingAreas}
-        properties={properties}
-        cultures={cultures}
-        systems={systems}
-        cycles={cycles}
-        harvests={harvests}
-        organizationId={organizationId}
-      />
-    </div>
+    <PlantingAreaList
+      initialPlantingAreas={plantingAreas}
+      properties={properties}
+      cultures={cultures}
+      systems={systems}
+      cycles={cycles}
+      harvests={harvests}
+      organizationId={organizationId}
+    />
   );
 
   // Componente de Custos de Produção
   const CostsComponent = (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Custos de Produção
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie os custos de produção por cultura, sistema e safra.
-          </p>
-        </div>
-        <NewProductionCostButton
-          cultures={cultures}
-          systems={systems}
-          harvests={harvests}
-          properties={properties}
-          organizationId={organizationId}
-        />
-      </div>
-
-      <ProductionCostList
-        initialCosts={productionCosts}
-        cultures={cultures}
-        systems={systems}
-        harvests={harvests}
-        properties={properties}
-        organizationId={organizationId}
-      />
-    </div>
+    <ProductionCostList
+      initialCosts={productionCosts}
+      cultures={cultures}
+      systems={systems}
+      harvests={harvests}
+      properties={properties}
+      organizationId={organizationId}
+    />
   );
 
   // Componente de Produtividade
   const ProductivityComponent = (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Produtividade</h1>
-          <p className="text-muted-foreground">
-            Gerencie a produtividade por cultura, sistema e safra.
-          </p>
-        </div>
-        <NewProductivityButton
-          cultures={cultures}
-          systems={systems}
-          harvests={harvests}
-          properties={properties}
-          organizationId={organizationId}
-        />
-      </div>
-
-      <ProductivityList
-        initialProductivities={productivityData}
-        cultures={cultures}
-        systems={systems}
-        harvests={harvests}
-        properties={properties}
-        organizationId={organizationId}
-      />
-    </div>
+    <ProductivityList
+      initialProductivities={productivityData}
+      cultures={cultures}
+      systems={systems}
+      harvests={harvests}
+      properties={properties}
+      organizationId={organizationId}
+    />
   );
 
   // Componente de Rebanho
   const LivestockComponent = (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Rebanho</h1>
-          <p className="text-muted-foreground">
-            Gerenciamento de rebanho e controle de animais.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <NewLivestockButton
-            properties={properties}
-            organizationId={organizationId}
-          />
-        </div>
-      </div>
-
-      <LivestockList
-        key="livestock-list"
-        initialLivestock={livestockData}
-        properties={properties}
-        organizationId={organizationId}
-      />
-    </div>
+    <LivestockList
+      key="livestock-list"
+      initialLivestock={livestockData}
+      properties={properties}
+      organizationId={organizationId}
+    />
   );
 
   // Componente de Operações Pecuárias
   const LivestockOperationsComponent = (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Operações Pecuárias
-          </h1>
-          <p className="text-muted-foreground">
-            Gerenciamento de operações de confinamento e abate.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <NewLivestockOperationButton
-            properties={properties}
-            harvests={harvests}
-            organizationId={organizationId}
-          />
-        </div>
-      </div>
-
-      <LivestockOperationList
-        initialOperations={livestockOperationsData}
-        properties={properties}
-        harvests={harvests}
-        organizationId={organizationId}
-      />
-    </div>
+    <LivestockOperationList
+      initialOperations={livestockOperationsData}
+      properties={properties}
+      harvests={harvests}
+      organizationId={organizationId}
+    />
   );
 
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-8 w-8 animate-spin" />
+    <div className="-mt-6 -mx-4 md:-mx-6">
+      <Tabs defaultValue="config">
+        <div className="bg-muted/50 border-b">
+          <div className="container mx-auto px-4 md:px-6 py-2">
+            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+              <TabsTrigger
+                value="config"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Configurações
+              </TabsTrigger>
+              <TabsTrigger
+                value="plantingAreas"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Áreas de Plantio
+              </TabsTrigger>
+              <TabsTrigger
+                value="productivity"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Produtividade
+              </TabsTrigger>
+              <TabsTrigger
+                value="costs"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Custos de Produção
+              </TabsTrigger>
+              <TabsTrigger
+                value="livestock"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Rebanho
+              </TabsTrigger>
+              <TabsTrigger
+                value="livestockOperations"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Operações Pecuárias
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </div>
-      }
-    >
-      <ProductionNavClient
-        plantingAreasComponent={PlantingAreasComponent}
-        productivityComponent={ProductivityComponent}
-        costsComponent={CostsComponent}
-        livestockComponent={LivestockComponent}
-        livestockOperationsComponent={LivestockOperationsComponent}
-        configComponent={ConfigComponent}
-      />
-    </Suspense>
+
+        <div className="p-4 md:p-6 pt-4">
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            }
+          >
+            <TabsContent value="config" className="space-y-4">
+              {ConfigComponent}
+            </TabsContent>
+
+            <TabsContent value="plantingAreas" className="space-y-4">
+              {PlantingAreasComponent}
+            </TabsContent>
+
+            <TabsContent value="productivity" className="space-y-4">
+              {ProductivityComponent}
+            </TabsContent>
+
+            <TabsContent value="costs" className="space-y-4">
+              {CostsComponent}
+            </TabsContent>
+
+            <TabsContent value="livestock" className="space-y-4">
+              {LivestockComponent}
+            </TabsContent>
+
+            <TabsContent value="livestockOperations" className="space-y-4">
+              {LivestockOperationsComponent}
+            </TabsContent>
+          </Suspense>
+        </div>
+      </Tabs>
+    </div>
   );
 }

@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { ProfileForm } from "@/components/auth/profile-form";
-import { FullProfileForm } from "@/components/auth/full-profile-form";
-import { ChangeEmailForm } from "@/components/auth/change-email-form";
-import { ChangePasswordForm } from "@/components/auth/change-password-form";
+import { ProfileBasicTab } from "@/components/auth/profile-basic-tab";
+import { ProfileDetailsTab } from "@/components/auth/profile-details-tab";
+import { ProfileAccountTab } from "@/components/auth/profile-account-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
+import { SiteHeader } from "@/components/dashboard/site-header";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { createClient } from "@/lib/supabase/server";
-import { SiteHeader } from "@/components/dashboard/site-header";
+import { User, Settings, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Perfil do Usuário | SR-Consultoria",
@@ -28,52 +27,49 @@ export default async function ProfilePage() {
 
   return (
     <div className="flex flex-col">
-      <SiteHeader title="Perfil" />
-      <main className="flex-1 p-6">
-        <p className="text-muted-foreground mb-6">
-          Gerencie suas informações pessoais e preferências de conta
-        </p>
+      <SiteHeader title="Perfil do Usuário" />
+      
+      {/* Tabs Navigation - logo abaixo do site header */}
+      <Tabs defaultValue="basic">
+        <div className="border-b">
+          <div className="container mx-auto px-6 py-3">
+            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+              <TabsTrigger
+                value="basic"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Informações Básicas
+              </TabsTrigger>
+              <TabsTrigger
+                value="details"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Dados Completos
+              </TabsTrigger>
+              <TabsTrigger
+                value="account"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Configurações da Conta
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
-        <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="basic">Informações Básicas</TabsTrigger>
-            <TabsTrigger value="details">Dados Completos</TabsTrigger>
-            <TabsTrigger value="account">Configurações da Conta</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="basic">
-            <Card className="p-6">
-              <ProfileForm />
-            </Card>
+        <main className="flex-1 p-4">
+          <TabsContent value="basic" className="space-y-4">
+            <ProfileBasicTab user={user} userData={userData} />
           </TabsContent>
 
-          <TabsContent value="details">
-            <Card className="p-6">
-              <FullProfileForm />
-            </Card>
+          <TabsContent value="details" className="space-y-4">
+            <ProfileDetailsTab user={user} userData={userData} />
           </TabsContent>
           
-          <TabsContent value="account">
-            <div className="grid gap-6">
-              <Card className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Alterar Email</h3>
-                <p className="text-muted-foreground mb-6">
-                  Atualize o endereço de email associado à sua conta
-                </p>
-                <ChangeEmailForm />
-              </Card>
-              
-              <Card className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Alterar Senha</h3>
-                <p className="text-muted-foreground mb-6">
-                  Atualize sua senha para manter sua conta segura
-                </p>
-                <ChangePasswordForm />
-              </Card>
-            </div>
+          <TabsContent value="account" className="space-y-4">
+            <ProfileAccountTab user={user} userData={userData} />
           </TabsContent>
-        </Tabs>
-      </main>
+        </main>
+      </Tabs>
     </div>
   );
 }

@@ -155,30 +155,55 @@ export async function getLeaseById(id: string) {
 
 export async function createLease(
   organizationId: string, 
+  propertyId: string,
   values: LeaseFormValues
 ) {
   const supabase = await createClient();
   
-  const custos = typeof values.custos_projetados_anuais === 'string' 
-    ? JSON.parse(values.custos_projetados_anuais) 
-    : values.custos_projetados_anuais;
+  console.log("createLease called with:", { organizationId, propertyId, values });
+  
+  // Garantir que custos_projetados_anuais seja um objeto válido
+  let custos;
+  try {
+    custos = typeof values.custos_projetados_anuais === 'string' 
+      ? JSON.parse(values.custos_projetados_anuais) 
+      : values.custos_projetados_anuais || {};
+  } catch (error) {
+    console.warn("Erro ao parsear custos_projetados_anuais, usando objeto vazio:", error);
+    custos = {};
+  }
+  
+  const insertData = {
+    organizacao_id: organizationId,
+    propriedade_id: propertyId, // Usar o propertyId passado como parâmetro
+    numero_arrendamento: values.numero_arrendamento,
+    area_fazenda: values.area_fazenda,
+    area_arrendada: values.area_arrendada,
+    nome_fazenda: values.nome_fazenda,
+    arrendantes: values.arrendantes,
+    data_inicio: values.data_inicio,
+    data_termino: values.data_termino,
+    custo_hectare: values.custo_hectare,
+    custo_ano: values.custo_ano,
+    custos_projetados_anuais: custos
+  };
+  
+  console.log("Dados a serem inseridos:", insertData);
   
   const { data, error } = await supabase
     .from("arrendamentos")
-    .insert({
-      organizacao_id: organizationId,
-      ...values,
-      custos_projetados_anuais: custos
-    })
+    .insert(insertData)
     .select()
     .single();
   
   if (error) {
     console.error("Erro ao criar arrendamento:", error);
-    throw new Error("Não foi possível criar o arrendamento");
+    throw new Error(`Não foi possível criar o arrendamento: ${error.message}`);
   }
   
-  revalidatePath(`/dashboard/properties/${values.propriedade_id}`);
+  console.log("Arrendamento criado com sucesso:", data);
+  
+  revalidatePath(`/dashboard/properties/${propertyId}`);
   
   return data as Lease;
 }

@@ -73,8 +73,8 @@
 
 - [x] Criar `/components/financial/trading-debts/trading-debt-listing.tsx` para a listagem de dívidas com tradings
 - [x] Criar `/components/financial/trading-debts/trading-debt-form.tsx` para o formulário em modal
-- [ ] Criar `/components/financial/trading-debts/trading-debt-card.tsx` para visualização em card
-- [ ] Criar `/components/financial/trading-debts/new-trading-debt-button.tsx` para o botão de criação
+- [x] Criar `/components/financial/trading-debts/trading-debt-card.tsx` para visualização em card
+- [x] Criar `/components/financial/trading-debts/new-trading-debt-button.tsx` para o botão de criação
 - [x] Criar `/components/financial/trading-debts/trading-debt-row-actions.tsx` para ações em linha da tabela
 - [x] Criar `/app/dashboard/financial/trading-debts/page.tsx` para a página de dívidas trading
 
@@ -123,31 +123,31 @@
 
 ### 3.9 Tab: Adiantamentos a Fornecedores
 
-- [X] Criar `/components/financial/advances/advance-listing.tsx` para a listagem de adiantamentos
-- [X] Criar `/components/financial/advances/advance-form.tsx` para o formulário em modal
-- [X] Criar `/components/financial/advances/advance-row-actions.tsx` para ações em linha da tabela
-- [X] Criar `/app/dashboard/financial/supplier-advances/page.tsx` para a página de adiantamentos
+- [x] Criar `/components/financial/advances/advance-listing.tsx` para a listagem de adiantamentos
+- [x] Criar `/components/financial/advances/advance-form.tsx` para o formulário em modal
+- [x] Criar `/components/financial/advances/advance-row-actions.tsx` para ações em linha da tabela
+- [x] Criar `/app/dashboard/financial/supplier-advances/page.tsx` para a página de adiantamentos
 
 ### 3.10 Tab: Empréstimos a Terceiros
 
-- [X] Criar `/components/financial/loans/loan-listing.tsx` para a listagem de empréstimos
-- [X] Criar `/components/financial/loans/loan-form.tsx` para o formulário em modal
-- [X] Criar `/components/financial/loans/loan-row-actions.tsx` para ações em linha da tabela
-- [X] Criar `/app/dashboard/financial/third-party-loans/page.tsx` para a página de empréstimos
+- [x] Criar `/components/financial/loans/loan-listing.tsx` para a listagem de empréstimos
+- [x] Criar `/components/financial/loans/loan-form.tsx` para o formulário em modal
+- [x] Criar `/components/financial/loans/loan-row-actions.tsx` para ações em linha da tabela
+- [x] Criar `/app/dashboard/financial/third-party-loans/page.tsx` para a página de empréstimos
 
 ## 4. PÁGINA PRINCIPAL DO MÓDULO FINANCEIRO
 
 ### 4.1 Componentes da Página Principal
 
-- [X] Criar `/components/financial/dashboard/financial-debt-distribution-chart.tsx` para gráfico de distribuição de dívidas
-- [X] Criar `/components/financial/dashboard/financial-payment-flow-chart.tsx` para gráfico de fluxo de pagamentos
-- [X] Reutilizar componentes de cards para resumo de dados financeiros
+- [x] Criar `/components/financial/dashboard/financial-debt-distribution-chart.tsx` para gráfico de distribuição de dívidas
+- [x] Criar `/components/financial/dashboard/financial-payment-flow-chart.tsx` para gráfico de fluxo de pagamentos
+- [x] Reutilizar componentes de cards para resumo de dados financeiros
 
 ### 4.2 Implementação da Página Principal
 
-- [X] Implementar `/app/dashboard/financial/page.tsx` com os gráficos
-- [X] Adicionar cards de resumo na página principal
-- [X] Integrar visualizações gráficas dos dados financeiros
+- [x] Implementar `/app/dashboard/financial/page.tsx` com os gráficos
+- [x] Adicionar cards de resumo na página principal
+- [x] Integrar visualizações gráficas dos dados financeiros
 
 ## 5. IMPLEMENTAÇÃO DETALHADA
 
@@ -179,48 +179,33 @@
 - [x] Garantir feedback adequado para sucesso/erro em todas as operações
 - [x] Implementar modal de confirmação para operações destrutivas
 
-## 6. INTEGRAÇÃO COM OUTROS MÓDULOS
 
-### 6.1 Integração com Módulo de Propriedades
+## 6. IMPLANTAÇÃO GRADUAL (PRIORIZAÇÃO)
 
-- [ ] Conectar dívidas de imóveis com propriedades existentes
-- [ ] Compartilhar seletores de propriedades entre módulos
-
-### 6.2 Integração com Módulo de Indicadores
-
-- [ ] Fornecer dados para cálculo de indicadores financeiros
-- [ ] Compartilhar componentes de exibição de valores
-
-### 6.3 Integração com Módulo de Projeções
-
-- [ ] Fornecer dados de dívidas para projeções financeiras
-
-## 7. IMPLANTAÇÃO GRADUAL (PRIORIZAÇÃO)
-
-### 7.1 Fase 1: Estrutura e Navegação Básica
+### 6.1 Fase 1: Estrutura e Navegação Básica
 
 - [x] Criar schemas e tipos
 - [x] Implementar navegação e estrutura básica
 - [x] Criar componentes comuns reutilizáveis
 
-### 7.2 Fase 2: Dívidas
+### 6.2 Fase 2: Dívidas
 
 - [x] Implementar gerenciamento de dívidas bancárias
 - [x] Implementar gerenciamento de dívidas com tradings
 - [x] Implementar gerenciamento de dívidas de imóveis (API implementada, falta interface)
 
-### 7.3 Fase 3: Liquidez e Fornecedores
+### 6.3 Fase 3: Liquidez e Fornecedores
 
 - [x] Implementar gerenciamento de fatores de liquidez
 - [x] Implementar gerenciamento de fornecedores
 
-### 7.4 Fase 4: Estoques
+### 6.4 Fase 4: Estoques
 
 - [x] Implementar gerenciamento de estoques
 - [x] Implementar gerenciamento de estoques de commodities
 
-### 7.5 Fase 5: Contratos, Adiantamentos e Empréstimos
+### 6.5 Fase 5: Contratos, Adiantamentos e Empréstimos
 
-- [X] Implementar gerenciamento de contratos recebíveis
-- [X] Implementar gerenciamento de adiantamentos a fornecedores
-- [X] Implementar gerenciamento de empréstimos a terceiros
+- [x] Implementar gerenciamento de contratos recebíveis
+- [x] Implementar gerenciamento de adiantamentos a fornecedores
+- [x] Implementar gerenciamento de empréstimos a terceiros

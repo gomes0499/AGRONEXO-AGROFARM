@@ -4,6 +4,7 @@ import { z } from "zod";
 export const CommodityType = z.enum([
   "SOJA_SEQUEIRO",
   "SOJA_IRRIGADO",
+  "MILHO_SEQUEIRO",
   "MILHO_SAFRINHA",
   "ALGODAO_CAPULHO",
   "ARROZ_IRRIGADO",
@@ -20,6 +21,7 @@ export type CommodityTypeEnum = z.infer<typeof CommodityType>;
 export const commodityDisplayNames: Record<CommodityTypeEnum, string> = {
   SOJA_SEQUEIRO: "Soja Sequeiro",
   SOJA_IRRIGADO: "Soja Irrigado",
+  MILHO_SEQUEIRO: "Milho Sequeiro",
   MILHO_SAFRINHA: "Milho Safrinha",
   ALGODAO_CAPULHO: "Algodão (capulho)",
   ARROZ_IRRIGADO: "Arroz Irrigado",
@@ -34,6 +36,7 @@ export const commodityDisplayNames: Record<CommodityTypeEnum, string> = {
 export const commodityUnits: Record<CommodityTypeEnum, string> = {
   SOJA_SEQUEIRO: "R$/Saca",
   SOJA_IRRIGADO: "R$/Saca",
+  MILHO_SEQUEIRO: "R$/Saca",
   MILHO_SAFRINHA: "R$/Saca",
   ALGODAO_CAPULHO: "R$/@",
   ARROZ_IRRIGADO: "R$/Saca",
@@ -51,11 +54,17 @@ export type CommodityPriceType = {
   commodityType: CommodityTypeEnum;
   unit: string;
   currentPrice: number;
+  price2020?: number;
+  price2021?: number;
+  price2022?: number;
+  price2023?: number;
+  price2024?: number;
   price2025: number;
   price2026: number;
   price2027: number;
   price2028: number;
   price2029: number;
+  price2030?: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -123,6 +132,17 @@ export const defaultCommodityPrices: Record<CommodityTypeEnum, CommodityPriceCre
     price2027: 130,
     price2028: 130,
     price2029: 130
+  },
+  MILHO_SEQUEIRO: {
+    organizacaoId: "",
+    commodityType: "MILHO_SEQUEIRO",
+    unit: "R$/Saca",
+    currentPrice: 54,
+    price2025: 54,
+    price2026: 54,
+    price2027: 54,
+    price2028: 54,
+    price2029: 54
   },
   MILHO_SAFRINHA: {
     organizacaoId: "",

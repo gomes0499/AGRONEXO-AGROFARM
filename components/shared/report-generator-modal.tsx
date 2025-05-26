@@ -68,8 +68,8 @@ export function ReportGeneratorModal({
           </h4>
           <p className="text-sm text-muted-foreground">
             A funcionalidade de geração de relatórios permitirá exportar dados e
-            análises em vários formatos como PDF facilitando a
-            apresentação e análise de informações fora do sistema.
+            análises em vários formatos como PDF facilitando a apresentação e
+            análise de informações fora do sistema.
           </p>
         </div>
         <DialogFooter className="sm:justify-center">

@@ -1,17 +1,15 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { LivestockSale } from "@/schemas/commercial";
 import { Harvest } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
-import {
-  deleteLivestockSale,
-  getLivestockSales,
-} from "@/lib/actions/commercial-actions";
-import { useSalesListState } from "@/hooks/use-sales-list-state";
+import { deleteLivestockSale } from "@/lib/actions/commercial-actions";
 import { useFinancialCalculations } from "@/hooks/use-financial-calculations";
-import { SalesFilterBar } from "@/components/commercial/common/sales-filter-bar";
+import { toast } from "sonner";
 import { FinancialSummary } from "@/components/commercial/common/financial-summary";
 import { LivestockSalesTable } from "@/components/commercial/livestock/livestock-sales-table";
+import { NewLivestockSaleButton } from "@/components/commercial/livestock/new-livestock-sale-button";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +27,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { LivestockSaleForm } from "@/components/commercial/livestock/livestock-sale-form";
+import { PiggyBank } from "lucide-react";
 
 interface LivestockSalesListProps {
   initialLivestockSales: LivestockSale[];
@@ -44,79 +46,98 @@ export function LivestockSalesList({
   properties = [],
   harvests = [],
 }: LivestockSalesListProps) {
-  const {
-    sales: livestockSales,
-    setSales: setLivestockSales,
-    filteredSales,
-    selectedSafraId,
-    setSelectedSafraId,
-    selectedPropertyId,
-    setSelectedPropertyId,
-    isEditDialogOpen,
-    setIsEditDialogOpen,
-    isDeleteDialogOpen,
-    setIsDeleteDialogOpen,
-    selectedSale,
-    isRefreshing,
-    setIsRefreshing,
-    uniqueSafraIds,
-    uniquePropertyIds,
-    handleEdit,
-    handleDelete,
-    confirmDelete,
-    handleUpdateSuccess,
-  } = useSalesListState<LivestockSale>({
-    initialSales: initialLivestockSales,
-    deleteSaleFn: deleteLivestockSale,
-  });
+  // Gerenciar estado local das vendas
+  const [livestockSales, setLivestockSales] = useState<LivestockSale[]>(initialLivestockSales);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedSale, setSelectedSale] = useState<LivestockSale | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Atualizar o estado local sempre que os dados do servidor mudarem
+  useEffect(() => {
+    setLivestockSales(initialLivestockSales);
+  }, [initialLivestockSales]);
 
   const { calculateFinancialSummary } = useFinancialCalculations();
 
   // Calcular o resumo financeiro
-  const financialSummary = calculateFinancialSummary(filteredSales);
+  const financialSummary = calculateFinancialSummary(livestockSales);
 
-  // Função para atualizar os dados
-  const refreshData = async () => {
+  // Função para adicionar nova venda à lista
+  const handleAdd = (newSale: LivestockSale) => {
+    setLivestockSales([...livestockSales, newSale]);
+  };
+
+  // Função para editar uma venda
+  const handleEdit = (sale: LivestockSale) => {
+    setSelectedSale(sale);
+    setIsEditDialogOpen(true);
+  };
+
+  // Função para atualizar venda após edição
+  const handleUpdate = (updatedSale: LivestockSale) => {
+    setLivestockSales(livestockSales.map(sale => 
+      sale.id === updatedSale.id ? updatedSale : sale
+    ));
+    setIsEditDialogOpen(false);
+    setSelectedSale(null);
+  };
+
+  // Função para iniciar exclusão
+  const handleDelete = (sale: LivestockSale) => {
+    setSelectedSale(sale);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Função para confirmar exclusão
+  const confirmDelete = async () => {
+    if (!selectedSale?.id) return;
+
     try {
-      setIsRefreshing(true);
-      const data = await getLivestockSales(organizationId);
-      if (Array.isArray(data)) {
-        setLivestockSales(data);
-      }
+      setDeletingId(selectedSale.id);
+      await deleteLivestockSale(selectedSale.id);
+      setLivestockSales(livestockSales.filter(sale => sale.id !== selectedSale.id));
+      toast.success("Venda pecuária excluída com sucesso!");
     } catch (error) {
-      console.error("Erro ao atualizar dados:", error);
+      console.error("Erro ao excluir venda pecuária:", error);
+      toast.error("Ocorreu um erro ao excluir a venda pecuária.");
     } finally {
-      setIsRefreshing(false);
+      setDeletingId(null);
+      setIsDeleteDialogOpen(false);
+      setSelectedSale(null);
     }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Filtros */}
-      <SalesFilterBar
-        selectedSafraId={selectedSafraId}
-        setSelectedSafraId={setSelectedSafraId}
-        selectedPropertyId={selectedPropertyId}
-        setSelectedPropertyId={setSelectedPropertyId}
-        uniqueSafraIds={uniqueSafraIds}
-        uniquePropertyIds={uniquePropertyIds}
-        properties={properties}
-        harvests={harvests}
-        onRefresh={refreshData}
-        isRefreshing={isRefreshing}
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<PiggyBank className="h-5 w-5" />}
+        title="Vendas Pecuárias"
+        description="Gestão das receitas e despesas com vendas de animais"
+        action={
+          <NewLivestockSaleButton
+            organizationId={organizationId}
+            properties={properties}
+            harvests={harvests}
+            onSaleCreated={handleAdd}
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+          />
+        }
+        className="mb-4"
       />
+      <CardContent className="space-y-4">
+        {/* Resumo Financeiro */}
+        <FinancialSummary summary={financialSummary} />
 
-      {/* Resumo Financeiro */}
-      <FinancialSummary summary={financialSummary} />
-
-      {/* Tabela de Vendas */}
-      <LivestockSalesTable
-        sales={filteredSales}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        properties={properties}
-        harvests={harvests}
-      />
+        {/* Tabela de Vendas */}
+        <LivestockSalesTable
+          sales={livestockSales}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          properties={properties}
+          harvests={harvests}
+        />
+      </CardContent>
 
       {/* Diálogo de Edição */}
       {selectedSale && (
@@ -133,7 +154,7 @@ export function LivestockSalesList({
               livestockSale={selectedSale}
               properties={properties}
               harvests={harvests}
-              onSuccess={handleUpdateSuccess}
+              onSuccess={handleUpdate}
               onCancel={() => setIsEditDialogOpen(false)}
             />
           </DialogContent>
@@ -164,6 +185,6 @@ export function LivestockSalesList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Card>
   );
 }

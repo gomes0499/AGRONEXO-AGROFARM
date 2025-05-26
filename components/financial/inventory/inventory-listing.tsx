@@ -14,12 +14,15 @@ import { PlusCircle } from "lucide-react";
 import { Inventory } from "@/schemas/financial/inventory";
 import { InventoryForm } from "./inventory-form";
 import { InventoryRowActions } from "./inventory-row-actions";
-import { FinancialHeader } from "../common/financial-header";
-import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { FinancialFilterBar } from "../common/financial-filter-bar";
+import { FinancialPagination } from "../common/financial-pagination";
+import { useFinancialFilters } from "@/hooks/use-financial-filters";
+import { Package } from "lucide-react";
 
 interface InventoryListingProps {
   organization: { id: string; nome: string };
@@ -31,43 +34,29 @@ export function InventoryListing({
   initialInventories,
 }: InventoryListingProps) {
   const [inventories, setInventories] = useState(initialInventories);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingInventory, setEditingInventory] = useState<Inventory | null>(
     null
   );
 
-  // Filtros para o tipo de estoque
-  const [filters, setFilters] = useState<{
-    [key: string]: {
-      label: string;
-      options: Array<{ value: string; label: string }>;
-      value: string | null;
-    };
-  }>({
-    tipo: {
-      label: "Tipo",
-      options: [
-        { value: "FERTILIZANTES", label: "Fertilizantes" },
-        { value: "DEFENSIVOS", label: "Defensivos" },
-        { value: "ALMOXARIFADO", label: "Almoxarifado" },
-        { value: "SEMENTES", label: "Sementes" },
-        { value: "MAQUINAS_E_EQUIPAMENTOS", label: "Máquinas e Equipamentos" },
-        { value: "OUTROS", label: "Outros" },
-      ],
-      value: null,
-    },
-  });
-
-  // Filtrar estoques baseado no termo de busca e filtros
-  const filteredInventories = inventories.filter((inventory) => {
-    // Verificar filtro de tipo
-    if (filters.tipo.value && inventory.tipo !== filters.tipo.value) {
-      return false;
-    }
-
-    // Verificar termo de busca (no tipo do estoque)
-    return inventory.tipo.toLowerCase().includes(searchTerm.toLowerCase());
+  const {
+    filteredItems: filteredInventories,
+    paginatedItems: paginatedData,
+    searchTerm,
+    filters,
+    filterOptions,
+    handleSearchChange,
+    handleFilterChange,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange,
+    totalItems: totalInventories,
+    filteredCount
+  } = useFinancialFilters(inventories, {
+    searchFields: ['tipo'],
+    categoriaField: 'tipo'
   });
 
   // Calcular o total de estoques
@@ -110,71 +99,69 @@ export function InventoryListing({
     setInventories((prev) => prev.filter((inventory) => inventory.id !== id));
   };
 
-  // Atualizar filtros
-  const handleFilterChange = (key: string, value: string | null) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        value,
-      },
-    }));
-  };
-
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<Package className="h-5 w-5" />}
         title="Estoques"
-        description="Gerencie os estoques de insumos, materiais e recursos"
+        description="Gestão de estoques de fertilizantes, defensivos e almoxarifado"
         action={
           <Button
-            variant="default"
+            variant="outline"
             size="default"
-            className="gap-1"
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
             onClick={() => setIsAddModalOpen(true)}
           >
             <PlusCircle className="h-4 w-4" />
             Novo Estoque
           </Button>
         }
+        className="mb-4"
       />
+      <CardContent>
+        <div className="space-y-4">
+          <FinancialFilterBar
+            searchTerm={searchTerm}
+            onSearchChange={handleSearchChange}
+            filters={filters}
+            onFiltersChange={handleFilterChange}
+            filterOptions={filterOptions}
+            searchPlaceholder="Buscar por tipo de estoque..."
+          />
+          
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {paginatedData.length} de {totalInventories} estoques
+            </p>
+          </div>
 
-      <FinancialFilterBar
-        onSearch={setSearchTerm}
-        filters={filters}
-        onFilterChange={handleFilterChange}
-      />
-
-      <Card>
-        <CardContent className="p-0">
           {inventories.length === 0 ? (
-            <EmptyState
-              title="Nenhum estoque cadastrado"
-              description="Clique no botão abaixo para adicionar seu primeiro estoque."
-              action={
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                  Adicionar Estoque
-                </Button>
-              }
-            />
-          ) : filteredInventories.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">
-                Nenhum estoque encontrado com os filtros atuais
-              </p>
+            <div className="text-center py-10 text-muted-foreground space-y-4">
+              <div>Nenhum estoque cadastrado.</div>
+              <Button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Adicionar Primeiro Estoque
+              </Button>
+            </div>
+          ) : paginatedData.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div>Nenhum estoque encontrado para os filtros aplicados</div>
             </div>
           ) : (
-            <>
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Tipo</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredInventories.map((inventory) => (
+                  {paginatedData.map((inventory) => (
                     <TableRow key={inventory.id}>
                       <TableCell>
                         <Badge variant="outline">
@@ -182,7 +169,7 @@ export function InventoryListing({
                         </Badge>
                       </TableCell>
                       <TableCell>{formatCurrency(inventory.valor)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">
                         <InventoryRowActions
                           inventory={inventory}
                           onEdit={() => setEditingInventory(inventory)}
@@ -193,20 +180,19 @@ export function InventoryListing({
                   ))}
                 </TableBody>
               </Table>
-
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total em Estoques:</span>
-                  <span className="font-bold">
-                    {formatCurrency(totalInventoryValue)}
-                  </span>
-                </div>
-              </div>
-            </>
+              
+              <FinancialPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                totalItems={totalInventories}
+              />
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
 
       {/* Modal para adicionar novo estoque */}
       <InventoryForm
@@ -226,6 +212,6 @@ export function InventoryListing({
           onSubmit={handleUpdateInventory}
         />
       )}
-    </div>
+    </Card>
   );
 }

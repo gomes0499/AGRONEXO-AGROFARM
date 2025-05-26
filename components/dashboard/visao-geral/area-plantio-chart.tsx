@@ -25,6 +25,7 @@ import {
   ChartTooltipContent,
   ChartContainer,
 } from "@/components/ui/chart";
+import { ChartLegendMultirow } from "@/components/ui/chart-legend-multirow";
 import plantioData from "@/mock/plantio-data.json";
 
 // Configuração do gráfico com cores hard coded baseadas na imagem
@@ -114,11 +115,7 @@ export function AreaPlantioChart() {
                   width={30}
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend
-                  content={
-                    <ChartLegendContent className="text-[10px] sm:text-xs" />
-                  }
-                />
+                <ChartLegend content={<ChartLegendMultirow itemsPerRow={3} />} />
                 <Bar
                   dataKey="SojaSequeiro"
                   stackId="a"

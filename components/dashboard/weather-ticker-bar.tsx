@@ -17,10 +17,11 @@ export function WeatherTickerBar() {
     <div className="w-full border-b bg-muted/30">
       <div className="container flex items-center h-10">
         <div className="flex items-center space-x-2 text-sm text-muted-foreground font-medium pr-4 border-r">
-          <Cloud className="h-4 w-4 ml-2" />
+          <Cloud className="h-4 w-4 ml-4 text-primary" />
           <Select value={selectedCity} onValueChange={setSelectedCity}>
-            <SelectTrigger className="w-[180px]">
-              {CITIES.find(city => city.value === selectedCity)?.name || selectedCity}
+            <SelectTrigger className="w-[180px] h-8">
+              {CITIES.find((city) => city.value === selectedCity)?.name ||
+                selectedCity}
             </SelectTrigger>
             <SelectContent>
               {CITIES.map((city) => (

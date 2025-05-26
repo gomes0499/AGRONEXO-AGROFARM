@@ -46,13 +46,6 @@ export default async function PropertiesPage({
     <>
       <SiteHeader title="Bens Imóveis" />
       <div className="flex flex-col gap-6 p-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bens Imóveis</h1>
-          <p className="text-muted-foreground">
-            Gerencie seus bens imóveis, arrendamentos e benfeitorias.
-          </p>
-        </div>
-
         {/* Exibir alerta se os preços foram inicializados */}
         {searchParams?.init_prices === "true" && (
           <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-2">
@@ -99,7 +92,10 @@ export default async function PropertiesPage({
           </div>
         )}
 
-        <PropertyList properties={properties} />
+        <PropertyList
+          properties={properties}
+          organizationId={session?.organizationId || ""}
+        />
       </div>
     </>
   );

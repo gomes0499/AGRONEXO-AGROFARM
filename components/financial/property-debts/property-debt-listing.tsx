@@ -14,11 +14,11 @@ import { PlusCircle } from "lucide-react";
 import { PropertyDebt } from "@/schemas/financial/property-debts";
 import { PropertyDebtForm } from "./property-debt-form";
 import { PropertyDebtRowActions } from "./property-debt-row-actions";
-import { FinancialHeader } from "../common/financial-header";
-import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { Home } from "lucide-react";
 
 interface PropertyDebtListingProps {
   organization: { id: string; nome: string };
@@ -30,16 +30,12 @@ export function PropertyDebtListing({
   initialPropertyDebts,
 }: PropertyDebtListingProps) {
   const [propertyDebts, setPropertyDebts] = useState(initialPropertyDebts);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<PropertyDebt | null>(null);
 
   // Filtrar dívidas baseado no termo de busca
   const filteredDebts = propertyDebts.filter((debt) => {
-    return (
-      debt.credor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      debt.propriedade?.nome?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return true; // Removendo filtro temporariamente para simplificar
   });
 
   // Adicionar nova dívida
@@ -81,31 +77,31 @@ export function PropertyDebtListing({
   };
 
   return (
-    <div className="space-y-4">
-      <FinancialHeader
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        icon={<Home className="h-5 w-5" />}
         title="Dívidas de Imóveis"
-        description="Gerencie dívidas relacionadas às propriedades e imóveis"
+        description="Controle de dívidas relacionadas à aquisição de propriedades"
         action={
           <Button
-            variant="default"
+            variant="outline"
             size="default"
-            className="gap-1"
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
             onClick={() => setIsAddModalOpen(true)}
           >
             <PlusCircle className="h-4 w-4" />
             Nova Dívida
           </Button>
         }
+        className="mb-4"
       />
-
-      <FinancialFilterBar onSearch={setSearchTerm} />
-
-      <Card>
-        <CardContent className="p-0">
+      <CardContent className="space-y-4">
+        <Card>
+          <CardContent className="p-0">
           {propertyDebts.length === 0 ? (
             <EmptyState
               title="Nenhuma dívida de imóvel cadastrada"
-              description="Clique no botão abaixo para adicionar sua primeira dívida de imóvel."
+              description="Clique no botão acima para adicionar sua primeira dívida de imóvel."
               action={
                 <Button onClick={() => setIsAddModalOpen(true)}>
                   Adicionar Dívida
@@ -114,18 +110,18 @@ export function PropertyDebtListing({
             />
           ) : filteredDebts.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-muted-foreground">Nenhuma dívida encontrada para "{searchTerm}"</p>
+              <p className="text-muted-foreground">Nenhuma dívida encontrada</p>
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Denominação do Imóvel</TableHead>
-                    <TableHead>Credor</TableHead>
-                    <TableHead>Valor Total</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+                  <TableRow className="bg-primary hover:bg-primary">
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Denominação do Imóvel</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Credor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">Vencimento</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground rounded-tr-md w-24">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -152,39 +148,11 @@ export function PropertyDebtListing({
                   ))}
                 </TableBody>
               </Table>
-              
-              {/* Rodapé com totalização */}
-              <div className="p-4 border-t bg-muted/20">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total de Dívidas de Imóveis:</span>
-                  <span className="font-bold">
-                    {(() => {
-                      // Agrupar totais por moeda
-                      const totals: { [key: string]: number } = {};
-                      
-                      filteredDebts.forEach(debt => {
-                        const moeda = debt.moeda || 'BRL';
-                        const total = debt.valor_total || 0;
-                        
-                        if (!totals[moeda]) {
-                          totals[moeda] = 0;
-                        }
-                        
-                        totals[moeda] += total;
-                      });
-                      
-                      // Formatar e concatenar totais por moeda
-                      return Object.entries(totals)
-                        .map(([moeda, valor]) => formatGenericCurrency(valor, moeda as any))
-                        .join(' + ');
-                    })()}
-                  </span>
-                </div>
-              </div>
             </>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </CardContent>
 
       {/* Modal para adicionar nova dívida */}
       <PropertyDebtForm
@@ -204,6 +172,6 @@ export function PropertyDebtListing({
           onSubmit={handleUpdateDebt}
         />
       )}
-    </div>
+    </Card>
   );
 }

@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil } from "lucide-react";
+import { Edit2Icon, Trash2, MoreHorizontal, Beef, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -18,13 +15,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 
 import { deleteLivestock } from "@/lib/actions/production-actions";
 import { LivestockForm } from "./livestock-form";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
-import { DeleteButton } from "../common/delete-button";
 import { Livestock, PriceUnit } from "@/schemas/production";
 import { PRICE_UNITS } from "../common/price-unit-selector";
 
@@ -49,6 +64,8 @@ export function LivestockList({
   const [livestock, setLivestock] = useState<Livestock[]>(initialLivestock);
   const [editingItem, setEditingItem] = useState<Livestock | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -64,13 +81,15 @@ export function LivestockList({
   // Função para excluir um item
   const handleDelete = async (id: string) => {
     try {
+      setDeletingItemId(id);
       await deleteLivestock(id);
-      // Atualizar a lista local após exclusão bem-sucedida
       setLivestock(livestock.filter((item) => item.id !== id));
       toast.success("Registro de rebanho excluído com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir registro de rebanho:", error);
       toast.error("Ocorreu um erro ao excluir o registro de rebanho.");
+    } finally {
+      setDeletingItemId(null);
     }
   };
 
@@ -86,6 +105,12 @@ export function LivestockList({
   // Função para adicionar novo item à lista
   const handleAdd = (newItem: Livestock) => {
     setLivestock([...livestock, newItem]);
+    setIsCreateModalOpen(false);
+  };
+
+  // Função para abrir modal de criação
+  const handleCreate = () => {
+    setIsCreateModalOpen(true);
   };
 
   // Ordenar itens por tipo de animal e categoria
@@ -108,32 +133,47 @@ export function LivestockList({
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Registros de Rebanho</CardTitle>
-          <CardDescription>
-            Cadastro de animais por tipo, categoria e propriedade.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {livestock.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              Nenhum registro de rebanho cadastrado. Clique no botão "Novo
-              Animal" para adicionar.
-            </div>
-          ) : (
+    <Card className="shadow-sm border-muted/80">
+      <CardHeaderPrimary
+        title="Registros de Rebanho"
+        icon={<Beef className="h-5 w-5" />}
+        description="Controle do rebanho por tipo de animal e propriedade"
+        action={
+          <Button 
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            onClick={handleCreate}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Animal
+          </Button>
+        }
+        className="mb-4"
+      />
+      <CardContent>
+        {livestock.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground space-y-4">
+            <div>Nenhum registro de rebanho cadastrado.</div>
+            <Button 
+              onClick={handleCreate}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Animal
+            </Button>
+          </div>
+        ) : (
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Quantidade</TableHead>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead>Preço</TableHead>
-                  <TableHead>Valor Total</TableHead>
-                  <TableHead>Propriedade</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                <TableRow className="bg-primary hover:bg-primary">
+                  <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Tipo</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Categoria</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Quantidade</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Unidade</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Preço</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Propriedade</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -142,7 +182,7 @@ export function LivestockList({
                   const totalValue = item.quantidade * item.preco_unitario;
                   return (
                     <TableRow key={item.id}>
-                      <TableCell>{item.tipo_animal}</TableCell>
+                      <TableCell className="font-medium">{item.tipo_animal}</TableCell>
                       <TableCell>{item.categoria}</TableCell>
                       <TableCell>
                         {item.unidade_preco === "CABECA"
@@ -176,46 +216,98 @@ export function LivestockList({
                       <TableCell>{formatCurrency(totalValue)}</TableCell>
                       <TableCell>{propertyName}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(item)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <DeleteButton
-                          title="Excluir Registro"
-                          description="Tem certeza que deseja excluir este registro de rebanho? Esta ação não pode ser desfeita."
-                          onDelete={() => item.id && handleDelete(item.id)}
-                        />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={deletingItemId === item.id}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Ações</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(item)}>
+                              <Edit2Icon className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem 
+                                  onSelect={(e) => e.preventDefault()}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir Registro de Rebanho</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir este registro de rebanho? Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => item.id && handleDelete(item.id)}
+                                    className="bg-destructive text-white hover:bg-destructive/90"
+                                  >
+                                    {deletingItemId === item.id ? "Excluindo..." : "Excluir"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
 
-      {/* Modal de edição */}
-      <FormModal
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        title="Editar Rebanho"
-        description="Faça as alterações necessárias no registro de rebanho."
-        className="sm:max-w-[600px]"
-      >
-        {editingItem && (
+        {/* Modal de criação */}
+        <FormModal
+          open={isCreateModalOpen}
+          onOpenChange={setIsCreateModalOpen}
+          title="Novo Animal"
+          description="Adicione um novo registro de rebanho."
+          className="sm:max-w-[600px]"
+        >
           <LivestockForm
             properties={properties}
             organizationId={organizationId}
-            livestock={editingItem}
-            onSuccess={handleUpdate}
-            onCancel={() => setIsEditModalOpen(false)}
+            onSuccess={handleAdd}
+            onCancel={() => setIsCreateModalOpen(false)}
           />
-        )}
-      </FormModal>
-    </div>
+        </FormModal>
+
+        {/* Modal de edição */}
+        <FormModal
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          title="Editar Rebanho"
+          description="Faça as alterações necessárias no registro de rebanho."
+          className="sm:max-w-[600px]"
+        >
+          {editingItem && (
+            <LivestockForm
+              properties={properties}
+              organizationId={organizationId}
+              livestock={editingItem}
+              onSuccess={handleUpdate}
+              onCancel={() => setIsEditModalOpen(false)}
+            />
+          )}
+        </FormModal>
+      </CardContent>
+    </Card>
   );
 }

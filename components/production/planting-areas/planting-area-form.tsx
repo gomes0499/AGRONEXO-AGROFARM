@@ -47,7 +47,6 @@ import {
   createPlantingArea,
   updatePlantingArea,
 } from "@/lib/actions/production-actions";
-import { formatArea, parseFormattedNumber } from "@/lib/utils/formatters";
 
 // Define interface for the property entity
 interface Property {
@@ -361,46 +360,21 @@ export function PlantingAreaForm({
                     Área (ha)
                   </FormLabel>
                   <FormControl>
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        placeholder="Digite a área em hectares"
-                        {...field}
-                        onChange={(e) => {
-                          // Limpa a formatação e pega apenas números e vírgulas
-                          const cleanValue = e.target.value.replace(
-                            /[^\d.,]/g,
-                            ""
-                          );
-                          // Converte para número para armazenar no form
-                          const numericValue = parseFormattedNumber(cleanValue);
-                          field.onChange(numericValue);
-                        }}
-                        onBlur={(e) => {
-                          field.onBlur();
-                          // Se tiver um valor, formata ele ao sair do campo
-                          if (field.value) {
-                            const formattedValue = formatArea(field.value);
-                            e.target.value = formattedValue;
-                          }
-                        }}
-                        onFocus={(e) => {
-                          // Quando ganhar foco, mostra apenas o número sem formatação
-                          if (field.value) {
-                            e.target.value = field.value.toString();
-                          }
-                        }}
-                        value={
-                          field.value !== undefined && field.value !== null
-                            ? formatArea(field.value)
-                            : ""
-                        }
-                        disabled={isSubmitting}
-                        className="w-full"
-                      />
-                    </div>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Ex: 10.5"
+                      {...field}
+                      onChange={(e) => {
+                        const value = e.target.value ? parseFloat(e.target.value) : 0;
+                        field.onChange(value);
+                      }}
+                      value={field.value || ""}
+                      disabled={isSubmitting}
+                      className="w-full"
+                    />
                   </FormControl>
-
                   <FormMessage />
                 </FormItem>
               )}

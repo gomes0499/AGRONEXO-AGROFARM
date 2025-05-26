@@ -284,9 +284,10 @@ export function ImageUploadCropper({
                 alt="Imagem carregada"
                 width={previewSize.width}
                 height={previewSize.height}
-                className="h-auto w-auto max-w-full object-cover"
+                className="object-cover rounded-md"
                 style={{
-                  aspectRatio: aspectRatio ? aspectRatio : "auto",
+                  width: previewSize.width,
+                  height: previewSize.height,
                 }}
               />
               {onRemoveImage && (
@@ -294,49 +295,97 @@ export function ImageUploadCropper({
                   type="button"
                   size="icon"
                   variant="destructive"
-                  className="absolute right-2 top-2 h-7 w-7 rounded-full"
+                  className={cn(
+                    "absolute rounded-full",
+                    previewSize.width <= 64 ? "right-0 top-0 h-5 w-5" : "right-1 top-1 h-6 w-6"
+                  )}
                   onClick={onRemoveImage}
                 >
-                  <Trash className="h-4 w-4" />
+                  <Trash className={previewSize.width <= 64 ? "h-3 w-3" : "h-4 w-4"} />
                 </Button>
               )}
             </div>
             
             {/* Botão para trocar a imagem */}
-            <div className="mt-2">
-              <div 
-                {...getRootProps()} 
-                className="cursor-pointer"
-              >
-                <input {...getInputProps()} />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  disabled={disabled}
-                  className="gap-2"
+            {previewSize.width > 80 && (
+              <div className="mt-2">
+                <div 
+                  {...getRootProps()} 
+                  className="cursor-pointer"
                 >
-                  <CropIcon className="h-4 w-4" />
-                  Alterar imagem
-                </Button>
+                  <input {...getInputProps()} />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    disabled={disabled}
+                    className="gap-2"
+                  >
+                    <CropIcon className="h-4 w-4" />
+                    Alterar imagem
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
+            
+            {/* Botão compacto para avatares pequenos */}
+            {previewSize.width <= 80 && (
+              <div className="mt-1">
+                <div 
+                  {...getRootProps()} 
+                  className="cursor-pointer"
+                >
+                  <input {...getInputProps()} />
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm"
+                    disabled={disabled}
+                    className={cn(
+                      "gap-1 text-xs",
+                      previewSize.width <= 64 ? "h-6 px-2" : "h-7 px-3"
+                    )}
+                  >
+                    <CropIcon className="h-3 w-3" />
+                    Alterar
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div
             {...getRootProps()}
             className={cn(
-              "flex min-h-[150px] w-full cursor-pointer flex-col items-center justify-center gap-2 p-4 text-center",
+              "flex cursor-pointer flex-col items-center justify-center text-center rounded-md",
+              previewSize.width <= 80 ? "gap-1 p-2" : "gap-2 p-4 w-full min-h-[150px]",
               disabled && "cursor-not-allowed opacity-60"
             )}
+            style={previewSize.width <= 80 ? { 
+              width: previewSize.width, 
+              height: previewSize.height,
+              minHeight: previewSize.height
+            } : {}}
           >
             <input {...getInputProps()} />
-            <ImageIcon className="h-12 w-12 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium">{dropzoneText}</p>
-              <p className="text-xs text-muted-foreground">
-                Formatos suportados: JPG, PNG, WebP • Máximo: {(maxSize / (1024 * 1024)).toFixed(0)}MB
-              </p>
-            </div>
+            <ImageIcon className={cn(
+              "text-muted-foreground",
+              previewSize.width <= 64 ? "h-8 w-8" : 
+              previewSize.width <= 80 ? "h-10 w-10" : "h-12 w-12"
+            )} />
+            {previewSize.width > 80 && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">{dropzoneText}</p>
+                <p className="text-xs text-muted-foreground">
+                  Formatos suportados: JPG, PNG, WebP • Máximo: {(maxSize / (1024 * 1024)).toFixed(0)}MB
+                </p>
+              </div>
+            )}
+            {previewSize.width <= 80 && (
+              <p className={cn(
+                "font-medium text-muted-foreground",
+                previewSize.width <= 48 ? "text-xs" : "text-sm"
+              )}>{dropzoneText}</p>
+            )}
           </div>
         )}
       </div>
