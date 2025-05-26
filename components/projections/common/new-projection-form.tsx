@@ -75,14 +75,14 @@ export function NewProjectionForm({ organization }: NewProjectionFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<ProjecaoConfigFormValues>({
+  const form = useForm({
     resolver: zodResolver(projecaoConfigFormSchema),
     defaultValues: {
       nome: "",
       descricao: "",
       periodo_inicio: new Date().getFullYear(),
       periodo_fim: new Date().getFullYear() + 5,
-      formato_safra: "ANO_SAFRA",
+      formato_safra: "SAFRA_COMPLETA",
       status: "ATIVA",
       eh_padrao: false,
     },
@@ -102,7 +102,7 @@ export function NewProjectionForm({ organization }: NewProjectionFormProps) {
     }
   };
 
-  const handleSubmit = async (data: ProjecaoConfigFormValues) => {
+  const handleSubmit = async (data: any) => {
     setIsLoading(true);
     try {
       const result = await createProjecaoConfig(organization.id, data);
@@ -339,7 +339,7 @@ export function NewProjectionForm({ organization }: NewProjectionFormProps) {
           <div>
             <label className="text-sm font-medium text-muted-foreground">Formato</label>
             <p className="text-sm font-medium">
-              {formData.formato_safra === "ANO_SAFRA" ? "Ano Safra" : "Ano Civil"}
+              {formData.formato_safra === "SAFRA_COMPLETA" ? "Safra Completa" : "Ano Civil"}
             </p>
           </div>
           

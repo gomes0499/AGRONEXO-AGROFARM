@@ -82,8 +82,8 @@ export async function getAreaPlantadaChart(
       let totalSafra = 0;
       
       areas?.forEach(area => {
-        const culturaNome = area.cultura?.nome || 'Não Informado';
-        const sistemaNome = area.sistema?.nome || '';
+        const culturaNome = (area.cultura as any)?.nome || 'Não Informado';
+        const sistemaNome = (area.sistema as any)?.nome || '';
         
         // Criar chave única para cultura + sistema
         let chaveCompleta = culturaNome;
@@ -291,8 +291,8 @@ export async function getProdutividadeChart(
       const culturaMap = new Map<string, { total: number; count: number }>();
       
       produtividades?.forEach(prod => {
-        const culturaNome = prod.cultura?.nome || 'Não Informado';
-        const sistemaNome = prod.sistema?.nome || '';
+        const culturaNome = (prod.cultura as any)?.nome || 'Não Informado';
+        const sistemaNome = (prod.sistema as any)?.nome || '';
         
         // Criar chave única para cultura + sistema
         let chaveCompleta = culturaNome;
@@ -430,8 +430,8 @@ export async function getReceitaChart(
       
       // Processar áreas de plantio
       areas?.forEach(area => {
-        const culturaNome = area.cultura?.nome?.toUpperCase() || 'SOJA';
-        const sistemaNome = area.sistema?.nome || '';
+        const culturaNome = (area.cultura as any)?.nome?.toUpperCase() || 'SOJA';
+        const sistemaNome = (area.sistema as any)?.nome || '';
         
         // Criar chave completa (cultura + sistema para diferenciação)
         let chaveCompleta = culturaNome;
@@ -680,8 +680,8 @@ export async function getFinancialChart(
       
       // Processar áreas de plantio
       areas?.forEach(area => {
-        const culturaNome = area.cultura?.nome?.toUpperCase() || 'SOJA';
-        const sistemaNome = area.sistema?.nome || '';
+        const culturaNome = (area.cultura as any)?.nome?.toUpperCase() || 'SOJA';
+        const sistemaNome = (area.sistema as any)?.nome || '';
         
         let chaveCompleta = culturaNome;
         if (sistemaNome && sistemaNome !== 'SEQUEIRO') {

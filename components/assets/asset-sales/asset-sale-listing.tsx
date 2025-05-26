@@ -294,7 +294,7 @@ export function AssetSaleListing({
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDelete(assetSale.id)}
+                            onClick={() => assetSale.id && handleDelete(assetSale.id)}
                             className="text-destructive"
                             disabled={deletingItemId === assetSale.id}
                           >

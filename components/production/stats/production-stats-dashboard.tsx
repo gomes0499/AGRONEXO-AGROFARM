@@ -126,7 +126,6 @@ export function ProductionStatsDashboard({
           organizationId={organizationId}
           propertyIds={defaultSelectedPropertyIds}
           safraId={safraId}
-          culturaId={culturaId}
         />
       </Suspense>
 

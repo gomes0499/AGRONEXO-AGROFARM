@@ -24,7 +24,7 @@ export function useLeaseForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<LeaseFormValues>({
+  const form = useForm({
     resolver: zodResolver(leaseFormSchema),
     defaultValues: {
       propriedade_id: propertyId, // Adicionar o propertyId

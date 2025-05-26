@@ -91,7 +91,7 @@ export function EquipmentListing({
     searchFields: ["equipamento", "marca", "modelo"],
     categoryField: "equipamento",
     yearField: "ano_fabricacao",
-    typeField: "tipo",
+    // typeField: "tipo", // Commented out as 'tipo' field doesn't exist in equipment schema
     marcaField: "marca",
   });
 
@@ -262,7 +262,7 @@ export function EquipmentListing({
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDelete(equipment.id)}
+                            onClick={() => equipment.id && handleDelete(equipment.id)}
                             className="text-destructive"
                             disabled={deletingItemId === equipment.id}
                           >

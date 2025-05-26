@@ -356,7 +356,7 @@ export function CashFlowTable({
                       key={year.safraId} 
                       className="text-center font-mono min-w-[120px] w-[120px]"
                     >
-                      {formatMillions(-(year.investimentos.terras || 0))}
+                      {formatMillions(0)}
                     </TableCell>
                   ))}
                 </TableRow>

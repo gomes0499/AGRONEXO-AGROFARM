@@ -102,6 +102,7 @@ export function BasicInfoStep({
                 <Input
                   placeholder="Ex: Fazenda São João"
                   {...field}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />
@@ -122,6 +123,7 @@ export function BasicInfoStep({
                 <Input
                   placeholder="Nome do proprietário"
                   {...field}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />
@@ -174,6 +176,7 @@ export function BasicInfoStep({
                   <Input
                     placeholder="Nome da cidade"
                     {...field}
+                    value={field.value ?? ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -222,6 +225,7 @@ export function BasicInfoStep({
                   <Input
                     placeholder="Ex: 12345"
                     {...field}
+                    value={field.value ?? ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -252,6 +256,7 @@ export function BasicInfoStep({
                     step="0.01"
                     placeholder="0.00"
                     {...field}
+                    value={field.value ?? ""}
                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </FormControl>
@@ -275,6 +280,7 @@ export function BasicInfoStep({
                     step="0.01"
                     placeholder="0.00"
                     {...field}
+                    value={field.value ?? ""}
                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </FormControl>
@@ -297,6 +303,7 @@ export function BasicInfoStep({
                     type="number"
                     placeholder="2024"
                     {...field}
+                    value={field.value ?? ""}
                     onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                   />
                 </FormControl>
@@ -336,6 +343,7 @@ export function BasicInfoStep({
                   placeholder="Descreva qualquer ônus ou observação sobre a propriedade..."
                   className="min-h-[80px]"
                   {...field}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />

@@ -9,6 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Calculator } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+type TrendType = "up" | "down" | "neutral";
+
+// Helper function to get trend with correct type
+const getTrend = (condition: boolean, positiveValue?: boolean): TrendType => {
+  if (!condition) return "neutral";
+  if (positiveValue === undefined) return "up";
+  return positiveValue ? "up" : "down";
+};
+
 interface ProjectionCalculationsDashboardProps {
   organizationId: string;
 }
@@ -96,7 +105,15 @@ export function ProjectionCalculationsDashboard({
     sourcesUsed,
   } = calculations;
 
-  const metricsData = [
+  const metricsData: Array<{
+    title: string;
+    value: number;
+    unit?: string;
+    description: string;
+    source: string;
+    formula?: string;
+    trend: TrendType;
+  }> = [
     {
       title: "Área Plantada",
       value: totalArea,
@@ -142,7 +159,7 @@ export function ProjectionCalculationsDashboard({
       value: averageCostPerHa,
       description: "Custo médio por hectare",
       source: "Dados do módulo produção",
-      trend: sourcesUsed.hasCostData ? (averageCostPerHa > 0 ? "down" : "neutral") : "neutral" as const,
+      trend: sourcesUsed.hasCostData ? (averageCostPerHa > 0 ? "down" : "neutral") : "neutral",
     },
     {
       title: "Custo Total",
@@ -158,19 +175,27 @@ export function ProjectionCalculationsDashboard({
       description: "Lucro antes de juros, impostos, depreciação",
       source: "Calculado",
       formula: "Receita - Custo Total",
-      trend: ebitda > 0 ? "up" : ebitda < 0 ? "down" : "neutral" as const,
+      trend: ebitda > 0 ? "up" : ebitda < 0 ? "down" : "neutral",
     },
   ];
 
   // Card especial para EBITDA %
-  const ebitdaPercentCard = {
+  const ebitdaPercentCard: {
+    title: string;
+    value: number;
+    unit: string;
+    description: string;
+    source: string;
+    formula: string;
+    trend: TrendType;
+  } = {
     title: "EBITDA %",
     value: ebitdaPercentage,
     unit: "%",
     description: "Margem EBITDA",
     source: "Calculado",
     formula: "EBITDA ÷ Receita",
-    trend: ebitdaPercentage > 0 ? "up" : ebitdaPercentage < 0 ? "down" : "neutral" as const,
+    trend: ebitdaPercentage > 0 ? "up" : ebitdaPercentage < 0 ? "down" : "neutral",
   };
 
   return (

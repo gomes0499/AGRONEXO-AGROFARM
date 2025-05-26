@@ -1,8 +1,4 @@
-import {
-  MapPin,
-  FileText,
-  MoreHorizontal,
-} from "lucide-react";
+import { MapPin, FileText, MoreHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -27,9 +23,33 @@ interface LocationStepProps {
 }
 
 const ESTADOS = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
-  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
-  "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
 ];
 
 export function LocationStep({ form }: LocationStepProps) {
@@ -46,10 +66,7 @@ export function LocationStep({ form }: LocationStepProps) {
                 Cidade*
               </FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Ex: Sorriso"
-                  {...field}
-                />
+                <Input placeholder="Ex: Sorriso" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -94,10 +111,7 @@ export function LocationStep({ form }: LocationStepProps) {
                 Número da Matrícula*
               </FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Ex: 12345"
-                  {...field}
-                />
+                <Input placeholder="Ex: 12345" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -118,6 +132,7 @@ export function LocationStep({ form }: LocationStepProps) {
                   placeholder="Descreva eventuais ônus sobre a propriedade"
                   className="min-h-[80px]"
                   {...field}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />

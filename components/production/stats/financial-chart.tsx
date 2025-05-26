@@ -285,7 +285,7 @@ export function FinancialChart({
                   strokeWidth={3}
                   dot={{ fill: chartConfig.receitaTotal.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
-                  name={chartConfig.receitaTotal.label}
+                  name={chartConfig.receitaTotal.label as string}
                 />
                 
                 {/* Custo Total */}
@@ -296,7 +296,7 @@ export function FinancialChart({
                   strokeWidth={3}
                   dot={{ fill: chartConfig.custoTotal.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
-                  name={chartConfig.custoTotal.label}
+                  name={chartConfig.custoTotal.label as string}
                 />
                 
                 {/* EBITDA */}
@@ -307,7 +307,7 @@ export function FinancialChart({
                   strokeWidth={3}
                   dot={{ fill: chartConfig.ebitda.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
-                  name={chartConfig.ebitda.label}
+                  name={chartConfig.ebitda.label as string}
                 />
                 
                 {/* Lucro Líquido */}
@@ -318,7 +318,7 @@ export function FinancialChart({
                   strokeWidth={3}
                   dot={{ fill: chartConfig.lucroLiquido.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
-                  name={chartConfig.lucroLiquido.label}
+                  name={chartConfig.lucroLiquido.label as string}
                 />
               </LineChart>
             </ResponsiveContainer>

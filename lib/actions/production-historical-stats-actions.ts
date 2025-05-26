@@ -185,7 +185,7 @@ async function calculateAreaPlantada(
   
   if (error || !data) return 0;
   
-  return data.reduce((sum, area) => sum + (area.area || 0), 0);
+  return data.reduce((sum: number, area: any) => sum + (area.area || 0), 0);
 }
 
 // Função auxiliar para calcular produtividade média
@@ -202,7 +202,7 @@ async function calculateProdutividadeMedia(
 
   if (error || !data || data.length === 0) return 0;
 
-  const total = data.reduce((sum, prod) => sum + (prod.produtividade || 0), 0);
+  const total = data.reduce((sum: number, prod: any) => sum + (prod.produtividade || 0), 0);
   return total / data.length;
 }
 
@@ -258,11 +258,11 @@ async function calculateReceita(
   // Agrupar áreas por cultura
   const areasPorCultura = new Map<string, {area: number, produtividade: number}>();
   
-  areas.forEach(area => {
+  areas.forEach((area: any) => {
     const culturaNome = area.cultura?.nome?.toUpperCase() || 'SOJA';
     const areaValue = area.area || 0;
     
-    const produtividadeCorrespondente = productivity.find(p => 
+    const produtividadeCorrespondente = productivity.find((p: any) => 
       p.cultura_id === area.cultura_id && 
       p.sistema_id === area.sistema_id
     );
@@ -289,7 +289,7 @@ async function calculateReceita(
     
     let preco = 0;
     for (const commodityType of commodityTypes) {
-      const commodityPrice = commodityPrices.find(p => p.commodity_type === commodityType);
+      const commodityPrice = commodityPrices.find((p: any) => p.commodity_type === commodityType);
       if (commodityPrice?.current_price) {
         preco = commodityPrice.current_price;
         break;
@@ -339,16 +339,16 @@ async function calculateEbitda(
 
   let custoTotal = 0;
   
-  areas.forEach(area => {
+  areas.forEach((area: any) => {
     const areaValue = area.area || 0;
     
-    const custosEspecificos = costs.filter(custo => {
+    const custosEspecificos = costs.filter((custo: any) => {
       return custo.cultura_id === area.cultura_id && 
              custo.sistema_id === area.sistema_id;
     });
     
     if (custosEspecificos.length > 0) {
-      const custoPorHectare = custosEspecificos.reduce((sum, custo) => sum + (custo.valor || 0), 0);
+      const custoPorHectare = custosEspecificos.reduce((sum: number, custo: any) => sum + (custo.valor || 0), 0);
       custoTotal += custoPorHectare * areaValue;
     }
   });

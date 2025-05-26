@@ -138,7 +138,6 @@ export async function createProjecaoCultura(
     const { data: result, error } = await supabase
       .from('projecoes_culturas')
       .insert({
-        organizacao_id: organizationId,
         ...data
       })
       .select(`
@@ -253,8 +252,8 @@ export async function createProjecaoDivida(
     const { data: result, error } = await supabase
       .from('projecoes_dividas')
       .insert({
-        organizacao_id: organizationId,
-        ...data
+        ...data,
+        organizacao_id: organizationId
       })
       .select()
       .single()
@@ -358,8 +357,8 @@ export async function createProjecaoCaixa(
     const { data: result, error } = await supabase
       .from('projecoes_caixa_disponibilidades')
       .insert({
-        organizacao_id: organizationId,
-        ...data
+        ...data,
+        organizacao_id: organizationId
       })
       .select()
       .single()
@@ -462,8 +461,8 @@ export async function createProjecaoFluxoCaixa(
     const { data: result, error } = await supabase
       .from('projecoes_fluxo_caixa')
       .insert({
-        organizacao_id: organizationId,
-        ...data
+        ...data,
+        organizacao_id: organizationId
       })
       .select()
       .single()
@@ -566,8 +565,8 @@ export async function createProjecaoCenario(
     const { data: result, error } = await supabase
       .from('projecoes_cenarios')
       .insert({
-        organizacao_id: organizationId,
-        ...data
+        ...data,
+        organizacao_id: organizationId
       })
       .select()
       .single()
@@ -1000,21 +999,29 @@ export async function getProductionCombinations(organizationId: string) {
     if (error) throw error
 
     // Formatar as combinações para o select
-    const combinations = data?.map(item => ({
-      id: `${item.propriedade_id}_${item.cultura_id}_${item.sistema_id}_${item.ciclo_id}_${item.safra_id}`,
-      propriedade_id: item.propriedade_id,
-      cultura_id: item.cultura_id,
-      sistema_id: item.sistema_id,
-      ciclo_id: item.ciclo_id,
-      safra_id: item.safra_id,
-      area: item.area,
-      label: `${item.propriedades?.nome} - ${item.culturas?.nome} - ${item.sistemas?.nome} - ${item.ciclos?.nome} - ${item.safras?.nome}`,
-      propriedade_nome: item.propriedades?.nome,
-      cultura_nome: item.culturas?.nome,
-      sistema_nome: item.sistemas?.nome,
-      ciclo_nome: item.ciclos?.nome,
-      safra_nome: item.safras?.nome
-    })) || []
+    const combinations = data?.map(item => {
+      const propriedade = Array.isArray(item.propriedades) ? item.propriedades[0] : item.propriedades;
+      const cultura = Array.isArray(item.culturas) ? item.culturas[0] : item.culturas;
+      const sistema = Array.isArray(item.sistemas) ? item.sistemas[0] : item.sistemas;
+      const ciclo = Array.isArray(item.ciclos) ? item.ciclos[0] : item.ciclos;
+      const safra = Array.isArray(item.safras) ? item.safras[0] : item.safras;
+      
+      return {
+        id: `${item.propriedade_id}_${item.cultura_id}_${item.sistema_id}_${item.ciclo_id}_${item.safra_id}`,
+        propriedade_id: item.propriedade_id,
+        cultura_id: item.cultura_id,
+        sistema_id: item.sistema_id,
+        ciclo_id: item.ciclo_id,
+        safra_id: item.safra_id,
+        area: item.area,
+        label: `${propriedade?.nome} - ${cultura?.nome} - ${sistema?.nome} - ${ciclo?.nome} - ${safra?.nome}`,
+        propriedade_nome: propriedade?.nome,
+        cultura_nome: cultura?.nome,
+        sistema_nome: sistema?.nome,
+        ciclo_nome: ciclo?.nome,
+        safra_nome: safra?.nome
+      };
+    }) || []
 
     return { success: true, data: combinations }
   } catch (error) {

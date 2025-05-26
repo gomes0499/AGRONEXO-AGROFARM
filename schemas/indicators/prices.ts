@@ -83,11 +83,17 @@ const commodityPriceBaseSchema = z.object({
   commodityType: CommodityType,
   unit: z.string().min(1, { message: "Unidade é obrigatória" }),
   currentPrice: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }),
+  price2020: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }).optional(),
+  price2021: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }).optional(),
+  price2022: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }).optional(),
+  price2023: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }).optional(),
+  price2024: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }).optional(),
   price2025: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }),
   price2026: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }),
   price2027: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }),
   price2028: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }),
   price2029: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }),
+  price2030: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }).optional(),
 });
 
 // Schema for creating a new commodity price record

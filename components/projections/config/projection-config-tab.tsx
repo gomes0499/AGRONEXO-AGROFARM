@@ -21,7 +21,7 @@ export function ProjectionConfigTab({ organizationId }: ProjectionConfigTabProps
         const result = await getProjecoesConfig(organizationId);
         
         if ('error' in result) {
-          setError(result.error);
+          setError(result.error ?? null);
         } else {
           setConfigs(result.data);
         }

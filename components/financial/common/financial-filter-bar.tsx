@@ -27,7 +27,7 @@ export interface FinancialFilterBarProps {
     instituicao?: string;
     categoria?: string;
   };
-  onFiltersChange: (key: string, value: string | undefined) => void;
+  onFiltersChange: (key: keyof FinancialFilterBarProps['filters'], value: string | undefined) => void;
   filterOptions: {
     modalidades?: { value: string; label: string }[];
     years?: { value: string; label: string }[];
@@ -52,7 +52,7 @@ export function FinancialFilterBar({
   const clearFilters = () => {
     onSearchChange("");
     Object.keys(filters).forEach(key => {
-      onFiltersChange(key, undefined);
+      onFiltersChange(key as keyof FinancialFilterBarProps['filters'], undefined);
     });
   };
 

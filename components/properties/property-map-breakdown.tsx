@@ -389,7 +389,7 @@ function PropertyMapBreakdownContent({
             <div className="space-y-4">
               {/* Lista de estados com indicadores */}
               <div className="space-y-2">
-                {geoStats.estadosData.slice(0, 5).map((estado, index) => (
+                {geoStats.estadosData.slice(0, 5).map((estado: any, index: number) => (
                   <div
                     key={estado.estado}
                     className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
@@ -457,7 +457,7 @@ function PropertyMapBreakdownContent({
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {geoStats.estadosData.map((estado) => (
+              {geoStats.estadosData.map((estado: any) => (
                 <div key={estado.estado} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h4 className="font-semibold text-sm uppercase tracking-wide">

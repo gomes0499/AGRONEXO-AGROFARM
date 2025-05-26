@@ -228,7 +228,7 @@ export async function getDynamicProjectionData(
       let totalAreaWithPrice = 0;
 
       areasForSafra.forEach(area => {
-        const culturaNome = area.culturas?.nome?.toUpperCase();
+        const culturaNome = (area.culturas as any)?.nome?.toUpperCase();
         let price = 0;
 
         if (commodityPrices && commodityPrices.length > 0) {

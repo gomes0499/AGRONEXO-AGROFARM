@@ -39,6 +39,7 @@ export function ValuesStep({ form }: ValuesStepProps) {
                   step="0.01"
                   placeholder="0.00"
                   {...field}
+                  value={field.value ?? ""}
                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                 />
               </FormControl>
@@ -65,6 +66,7 @@ export function ValuesStep({ form }: ValuesStepProps) {
                   step="0.01"
                   placeholder="0.00"
                   {...field}
+                  value={field.value ?? ""}
                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                 />
               </FormControl>
@@ -91,6 +93,7 @@ export function ValuesStep({ form }: ValuesStepProps) {
                   step="0.01"
                   placeholder="0.00"
                   {...field}
+                  value={field.value ?? ""}
                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                 />
               </FormControl>
@@ -117,6 +120,7 @@ export function ValuesStep({ form }: ValuesStepProps) {
                   step="0.01"
                   placeholder="0.00"
                   {...field}
+                  value={field.value ?? ""}
                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                 />
               </FormControl>

@@ -57,11 +57,11 @@ export default async function ProjectionsPage() {
           </TabsContent>
 
           <TabsContent value="debts" className="space-y-4">
-            <DebtProjectionTab organizationId={organizationId} />
+            <DebtProjectionTab organizationId={organizationId} activeConfigId={null} />
           </TabsContent>
 
           <TabsContent value="cash-flow" className="space-y-4">
-            <CashFlowProjectionTab organizationId={organizationId} />
+            <CashFlowProjectionTab organizationId={organizationId} activeConfigId={null} />
           </TabsContent>
         </div>
       </Tabs>

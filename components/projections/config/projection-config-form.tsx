@@ -65,7 +65,7 @@ export function ProjectionConfigForm({
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!initialData;
 
-  const form = useForm<ProjecaoConfigFormValues>({
+  const form = useForm({
     resolver: zodResolver(projecaoConfigFormSchema),
     defaultValues: {
       nome: "",
@@ -102,7 +102,7 @@ export function ProjectionConfigForm({
     }
   }, [initialData, form]);
 
-  const onSubmit = async (data: ProjecaoConfigFormValues) => {
+  const onSubmit = async (data: any) => {
     setIsLoading(true);
     try {
       console.log("Dados do formulário:", data);

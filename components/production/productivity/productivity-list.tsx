@@ -154,10 +154,10 @@ export function ProductivityList({
 
   // Criar opções para filtros
   const filterOptions = {
-    safras: harvests.map(h => ({ value: h.id, label: h.nome })),
-    culturas: cultures.map(c => ({ value: c.id, label: c.nome })),
-    sistemas: systems.map(s => ({ value: s.id, label: s.nome })),
-    propriedades: properties.map(p => ({ value: p.id, label: p.nome })),
+    safras: harvests.filter(h => h.id).map(h => ({ value: h.id!, label: h.nome })),
+    culturas: cultures.filter(c => c.id).map(c => ({ value: c.id!, label: c.nome })),
+    sistemas: systems.filter(s => s.id).map(s => ({ value: s.id!, label: s.nome })),
+    propriedades: properties.filter(p => p.id).map(p => ({ value: p.id!, label: p.nome })),
   };
 
   // Ordenar itens paginados por safra e cultura

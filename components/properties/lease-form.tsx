@@ -94,7 +94,7 @@ export function LeaseForm({
     (currentYear + i).toString()
   );
 
-  const form = useForm<LeaseFormValues>({
+  const form = useForm({
     resolver: zodResolver(leaseFormSchema),
     mode: "onSubmit", // Só validar quando o usuário submeter o formulário
     defaultValues: {
@@ -116,7 +116,7 @@ export function LeaseForm({
     },
   });
 
-  const onSubmit = async (values: LeaseFormValues) => {
+  const onSubmit = async (values: any) => {
     try {
       setIsSubmitting(true);
       
@@ -132,7 +132,7 @@ export function LeaseForm({
         await updateLease(lease.id!, values);
         toast.success("Arrendamento atualizado com sucesso!");
       } else {
-        await createLease(organizationId, values);
+        await createLease(organizationId, propertyId, values);
         toast.success("Arrendamento criado com sucesso!");
       }
       

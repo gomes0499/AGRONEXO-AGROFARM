@@ -246,8 +246,8 @@ async function calculateReceitasPorCultura(
   };
 
   areas?.forEach(area => {
-    const culturaNome = area.culturas?.nome?.toUpperCase() || '';
-    const sistemaNome = area.sistemas?.nome?.toUpperCase() || '';
+    const culturaNome = (area.culturas as any)?.nome?.toUpperCase() || '';
+    const sistemaNome = (area.sistemas as any)?.nome?.toUpperCase() || '';
     
     // Buscar produtividade
     const prod = productivities?.find(p => 
@@ -376,8 +376,8 @@ async function calculateDespesasPorCultura(
   };
 
   areas?.forEach(area => {
-    const culturaNome = area.culturas?.nome?.toUpperCase() || '';
-    const sistemaNome = area.sistemas?.nome?.toUpperCase() || '';
+    const culturaNome = (area.culturas as any)?.nome?.toUpperCase() || '';
+    const sistemaNome = (area.sistemas as any)?.nome?.toUpperCase() || '';
     
     // Buscar custos para esta área
     const areaCosts = costs?.filter(c => 

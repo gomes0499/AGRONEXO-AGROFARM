@@ -31,7 +31,7 @@ import type { UseFormReturn } from "react-hook-form";
 import type { LeaseFormValues } from "@/schemas/properties";
 
 interface LeaseFormStepProps {
-  form: UseFormReturn<LeaseFormValues>;
+  form: UseFormReturn<any>;
 }
 
 export function LeaseFormStep({ form }: LeaseFormStepProps) {

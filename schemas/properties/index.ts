@@ -59,7 +59,7 @@ export const leaseSchema = z.object({
   data_termino: z.coerce.date(),
   custo_hectare: z.coerce.number().min(0, "Custo por hectare deve ser positivo"),
   custo_ano: z.coerce.number().min(0, "Custo anual deve ser positivo"),
-  custos_projetados_anuais: z.record(z.string(), z.number()).or(z.string()).optional().default({}),
+  custos_projetados_anuais: z.record(z.string(), z.number()).or(z.string()).default({}),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

@@ -21,7 +21,7 @@ export function ScenarioProjectionTab({ organizationId }: ScenarioProjectionTabP
         const result = await getProjecoesCenarios(organizationId);
         
         if ('error' in result) {
-          setError(result.error);
+          setError(result.error ?? null);
         } else {
           setScenarios(result.data);
         }

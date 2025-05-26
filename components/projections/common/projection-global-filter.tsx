@@ -232,7 +232,7 @@ export function ProjectionGlobalFilter({
             getItemId={(item) => item.id}
             getItemLabel={(item) => item.nome}
             getItemDescription={(item) => 
-              item.cidade && item.estado ? `${item.cidade}/${item.estado}` : undefined
+              item.cidade && item.estado ? `${item.cidade}/${item.estado}` : ""
             }
             placeholder="Buscar propriedade..."
             emptyMessage="Nenhuma propriedade encontrada."

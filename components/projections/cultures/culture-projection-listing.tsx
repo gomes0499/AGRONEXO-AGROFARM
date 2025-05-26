@@ -84,7 +84,7 @@ export function CultureProjectionListing({
         const result = await getProjecoesCulturas(organizationId, activeConfigId);
         
         if ('error' in result) {
-          setError(result.error);
+          setError(result.error ?? null);
           setProjections([]);
         } else {
           // Aplicar filtros globais aos dados

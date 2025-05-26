@@ -296,7 +296,7 @@ export function ProdutividadeChart({
                       strokeWidth={2}
                       dot={{ fill: cor, strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6, strokeWidth: 2 }}
-                      name={chartConfig[cultura]?.label || cultura}
+                      name={String(chartConfig[cultura]?.label || cultura)}
                     />
                   );
                 })}

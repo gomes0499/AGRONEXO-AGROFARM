@@ -288,7 +288,7 @@ export function AreaPlantadaChart({
                       dataKey={cultura}
                       stackId="area"
                       fill={cor}
-                      name={chartConfig[cultura]?.label || cultura}
+                      name={String(chartConfig[cultura]?.label || cultura)}
                     />
                   );
                 })}

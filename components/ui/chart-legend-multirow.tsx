@@ -47,7 +47,7 @@ const ChartLegendMultirow = React.forwardRef<
       )}
       {...domProps}
     >
-      {payload.map((item, index) => (
+      {payload.map((item: any, index: number) => (
         <div
           key={`legend-item-${index}`}
           className={cn(

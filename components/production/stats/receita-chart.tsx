@@ -335,7 +335,7 @@ export function ReceitaChart({
                       dataKey={cultura}
                       stackId="receita"
                       fill={cor}
-                      name={chartConfig[cultura]?.label || cultura}
+                      name={String(chartConfig[cultura]?.label || cultura)}
                     />
                   );
                 })}

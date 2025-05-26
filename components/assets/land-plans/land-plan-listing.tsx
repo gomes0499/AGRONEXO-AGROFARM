@@ -268,7 +268,7 @@ export function LandPlanListing({
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDelete(landPlan.id)}
+                            onClick={() => landPlan.id && handleDelete(landPlan.id)}
                             className="text-destructive"
                             disabled={deletingItemId === landPlan.id}
                           >

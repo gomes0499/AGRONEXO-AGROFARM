@@ -234,7 +234,7 @@ export function DashboardGlobalFilter({
             getItemDescription={(item) =>
               item.cidade && item.estado
                 ? `${item.cidade}/${item.estado}`
-                : undefined
+                : ""
             }
             placeholder="Buscar propriedade..."
             emptyMessage="Nenhuma propriedade encontrada."

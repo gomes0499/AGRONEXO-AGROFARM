@@ -26,11 +26,11 @@ interface ProjecaoConfig {
   descricao?: string;
   periodo_inicio: number;
   periodo_fim: number;
-  formato_safra: "ANO_SAFRA" | "ANO_CIVIL";
+  formato_safra: "SAFRA_COMPLETA" | "ANO_CIVIL";
   status: "ATIVA" | "INATIVA" | "ARQUIVADA";
   eh_padrao: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface ProjectionConfigListingProps {
@@ -142,7 +142,7 @@ export function ProjectionConfigListing({
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {config.formato_safra === "ANO_SAFRA" ? "Ano Safra" : "Ano Civil"}
+                          {config.formato_safra === "SAFRA_COMPLETA" ? "Safra Completa" : "Ano Civil"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -161,7 +161,7 @@ export function ProjectionConfigListing({
                         )}
                       </TableCell>
                       <TableCell>
-                        {formatDate(config.created_at)}
+                        {config.created_at ? formatDate(config.created_at) : "-"}
                       </TableCell>
                       <TableCell>
                         <ProjectionConfigRowActions

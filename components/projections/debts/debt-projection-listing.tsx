@@ -132,7 +132,13 @@ export function DebtProjectionListing({
                           valor: projection.valor,
                           ano: projection.ano,
                         }}
-                        onEdit={handleEdit}
+                        onEdit={(debtProjection) => {
+                          // Convert DebtProjection back to ProjecaoDivida for the handler
+                          const fullProjection = projections.find(p => p.id === debtProjection.id);
+                          if (fullProjection) {
+                            handleEdit(fullProjection);
+                          }
+                        }}
                         onDelete={handleDelete}
                       />
                     </TableCell>

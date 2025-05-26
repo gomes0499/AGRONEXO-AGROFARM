@@ -110,10 +110,10 @@ export function CultureProjectionForm({
           getCommodityPricesForProjection(organizationId),
         ]);
 
-        if ("data" in combinationsResult) {
+        if ("data" in combinationsResult && combinationsResult.data) {
           setProductionCombinations(combinationsResult.data);
         }
-        if ("data" in pricesResult) {
+        if ("data" in pricesResult && pricesResult.data) {
           setCommodityPrices(pricesResult.data);
         }
       } catch (error) {
@@ -147,7 +147,7 @@ export function CultureProjectionForm({
         safra_id: combination.safra_id,
       });
 
-      if ("data" in result) {
+      if ("data" in result && result.data) {
         const { data } = result;
 
         console.log("Dados recebidos no formulário:", data);
@@ -213,9 +213,9 @@ export function CultureProjectionForm({
 
         // Notificar sucesso com detalhes dos dados encontrados
         const foundData = [];
-        if (data.area_plantada > 0) foundData.push("área");
-        if (data.produtividade > 0) foundData.push("produtividade");
-        if (data.custo_por_hectare > 0) foundData.push("custo");
+        if (data?.area_plantada > 0) foundData.push("área");
+        if (data?.produtividade > 0) foundData.push("produtividade");
+        if (data?.custo_por_hectare > 0) foundData.push("custo");
         if (price > 0) foundData.push("preço");
 
         if (foundData.length > 0) {
@@ -473,7 +473,6 @@ export function CultureProjectionForm({
                 label="Preço Unitário"
                 control={form.control}
                 placeholder="R$ 0,00"
-                required
               />
             </div>
 
@@ -492,7 +491,6 @@ export function CultureProjectionForm({
                 label="Custo por Hectare (R$/ha)"
                 control={form.control}
                 placeholder="R$ 0,00"
-                required
               />
             </div>
           </div>
@@ -582,7 +580,7 @@ export function CultureProjectionForm({
               description: "EBITDA ÷ Receita",
             },
           ]}
-          columns={5}
+          columns={4}
         />
       </div>
     </div>

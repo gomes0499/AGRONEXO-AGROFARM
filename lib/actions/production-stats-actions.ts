@@ -149,7 +149,7 @@ export async function getProductionStats(
     const totalCulturas = cultures?.length || 0;
     
     // Produtividade média
-    const produtividadeMedia = productivity?.length > 0
+    const produtividadeMedia = (productivity && productivity.length > 0)
       ? productivity.reduce((sum, prod) => sum + (prod.produtividade || 0), 0) / productivity.length
       : 0; // Zero se não houver dados
     

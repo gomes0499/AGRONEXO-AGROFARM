@@ -21,7 +21,7 @@ export function CashProjectionTab({ organizationId }: CashProjectionTabProps) {
         const result = await getProjecoesCaixa(organizationId);
         
         if ('error' in result) {
-          setError(result.error);
+          setError(result.error ?? null);
         } else {
           setProjections(result.data);
         }

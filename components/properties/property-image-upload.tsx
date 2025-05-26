@@ -218,7 +218,7 @@ export function PropertyImageUpload({
         {showLabel && (
           <div className="mb-2 text-sm font-medium">Imagem da Propriedade</div>
         )}
-        <div className={variant === "default" ? "w-full" : ""}>
+        <div className={variant === "compact" ? "w-full" : ""}>
           {isUploading ? (
             <div
               className="flex items-center justify-center rounded-full border border-dashed border-gray-300"

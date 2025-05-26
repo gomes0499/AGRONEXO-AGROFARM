@@ -212,7 +212,7 @@ export async function getProductionCalculations(
     if (commodityPrices && commodityPrices.length > 0) {
       // Para cada área, buscar o preço correspondente à cultura
       areas.forEach(area => {
-        const culturaNome = area.culturas?.nome?.toUpperCase();
+        const culturaNome = (area.culturas as any)?.nome?.toUpperCase();
         let price = 0;
 
         if (culturaNome?.includes('SOJA')) {

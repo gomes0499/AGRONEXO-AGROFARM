@@ -149,22 +149,10 @@ export function CashProjectionForm({
             </div>
           </CardHeader>
           <CardContent>
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="caixa_bancos"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Caixa e Bancos</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Caixa e Bancos"
+              control={form.control}
             />
           </CardContent>
         </Card>
@@ -180,58 +168,22 @@ export function CashProjectionForm({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="clientes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Clientes</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Clientes"
+              control={form.control}
             />
 
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="adiantamentos_fornecedores"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Adiantamentos a Fornecedores</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Adiantamentos a Fornecedores"
+              control={form.control}
             />
 
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="emprestimos_terceiros"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Empréstimos a Terceiros</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Empréstimos a Terceiros"
+              control={form.control}
             />
           </CardContent>
         </Card>
@@ -247,76 +199,28 @@ export function CashProjectionForm({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="estoque_defensivos"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Defensivos</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Defensivos"
+              control={form.control}
             />
 
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="estoque_fertilizantes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fertilizantes</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Fertilizantes"
+              control={form.control}
             />
 
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="estoque_almoxarifado"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Almoxarifado</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Almoxarifado"
+              control={form.control}
             />
 
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="estoque_commodities"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Commodities</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Commodities"
+              control={form.control}
             />
           </CardContent>
         </Card>
@@ -332,40 +236,16 @@ export function CashProjectionForm({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="rebanho"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rebanho</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Rebanho"
+              control={form.control}
             />
 
-            <FormField
-              control={form.control}
+            <CurrencyField
               name="ativo_biologico"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Culturas Permanentes</FormLabel>
-                  <FormControl>
-                    <CurrencyField
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="0,00"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Culturas Permanentes"
+              control={form.control}
             />
           </CardContent>
         </Card>

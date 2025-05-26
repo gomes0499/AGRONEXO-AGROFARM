@@ -30,13 +30,13 @@ export function CultureProjectionTab({ organizationId, projecaoConfigId }: Cultu
         let configId = projecaoConfigId;
         if (!configId) {
           const configResult = await getProjecoesConfig(organizationId);
-          if ('data' in configResult && configResult.data.length > 0) {
+          if ('data' in configResult && configResult.data && configResult.data.length > 0) {
             // Busca configuração padrão ou a primeira ativa
             const defaultConfig = configResult.data.find(c => c.eh_padrao && c.status === 'ATIVA') ||
                                 configResult.data.find(c => c.status === 'ATIVA');
-            if (defaultConfig) {
+            if (defaultConfig?.id) {
               configId = defaultConfig.id;
-              setActiveConfigId(configId);
+              setActiveConfigId(defaultConfig.id ?? null);
             }
           }
         }
@@ -45,7 +45,7 @@ export function CultureProjectionTab({ organizationId, projecaoConfigId }: Cultu
           const result = await getProjecoesCulturas(organizationId, configId);
           
           if ('error' in result) {
-            setError(result.error);
+            setError(result.error ?? null);
           } else {
             // Aplicar filtros aos dados
             let filteredData = result.data;

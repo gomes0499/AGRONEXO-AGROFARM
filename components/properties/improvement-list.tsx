@@ -57,11 +57,10 @@ export function ImprovementList({
       <CardHeaderPrimary 
         icon={<Building className="h-4 w-4" />}
         title="Benfeitorias"
-        description="Infraestrutura e melhorias realizadas na propriedade"
-        subtitle={
+        description={
           improvements.length > 0 
-            ? `${improvements.length} ${improvements.length === 1 ? 'item' : 'itens'} • Valor total: ${formatCurrency(totalValue)}`
-            : undefined
+            ? `Infraestrutura e melhorias realizadas na propriedade • ${improvements.length} ${improvements.length === 1 ? 'item' : 'itens'} • Valor total: ${formatCurrency(totalValue)}`
+            : "Infraestrutura e melhorias realizadas na propriedade"
         }
         action={
           propertyId && (

@@ -79,7 +79,16 @@ export function NewLandPlanButton({ organizationId }: NewLandPlanButtonProps) {
         onSubmit={form.handleSubmit(handleSubmit)}
       >
         <Form {...form}>
-          <LandPlanForm form={form} />
+          <LandPlanForm 
+            organizationId={organizationId}
+            onSubmit={(data) => {
+              form.setValue('nome_fazenda', data.nome_fazenda);
+              form.setValue('ano', data.ano);
+              form.setValue('hectares', data.hectares);
+              form.setValue('sacas', data.sacas);
+              form.setValue('valor_total', data.valor_total);
+            }}
+          />
         </Form>
       </AssetFormModal>
     </>

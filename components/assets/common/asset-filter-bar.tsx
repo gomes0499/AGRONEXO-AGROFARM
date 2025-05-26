@@ -26,7 +26,7 @@ export interface AssetFilterBarProps {
     type?: string;
     marca?: string;
   };
-  onFilterChange: (key: string, value: string | undefined) => void;
+  onFilterChange: (key: keyof AssetFilterBarProps['filters'], value: string | undefined) => void;
   filterOptions: {
     categories?: { value: string; label: string }[];
     years?: { value: string; label: string }[];

@@ -167,7 +167,7 @@ export default async function FinancialPage() {
             <TabsContent value="property-debts" className="space-y-4">
               <PropertyDebtListing
                 organization={organization}
-                initialPropertyDebts={propertyDebts}
+                initialPropertyDebts={propertyDebts.filter((debt): debt is typeof debt & { propriedade: NonNullable<typeof debt.propriedade> } => debt.propriedade !== null)}
               />
             </TabsContent>
 
