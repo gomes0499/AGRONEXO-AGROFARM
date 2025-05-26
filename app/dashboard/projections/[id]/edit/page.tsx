@@ -2,28 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ArrowLeft, 
-  Save, 
+import {
+  ArrowLeft,
+  Save,
   FileText,
   Settings,
   BarChart3,
   DollarSign,
   TrendingUp,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 
-interface ProjectionEditPageProps {
-  params: { id: string };
-}
-
-export default function ProjectionEditPage({ params }: ProjectionEditPageProps) {
+export default function ProjectionEditPage({ params }: any) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -58,7 +60,7 @@ export default function ProjectionEditPage({ params }: ProjectionEditPageProps) 
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setProjection(prev => ({ ...prev, [field]: value }));
+    setProjection((prev) => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
 
@@ -110,31 +112,19 @@ export default function ProjectionEditPage({ params }: ProjectionEditPageProps) 
         </TabsList>
 
         <TabsContent value="basic">
-          <BasicInfoTab 
-            projection={projection} 
-            onChange={handleInputChange} 
-          />
+          <BasicInfoTab projection={projection} onChange={handleInputChange} />
         </TabsContent>
 
         <TabsContent value="settings">
-          <SettingsTab 
-            projection={projection} 
-            onChange={handleInputChange} 
-          />
+          <SettingsTab projection={projection} onChange={handleInputChange} />
         </TabsContent>
 
         <TabsContent value="data">
-          <DataImportTab 
-            projection={projection} 
-            onChange={handleInputChange} 
-          />
+          <DataImportTab projection={projection} onChange={handleInputChange} />
         </TabsContent>
 
         <TabsContent value="advanced">
-          <AdvancedTab 
-            projection={projection} 
-            onChange={handleInputChange} 
-          />
+          <AdvancedTab projection={projection} onChange={handleInputChange} />
         </TabsContent>
       </Tabs>
     </div>
@@ -264,7 +254,7 @@ function SettingsTab({ projection, onChange }: any) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h4 className="font-medium">Configurações Gerais</h4>
-            
+
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <div>
                 <p className="font-medium">Atualização Automática</p>
@@ -275,7 +265,9 @@ function SettingsTab({ projection, onChange }: any) {
               <input
                 type="checkbox"
                 checked={settings.auto_update}
-                onChange={(e) => setSettings({...settings, auto_update: e.target.checked})}
+                onChange={(e) =>
+                  setSettings({ ...settings, auto_update: e.target.checked })
+                }
                 className="w-4 h-4"
               />
             </div>
@@ -290,7 +282,12 @@ function SettingsTab({ projection, onChange }: any) {
               <input
                 type="checkbox"
                 checked={settings.notification_enabled}
-                onChange={(e) => setSettings({...settings, notification_enabled: e.target.checked})}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    notification_enabled: e.target.checked,
+                  })
+                }
                 className="w-4 h-4"
               />
             </div>
@@ -298,12 +295,14 @@ function SettingsTab({ projection, onChange }: any) {
 
           <div className="space-y-4">
             <h4 className="font-medium">Formatação</h4>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Moeda Padrão</label>
               <select
                 value={settings.currency}
-                onChange={(e) => setSettings({...settings, currency: e.target.value})}
+                onChange={(e) =>
+                  setSettings({ ...settings, currency: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-input bg-background rounded-md"
               >
                 <option value="BRL">Real (BRL)</option>
@@ -313,10 +312,14 @@ function SettingsTab({ projection, onChange }: any) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Formato de Exportação</label>
+              <label className="text-sm font-medium">
+                Formato de Exportação
+              </label>
               <select
                 value={settings.export_format}
-                onChange={(e) => setSettings({...settings, export_format: e.target.value})}
+                onChange={(e) =>
+                  setSettings({ ...settings, export_format: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-input bg-background rounded-md"
               >
                 <option value="EXCEL">Excel (.xlsx)</option>
@@ -329,7 +332,12 @@ function SettingsTab({ projection, onChange }: any) {
               <label className="text-sm font-medium">Precisão Decimal</label>
               <select
                 value={settings.precision}
-                onChange={(e) => setSettings({...settings, precision: Number(e.target.value)})}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    precision: Number(e.target.value),
+                  })
+                }
                 className="w-full px-3 py-2 border border-input bg-background rounded-md"
               >
                 <option value={0}>0 casas decimais</option>
@@ -374,7 +382,12 @@ function DataImportTab({ projection, onChange }: any) {
             <input
               type="checkbox"
               checked={importSettings.auto_import}
-              onChange={(e) => setImportSettings({...importSettings, auto_import: e.target.checked})}
+              onChange={(e) =>
+                setImportSettings({
+                  ...importSettings,
+                  auto_import: e.target.checked,
+                })
+              }
               className="w-4 h-4"
             />
           </div>
@@ -387,22 +400,44 @@ function DataImportTab({ projection, onChange }: any) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {[
-                { id: "PRODUCAO", name: "Produção", icon: TrendingUp, color: "text-green-600" },
-                { id: "COMERCIAL", name: "Comercial", icon: DollarSign, color: "text-blue-600" },
-                { id: "FINANCEIRO", name: "Financeiro", icon: BarChart3, color: "text-purple-600" },
+                {
+                  id: "PRODUCAO",
+                  name: "Produção",
+                  icon: TrendingUp,
+                  color: "text-green-600",
+                },
+                {
+                  id: "COMERCIAL",
+                  name: "Comercial",
+                  icon: DollarSign,
+                  color: "text-blue-600",
+                },
+                {
+                  id: "FINANCEIRO",
+                  name: "Financeiro",
+                  icon: BarChart3,
+                  color: "text-purple-600",
+                },
               ].map((module) => (
                 <div
                   key={module.id}
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    importSettings.source_modules.includes(module.id) 
-                      ? "border-primary bg-primary/5" 
+                    importSettings.source_modules.includes(module.id)
+                      ? "border-primary bg-primary/5"
                       : "border-input hover:bg-muted/50"
                   }`}
                   onClick={() => {
-                    const newModules = importSettings.source_modules.includes(module.id)
-                      ? importSettings.source_modules.filter(m => m !== module.id)
+                    const newModules = importSettings.source_modules.includes(
+                      module.id
+                    )
+                      ? importSettings.source_modules.filter(
+                          (m) => m !== module.id
+                        )
                       : [...importSettings.source_modules, module.id];
-                    setImportSettings({...importSettings, source_modules: newModules});
+                    setImportSettings({
+                      ...importSettings,
+                      source_modules: newModules,
+                    });
                   }}
                 >
                   <div className="flex items-center space-x-3">
@@ -410,9 +445,12 @@ function DataImportTab({ projection, onChange }: any) {
                     <div>
                       <p className="font-medium">{module.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {module.id === "PRODUCAO" && "Culturas, custos, produtividade"}
-                        {module.id === "COMERCIAL" && "Vendas, preços, contratos"}
-                        {module.id === "FINANCEIRO" && "Dívidas, liquidez, fluxo"}
+                        {module.id === "PRODUCAO" &&
+                          "Culturas, custos, produtividade"}
+                        {module.id === "COMERCIAL" &&
+                          "Vendas, preços, contratos"}
+                        {module.id === "FINANCEIRO" &&
+                          "Dívidas, liquidez, fluxo"}
                       </p>
                     </div>
                   </div>
@@ -462,9 +500,7 @@ function AdvancedTab({ projection, onChange }: any) {
           <Settings className="h-5 w-5" />
           <span>Configurações Avançadas</span>
         </CardTitle>
-        <CardDescription>
-          Configurações para usuários avançados
-        </CardDescription>
+        <CardDescription>Configurações para usuários avançados</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
@@ -478,7 +514,9 @@ function AdvancedTab({ projection, onChange }: any) {
             <input
               type="checkbox"
               checked={advanced.backup_enabled}
-              onChange={(e) => setAdvanced({...advanced, backup_enabled: e.target.checked})}
+              onChange={(e) =>
+                setAdvanced({ ...advanced, backup_enabled: e.target.checked })
+              }
               className="w-4 h-4"
             />
           </div>
@@ -493,7 +531,9 @@ function AdvancedTab({ projection, onChange }: any) {
             <input
               type="checkbox"
               checked={advanced.version_control}
-              onChange={(e) => setAdvanced({...advanced, version_control: e.target.checked})}
+              onChange={(e) =>
+                setAdvanced({ ...advanced, version_control: e.target.checked })
+              }
               className="w-4 h-4"
             />
           </div>
@@ -508,7 +548,9 @@ function AdvancedTab({ projection, onChange }: any) {
             <input
               type="checkbox"
               checked={advanced.api_access}
-              onChange={(e) => setAdvanced({...advanced, api_access: e.target.checked})}
+              onChange={(e) =>
+                setAdvanced({ ...advanced, api_access: e.target.checked })
+              }
               className="w-4 h-4"
             />
           </div>
@@ -523,7 +565,12 @@ function AdvancedTab({ projection, onChange }: any) {
             <input
               type="checkbox"
               checked={advanced.custom_calculations}
-              onChange={(e) => setAdvanced({...advanced, custom_calculations: e.target.checked})}
+              onChange={(e) =>
+                setAdvanced({
+                  ...advanced,
+                  custom_calculations: e.target.checked,
+                })
+              }
               className="w-4 h-4"
             />
           </div>
@@ -535,8 +582,8 @@ function AdvancedTab({ projection, onChange }: any) {
             <div>
               <p className="font-medium text-yellow-800">Atenção</p>
               <p className="text-sm text-yellow-700">
-                As configurações avançadas podem afetar o desempenho e a segurança. 
-                Altere apenas se souber o que está fazendo.
+                As configurações avançadas podem afetar o desempenho e a
+                segurança. Altere apenas se souber o que está fazendo.
               </p>
             </div>
           </div>
