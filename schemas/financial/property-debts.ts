@@ -13,6 +13,7 @@ export const propertyDebtSchema = z.object({
   moeda: currencyEnum.default("BRL"),
   valor_total: z.coerce.number().min(0, "Valor total deve ser positivo"),
   fluxo_pagamento_anual: annualFlowSchema.or(z.string()),
+  safra_id: z.string().uuid().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

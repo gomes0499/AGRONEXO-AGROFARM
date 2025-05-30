@@ -11,6 +11,7 @@ export const tradingDebtSchema = z.object({
   taxa_real: z.coerce.number().min(0, "Taxa real deve ser positiva"),
   fluxo_pagamento_anual: annualFlowSchema.or(z.string()),
   moeda: currencyEnum.default("BRL"),
+  safra_id: z.string().uuid().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

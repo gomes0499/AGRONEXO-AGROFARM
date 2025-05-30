@@ -49,8 +49,10 @@ import {
 } from "@/lib/actions/production-actions";
 
 // Define interface for the property entity
+// Use the same Property type as in production-actions.ts
 interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   cidade?: string;
   estado?: string;
@@ -92,8 +94,11 @@ export function PlantingAreaForm({
   const [areaConversions, setAreaConversions] = useState<
     Record<string, number>
   >({});
+  const [selectedSafraId, setSelectedSafraId] = useState<string>("");
+  const [currentArea, setCurrentArea] = useState<number>(0);
   const isEditing = !!plantingArea?.id;
 
+  // Initialize form with correct defaultValues based on the updated schema
   const form = useForm<PlantingAreaFormValues>({
     resolver: zodResolver(plantingAreaFormSchema),
     defaultValues: {
@@ -101,25 +106,24 @@ export function PlantingAreaForm({
       cultura_id: plantingArea?.cultura_id || "",
       sistema_id: plantingArea?.sistema_id || "",
       ciclo_id: plantingArea?.ciclo_id || "",
-      safra_id: plantingArea?.safra_id || "",
-      area: plantingArea?.area || 0,
+      areas_por_safra: plantingArea?.areas_por_safra || {},
+      observacoes: plantingArea?.observacoes,
     },
   });
 
-  // Calcular conversões de área quando o valor mudar
+  // Update area conversions when current area changes
   useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === "area") {
-        calculateAreaConversions(value.area || 0);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form.watch]);
+    calculateAreaConversions(currentArea);
+  }, [currentArea]);
 
-  // Inicializar conversões de área
+  // Initialize area conversions if editing an existing area
   useEffect(() => {
-    calculateAreaConversions(form.getValues("area"));
-  }, [form]);
+    if (isEditing && selectedSafraId && plantingArea?.areas_por_safra) {
+      const area = plantingArea.areas_por_safra[selectedSafraId] || 0;
+      setCurrentArea(area);
+      calculateAreaConversions(area);
+    }
+  }, [isEditing, selectedSafraId, plantingArea]);
 
   // Calcular conversões de área
   const calculateAreaConversions = (areaInHectares: number) => {
@@ -144,23 +148,50 @@ export function PlantingAreaForm({
   );
   const selectedSystem = systems.find((s) => s.id === form.watch("sistema_id"));
   const selectedCycle = cycles.find((c) => c.id === form.watch("ciclo_id"));
-  const selectedHarvest = harvests.find((h) => h.id === form.watch("safra_id"));
+  const selectedHarvest = harvests.find((h) => h.id === selectedSafraId);
+  
+  // Helper functions for managing areas per safra
+  const updateAreaForSafra = (safraId: string, area: number) => {
+    const currentAreas = form.getValues("areas_por_safra") || {};
+    form.setValue("areas_por_safra", {
+      ...currentAreas,
+      [safraId]: area,
+    });
+  };
 
   const onSubmit = async (values: PlantingAreaFormValues) => {
     try {
       setIsSubmitting(true);
+      
+      // Ensure at least one area is defined for a safra
+      const areasPerSafra = values.areas_por_safra;
+      if (Object.keys(areasPerSafra).length === 0) {
+        toast.error("Adicione pelo menos uma área por safra");
+        return;
+      }
 
       if (isEditing) {
         // Atualizar área existente
         const updatedArea = await updatePlantingArea(
-          plantingArea.id || "",
-          values
+          plantingArea?.id || "",
+          {
+            areas_por_safra: values.areas_por_safra,
+            observacoes: values.observacoes
+          }
         );
         toast.success("Área de plantio atualizada com sucesso!");
         onSuccess?.(updatedArea);
       } else {
         // Criar nova área
-        const newArea = await createPlantingArea(organizationId, values);
+        const newArea = await createPlantingArea({
+          organizacao_id: organizationId,
+          propriedade_id: values.propriedade_id,
+          cultura_id: values.cultura_id,
+          sistema_id: values.sistema_id,
+          ciclo_id: values.ciclo_id,
+          areas_por_safra: values.areas_por_safra,
+          observacoes: values.observacoes
+        });
         toast.success("Área de plantio criada com sucesso!");
         onSuccess?.(newArea);
       }
@@ -176,41 +207,99 @@ export function PlantingAreaForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="safra_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                  Safra
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={isSubmitting}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a safra" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {harvests.map((harvest) => (
-                      <SelectItem key={harvest.id} value={harvest.id || ""}>
-                        {harvest.nome}
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Safra Selector */}
+            <div>
+              <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                Safra
+              </FormLabel>
+              <Select
+                onValueChange={(value) => {
+                  setSelectedSafraId(value);
+                  // Get the area for this safra if it exists
+                  const areas = form.getValues("areas_por_safra");
+                  const area = areas[value] || 0;
+                  setCurrentArea(area);
+                }}
+                value={selectedSafraId}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione a safra" />
+                </SelectTrigger>
+                <SelectContent>
+                  {harvests.map((harvest) => (
+                    <SelectItem key={harvest.id} value={harvest.id || ""}>
+                      {harvest.nome}
+                      {harvest.ano_inicio === new Date().getFullYear() && (
                         <Badge variant="outline" className="ml-2 py-0 h-4">
-                          Ativa
+                          Atual
                         </Badge>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Area input for selected safra */}
+            <div>
+              <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                <Ruler className="h-4 w-4 text-muted-foreground" />
+                Área (ha)
+              </FormLabel>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Ex: 10.5"
+                value={currentArea || ""}
+                onChange={(e) => {
+                  const value = e.target.value ? parseFloat(e.target.value) : 0;
+                  setCurrentArea(value);
+                  if (selectedSafraId) {
+                    updateAreaForSafra(selectedSafraId, value);
+                  }
+                }}
+                disabled={isSubmitting || !selectedSafraId}
+                className="w-full"
+              />
+            </div>
+          </div>
+          
+          {/* Areas per safra summary */}
+          {Object.keys(form.watch("areas_por_safra")).length > 0 && (
+            <div className="rounded-md border p-3 bg-muted/20">
+              <h3 className="text-sm font-medium mb-2">Áreas por safra adicionadas:</h3>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(form.watch("areas_por_safra")).map(([safraId, area]) => {
+                  const harvest = harvests.find(h => h.id === safraId);
+                  if (!harvest || !area) return null;
+                  
+                  return (
+                    <Badge key={safraId} variant="secondary" className="flex items-center gap-1">
+                      <span>{harvest.nome}: {area} ha</span>
+                      <button
+                        type="button"
+                        className="ml-1 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          const updatedAreas = { ...form.getValues("areas_por_safra") };
+                          delete updatedAreas[safraId];
+                          form.setValue("areas_por_safra", updatedAreas);
+                          if (selectedSafraId === safraId) {
+                            setCurrentArea(0);
+                          }
+                        }}
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <FormField
             control={form.control}
@@ -317,77 +406,40 @@ export function PlantingAreaForm({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="ciclo_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                    <CropIcon className="h-4 w-4 text-muted-foreground" />
-                    Ciclo
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione o ciclo" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {cycles.map((cycle) => (
-                        <SelectItem key={cycle.id} value={cycle.id || ""}>
-                          {cycle.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="area"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                    <Ruler className="h-4 w-4 text-muted-foreground" />
-                    Área (ha)
-                  </FormLabel>
+          <FormField
+            control={form.control}
+            name="ciclo_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                  <CropIcon className="h-4 w-4 text-muted-foreground" />
+                  Ciclo
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={isSubmitting}
+                >
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="Ex: 10.5"
-                      {...field}
-                      onChange={(e) => {
-                        const value = e.target.value ? parseFloat(e.target.value) : 0;
-                        field.onChange(value);
-                      }}
-                      value={field.value || ""}
-                      disabled={isSubmitting}
-                      className="w-full"
-                    />
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione o ciclo" />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                  <SelectContent>
+                    {cycles.map((cycle) => (
+                      <SelectItem key={cycle.id} value={cycle.id || ""}>
+                        {cycle.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           {/* Resumo e conversões */}
-          {(selectedProperty ||
-            selectedCulture ||
-            selectedSystem ||
-            selectedCycle ||
-            selectedHarvest ||
-            form.watch("area") > 0) && (
+          {(selectedProperty || selectedCulture || selectedSystem || selectedCycle) && (
             <Card className="mt-2 bg-muted/30 border-muted">
               <CardContent className="p-3">
                 <div className="flex flex-wrap gap-x-4 gap-y-2">
@@ -409,17 +461,6 @@ export function PlantingAreaForm({
                       </span>
                       <span className="text-sm font-medium">
                         {selectedCulture.nome}
-                      </span>
-                    </div>
-                  )}
-
-                  {selectedHarvest && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">
-                        Safra:
-                      </span>
-                      <span className="text-sm font-medium">
-                        {selectedHarvest.nome}
                       </span>
                     </div>
                   )}
@@ -447,31 +488,51 @@ export function PlantingAreaForm({
                   )}
                 </div>
 
-                {form.watch("area") > 0 &&
-                  Object.keys(areaConversions).length > 0 && (
-                    <>
-                      <Separator className="my-2" />
-                      <div className="text-xs font-medium text-muted-foreground mb-1.5">
-                        Equivalente a:
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(areaConversions).map(
-                          ([unit, value]) => (
-                            <Badge
-                              key={unit}
-                              variant="outline"
-                              className="font-normal"
-                            >
-                              {value.toFixed(2)} {unit}
-                            </Badge>
-                          )
-                        )}
-                      </div>
-                    </>
-                  )}
+                {currentArea > 0 && Object.keys(areaConversions).length > 0 && (
+                  <>
+                    <Separator className="my-2" />
+                    <div className="text-xs font-medium text-muted-foreground mb-1.5">
+                      Conversões da área atual:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(areaConversions).map(
+                        ([unit, value]) => (
+                          <Badge
+                            key={unit}
+                            variant="outline"
+                            className="font-normal"
+                          >
+                            {value.toFixed(2)} {unit}
+                          </Badge>
+                        )
+                      )}
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}
+          
+          {/* Observações field */}
+          <FormField
+            control={form.control}
+            name="observacoes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">
+                  Observações
+                </FormLabel>
+                <FormControl>
+                  <textarea
+                    className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Observações adicionais (opcional)"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t">

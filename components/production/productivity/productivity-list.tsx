@@ -40,6 +40,7 @@ import { CardHeaderPrimary } from "@/components/organization/common/data-display
 
 import { deleteProductivity } from "@/lib/actions/production-actions";
 import { ProductivityForm } from "./productivity-form";
+import { MultiSafraProductivityForm } from "./multi-safra-productivity-form";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
 import { Productivity, Culture, System, Harvest } from "@/schemas/production";
@@ -47,6 +48,7 @@ import { Productivity, Culture, System, Harvest } from "@/schemas/production";
 // Define interface for the property entity
 interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   cidade?: string;
   estado?: string;
@@ -82,7 +84,7 @@ export function ProductivityList({
   );
   const [editingItem, setEditingItem] = useState<Productivity | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [isMultiSafraModalOpen, setIsMultiSafraModalOpen] = useState<boolean>(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   // Hook para gerenciar filtros e paginação
@@ -100,7 +102,7 @@ export function ProductivityList({
     setPageSize,
   } = useProductionTable({
     data: productivities,
-    searchFields: ["produtividade", "unidade"],
+    searchFields: ["cultura_id", "sistema_id"],
     initialPageSize: 20,
   });
 
@@ -141,15 +143,20 @@ export function ProductivityList({
     setEditingItem(null);
   };
 
-  // Função para adicionar novo item à lista
-  const handleAdd = (newItem: Productivity) => {
-    setProductivities([...productivities, newItem]);
-    setIsCreateModalOpen(false);
+  // Função para adicionar múltiplos itens à lista
+  const handleAddMultiple = (newItems: Productivity[]) => {
+    setProductivities([...productivities, ...newItems]);
   };
 
-  // Função para abrir modal de criação
-  const handleCreate = () => {
-    setIsCreateModalOpen(true);
+  // Função para lidar com múltiplas produtividades
+  const handleMultiSafraSuccess = (newItems: Productivity[]) => {
+    handleAddMultiple(newItems);
+    setIsMultiSafraModalOpen(false);
+  };
+
+  // Função para abrir modal de múltiplas safras
+  const handleOpenMultiSafra = () => {
+    setIsMultiSafraModalOpen(true);
   };
 
   // Criar opções para filtros
@@ -162,8 +169,12 @@ export function ProductivityList({
 
   // Ordenar itens paginados por safra e cultura
   const sortedItems = [...paginatedData].sort((a, b) => {
-    const safraA = harvests.find((h) => h.id === a.safra_id)?.nome || "";
-    const safraB = harvests.find((h) => h.id === b.safra_id)?.nome || "";
+    // Get first safra_id from produtividades_por_safra keys
+    const firstSafraIdA = Object.keys(a.produtividades_por_safra || {})[0] || "";
+    const firstSafraIdB = Object.keys(b.produtividades_por_safra || {})[0] || "";
+    
+    const safraA = harvests.find((h) => h.id === firstSafraIdA)?.nome || "";
+    const safraB = harvests.find((h) => h.id === firstSafraIdB)?.nome || "";
 
     // Primeiro por safra (decrescente)
     if (safraA !== safraB) {
@@ -184,7 +195,8 @@ export function ProductivityList({
       system:
         systems.find((s) => s.id === item.sistema_id)?.nome || "Desconhecido",
       harvest:
-        harvests.find((h) => h.id === item.safra_id)?.nome || "Desconhecida",
+        // Get the first safra from the produtividades_por_safra keys
+        harvests.find((h) => h.id === Object.keys(item.produtividades_por_safra || {})[0])?.nome || "Desconhecida",
       property:
         properties.find((p) => p.id === item.propriedade_id)?.nome || "",
     };
@@ -199,7 +211,7 @@ export function ProductivityList({
         action={
           <Button 
             className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-            onClick={handleCreate}
+            onClick={handleOpenMultiSafra}
           >
             <Plus className="h-4 w-4 mr-2" />
             Nova Produtividade
@@ -224,7 +236,7 @@ export function ProductivityList({
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhum registro de produtividade cadastrado.</div>
             <Button 
-              onClick={handleCreate}
+              onClick={handleOpenMultiSafra}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -235,7 +247,7 @@ export function ProductivityList({
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhum registro de produtividade encontrado com os filtros aplicados.</div>
             <Button 
-              onClick={handleCreate}
+              onClick={handleOpenMultiSafra}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -248,12 +260,12 @@ export function ProductivityList({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Safra</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Cultura</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Sistema</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Propriedade</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Produtividade</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md uppercase">Safra</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground uppercase">Cultura</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground uppercase">Sistema</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground uppercase">Propriedade</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground uppercase">Produtividade</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -261,12 +273,17 @@ export function ProductivityList({
                     const refs = getRefNames(item);
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="font-medium">{refs.harvest}</TableCell>
-                        <TableCell>{refs.culture}</TableCell>
-                        <TableCell>{refs.system}</TableCell>
-                        <TableCell>{refs.property}</TableCell>
-                        <TableCell>
-                          {item.produtividade} {item.unidade}
+                        <TableCell className="font-medium uppercase">{refs.harvest}</TableCell>
+                        <TableCell className="uppercase">{refs.culture}</TableCell>
+                        <TableCell className="uppercase">{refs.system}</TableCell>
+                        <TableCell className="uppercase">{refs.property}</TableCell>
+                        <TableCell className="uppercase">
+                          {Object.entries(item.produtividades_por_safra || {}).map(([safraId, data], index) => (
+                            <span key={safraId}>
+                              {index > 0 && ", "}
+                              {data.produtividade} {data.unidade}
+                            </span>
+                          ))}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -337,21 +354,22 @@ export function ProductivityList({
           </>
         )}
 
-        {/* Modal de criação */}
+        {/* Modal de múltiplas safras */}
         <FormModal
-          open={isCreateModalOpen}
-          onOpenChange={setIsCreateModalOpen}
-          title="Nova Produtividade"
-          description="Adicione um novo registro de produtividade."
+          open={isMultiSafraModalOpen}
+          onOpenChange={setIsMultiSafraModalOpen}
+          title="Nova Produtividade - Múltiplas Safras"
+          description="Adicione registros de produtividade para múltiplas safras de uma só vez."
+          className="max-w-4xl"
         >
-          <ProductivityForm
+          <MultiSafraProductivityForm
+            properties={properties}
             cultures={cultures}
             systems={systems}
             harvests={harvests}
-            properties={properties}
             organizationId={organizationId}
-            onSuccess={handleAdd}
-            onCancel={() => setIsCreateModalOpen(false)}
+            onSuccess={handleMultiSafraSuccess}
+            onCancel={() => setIsMultiSafraModalOpen(false)}
           />
         </FormModal>
 

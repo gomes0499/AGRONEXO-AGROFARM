@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getSeedSales } from "@/lib/actions/commercial-actions";
-import { getHarvests, getCultures } from "@/lib/actions/production-actions";
+import { getSafras, getCultures } from "@/lib/actions/production-actions";
 import { getProperties } from "@/lib/actions/property-actions";
 import { SeedSalesList } from "./seed-sales-list";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +24,7 @@ async function SeedsListContent({ organizationId }: { organizationId: string }) 
       console.error("Erro ao buscar propriedades:", err);
       return [];
     }),
-    getHarvests(organizationId).catch((err) => {
+    getSafras(organizationId).catch((err) => {
       console.error("Erro ao buscar safras:", err);
       return [];
     }),

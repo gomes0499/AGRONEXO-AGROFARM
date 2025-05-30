@@ -141,8 +141,8 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
     return properties.filter((property) => {
       const matchesSearch =
         property.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        property.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        property.proprietario.toLowerCase().includes(searchTerm.toLowerCase());
+        (property.cidade && property.cidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (property.proprietario && property.proprietario.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesType = typeFilter === "ALL" || property.tipo === typeFilter;
 
@@ -172,6 +172,8 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
   const propertyTypeInfo = {
     PROPRIO: { label: "Próprio", variant: "default" as const },
     ARRENDADO: { label: "Arrendado", variant: "secondary" as const },
+    PARCERIA: { label: "Parceria", variant: "outline" as const },
+    COMODATO: { label: "Comodato", variant: "ghost" as const },
   };
 
   return (

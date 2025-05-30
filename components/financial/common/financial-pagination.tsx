@@ -93,19 +93,19 @@ export function FinancialPagination({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div className="text-sm text-muted-foreground">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-4 px-2 bg-gray-50 rounded-md">
+      <div className="text-sm font-medium text-gray-700">
         Mostrando {startItem} a {endItem} de {totalItems} {totalItems === 1 ? "item" : "itens"}
       </div>
 
-      <div className="flex items-center space-x-6 lg:space-x-8">
-        <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">Itens por página</p>
+      <div className="flex flex-col md:flex-row items-center gap-6">
+        <div className="flex items-center gap-3">
+          <p className="text-sm font-medium text-gray-700">Itens por página</p>
           <Select
             value={itemsPerPage.toString()}
             onValueChange={(value) => onItemsPerPageChange(Number(value))}
           >
-            <SelectTrigger className="h-8 w-[70px]">
+            <SelectTrigger className="h-8 w-[70px] bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent side="top">
@@ -118,11 +118,11 @@ export function FinancialPagination({
           </Select>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <div className="text-sm font-medium">
+        <div className="flex items-center gap-4">
+          <div className="text-sm font-medium text-gray-700">
             Página {currentPage} de {totalPages}
           </div>
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               className="hidden h-8 w-8 p-0 lg:flex"

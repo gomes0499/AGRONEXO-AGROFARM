@@ -28,19 +28,23 @@ interface Property {
 }
 
 interface PropertySelectorProps {
-  name: string;
-  label: string;
-  control: any;
+  name?: string;
+  label?: string;
+  control?: any;
   organizationId: string;
   disabled?: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
 export function PropertySelector({
   name,
-  label,
+  label = "Propriedade",
   control,
   organizationId,
   disabled = false,
+  value,
+  onChange,
 }: PropertySelectorProps) {
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,6 +70,48 @@ export function PropertySelector({
     loadProperties();
   }, [organizationId]);
 
+  // Support both direct use and form field use
+  const isFormField = !!control && !!name;
+  
+  if (!isFormField) {
+    return (
+      <div className="space-y-2">
+        {label && <label className="text-sm font-medium">{label}</label>}
+        <Select
+          disabled={disabled || isLoading}
+          onValueChange={onChange}
+          value={value}
+        >
+          <SelectTrigger>
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Carregando propriedades...</span>
+              </div>
+            ) : (
+              <SelectValue placeholder="Selecione uma propriedade" />
+            )}
+          </SelectTrigger>
+          <SelectContent>
+            {properties.length === 0 ? (
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                {isLoading
+                  ? "Carregando propriedades..."
+                  : "Nenhuma propriedade encontrada"}
+              </div>
+            ) : (
+              properties.map((property) => (
+                <SelectItem key={property.id} value={property.id}>
+                  {property.nome}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+  
   return (
     <FormField
       control={control}

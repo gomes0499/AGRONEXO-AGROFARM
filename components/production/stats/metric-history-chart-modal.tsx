@@ -39,6 +39,7 @@ interface MetricHistoryChartModalProps {
   metricType: MetricType;
   organizationId: string;
   propertyIds?: string[];
+  cultureIds?: string[];
 }
 
 export function MetricHistoryChartModal({
@@ -47,6 +48,7 @@ export function MetricHistoryChartModal({
   metricType,
   organizationId,
   propertyIds,
+  cultureIds,
 }: MetricHistoryChartModalProps) {
   const [data, setData] = useState<HistoricalMetricsResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export function MetricHistoryChartModal({
     if (isOpen && organizationId) {
       fetchHistoricalData();
     }
-  }, [isOpen, organizationId, metricType, propertyIds]);
+  }, [isOpen, organizationId, metricType, propertyIds, cultureIds]);
 
   const fetchHistoricalData = async () => {
     setLoading(true);
@@ -65,7 +67,8 @@ export function MetricHistoryChartModal({
       const result = await getHistoricalMetricData(
         organizationId,
         metricType,
-        propertyIds
+        propertyIds,
+        cultureIds
       );
       setData(result);
     } catch (err) {

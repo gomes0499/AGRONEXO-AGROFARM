@@ -26,8 +26,11 @@ import {
   type CommodityTypeEnum, 
   type CommodityPriceType, 
   type CommodityPriceUpdateType,
+  type AllPriceTypeEnum,
   commodityDisplayNames,
-  commodityUnits
+  commodityUnits,
+  allPriceDisplayNames,
+  allPriceUnits
 } from "@/schemas/indicators/prices";
 
 type CommodityPriceTabProps = {
@@ -268,9 +271,9 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
             return (
               <TableRow key={commodityPrice.id}>
                 <TableCell className="font-medium">
-                  {commodityDisplayNames[commodityPrice.commodityType]}
+                  {allPriceDisplayNames[commodityPrice.commodityType]}
                 </TableCell>
-                <TableCell>{commodityUnits[commodityPrice.commodityType]}</TableCell>
+                <TableCell>{allPriceUnits[commodityPrice.commodityType]}</TableCell>
                 <TableCell>{formatNumber(commodityPrice.currentPrice)}</TableCell>
                 <TableCell>{commodityPrice.price2020 !== undefined && commodityPrice.price2020 !== null ? formatNumber(commodityPrice.price2020) : "-"}</TableCell>
                 <TableCell>{commodityPrice.price2021 !== undefined && commodityPrice.price2021 !== null ? formatNumber(commodityPrice.price2021) : "-"}</TableCell>
@@ -298,7 +301,7 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
                       <div className="grid gap-4 w-[800px] max-h-[500px] overflow-y-auto">
                         <div className="space-y-2">
                           <h4 className="font-medium leading-none">
-                            Editar Preços - {commodityDisplayNames[commodityPrice.commodityType]}
+                            Editar Preços - {allPriceDisplayNames[commodityPrice.commodityType]}
                           </h4>
                           <p className="text-sm text-muted-foreground">
                             Atualize os preços projetados para os anos seguintes.
@@ -307,7 +310,7 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
                         <div className="grid grid-cols-4 gap-3">
                           <div className="space-y-2">
                             <Label htmlFor={`${commodityPrice.id}-currentPrice`}>
-                              Atual ({commodityUnits[commodityPrice.commodityType]})
+                              Atual ({allPriceUnits[commodityPrice.commodityType]})
                             </Label>
                             <Input
                               id={`${commodityPrice.id}-currentPrice`}

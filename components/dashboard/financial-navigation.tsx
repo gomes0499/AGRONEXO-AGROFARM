@@ -51,66 +51,38 @@ export function FinancialNavigation() {
     <div className="grid gap-4">
       <div className="px-3 py-2">
         <h3 className="text-xs font-medium text-muted-foreground tracking-wider uppercase">
-          Dívidas
+          Módulo Financeiro
         </h3>
         <div className="mt-2 grid gap-1">
           <NavItem
-            href="/dashboard/financial/bank-debts"
+            href="/dashboard/financial/dividas-bancarias"
             label="Dívidas Bancárias"
             icon={<BanknoteIcon className="h-4 w-4" />}
           />
           <NavItem
-            href="/dashboard/financial/trading-debts"
-            label="Dívidas com Trading"
-            icon={<Building2Icon className="h-4 w-4" />}
-          />
-          <NavItem
-            href="/dashboard/financial/property-debts"
-            label="Dívidas de Imóveis"
+            href="/dashboard/financial/dividas-terras"
+            label="Dívidas Terras"
             icon={<BuildingIcon className="h-4 w-4" />}
           />
-        </div>
-      </div>
-
-      <div className="px-3 py-2">
-        <h3 className="text-xs font-medium text-muted-foreground tracking-wider uppercase">
-          Fatores de Liquidez
-        </h3>
-        <div className="mt-2 grid gap-1">
           <NavItem
-            href="/dashboard/financial/suppliers"
-            label="Fornecedores"
+            href="/dashboard/financial/dividas-fornecedores"
+            label="Dívidas Fornecedores"
             icon={<TruckIcon className="h-4 w-4" />}
           />
           <NavItem
-            href="/dashboard/financial/liquidity"
-            label="Caixa e Bancos"
+            href="/dashboard/financial/caixa-disponibilidades"
+            label="Caixa e Disponibilidades"
             icon={<BarChartIcon className="h-4 w-4" />}
           />
           <NavItem
-            href="/dashboard/financial/inventories"
-            label="Estoques"
-            icon={<PackageIcon className="h-4 w-4" />}
-          />
-          <NavItem
-            href="/dashboard/financial/receivables"
-            label="Contratos Recebíveis"
-            icon={<FileTextIcon className="h-4 w-4" />}
-          />
-          <NavItem
-            href="/dashboard/financial/commodity-stocks"
-            label="Estoques de Commodities"
-            icon={<CoinsIcon className="h-4 w-4" />}
-          />
-          <NavItem
-            href="/dashboard/financial/supplier-advances"
-            label="Adiantamentos"
-            icon={<CoinsIcon className="h-4 w-4" />}
-          />
-          <NavItem
-            href="/dashboard/financial/third-party-loans"
-            label="Empréstimos a Terceiros"
+            href="/dashboard/financial/financeiras"
+            label="Financeiras"
             icon={<CircleDollarSignIcon className="h-4 w-4" />}
+          />
+          <NavItem
+            href="/dashboard/financial/outras-despesas"
+            label="Outras Despesas"
+            icon={<FileTextIcon className="h-4 w-4" />}
           />
         </div>
       </div>

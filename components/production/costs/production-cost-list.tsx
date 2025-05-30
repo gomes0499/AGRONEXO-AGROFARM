@@ -37,6 +37,7 @@ import { CardHeaderPrimary } from "@/components/organization/common/data-display
 
 import { deleteProductionCost } from "@/lib/actions/production-actions";
 import { ProductionCostForm } from "./production-cost-form";
+import { MultiSafraProductionCostForm } from "./multi-safra-cost-form";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
@@ -48,6 +49,7 @@ import { ProductionCost, Culture, System, Harvest } from "@/schemas/production";
 // Define interface for the property entity
 interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   cidade?: string;
   estado?: string;
@@ -81,7 +83,7 @@ export function ProductionCostList({
   const [costs, setCosts] = useState<ProductionCost[]>(initialCosts);
   const [editingItem, setEditingItem] = useState<ProductionCost | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [isMultiSafraModalOpen, setIsMultiSafraModalOpen] = useState<boolean>(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   // Hook para gerenciar filtros e paginação
@@ -99,7 +101,7 @@ export function ProductionCostList({
     setPageSize,
   } = useProductionTable({
     data: costs,
-    searchFields: ["valor", "categoria"], // Campos para busca textual
+    searchFields: ["categoria"], // Campos para busca textual
     initialPageSize: 20,
   });
 
@@ -137,15 +139,20 @@ export function ProductionCostList({
     setEditingItem(null);
   };
 
-  // Função para adicionar novo item à lista
-  const handleAdd = (newItem: ProductionCost) => {
-    setCosts([...costs, newItem]);
-    setIsCreateModalOpen(false);
+  // Função para adicionar múltiplos itens à lista
+  const handleAddMultiple = (newItems: ProductionCost[]) => {
+    setCosts([...costs, ...newItems]);
   };
 
-  // Função para abrir modal de criação
-  const handleCreate = () => {
-    setIsCreateModalOpen(true);
+  // Função para lidar com múltiplos custos
+  const handleMultiSafraSuccess = (newItems: ProductionCost[]) => {
+    handleAddMultiple(newItems);
+    setIsMultiSafraModalOpen(false);
+  };
+
+  // Função para abrir modal de múltiplas safras
+  const handleOpenMultiSafra = () => {
+    setIsMultiSafraModalOpen(true);
   };
 
   // Criar opções para filtros
@@ -173,8 +180,11 @@ export function ProductionCostList({
 
   // Ordenar itens paginados por safra, categoria e cultura
   const sortedItems = [...paginatedData].sort((a, b) => {
-    const safraA = harvests.find((h) => h.id === a.safra_id)?.nome || "";
-    const safraB = harvests.find((h) => h.id === b.safra_id)?.nome || "";
+    // Use custos_por_safra keys to get safra_id since ProductionCost doesn't have safra_id directly
+    const safraIdA = Object.keys(a.custos_por_safra || {})[0] || "";
+    const safraA = harvests.find((h) => h.id === safraIdA)?.nome || "";
+    const safraIdB = Object.keys(b.custos_por_safra || {})[0] || "";
+    const safraB = harvests.find((h) => h.id === safraIdB)?.nome || "";
 
     // Primeiro por safra (decrescente)
     if (safraA !== safraB) {
@@ -200,7 +210,7 @@ export function ProductionCostList({
       system:
         systems.find((s) => s.id === item.sistema_id)?.nome || "Desconhecido",
       harvest:
-        harvests.find((h) => h.id === item.safra_id)?.nome || "Desconhecida",
+        harvests.find((h) => h.id === Object.keys(item.custos_por_safra || {})[0])?.nome || "Desconhecida",
       property:
         properties.find((p) => p.id === item.propriedade_id)?.nome || "",
     };
@@ -234,7 +244,7 @@ export function ProductionCostList({
         action={
           <Button 
             className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-            onClick={handleCreate}
+            onClick={handleOpenMultiSafra}
           >
             <Plus className="h-4 w-4 mr-2" />
             Novo Custo
@@ -261,7 +271,7 @@ export function ProductionCostList({
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhum registro de custo cadastrado.</div>
             <Button 
-              onClick={handleCreate}
+              onClick={handleOpenMultiSafra}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -272,7 +282,7 @@ export function ProductionCostList({
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhum registro de custo encontrado com os filtros aplicados.</div>
             <Button 
-              onClick={handleCreate}
+              onClick={handleOpenMultiSafra}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -285,13 +295,13 @@ export function ProductionCostList({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Safra</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Categoria</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Cultura</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Sistema</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Propriedade</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md uppercase">Safra</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground uppercase">Categoria</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground uppercase">Cultura</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground uppercase">Sistema</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground uppercase">Propriedade</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground uppercase">Valor</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -299,12 +309,14 @@ export function ProductionCostList({
                     const refs = getRefNames(item);
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="font-medium">{refs.harvest}</TableCell>
-                        <TableCell>{translateCategory(item.categoria)}</TableCell>
-                        <TableCell>{refs.culture}</TableCell>
-                        <TableCell>{refs.system}</TableCell>
-                        <TableCell>{refs.property}</TableCell>
-                        <TableCell>{formatCurrency(item.valor)}</TableCell>
+                        <TableCell className="font-medium uppercase">{refs.harvest}</TableCell>
+                        <TableCell className="uppercase">{translateCategory(item.categoria)}</TableCell>
+                        <TableCell className="uppercase">{refs.culture}</TableCell>
+                        <TableCell className="uppercase">{refs.system}</TableCell>
+                        <TableCell className="uppercase">{refs.property}</TableCell>
+                        <TableCell className="uppercase">
+                          {formatCurrency(Object.values(item.custos_por_safra || {}).reduce((sum, val) => sum + val, 0))}
+                        </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -374,21 +386,22 @@ export function ProductionCostList({
           </>
         )}
 
-        {/* Modal de criação */}
+        {/* Modal de múltiplas safras */}
         <FormModal
-          open={isCreateModalOpen}
-          onOpenChange={setIsCreateModalOpen}
-          title="Novo Custo"
-          description="Adicione um novo registro de custo."
+          open={isMultiSafraModalOpen}
+          onOpenChange={setIsMultiSafraModalOpen}
+          title="Novo Custo - Múltiplas Safras"
+          description="Adicione custos para múltiplas safras de uma só vez."
+          className="max-w-4xl"
         >
-          <ProductionCostForm
+          <MultiSafraProductionCostForm
             cultures={cultures}
             systems={systems}
             harvests={harvests}
             properties={properties}
             organizationId={organizationId}
-            onSuccess={handleAdd}
-            onCancel={() => setIsCreateModalOpen(false)}
+            onSuccess={handleMultiSafraSuccess}
+            onCancel={() => setIsMultiSafraModalOpen(false)}
           />
         </FormModal>
 

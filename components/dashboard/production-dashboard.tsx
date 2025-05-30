@@ -15,6 +15,7 @@ import { PropertyFilterClient } from "@/components/production/property-filter-cl
 
 export interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   cidade?: string;
   estado?: string;

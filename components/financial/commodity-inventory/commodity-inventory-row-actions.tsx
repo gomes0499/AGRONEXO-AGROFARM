@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CommodityInventory } from "@/schemas/financial/inventory";
 import { FinancialDeleteAlert } from "../common/financial-delete-alert";
-import { deleteCommodityInventory } from "@/lib/actions/financial-actions";
+import { deleteCommodityInventory } from "@/lib/actions/financial-actions/index";
 import { toast } from "sonner";
 
 interface CommodityInventoryRowActionsProps {

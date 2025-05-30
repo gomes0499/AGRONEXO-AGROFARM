@@ -27,15 +27,13 @@ export function FormModal({
   className,
 }: FormModalProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`p-0 overflow-hidden ${className}`}>
-        <DialogHeader className="p-6 pb-2">
+    <Dialog open={open} onOpenChange={(open) => !open && onOpenChange(false)}>
+      <DialogContent className={`sm:max-w-[800px] max-h-[90vh] overflow-y-auto ${className}`}>
+        <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {description && (
-            <DialogDescription>{description}</DialogDescription>
-          )}
+          {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        <div className="px-6 py-2 max-h-[75vh] overflow-y-auto">{children}</div>
+        {children}
       </DialogContent>
     </Dialog>
   );

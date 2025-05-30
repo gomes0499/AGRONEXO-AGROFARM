@@ -7,7 +7,7 @@ export default function RootLoading() {
         <Skeleton className="h-24 w-80" />
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-6 w-96" />
-        
+
         <div className="flex gap-4 mt-4">
           <Skeleton className="h-10 w-32" />
           <Skeleton className="h-10 w-32" />

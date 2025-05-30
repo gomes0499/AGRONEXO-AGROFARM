@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getLivestockSales } from "@/lib/actions/commercial-actions";
-import { getHarvests } from "@/lib/actions/production-actions";
+import { getSafras } from "@/lib/actions/production-actions";
 import { getProperties } from "@/lib/actions/property-actions";
 import { LivestockSalesList } from "./livestock-sales-list";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,7 +23,7 @@ async function LivestockListContent({ organizationId }: { organizationId: string
       console.error("Erro ao buscar propriedades:", err);
       return [];
     }),
-    getHarvests(organizationId).catch((err) => {
+    getSafras(organizationId).catch((err) => {
       console.error("Erro ao buscar safras:", err);
       return [];
     }),

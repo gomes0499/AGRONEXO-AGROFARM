@@ -8,10 +8,6 @@ import {
   MapIcon,
   BanknoteIcon,
   SproutIcon,
-  TreePineIcon,
-  ShieldIcon,
-  DropletsIcon,
-  LeafIcon,
   Loader2,
   Info,
 } from "lucide-react";
@@ -21,7 +17,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -33,6 +28,11 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatArea, formatCurrency } from "@/lib/utils/property-formatters";
 import { useDashboardFilterContext } from "@/components/dashboard/dashboard-filter-provider";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 
 interface KpiItemProps {
   title: string;
@@ -84,17 +84,10 @@ function KpiItem({
             </h3>
             <p
               className={cn(
-                "flex items-center text-xs font-medium mt-1",
-                isPositive
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-rose-600 dark:text-rose-400"
+                "text-xs mt-1 text-muted-foreground leading-snug",
+                change.includes('·') ? "text-[9px] sm:text-xs" : "text-xs"
               )}
             >
-              {isPositive ? (
-                <ArrowUpIcon className="h-3 w-3 mr-1" />
-              ) : (
-                <ArrowDownIcon className="h-3 w-3 mr-1" />
-              )}
               {change}
             </p>
           </>
@@ -116,28 +109,155 @@ interface PropertyData {
   utilizacaoPercentual: number;
   crescimentoArea: number;
   crescimentoValor: number;
+  propriedadesProprias: number;
+  propriedadesArrendadas: number;
+  areaPropriedadesProprias: number;
+  areaPropriedadesArrendadas: number;
 }
 
-interface SicarData {
-  totalArea: number;
-  totalModulosFiscais: number;
-  totalReservaLegal: number;
-  totalRecursosHidricos: number;
-  totalAreaProtegida: number;
-  percentualReservaLegal: number;
-  percentualRecursosHidricos: number;
-  percentualAreaProtegida: number;
+interface PropertyOption {
+  id: string;
+  nome: string;
 }
+
+interface PropertySelectorProps {
+  properties: PropertyOption[];
+  selectedPropertyIds: string[];
+  onChange: (ids: string[]) => void;
+}
+
+function PropertySelector({ properties, selectedPropertyIds, onChange }: PropertySelectorProps) {
+  const [open, setOpen] = useState(false);
+  
+  const handleSelectAll = () => {
+    onChange([]);
+  };
+  
+  const handleDeselectAll = () => {
+    // Select just the first property to avoid empty selection
+    if (properties.length > 0) {
+      onChange([properties[0].id]);
+    }
+  };
+  
+  const handleToggle = (propertyId: string) => {
+    let newSelectedIds: string[];
+    
+    if (selectedPropertyIds.includes(propertyId)) {
+      // Prevent deselecting the last property
+      if (selectedPropertyIds.length === 1) return;
+      newSelectedIds = selectedPropertyIds.filter(id => id !== propertyId);
+    } else {
+      newSelectedIds = [...selectedPropertyIds, propertyId];
+    }
+    
+    onChange(newSelectedIds);
+  };
+  
+  // Check if all properties are selected (an empty array means all selected in our context)
+  const allSelected = selectedPropertyIds.length === 0;
+  // Count of effectively selected properties
+  const selectedCount = allSelected ? properties.length : selectedPropertyIds.length;
+  
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="h-9 bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white flex items-center gap-1"
+        >
+          <span className="mr-1">Propriedades</span>
+          <Badge variant="default" className="bg-primary text-white text-xs rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center">
+            {selectedCount}
+          </Badge>
+          <ChevronsUpDown className="h-4 w-4 ml-1 opacity-70" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="end">
+        <Command>
+          <CommandInput placeholder="Buscar propriedade..." className="h-9" />
+          <CommandList>
+            <CommandEmpty>Nenhuma propriedade encontrada.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem 
+                onSelect={handleSelectAll}
+                className="cursor-pointer"
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    allSelected ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                <span>Selecionar todas</span>
+              </CommandItem>
+              <CommandItem 
+                onSelect={handleDeselectAll}
+                className="cursor-pointer"
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    selectedPropertyIds.length === 1 ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                <span>Desmarcar todas</span>
+              </CommandItem>
+            </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup heading="Propriedades">
+              {properties.map((property) => (
+                <CommandItem
+                  key={property.id}
+                  onSelect={() => handleToggle(property.id)}
+                  className="cursor-pointer"
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      allSelected || selectedPropertyIds.includes(property.id) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <span>{property.nome}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 
 export function PropertyKpiCardsFull({
   organizationId,
 }: PropertyKpiCardsFullProps) {
-  const { getFilteredPropertyIds, filters, allPropertyIds } =
+  const { getFilteredPropertyIds, filters, allPropertyIds, setPropertyIds } =
     useDashboardFilterContext();
+  const [filterData, setFilterData] = useState<{ properties?: any[] }>({ properties: [] });
   const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
-  const [sicarData, setSicarData] = useState<SicarData | null>(null);
   const [loadingProperty, setLoadingProperty] = useState(true);
-  const [loadingSicar, setLoadingSicar] = useState(true);
+
+  // Fetch property data for filter dropdown
+  useEffect(() => {
+    async function fetchProperties() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("propriedades")
+          .select("id, nome")
+          .eq("organizacao_id", organizationId);
+        
+        setFilterData({ properties: data || [] });
+      } catch (error) {
+        console.error("Erro ao buscar propriedades para filtro:", error);
+      }
+    }
+    
+    fetchProperties();
+  }, [organizationId]);
 
   useEffect(() => {
     async function fetchPropertyData() {
@@ -176,139 +296,6 @@ export function PropertyKpiCardsFull({
     allPropertyIds,
   ]);
 
-  useEffect(() => {
-    async function fetchSicarData() {
-      try {
-        setLoadingSicar(true);
-
-        // Aplicar filtros usando os IDs já disponíveis no contexto
-        const filteredPropertyIds = getFilteredPropertyIds(allPropertyIds);
-
-        // Buscar propriedades com CAR
-        const supabase = createClient();
-        let query = supabase
-          .from("propriedades")
-          .select("numero_car, estado, area_total")
-          .eq("organizacao_id", organizationId)
-          .not("numero_car", "is", null);
-
-        // Aplicar filtros se não estiver em estado "todos selecionados"
-        if (filters.propertyIds.length > 0) {
-          query = query.in("id", filteredPropertyIds);
-        }
-
-        const { data: properties } = await query;
-
-        if (!properties || properties.length === 0) {
-          setSicarData({
-            totalArea: 0,
-            totalModulosFiscais: 0,
-            totalReservaLegal: 0,
-            totalRecursosHidricos: 0,
-            totalAreaProtegida: 0,
-            percentualReservaLegal: 0,
-            percentualRecursosHidricos: 0,
-            percentualAreaProtegida: 0,
-          });
-          return;
-        }
-
-        // Buscar dados do SICAR
-        const sicarPromises = properties.map(async (property) => {
-          try {
-            const response = await fetch(
-              `/api/sicar?car=${property.numero_car}&estado=${property.estado}`
-            );
-            if (!response.ok) {
-              return {
-                area_imovel: property.area_total || 0,
-                modulos_fiscais: 0,
-                reserva_legal: { area: 0 },
-                app: { area: 0 },
-                area_protegida: { area: 0 },
-              };
-            }
-            return await response.json();
-          } catch {
-            return {
-              area_imovel: property.area_total || 0,
-              modulos_fiscais: 0,
-              reserva_legal: { area: 0 },
-              app: { area: 0 },
-              area_protegida: { area: 0 },
-            };
-          }
-        });
-
-        const sicarResults = await Promise.all(sicarPromises);
-
-        const consolidated = sicarResults.reduce(
-          (acc, result) => ({
-            totalArea: acc.totalArea + (result.area_imovel || 0),
-            totalModulosFiscais:
-              acc.totalModulosFiscais + (result.modulos_fiscais || 0),
-            totalReservaLegal:
-              acc.totalReservaLegal + (result.reserva_legal?.area || 0),
-            totalRecursosHidricos:
-              acc.totalRecursosHidricos + (result.app?.area || 0),
-            totalAreaProtegida:
-              acc.totalAreaProtegida + (result.area_protegida?.area || 0),
-          }),
-          {
-            totalArea: 0,
-            totalModulosFiscais: 0,
-            totalReservaLegal: 0,
-            totalRecursosHidricos: 0,
-            totalAreaProtegida: 0,
-          }
-        );
-
-        const percentualReservaLegal =
-          consolidated.totalArea > 0
-            ? (consolidated.totalReservaLegal / consolidated.totalArea) * 100
-            : 0;
-
-        const percentualRecursosHidricos =
-          consolidated.totalArea > 0
-            ? (consolidated.totalRecursosHidricos / consolidated.totalArea) *
-              100
-            : 0;
-
-        const percentualAreaProtegida =
-          consolidated.totalArea > 0
-            ? (consolidated.totalAreaProtegida / consolidated.totalArea) * 100
-            : 0;
-
-        setSicarData({
-          ...consolidated,
-          percentualReservaLegal,
-          percentualRecursosHidricos,
-          percentualAreaProtegida,
-        });
-      } catch (error) {
-        console.error("Erro ao buscar dados SICAR:", error);
-        setSicarData({
-          totalArea: 0,
-          totalModulosFiscais: 0,
-          totalReservaLegal: 0,
-          totalRecursosHidricos: 0,
-          totalAreaProtegida: 0,
-          percentualReservaLegal: 0,
-          percentualRecursosHidricos: 0,
-          percentualAreaProtegida: 0,
-        });
-      } finally {
-        setLoadingSicar(false);
-      }
-    }
-
-    fetchSicarData();
-  }, [
-    organizationId,
-    filters.propertyIds,
-    getFilteredPropertyIds,
-    allPropertyIds,
-  ]);
 
   return (
     <TooltipProvider>
@@ -328,18 +315,34 @@ export function PropertyKpiCardsFull({
                 </CardDescription>
               </div>
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  Indicadores consolidados das propriedades incluindo área
-                  total, valor patrimonial, dados ambientais e de
-                  sustentabilidade baseados no CAR/SICAR.
-                </p>
-              </TooltipContent>
-            </Tooltip>
+            <div className="flex items-center gap-2">
+              <PropertySelector 
+                properties={(filterData?.properties || []).map(property => ({
+                  id: property.id,
+                  nome: property.nome || "Propriedade"
+                }))}
+                selectedPropertyIds={filters.propertyIds}
+                onChange={(ids) => {
+                  if (ids.length === 0) {
+                    // Se todos forem desmarcados, selecionar todos
+                    setPropertyIds([]);
+                  } else {
+                    setPropertyIds(ids);
+                  }
+                }}
+              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    Indicadores consolidados das propriedades incluindo área
+                    total, valor patrimonial e potencial produtivo.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </CardHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
@@ -348,7 +351,7 @@ export function PropertyKpiCardsFull({
             <KpiItem
               title="Total Fazendas"
               value={propertyData ? `${propertyData.totalFazendas}` : "0"}
-              change="propriedades"
+              change={propertyData ? `${propertyData.propriedadesProprias} próprias · ${propertyData.propriedadesArrendadas} arrendadas` : "propriedades"}
               isPositive={true}
               loading={loadingProperty}
               icon={
@@ -364,7 +367,7 @@ export function PropertyKpiCardsFull({
             <KpiItem
               title="Área Total"
               value={propertyData ? formatArea(propertyData.areaTotal) : "0 ha"}
-              change="hectares"
+              change={propertyData ? `${formatArea(propertyData.areaPropriedadesProprias)} própria · ${formatArea(propertyData.areaPropriedadesArrendadas)} arrendada` : "hectares"}
               isPositive={true}
               loading={loadingProperty}
               icon={
@@ -404,8 +407,8 @@ export function PropertyKpiCardsFull({
               }
               change={
                 propertyData
-                  ? `${propertyData.utilizacaoPercentual.toFixed(1)}% util.`
-                  : "0% util."
+                  ? `${propertyData.utilizacaoPercentual.toFixed(1)}% do total em uso`
+                  : "0% utilização"
               }
               isPositive={true}
               loading={loadingProperty}
@@ -417,98 +420,6 @@ export function PropertyKpiCardsFull({
           </div>
         </div>
 
-        <Separator className="bg-gray-200 dark:bg-gray-700" />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-          {/* Reserva Legal */}
-          <div className="relative">
-            <KpiItem
-              title="Reserva Legal"
-              value={
-                sicarData ? formatArea(sicarData.totalReservaLegal) : "0 ha"
-              }
-              change={
-                sicarData
-                  ? `${sicarData.percentualReservaLegal.toFixed(
-                      2
-                    )}% da área total`
-                  : "0% da área total"
-              }
-              isPositive={true}
-              loading={loadingSicar}
-              icon={
-                <ShieldIcon className="h-5 w-5 text-white dark:text-gray-700" />
-              }
-              tooltip="Área de Reserva Legal obrigatória por lei para conservação da biodiversidade e uso sustentável dos recursos naturais."
-            />
-            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-          </div>
-
-          {/* Recursos Hídricos */}
-          <div className="relative">
-            <KpiItem
-              title="Recursos Hídricos"
-              value={
-                sicarData ? formatArea(sicarData.totalRecursosHidricos) : "0 ha"
-              }
-              change={
-                sicarData
-                  ? `${sicarData.percentualRecursosHidricos.toFixed(
-                      2
-                    )}% da área total`
-                  : "0% da área total"
-              }
-              isPositive={true}
-              loading={loadingSicar}
-              icon={
-                <DropletsIcon className="h-5 w-5 text-white dark:text-gray-700" />
-              }
-              tooltip="Área de Preservação Permanente em recursos hídricos, fundamental para proteção de nascentes, rios e mananciais."
-            />
-            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-          </div>
-
-          {/* Área Protegida Total */}
-          <div className="relative">
-            <KpiItem
-              title="Área Protegida Total"
-              value={
-                sicarData ? formatArea(sicarData.totalAreaProtegida) : "0 ha"
-              }
-              change={
-                sicarData
-                  ? `${sicarData.percentualAreaProtegida.toFixed(
-                      2
-                    )}% da área total`
-                  : "0% da área total"
-              }
-              isPositive={true}
-              loading={loadingSicar}
-              icon={
-                <LeafIcon className="h-5 w-5 text-white dark:text-gray-700" />
-              }
-              tooltip="Soma total de todas as áreas destinadas à conservação ambiental, incluindo Reserva Legal e APPs."
-            />
-            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-          </div>
-
-          {/* Vegetação Nativa Remanescente */}
-          <div>
-            <KpiItem
-              title="Vegetação Nativa Remanescente"
-              value={
-                sicarData ? formatArea(sicarData.totalAreaProtegida) : "0 ha"
-              }
-              change="área preservada"
-              isPositive={true}
-              loading={loadingSicar}
-              icon={
-                <TreePineIcon className="h-5 w-5 text-white dark:text-gray-700" />
-              }
-              tooltip="Área de vegetação nativa ainda preservada nas propriedades, indicador de sustentabilidade ambiental."
-            />
-          </div>
-        </div>
       </Card>
     </TooltipProvider>
   );

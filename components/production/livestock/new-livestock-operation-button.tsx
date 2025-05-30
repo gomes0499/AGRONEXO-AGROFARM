@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 // Define interface for the property entity
 interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   [key: string]: any;
 }

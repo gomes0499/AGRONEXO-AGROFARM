@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BankDebt } from "@/schemas/financial";
+import { Harvest } from "@/schemas/production";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, Building2 } from "lucide-react";
 import {
@@ -23,15 +24,18 @@ import { CardHeaderPrimary } from "@/components/organization/common/data-display
 import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { FinancialPagination } from "../common/financial-pagination";
 import { useFinancialFilters } from "@/hooks/use-financial-filters";
+import { BankDebtDetailRow } from "./bank-debt-detail-row";
 
 interface BankDebtListingProps {
   organization: { id: string; nome: string };
   initialBankDebts: BankDebt[];
+  harvests?: Harvest[];
 }
 
 export function BankDebtListing({
   organization,
   initialBankDebts,
+  harvests = [],
 }: BankDebtListingProps) {
   const [bankDebts, setBankDebts] = useState<BankDebt[]>(() => {
     // Garantir que o fluxo_pagamento_anual esteja corretamente formatado
@@ -221,39 +225,27 @@ export function BankDebtListing({
               <Table>
                   <TableHeader>
                     <TableRow className="bg-primary hover:bg-primary">
-                      <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Instituição</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Tipo</TableHead>
                       <TableHead className="font-semibold text-primary-foreground">Modalidade</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Ano Contratação</TableHead>
                       <TableHead className="font-semibold text-primary-foreground">Indexador</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Taxa Real</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Taxa</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Moeda</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Safra</TableHead>
                       <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedData.map((debt) => (
-                      <TableRow key={debt.id}>
-                        <TableCell>{debt.instituicao_bancaria}</TableCell>
-                        <TableCell>{debt.modalidade}</TableCell>
-                        <TableCell>{debt.ano_contratacao}</TableCell>
-                        <TableCell>{debt.indexador || "-"}</TableCell>
-                        <TableCell>
-                          {debt.taxa_real ? `${debt.taxa_real}%` : "-"}
-                        </TableCell>
-                        <TableCell>
-                          {formatGenericCurrency(
-                            calculateTotal(debt),
-                            debt.moeda || "BRL"
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <BankDebtRowActions
-                            bankDebt={debt}
-                            onEdit={() => setEditingDebt(debt)}
-                            onDelete={() => handleDeleteDebt(debt.id!)}
-                          />
-                        </TableCell>
-                      </TableRow>
+                      <BankDebtDetailRow
+                        key={debt.id}
+                        debt={debt}
+                        harvests={harvests}
+                        onEdit={setEditingDebt}
+                        onDelete={handleDeleteDebt}
+                        showSafraColumn={true}
+                      />
                     ))}
                   </TableBody>
                 </Table>

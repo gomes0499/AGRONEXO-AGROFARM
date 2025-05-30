@@ -4,6 +4,7 @@ import * as React from "react";
 import { NavMain } from "@/components/dashboard/nav-main";
 import { NavSecondary } from "@/components/dashboard/nav-secondary";
 import { NavUser } from "@/components/dashboard/nav-user";
+import { ThemeAwareLogo } from "@/components/dashboard/theme-aware-logo";
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +17,6 @@ import {
 import Link from "next/link";
 import { data } from "./navigation";
 import { useUser } from "@/components/auth/user-provider";
-import Image from "next/image";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
@@ -57,7 +57,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               "Comercial",
               "Financeiro",
               "Patrimonial",
-              "Projeções",
+              "Fluxo de Caixa Projetado",
               "Indicadores",
             ];
 
@@ -88,12 +88,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/dashboard">
-                <Image
-                  src="/logo.svg"
-                  alt="SR-Consultoria Logo"
+                <ThemeAwareLogo
                   width={200}
                   height={100}
-                  priority
+                  priority={true}
                   quality={100}
                 />
               </Link>

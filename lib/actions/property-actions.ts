@@ -126,20 +126,43 @@ export async function getLeases(organizationId: string, propertyId?: string) {
     query = query.eq("propriedade_id", propertyId);
   }
   
-  const { data, error } = await query.order("data_inicio", { ascending: false });
+  const { data: leases, error } = await query.order("data_inicio", { ascending: false });
   
   if (error) {
     console.error("Erro ao buscar arrendamentos:", error);
     throw new Error("Não foi possível carregar os arrendamentos");
   }
   
-  return data as Lease[];
+  // Buscar safras separadamente se necessário
+  if (leases && leases.length > 0) {
+    const safraIds = [...new Set(leases.map(l => l.safra_id).filter(Boolean))];
+    
+    if (safraIds.length > 0) {
+      const { data: safras } = await supabase
+        .from('safras')
+        .select('id, nome, ano_inicio, ano_fim')
+        .in('id', safraIds);
+      
+      // Mapear safras para os arrendamentos
+      const safraMap = safras?.reduce((acc, safra) => {
+        acc[safra.id] = safra;
+        return acc;
+      }, {} as Record<string, any>) || {};
+      
+      return leases.map(lease => ({
+        ...lease,
+        safra: lease.safra_id ? safraMap[lease.safra_id] : null
+      })) as Lease[];
+    }
+  }
+  
+  return leases as Lease[] || [];
 }
 
 export async function getLeaseById(id: string) {
   const supabase = await createClient();
   
-  const { data, error } = await supabase
+  const { data: lease, error } = await supabase
     .from("arrendamentos")
     .select("*")
     .eq("id", id)
@@ -150,7 +173,24 @@ export async function getLeaseById(id: string) {
     throw new Error("Não foi possível carregar os detalhes do arrendamento");
   }
   
-  return data as Lease;
+  // Buscar safra separadamente se necessário
+  if (lease && lease.safra_id) {
+    const { data: safra } = await supabase
+      .from('safras')
+      .select('id, nome, ano_inicio, ano_fim')
+      .eq('id', lease.safra_id)
+      .single();
+    
+    return {
+      ...lease,
+      safra: safra || null
+    } as Lease;
+  }
+  
+  return {
+    ...lease,
+    safra: null
+  } as Lease;
 }
 
 export async function createLease(
@@ -162,20 +202,21 @@ export async function createLease(
   
   console.log("createLease called with:", { organizationId, propertyId, values });
   
-  // Garantir que custos_projetados_anuais seja um objeto válido
+  // Garantir que custos_por_ano seja um objeto válido
   let custos;
   try {
-    custos = typeof values.custos_projetados_anuais === 'string' 
-      ? JSON.parse(values.custos_projetados_anuais) 
-      : values.custos_projetados_anuais || {};
+    custos = typeof values.custos_por_ano === 'string' 
+      ? JSON.parse(values.custos_por_ano) 
+      : values.custos_por_ano || {};
   } catch (error) {
-    console.warn("Erro ao parsear custos_projetados_anuais, usando objeto vazio:", error);
+    console.warn("Erro ao parsear custos_por_ano, usando objeto vazio:", error);
     custos = {};
   }
   
   const insertData = {
     organizacao_id: organizationId,
-    propriedade_id: propertyId, // Usar o propertyId passado como parâmetro
+    propriedade_id: propertyId,
+    safra_id: values.safra_id,
     numero_arrendamento: values.numero_arrendamento,
     area_fazenda: values.area_fazenda,
     area_arrendada: values.area_arrendada,
@@ -184,8 +225,10 @@ export async function createLease(
     data_inicio: values.data_inicio,
     data_termino: values.data_termino,
     custo_hectare: values.custo_hectare,
-    custo_ano: values.custo_ano,
-    custos_projetados_anuais: custos
+    tipo_pagamento: values.tipo_pagamento,
+    custos_por_ano: custos,
+    ativo: values.ativo ?? true,
+    observacoes: values.observacoes || null
   };
   
   console.log("Dados a serem inseridos:", insertData);
@@ -214,16 +257,29 @@ export async function updateLease(
 ) {
   const supabase = await createClient();
   
-  const custos = typeof values.custos_projetados_anuais === 'string' 
-    ? JSON.parse(values.custos_projetados_anuais) 
-    : values.custos_projetados_anuais;
+  const custos = typeof values.custos_por_ano === 'string' 
+    ? JSON.parse(values.custos_por_ano) 
+    : values.custos_por_ano;
+  
+  const updateData = {
+    safra_id: values.safra_id,
+    numero_arrendamento: values.numero_arrendamento,
+    area_fazenda: values.area_fazenda,
+    area_arrendada: values.area_arrendada,
+    nome_fazenda: values.nome_fazenda,
+    arrendantes: values.arrendantes,
+    data_inicio: values.data_inicio,
+    data_termino: values.data_termino,
+    custo_hectare: values.custo_hectare,
+    tipo_pagamento: values.tipo_pagamento,
+    custos_por_ano: custos,
+    ativo: values.ativo ?? true,
+    observacoes: values.observacoes || null
+  };
   
   const { data, error } = await supabase
     .from("arrendamentos")
-    .update({
-      ...values,
-      custos_projetados_anuais: custos
-    })
+    .update(updateData)
     .eq("id", id)
     .select()
     .single();
@@ -254,6 +310,42 @@ export async function deleteLease(id: string, propertyId: string) {
   revalidatePath(`/dashboard/properties/${propertyId}`);
   
   return true;
+}
+
+// Função para buscar safras
+export async function getSafras(organizationId: string) {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from("safras")
+    .select("id, nome, ano_inicio, ano_fim")
+    .eq("organizacao_id", organizationId)
+    .order("ano_inicio", { ascending: false });
+  
+  if (error) {
+    console.error("Erro ao buscar safras:", error);
+    throw new Error("Não foi possível carregar as safras");
+  }
+  
+  return data;
+}
+
+// Função para buscar safras por IDs específicos
+export async function getSafrasByIds(organizationId: string, safraIds: string[]) {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from("safras")
+    .select("id, nome, ano_inicio, ano_fim")
+    .eq("organizacao_id", organizationId)
+    .in("id", safraIds);
+  
+  if (error) {
+    console.error("Erro ao buscar safras por IDs:", error);
+    throw new Error("Não foi possível carregar as safras");
+  }
+  
+  return data;
 }
 
 // Funções para Benfeitorias

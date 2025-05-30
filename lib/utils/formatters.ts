@@ -90,8 +90,29 @@ export function formatSojaCurrency(value: number | null | undefined, decimals: n
   return isNegative ? `-${formattedWithUnit}` : formattedWithUnit;
 }
 
+// Formatação compacta para valores grandes (2.2M, 1.5K, etc.)
+export function formatCurrencyCompact(value: number | null | undefined): string {
+  if (value === null || value === undefined || value === 0) return "R$ 0";
+  
+  const absValue = Math.abs(value);
+  const isNegative = value < 0;
+  
+  // Usar formatação compacta nativa do JavaScript
+  const formatter = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  });
+  
+  const formatted = formatter.format(absValue);
+  return isNegative ? `-${formatted}` : formatted;
+}
+
 // Formata moeda genérica (útil para formulários onde a moeda pode mudar)
-export function formatGenericCurrency(value: number | null | undefined, currency: 'BRL' | 'USD' | 'EUR' | 'SOJA' = 'BRL', decimals: number = 2): string {
+export type CurrencyType = 'BRL' | 'USD' | 'EUR' | 'SOJA';
+
+export function formatGenericCurrency(value: number | null | undefined, currency: CurrencyType | string = 'BRL', decimals: number = 2): string {
   switch(currency) {
     case 'USD':
       return formatUsdCurrency(value, decimals);

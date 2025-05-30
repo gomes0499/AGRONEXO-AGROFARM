@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { getSafras } from "@/lib/actions/production-actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,17 +45,36 @@ export function LandPlanForm({
   onCancel 
 }: LandPlanFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string }>>([]);
+  const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
   const isEditing = !!initialData?.id;
+
+  // Carregar safras
+  useEffect(() => {
+    async function loadHarvests() {
+      try {
+        setIsLoadingHarvests(true);
+        const harvestsData = await getSafras(organizationId);
+        setHarvests(harvestsData.map(h => ({ id: h.id, nome: h.nome })));
+      } catch (error) {
+        console.error("Erro ao carregar safras:", error);
+      } finally {
+        setIsLoadingHarvests(false);
+      }
+    }
+    loadHarvests();
+  }, [organizationId]);
 
   const form = useForm<LandAcquisitionFormValues>({
     resolver: zodResolver(landAcquisitionFormSchema),
     defaultValues: {
       nome_fazenda: initialData?.nome_fazenda || "",
-      ano: initialData?.ano || new Date().getFullYear(),
       hectares: initialData?.hectares || 0,
       sacas: initialData?.sacas || 0,
       valor_total: initialData?.valor_total || 0,
-      tipo: initialData?.tipo || "PLANEJADO"
+      tipo: initialData?.tipo || "PLANEJADO",
+      ano: initialData?.ano || new Date().getFullYear(),
+      safra_id: initialData?.safra_id || "",
     }
   });
 
@@ -72,6 +92,7 @@ export function LandPlanForm({
       
       const dataWithTotal = {
         ...values,
+        ano: new Date().getFullYear(), // Usar ano atual já que removemos o campo
         total_sacas: totalSacasCalculated
       };
 
@@ -140,20 +161,27 @@ export function LandPlanForm({
           )}
         />
 
-        <FormField
+      <FormField
         control={form.control}
-        name="ano"
+        name="safra_id"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Ano</FormLabel>
-            <FormControl>
-              <Input
-                type="number"
-                placeholder="Ex: 2024"
-                {...field}
-                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-              />
-            </FormControl>
+            <FormLabel>Safra</FormLabel>
+            <Select onValueChange={(value) => field.onChange(value === "none" ? "" : value)} defaultValue={field.value || "none"}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder={isLoadingHarvests ? "Carregando safras..." : "Selecione uma safra (opcional)"} />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma safra</SelectItem>
+                {harvests.map((harvest) => (
+                  <SelectItem key={harvest.id} value={harvest.id}>
+                    {harvest.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}

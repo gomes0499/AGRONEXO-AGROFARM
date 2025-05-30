@@ -61,8 +61,8 @@ export default async function PropertyDetailsPage({
         {/* Tabs Navigation - logo abaixo do site header */}
         <Tabs defaultValue={activeTab}>
           <div className="bg-muted/50 border-b">
-            <div className="container mx-auto px-4 md:px-6 py-2">
-              <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+            <div className="container max-w-full px-4 md:px-6 py-2">
+              <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start w-full">
                 <TabsTrigger
                   value="info"
                   className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"

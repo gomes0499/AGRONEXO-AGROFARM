@@ -110,19 +110,33 @@ export async function getCashFlowData(
       getSuppliers(organizationId)
     ]);
 
-    // 3. Buscar dados de arrendamento
-    const { data: arrendamentos } = await supabase
-      .from("arrendamentos")
-      .select("*")
-      .eq("organizacao_id", organizationId);
+    // 3. Buscar dados de arrendamento (tabela pode não existir ainda)
+    let arrendamentos = null;
+    try {
+      const { data } = await supabase
+        .from("arrendamentos")
+        .select("*")
+        .eq("organizacao_id", organizationId);
+      arrendamentos = data;
+    } catch (error) {
+      console.log("Tabela arrendamentos não existe ainda");
+      arrendamentos = [];
+    }
 
     // 4. Nota: Investimentos são buscados diretamente na função calculateInvestimentos
 
     // 5. Buscar dados de projeções específicas (se existirem)
-    const { data: projecoesFluxo } = await supabase
-      .from("projecoes_fluxo_caixa")
-      .select("*")
-      .eq("organizacao_id", organizationId);
+    let projecoesFluxo = null;
+    try {
+      const { data } = await supabase
+        .from("projecoes_fluxo_caixa")
+        .select("*")
+        .eq("organizacao_id", organizationId);
+      projecoesFluxo = data;
+    } catch (error) {
+      console.log("Tabela projecoes_fluxo_caixa não existe ainda");
+      projecoesFluxo = [];
+    }
 
     // 6. Processar anos disponíveis
     const availableYears = cultureData.years || [];
@@ -189,18 +203,18 @@ async function calculateReceitasPorCultura(
 ): Promise<any> {
   const supabase = await createClient();
   
-  // Buscar áreas de plantio para esta safra específica
+  // Buscar áreas de plantio com estrutura JSONB
   let areasQuery = supabase
     .from('areas_plantio')
     .select(`
-      area,
+      areas_por_safra,
       cultura_id,
       sistema_id,
       culturas:cultura_id(nome),
       sistemas:sistema_id(nome)
     `)
     .eq('organizacao_id', organizationId)
-    .eq('safra_id', safraId);
+    .not('areas_por_safra', 'eq', '{}');
 
   // Aplicar filtros se existirem
   if (filters.propertyIds?.length) {
@@ -215,19 +229,26 @@ async function calculateReceitasPorCultura(
 
   const { data: areas } = await areasQuery;
 
-  // Buscar produtividades
+  // Buscar produtividades com estrutura JSONB
   const { data: productivities } = await supabase
     .from('produtividades')
-    .select('produtividade, unidade, cultura_id, sistema_id')
+    .select('produtividades_por_safra, cultura_id, sistema_id')
     .eq('organizacao_id', organizationId)
-    .eq('safra_id', safraId);
+    .not('produtividades_por_safra', 'eq', '{}');
 
-  // Buscar preços das commodities
-  const { data: commodityPrices } = await supabase
-    .from('commodity_price_projections')
-    .select('*')
-    .eq('organizacao_id', organizationId)
-    .order('created_at', { ascending: false });
+  // Buscar preços das commodities (tabela pode não existir ainda)
+  let commodityPrices = null;
+  try {
+    const { data } = await supabase
+      .from('commodity_price_projections')
+      .select('*')
+      .eq('organizacao_id', organizationId)
+      .order('created_at', { ascending: false });
+    commodityPrices = data;
+  } catch (error) {
+    console.log("Tabela commodity_price_projections não existe ainda, usando preços padrão");
+    commodityPrices = null;
+  }
 
 
   // Calcular receitas por cultura/sistema
@@ -249,14 +270,20 @@ async function calculateReceitasPorCultura(
     const culturaNome = (area.culturas as any)?.nome?.toUpperCase() || '';
     const sistemaNome = (area.sistemas as any)?.nome?.toUpperCase() || '';
     
+    // Extrair área para a safra específica do JSONB
+    const areaPlantada = area.areas_por_safra?.[safraId] || 0;
+    
     // Buscar produtividade
     const prod = productivities?.find(p => 
       p.cultura_id === area.cultura_id && 
       p.sistema_id === area.sistema_id
     );
     
-    const produtividade = prod?.produtividade || 0;
-    const areaPlantada = area.area || 0;
+    // Extrair produtividade para a safra específica do JSONB
+    const produtividadeData = prod?.produtividades_por_safra?.[safraId];
+    const produtividade = typeof produtividadeData === 'object' 
+      ? produtividadeData.produtividade 
+      : produtividadeData || 0;
     
     // Buscar preço
     let preco = 0;
@@ -326,18 +353,18 @@ async function calculateDespesasPorCultura(
 ): Promise<any> {
   const supabase = await createClient();
   
-  // Buscar áreas de plantio para esta safra específica
+  // Buscar áreas de plantio com estrutura JSONB
   let areasQuery = supabase
     .from('areas_plantio')
     .select(`
-      area,
+      areas_por_safra,
       cultura_id,
       sistema_id,
       culturas:cultura_id(nome),
       sistemas:sistema_id(nome)
     `)
     .eq('organizacao_id', organizationId)
-    .eq('safra_id', safraId);
+    .not('areas_por_safra', 'eq', '{}');
 
   // Aplicar filtros se existirem
   if (filters.propertyIds?.length) {
@@ -352,12 +379,12 @@ async function calculateDespesasPorCultura(
 
   const { data: areas } = await areasQuery;
 
-  // Buscar custos de produção
+  // Buscar custos de produção com estrutura JSONB
   const { data: costs } = await supabase
     .from('custos_producao')
-    .select('valor, categoria, cultura_id, sistema_id')
+    .select('custos_por_safra, categoria, cultura_id, sistema_id')
     .eq('organizacao_id', organizationId)
-    .eq('safra_id', safraId);
+    .not('custos_por_safra', 'eq', '{}');
 
 
   // Calcular despesas por cultura/sistema
@@ -379,15 +406,22 @@ async function calculateDespesasPorCultura(
     const culturaNome = (area.culturas as any)?.nome?.toUpperCase() || '';
     const sistemaNome = (area.sistemas as any)?.nome?.toUpperCase() || '';
     
+    // Extrair área para a safra específica do JSONB
+    const areaPlantada = area.areas_por_safra?.[safraId] || 0;
+    
     // Buscar custos para esta área
     const areaCosts = costs?.filter(c => 
       c.cultura_id === area.cultura_id && 
       c.sistema_id === area.sistema_id
     ) || [];
     
-    const custoTotal = areaCosts.reduce((sum, c) => sum + (c.valor || 0), 0);
-    const areaPlantada = area.area || 0;
-    const despesaArea = custoTotal * areaPlantada;
+    // Calcular custo total por hectare para esta safra
+    const custoTotalPorHa = areaCosts.reduce((sum, c) => {
+      const custoPorSafra = c.custos_por_safra?.[safraId] || 0;
+      return sum + Number(custoPorSafra);
+    }, 0);
+    
+    const despesaArea = custoTotalPorHa * areaPlantada;
     
     
     // Categorizar por cultura e sistema
@@ -453,12 +487,19 @@ async function calculateInvestimentos(
   const year = parseInt(safraName.split('/')[0]);
   
   // 1. Investimentos gerais do módulo patrimonial (aba Investimentos)
-  const { data: investimentosPatrimonial } = await supabase
-    .from("investimentos")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .eq("ano", year)
-    .eq("tipo", "REALIZADO");
+  let investimentosPatrimonial = null;
+  try {
+    const { data } = await supabase
+      .from("investimentos")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .eq("ano", year)
+      .eq("tipo", "REALIZADO");
+    investimentosPatrimonial = data;
+  } catch (error) {
+    console.log("Tabela investimentos não existe ainda");
+    investimentosPatrimonial = [];
+  }
   
   const maquinarios = investimentosPatrimonial?.filter(inv => 
     inv.categoria === 'TRATOR_COLHEITADEIRA_PULVERIZADOR' || 
@@ -470,12 +511,19 @@ async function calculateInvestimentos(
   ).reduce((total, inv) => total + (inv.valor_total || inv.quantidade * inv.valor_unitario), 0) || 0;
   
   // 2. Aquisições de terras do módulo patrimonial (aba Aquisição de Áreas)
-  const { data: aquisicoesTerras } = await supabase
-    .from("aquisicao_terras")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .eq("ano", year)
-    .eq("tipo", "REALIZADO");
+  let aquisicoesTerras = null;
+  try {
+    const { data } = await supabase
+      .from("aquisicao_terras")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .eq("ano", year)
+      .eq("tipo", "REALIZADO");
+    aquisicoesTerras = data;
+  } catch (error) {
+    console.log("Tabela aquisicao_terras não existe ainda");
+    aquisicoesTerras = [];
+  }
   
   const terras = aquisicoesTerras?.reduce((total, terra) => {
     return total + (terra.valor_total || 0);

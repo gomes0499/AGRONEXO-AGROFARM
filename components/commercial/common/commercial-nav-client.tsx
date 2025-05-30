@@ -69,9 +69,9 @@ export function CommercialNavClient(props: CommercialNavClientProps) {
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
-        className="w-full"
+        className="w-full max-w-full"
       >
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 w-full">
           {/* Seeds Tab */}
           <TabsTrigger value="seeds" className="relative">
             Sementes

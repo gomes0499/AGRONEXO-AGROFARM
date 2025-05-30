@@ -56,6 +56,7 @@ import { cn } from "@/lib/utils";
 // Define interface for the property entity
 interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   cidade?: string;
   estado?: string;
@@ -246,17 +247,21 @@ export function ProductionCostForm({
 }: ProductionCostFormProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedSafraId, setSelectedSafraId] = useState<string>("");
+  const [currentCost, setCurrentCost] = useState<number>(0);
   const isEditing = !!cost?.id;
 
+  // Initialize form with correct defaultValues based on the updated schema
   const form = useForm<ProductionCostFormValues>({
     resolver: zodResolver(productionCostFormSchema),
     defaultValues: {
       cultura_id: cost?.cultura_id || "",
       sistema_id: cost?.sistema_id || "",
-      safra_id: cost?.safra_id || "",
       propriedade_id: cost?.propriedade_id || "",
       categoria: (cost?.categoria as any) || "OUTROS",
-      valor: cost?.valor || 0,
+      custos_por_safra: cost?.custos_por_safra || {},
+      descricao: cost?.descricao || "",
+      observacoes: cost?.observacoes || "",
     },
   });
 
@@ -275,6 +280,14 @@ export function ProductionCostForm({
     setSelectedCategory(form.getValues("categoria"));
   }, [form]);
 
+  // Initialize current cost if editing an existing cost
+  useEffect(() => {
+    if (isEditing && selectedSafraId && cost?.custos_por_safra) {
+      const costValue = cost.custos_por_safra[selectedSafraId] || 0;
+      setCurrentCost(costValue);
+    }
+  }, [isEditing, selectedSafraId, cost]);
+
   // Encontrar detalhes da categoria selecionada
   const selectedCategoryDetails = COST_CATEGORIES.find(
     (cat) => cat.value === selectedCategory
@@ -285,23 +298,52 @@ export function ProductionCostForm({
     (c) => c.id === form.watch("cultura_id")
   );
   const selectedSystem = systems.find((s) => s.id === form.watch("sistema_id"));
-  const selectedHarvest = harvests.find((h) => h.id === form.watch("safra_id"));
+  const selectedHarvest = harvests.find((h) => h.id === selectedSafraId);
   const selectedProperty = properties.find(
     (p) => p.id === form.watch("propriedade_id")
   );
 
+  // Helper functions for managing costs per safra
+  const updateCostForSafra = (safraId: string, cost: number) => {
+    const currentCosts = form.getValues("custos_por_safra") || {};
+    form.setValue("custos_por_safra", {
+      ...currentCosts,
+      [safraId]: cost,
+    });
+  };
+
   const onSubmit = async (values: ProductionCostFormValues) => {
     try {
       setIsSubmitting(true);
+      
+      // Ensure at least one cost is defined for a safra
+      const costsPerSafra = values.custos_por_safra;
+      if (Object.keys(costsPerSafra).length === 0) {
+        toast.error("Adicione pelo menos um custo por safra");
+        return;
+      }
 
       if (isEditing && cost?.id) {
         // Atualizar item existente
-        const updatedItem = await updateProductionCost(cost.id, values);
+        const updatedItem = await updateProductionCost(cost.id, {
+          custos_por_safra: values.custos_por_safra,
+          descricao: values.descricao,
+          observacoes: values.observacoes
+        });
         toast.success("Custo de produção atualizado com sucesso!");
         onSuccess?.(updatedItem);
       } else {
         // Criar novo item
-        const newItem = await createProductionCost(organizationId, values);
+        const newItem = await createProductionCost(organizationId, {
+          organizacao_id: organizationId,
+          propriedade_id: values.propriedade_id,
+          cultura_id: values.cultura_id,
+          sistema_id: values.sistema_id,
+          categoria: values.categoria,
+          custos_por_safra: values.custos_por_safra,
+          descricao: values.descricao,
+          observacoes: values.observacoes
+        });
         toast.success("Custo de produção criado com sucesso!");
         onSuccess?.(newItem);
       }
@@ -320,41 +362,102 @@ export function ProductionCostForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="safra_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                  Safra
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={isSubmitting}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a safra" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {harvests.map((harvest) => (
-                      <SelectItem key={harvest.id} value={harvest.id || ""}>
-                        {harvest.nome}
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Safra Selector */}
+            <div>
+              <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                Safra
+              </FormLabel>
+              <Select
+                onValueChange={(value) => {
+                  setSelectedSafraId(value);
+                  // Get the cost for this safra if it exists
+                  const costs = form.getValues("custos_por_safra");
+                  const cost = costs[value] || 0;
+                  setCurrentCost(cost);
+                }}
+                value={selectedSafraId}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione a safra" />
+                </SelectTrigger>
+                <SelectContent>
+                  {harvests.map((harvest) => (
+                    <SelectItem key={harvest.id} value={harvest.id || ""}>
+                      {harvest.nome}
+                      {harvest.ano_inicio === new Date().getFullYear() && (
                         <Badge variant="outline" className="ml-2 py-0 h-4">
-                          Ativa
+                          Atual
                         </Badge>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Cost input for selected safra */}
+            <div>
+              <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                Valor (R$/ha)
+              </FormLabel>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Ex: 150.50"
+                value={currentCost || ""}
+                onChange={(e) => {
+                  const value = e.target.value ? parseFloat(e.target.value) : 0;
+                  setCurrentCost(value);
+                  if (selectedSafraId) {
+                    updateCostForSafra(selectedSafraId, value);
+                  }
+                }}
+                disabled={isSubmitting || !selectedSafraId}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Valor do custo em reais por hectare (R$/ha)
+              </p>
+            </div>
+          </div>
+          
+          {/* Costs per safra summary */}
+          {Object.keys(form.watch("custos_por_safra")).length > 0 && (
+            <div className="rounded-md border p-3 bg-muted/20">
+              <h3 className="text-sm font-medium mb-2">Custos por safra adicionados:</h3>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(form.watch("custos_por_safra")).map(([safraId, cost]) => {
+                  const harvest = harvests.find(h => h.id === safraId);
+                  if (!harvest || !cost) return null;
+                  
+                  return (
+                    <Badge key={safraId} variant="secondary" className="flex items-center gap-1">
+                      <span>{harvest.nome}: {formatCurrency(cost as number)}</span>
+                      <button
+                        type="button"
+                        className="ml-1 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          const updatedCosts = { ...form.getValues("custos_por_safra") };
+                          delete updatedCosts[safraId];
+                          form.setValue("custos_por_safra", updatedCosts);
+                          if (selectedSafraId === safraId) {
+                            setCurrentCost(0);
+                          }
+                        }}
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <FormField
             control={form.control}
@@ -534,14 +637,25 @@ export function ProductionCostForm({
             />
           </div>
 
-          {/* Valor do Custo */}
-          <CurrencyField
-            name="valor"
-            label="Valor (R$/ha)"
+          {/* Description field */}
+          <FormField
             control={form.control}
-            placeholder="Digite o valor do custo"
-            description="Valor do custo em reais por hectare (R$/ha)"
-            disabled={isSubmitting}
+            name="descricao"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">
+                  Descrição
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Descrição do custo (opcional)"
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
 
           {/* Resumo das seleções */}
@@ -586,13 +700,13 @@ export function ProductionCostForm({
                     </div>
                   )}
 
-                  {form.watch("valor") > 0 && (
+                  {currentCost > 0 && (
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-muted-foreground">
                         Valor:
                       </span>
                       <span className="text-sm font-medium text-primary">
-                        {formatCurrency(form.watch("valor"))}
+                        {formatCurrency(currentCost)}
                       </span>
                     </div>
                   )}
@@ -622,6 +736,28 @@ export function ProductionCostForm({
               </CardContent>
             </Card>
           )}
+          
+          {/* Observations field */}
+          <FormField
+            control={form.control}
+            name="observacoes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">
+                  Observações
+                </FormLabel>
+                <FormControl>
+                  <textarea
+                    className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Observações adicionais (opcional)"
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t">

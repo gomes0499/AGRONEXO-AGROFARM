@@ -36,11 +36,13 @@ import {
 interface ProdutividadeChartProps {
   organizationId: string;
   propertyIds?: string[];
+  cultureIds?: string[];
 }
 
 export function ProdutividadeChart({
   organizationId,
   propertyIds,
+  cultureIds,
 }: ProdutividadeChartProps) {
   const [data, setData] = useState<ProductivityData[]>([]);
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
@@ -54,7 +56,7 @@ export function ProdutividadeChart({
         setError(null);
 
         const [chartData, cores] = await Promise.all([
-          getProdutividadeChart(organizationId, propertyIds),
+          getProdutividadeChart(organizationId, propertyIds, cultureIds),
           getCulturaColors(organizationId),
         ]);
 
@@ -103,23 +105,46 @@ export function ProdutividadeChart({
             cores[chaveNormalizada] ||
             variacoesCores[corIndex % variacoesCores.length];
 
-          // Formatar label em normal case
+          // Lista de palavras que devem ser capitalizadas individualmente
+          const culturas = ["soja", "milho", "algodao", "arroz", "trigo", "feijao", "cafe", "sorgo", "girassol", "canola"];
+          const tipos = ["sequeiro", "irrigado", "safrinha", "primeira", "segunda", "terceira"];
+          const palavrasEspeciais = [...culturas, ...tipos];
+          
+          // 1. Primeiro, quebramos a string em CamelCase
           let label = cultura
-            .toLowerCase() // Converter para minúsculas primeiro
-            .replace(/([a-z])([A-Z])/g, '$1 $2') // Adicionar espaço entre palavras
-            .replace(/^./, (char) => char.toUpperCase()) // Primeira letra maiúscula
+            .replace(/([a-z])([A-Z])/g, '$1 $2') // Adiciona espaço entre minúscula e maiúscula
+            .toLowerCase() // Converte tudo para minúsculo para padronização
             .trim();
-
-          // Casos especiais
-          if (label.includes("sequeiro")) {
-            label = label.replace("sequeiro", "Sequeiro");
-          }
-          if (label.includes("irrigado")) {
-            label = label.replace("irrigado", "Irrigado");
-          }
-          if (label.includes("safrinha")) {
-            label = label.replace("safrinha", "Safrinha");
-          }
+          
+          // 2. Identificar e capitalizar todas as palavras especiais
+          palavrasEspeciais.forEach(palavra => {
+            // Regex que encontra a palavra como uma palavra completa, não parte de outra
+            const regex = new RegExp(`\\b${palavra}\\b`, "gi");
+            const palavraCapitalizada = palavra.charAt(0).toUpperCase() + palavra.slice(1);
+            label = label.replace(regex, palavraCapitalizada);
+          });
+          
+          // 3. Garantir que termos compostos como "SojaIrrigado" sejam separados corretamente
+          // Primeiro identificamos padrões de cultura+tipo que podem estar juntos
+          culturas.forEach(cultura => {
+            const culturaCapitalizada = cultura.charAt(0).toUpperCase() + cultura.slice(1);
+            
+            tipos.forEach(tipo => {
+              const tipoCapitalizado = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+              
+              // Padrão: "CulturaTipo" -> "Cultura Tipo"
+              const padraoJunto = new RegExp(`\\b${culturaCapitalizada}${tipoCapitalizado}\\b`, "g");
+              label = label.replace(padraoJunto, `${culturaCapitalizada} ${tipoCapitalizado}`);
+              
+              // Caso especial para "Safrinha" que pode estar entre cultura e tipo
+              // Ex: "MilhoSafrinhaIrrigado" -> "Milho Safrinha Irrigado"
+              const padraoSafrinha = new RegExp(`\\b${culturaCapitalizada}Safrinha${tipoCapitalizado}\\b`, "g");
+              label = label.replace(padraoSafrinha, `${culturaCapitalizada} Safrinha ${tipoCapitalizado}`);
+            });
+          });
+          
+          // 4. Garantir a primeira letra maiúscula para toda a string
+          label = label.replace(/^./, (char) => char.toUpperCase());
 
           config[cultura] = {
             label: label,
@@ -139,7 +164,7 @@ export function ProdutividadeChart({
     }
 
     fetchData();
-  }, [organizationId, propertyIds]);
+  }, [organizationId, propertyIds, cultureIds]);
 
   // Calcular crescimento médio
   const calcularCrescimentoMedio = () => {
@@ -278,10 +303,14 @@ export function ProdutividadeChart({
                 />
                 <ChartTooltip
                   content={<ChartTooltipContent />}
-                  formatter={(value, name) => [
-                    `${Number(value).toLocaleString()} sc/ha`,
-                    chartConfig[name as string]?.label || name,
-                  ]}
+                  formatter={(value, name) => {
+                    const formattedValue = typeof value === 'number' ? Number(value).toLocaleString() : '0';
+                    const nameStr = typeof name === 'string' ? name : String(name);
+                    return [
+                      <span key="value" className="font-medium">{formattedValue} sc/ha</span>,
+                      <span key="name">{chartConfig[nameStr]?.label || nameStr}</span>,
+                    ];
+                  }}
                   labelFormatter={(label) => `Safra: ${label}`}
                 />
                 <ChartLegend content={<ChartLegendMultirow itemsPerRow={3} />} />

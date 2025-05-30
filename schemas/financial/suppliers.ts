@@ -12,6 +12,7 @@ export const supplierSchema = z.object({
   nome: z.string().min(1, "Nome do fornecedor é obrigatório"),
   moeda: currencyEnum.default("BRL"),
   valores_por_ano: annualValuesSchema.or(z.string()),
+  safra_id: z.string().uuid().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

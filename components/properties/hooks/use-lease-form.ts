@@ -36,8 +36,8 @@ export function useLeaseForm({
       data_inicio: lease?.data_inicio ? new Date(lease.data_inicio) : new Date(),
       data_termino: lease?.data_termino ? new Date(lease.data_termino) : new Date(new Date().setFullYear(new Date().getFullYear() + 5)),
       custo_hectare: lease?.custo_hectare || 0,
-      custo_ano: lease?.custo_ano || 0,
-      custos_projetados_anuais: lease?.custos_projetados_anuais || {},
+      // These fields are not part of the schema but needed for compatibility
+      custos_por_ano: lease?.custos_por_ano || {},
     },
   });
 
@@ -50,7 +50,8 @@ export function useLeaseForm({
           
           // Preencher automaticamente os campos relacionados à propriedade
           form.setValue("propriedade_id", propertyId);
-          form.setValue("area_fazenda", property.area_total);
+          // Handle possible null values for area_total
+          form.setValue("area_fazenda", property.area_total || 0);
           form.setValue("nome_fazenda", property.nome);
         } catch (error) {
           console.error("Erro ao buscar dados da propriedade:", error);

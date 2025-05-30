@@ -8,6 +8,7 @@ export interface FinancialFilters {
   moeda?: string;
   instituicao?: string;
   categoria?: string;
+  safra_id?: string;
 }
 
 export interface FinancialFilterOptions {
@@ -16,6 +17,7 @@ export interface FinancialFilterOptions {
   moedas?: { value: string; label: string }[];
   instituicoes?: { value: string; label: string }[];
   categorias?: { value: string; label: string }[];
+  safras?: { value: string; label: string }[];
 }
 
 export function useFinancialFilters<T extends Record<string, any>>(
@@ -27,6 +29,7 @@ export function useFinancialFilters<T extends Record<string, any>>(
     moedaField?: keyof T;
     instituicaoField?: keyof T;
     categoriaField?: keyof T;
+    safraField?: keyof T;
   }
 ) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,6 +85,12 @@ export function useFinancialFilters<T extends Record<string, any>>(
       if (filters.categoria && filterConfig.categoriaField) {
         const itemCategoria = item[filterConfig.categoriaField];
         if (itemCategoria !== filters.categoria) return false;
+      }
+      
+      // Safra filter - note this may need custom handling depending on your data structure
+      if (filters.safra_id && filterConfig.safraField) {
+        const itemSafra = item[filterConfig.safraField];
+        if (itemSafra !== filters.safra_id) return false;
       }
 
       return true;
@@ -200,6 +209,22 @@ export function useFinancialFilters<T extends Record<string, any>>(
       options.categorias = categorias.map((categoria) => ({
         value: categoria,
         label: formatLabel(categoria),
+      }));
+    }
+
+    if (filterConfig.safraField) {
+      const safras = Array.from(
+        new Set(
+          items
+            .map((item) => item[filterConfig.safraField!])
+            .filter(Boolean)
+            .map(String)
+        )
+      ).sort();
+      
+      options.safras = safras.map((safra) => ({
+        value: safra,
+        label: safra,
       }));
     }
 

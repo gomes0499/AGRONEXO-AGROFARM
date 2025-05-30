@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   cidade?: string;
   estado?: string;

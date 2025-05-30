@@ -39,8 +39,10 @@ import {
 } from "@/lib/actions/production-actions";
 
 // Define interface for the property entity
+// Use the same Property type as in production-actions.ts
 interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   cidade?: string;
   estado?: string;
@@ -188,7 +190,10 @@ export function LivestockOperationForm({
         toast.success("Operação pecuária atualizada com sucesso!");
       } else {
         // Criar novo item
-        result = await createLivestockOperation(organizationId, values);
+        result = await createLivestockOperation({
+          organizacao_id: organizationId,
+          ...values
+        });
         toast.success("Operação pecuária criada com sucesso!");
       }
 

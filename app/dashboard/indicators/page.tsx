@@ -1,13 +1,20 @@
 import { IndicatorThresholdViewer } from "@/components/indicators/indicator-threshold-viewer";
-import { CommodityPriceTab } from "@/components/indicators/commodity-price-tab";
+import { UnifiedPricesTab } from "@/components/indicators/unified-prices-tab";
 import { getIndicatorConfigs } from "@/lib/actions/indicator-actions";
+import {
+  getExchangeRatesByOrganizationId,
+  ensureExchangeRatesExist,
+} from "@/lib/actions/indicator-actions/exchange-rate-actions";
 import { defaultIndicatorConfigs } from "@/schemas/indicators";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getCommodityPricesByOrganizationId } from "@/lib/actions/indicator-actions/commodity-price-actions";
+import {
+  getCommodityPricesByOrganizationId,
+  ensureCommodityPricesExist,
+} from "@/lib/actions/indicator-actions/commodity-price-actions";
 import { getSafraCommodityPrices } from "@/lib/actions/indicator-actions/tenant-commodity-actions";
 import type { CommodityPriceType } from "@/schemas/indicators/prices";
 import { CommodityInitializer } from "@/components/indicators/commodity-initializer";
@@ -32,6 +39,7 @@ export default async function IndicatorsPage() {
   // Buscar configurações de indicadores
   let indicatorConfigs: Record<string, any> = {};
   let commodityPrices: CommodityPriceType[] = [];
+  let exchangeRates: CommodityPriceType[] = [];
   let organizationId = "";
 
   try {
@@ -61,24 +69,50 @@ export default async function IndicatorsPage() {
       indicatorConfigs[config.indicatorType] = config;
     });
 
-    // Apenas buscar preços de commodities existentes
+    // Buscar preços de commodities e cotações de câmbio
     try {
-      // NÃO inicializamos mais automaticamente - os dados devem ser criados pelo script SQL
-
-      // Usar a função específica para GRUPO SAFRA BOA
+      // Buscar preços de commodities
       try {
-        // Chamada à função especializada que sempre retorna os dados corretos
+        // Usar a função que sabemos que funciona
         const safraPrices = await getSafraCommodityPrices();
 
-        if (safraPrices.length > 0) {
-          // Usar os preços retornados
-          commodityPrices = safraPrices;
+        // Se não tiver dados da safra, usar busca geral
+        if (safraPrices.length === 0) {
+          const generalPricesResponse = await getCommodityPricesByOrganizationId(
+            organizationId
+          );
+          if (generalPricesResponse.data) {
+            commodityPrices = generalPricesResponse.data.filter(
+              (price: CommodityPriceType) =>
+                !["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_FECHAMENTO"].includes(
+                  price.commodityType
+                )
+            );
+          }
+        } else {
+          // Filtrar apenas commodities (não cotações de câmbio)
+          commodityPrices = safraPrices.filter(
+            (price) =>
+              !["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_FECHAMENTO"].includes(
+                price.commodityType
+              )
+          );
         }
-      } catch (safraPricesError) {
+      } catch (error) {
+        console.error("Erro ao buscar commodities:", error);
+        commodityPrices = [];
+      }
+
+      // Buscar cotações de câmbio
+      try {
+        // Garantir que todas as cotações de câmbio existam
+        exchangeRates = await ensureExchangeRatesExist(organizationId);
+      } catch (exchangeRatesError) {
+        console.error("Erro ao buscar cotações:", exchangeRatesError);
         // Falha silenciosa - continuamos com o array vazio
       }
-    } catch (commodityError) {
-      // Continue with empty prices array
+    } catch (error) {
+      // Continue with empty arrays
     }
   } catch (error) {
     // Em caso de erro, vamos usar configurações padrão
@@ -111,22 +145,25 @@ export default async function IndicatorsPage() {
     <IndicatorThresholdViewer indicatorConfigs={indicatorConfigs} />
   );
 
-  // Componente de Preços
+  // Componente de Preços Unificado
   const PricesComponent = (
-    <CommodityPriceTab commodityPrices={commodityPrices} />
+    <UnifiedPricesTab
+      commodityPrices={commodityPrices}
+      exchangeRates={exchangeRates}
+    />
   );
 
   return (
     <div className="-mt-6 -mx-4 md:-mx-6">
       <CommodityInitializer
         organizationId={organizationId}
-        commodityCount={commodityPrices.length}
+        commodityCount={commodityPrices.length + exchangeRates.length}
       />
 
-      <Tabs defaultValue="thresholds">
+      <Tabs defaultValue="thresholds" className="w-full max-w-full">
         <div className="bg-muted/50 border-b">
-          <div className="container mx-auto px-4 md:px-6 py-2">
-            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+          <div className="container max-w-full px-4 md:px-6 py-2">
+            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start w-full">
               <TabsTrigger
                 value="thresholds"
                 className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"

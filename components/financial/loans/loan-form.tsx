@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { CurrencyField } from "@/components/shared/currency-field";
+import { SafraValueEditor } from "../common/safra-value-editor";
+import { Harvest } from "@/schemas/production";
+import { getSafras } from "@/lib/actions/production-actions";
 import {
   Dialog,
   DialogContent,
@@ -29,9 +32,15 @@ import {
   updateThirdPartyLoan,
 } from "@/lib/actions/financial-actions";
 
+// Extended ThirdPartyLoan type to include valores_por_safra
+interface ExtendedThirdPartyLoan extends ThirdPartyLoan {
+  valores_por_safra?: Record<string, number> | string;
+}
+
 // Define exact form schema type to match current database structure
 const formSchema = z.object({
-  valor: z.coerce.number().positive("Valor deve ser positivo"),
+  valor: z.coerce.number().positive("Valor deve ser positivo").optional(),
+  valores_por_safra: z.record(z.string(), z.number()).optional(),
   beneficiario: z.string().min(1, "Nome do beneficiário é obrigatório"),
   organizacao_id: z.string().uuid(),
 });
@@ -43,7 +52,7 @@ interface LoanFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
-  existingLoan?: ThirdPartyLoan;
+  existingLoan?: ExtendedThirdPartyLoan;
   onSubmit?: (loan: ThirdPartyLoan) => void;
 }
 
@@ -56,16 +65,50 @@ export function LoanForm({
 }: LoanFormProps) {
   console.log("Loan form - organizationId recebido:", organizationId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [harvests, setHarvests] = useState<Harvest[]>([]);
+  const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
+
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      loadHarvests();
+    }
+  }, [open, organizationId]);
+
+  const loadHarvests = async () => {
+    try {
+      setIsLoadingHarvests(true);
+      const harvestsData = await getSafras(organizationId);
+      setHarvests(harvestsData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingHarvests(false);
+    }
+  };
+
+  // Parse existing valores_por_safra
+  const parseValoresPorSafra = (valores: any) => {
+    if (!valores) return {};
+    if (typeof valores === "string") {
+      try {
+        return JSON.parse(valores);
+      } catch {
+        return {};
+      }
+    }
+    return valores;
+  };
 
   // Initialize form with explicit type
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       organizacao_id: organizationId,
-      ...(existingLoan || {}),
-      // Garantir campos obrigatórios ou com valores padrão específicos
       beneficiario: existingLoan?.beneficiario || "",
       valor: existingLoan?.valor || 0,
+      valores_por_safra: parseValoresPorSafra(existingLoan?.valores_por_safra),
     },
   });
 
@@ -97,9 +140,18 @@ export function LoanForm({
         orgId
       );
 
+      // Calculate total from safra values
+      const valoresPorSafra = data.valores_por_safra || {};
+      const valorTotal = Object.values(valoresPorSafra as Record<string, number>).reduce(
+        (acc, val) => acc + (typeof val === "number" ? val : 0),
+        0
+      );
+      
       // Preparar dados para envio
       const dataToSubmit = {
         ...data,
+        valor: valorTotal,
+        valores_por_safra: JSON.stringify(valoresPorSafra),
         organizacao_id: orgId,
         moeda: "BRL",
       };
@@ -185,10 +237,26 @@ export function LoanForm({
               )}
             />
 
-            <CurrencyField
-              name="valor"
-              label="Valor"
+            <FormField
               control={form.control}
+              name="valores_por_safra"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valores por Safra</FormLabel>
+                  <FormControl>
+                    <SafraValueEditor
+                      label="Valor"
+                      description="Defina o valor do empréstimo para cada safra"
+                      values={field.value || {}}
+                      onChange={field.onChange}
+                      safras={harvests.map(h => ({ id: h.id, nome: h.nome }))}
+                      currency="BRL"
+                      disabled={isSubmitting || isLoadingHarvests}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <div className="flex justify-end gap-2">

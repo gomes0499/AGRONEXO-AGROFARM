@@ -21,10 +21,11 @@ import { cn } from "@/lib/utils";
 
 export interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
-  cidade?: string;
-  estado?: string;
-  areaTotal?: number;
+  cidade?: string | null;
+  estado?: string | null;
+  area_total?: number | null;
 }
 
 interface PropertyFilterProps {

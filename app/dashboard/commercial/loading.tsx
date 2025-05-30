@@ -10,14 +10,11 @@ import { Loader2 } from "lucide-react";
 
 export default function CommercialLoading() {
   return (
-    <div className="container p-4">
-      {/* Tabs Loader */}
+    <div className="container max-w-full p-4">
+      {/* Simple Title Loader */}
       <div className="mb-8">
         <div className="border-b pb-2 mb-4">
-          <div className="flex space-x-2">
-            <div className="h-10 w-28 rounded-md bg-gray-200 animate-pulse"></div>
-            <div className="h-10 w-28 rounded-md bg-gray-100 animate-pulse"></div>
-          </div>
+          <div className="h-8 w-48 rounded bg-gray-200 animate-pulse"></div>
         </div>
       </div>
 

@@ -49,7 +49,7 @@ export function PropertyFormContainer({
     isLoading,
     imageUrl,
     setImageUrl,
-    onSubmit,
+    onSubmit: handleSubmit,
     resetForm,
   } = usePropertyForm({
     organizationId,
@@ -57,6 +57,9 @@ export function PropertyFormContainer({
     mode,
     onSuccess,
   });
+
+  // Create a type-safe wrapper for the form submission
+  const onSubmit = (data: any) => handleSubmit(data);
 
   const handleClose = (newOpen: boolean) => {
     if (!newOpen) {
@@ -97,7 +100,12 @@ export function PropertyFormContainer({
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+              form.handleSubmit((data: any) => {
+                // Use explicit any type to avoid implicit any error
+                onSubmit(data);
+              })(e);
+            }}
             className="flex flex-col flex-1"
           >
             <div className="flex-1 overflow-y-auto pr-2 space-y-6">

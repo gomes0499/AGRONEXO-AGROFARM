@@ -218,49 +218,85 @@ export async function updateCommodityPrice(
       dbUpdateData.current_price = updateData.currentPrice;
     }
     
-    if (updateData.price2020 !== undefined && !isNaN(updateData.price2020)) {
-      dbUpdateData.price_2020 = updateData.price2020;
+    // Buscar o registro atual para obter os preços existentes no JSONB
+    const { data: currentRecord, error: fetchError } = await supabase
+      .from("commodity_price_projections")
+      .select("precos_por_ano")
+      .eq("id", id)
+      .single();
+    
+    if (fetchError) {
+      console.error("Erro ao buscar registro atual:", fetchError);
+      return {
+        error: {
+          code: fetchError.code,
+          message: fetchError.message,
+          details: fetchError,
+        },
+      };
     }
     
-    if (updateData.price2021 !== undefined && !isNaN(updateData.price2021)) {
-      dbUpdateData.price_2021 = updateData.price2021;
+    // Buscar safras para mapear anos para UUIDs
+    const { data: safras } = await supabase
+      .from("safras")
+      .select("id, ano_inicio")
+      .eq("organizacao_id", validatedData.organizacaoId);
+    
+    // Criar mapeamento ano -> safra UUID
+    const anoToSafraId: Record<number, string> = {};
+    safras?.forEach(safra => {
+      anoToSafraId[safra.ano_inicio] = safra.id;
+    });
+    
+    // Construir o JSONB precos_por_ano usando apenas UUIDs de safras existentes
+    const precosExistentes = currentRecord?.precos_por_ano || {};
+    const novosPrecoPorAno: Record<string, number> = {};
+    
+    // Copiar apenas os UUIDs válidos dos preços existentes
+    Object.keys(precosExistentes).forEach(key => {
+      // Verificar se é um UUID válido (formato: 8-4-4-4-12 caracteres)
+      if (key.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        novosPrecoPorAno[key] = precosExistentes[key];
+      }
+    });
+    
+    // Mapear anos para UUIDs de safras (apenas para safras que existem)
+    if (updateData.price2020 !== undefined && !isNaN(updateData.price2020) && anoToSafraId[2020]) {
+      novosPrecoPorAno[anoToSafraId[2020]] = updateData.price2020;
+    }
+    if (updateData.price2021 !== undefined && !isNaN(updateData.price2021) && anoToSafraId[2021]) {
+      novosPrecoPorAno[anoToSafraId[2021]] = updateData.price2021;
+    }
+    if (updateData.price2022 !== undefined && !isNaN(updateData.price2022) && anoToSafraId[2022]) {
+      novosPrecoPorAno[anoToSafraId[2022]] = updateData.price2022;
+    }
+    if (updateData.price2023 !== undefined && !isNaN(updateData.price2023) && anoToSafraId[2023]) {
+      novosPrecoPorAno[anoToSafraId[2023]] = updateData.price2023;
+    }
+    if (updateData.price2024 !== undefined && !isNaN(updateData.price2024) && anoToSafraId[2024]) {
+      novosPrecoPorAno[anoToSafraId[2024]] = updateData.price2024;
+    }
+    if (updateData.price2025 !== undefined && !isNaN(updateData.price2025) && anoToSafraId[2025]) {
+      novosPrecoPorAno[anoToSafraId[2025]] = updateData.price2025;
+    }
+    if (updateData.price2026 !== undefined && !isNaN(updateData.price2026) && anoToSafraId[2026]) {
+      novosPrecoPorAno[anoToSafraId[2026]] = updateData.price2026;
+    }
+    if (updateData.price2027 !== undefined && !isNaN(updateData.price2027) && anoToSafraId[2027]) {
+      novosPrecoPorAno[anoToSafraId[2027]] = updateData.price2027;
+    }
+    if (updateData.price2028 !== undefined && !isNaN(updateData.price2028) && anoToSafraId[2028]) {
+      novosPrecoPorAno[anoToSafraId[2028]] = updateData.price2028;
+    }
+    if (updateData.price2029 !== undefined && !isNaN(updateData.price2029) && anoToSafraId[2029]) {
+      novosPrecoPorAno[anoToSafraId[2029]] = updateData.price2029;
+    }
+    if (updateData.price2030 !== undefined && !isNaN(updateData.price2030) && anoToSafraId[2030]) {
+      novosPrecoPorAno[anoToSafraId[2030]] = updateData.price2030;
     }
     
-    if (updateData.price2022 !== undefined && !isNaN(updateData.price2022)) {
-      dbUpdateData.price_2022 = updateData.price2022;
-    }
-    
-    if (updateData.price2023 !== undefined && !isNaN(updateData.price2023)) {
-      dbUpdateData.price_2023 = updateData.price2023;
-    }
-    
-    if (updateData.price2024 !== undefined && !isNaN(updateData.price2024)) {
-      dbUpdateData.price_2024 = updateData.price2024;
-    }
-    
-    if (updateData.price2025 !== undefined && !isNaN(updateData.price2025)) {
-      dbUpdateData.price_2025 = updateData.price2025;
-    }
-    
-    if (updateData.price2026 !== undefined && !isNaN(updateData.price2026)) {
-      dbUpdateData.price_2026 = updateData.price2026;
-    }
-    
-    if (updateData.price2027 !== undefined && !isNaN(updateData.price2027)) {
-      dbUpdateData.price_2027 = updateData.price2027;
-    }
-    
-    if (updateData.price2028 !== undefined && !isNaN(updateData.price2028)) {
-      dbUpdateData.price_2028 = updateData.price2028;
-    }
-    
-    if (updateData.price2029 !== undefined && !isNaN(updateData.price2029)) {
-      dbUpdateData.price_2029 = updateData.price2029;
-    }
-    
-    if (updateData.price2030 !== undefined && !isNaN(updateData.price2030)) {
-      dbUpdateData.price_2030 = updateData.price2030;
-    }
+    // Adicionar o JSONB atualizado
+    dbUpdateData.precos_por_ano = novosPrecoPorAno;
     
     // Add the updated timestamp
     dbUpdateData.updated_at = new Date().toISOString();
@@ -288,24 +324,26 @@ export async function updateCommodityPrice(
     
     console.log("Resposta do banco após atualização:", JSON.stringify(updatedCommodityPrice, null, 2));
     
-    // Transform the snake_case database response to camelCase
+    // Transform the database response using JSONB structure
+    const precosPorAno = updatedCommodityPrice.precos_por_ano || {};
+    
     const transformedData: CommodityPriceType = {
       id: updatedCommodityPrice.id,
       organizacaoId: updatedCommodityPrice.organizacao_id,
-      commodityType: updatedCommodityPrice.commodity_type as CommodityTypeEnum,
+      commodityType: updatedCommodityPrice.commodity_type,
       unit: updatedCommodityPrice.unit,
       currentPrice: updatedCommodityPrice.current_price || 0,
-      price2020: updatedCommodityPrice.price_2020 !== null && updatedCommodityPrice.price_2020 !== undefined ? Number(updatedCommodityPrice.price_2020) : undefined,
-      price2021: updatedCommodityPrice.price_2021 !== null && updatedCommodityPrice.price_2021 !== undefined ? Number(updatedCommodityPrice.price_2021) : undefined,
-      price2022: updatedCommodityPrice.price_2022 !== null && updatedCommodityPrice.price_2022 !== undefined ? Number(updatedCommodityPrice.price_2022) : undefined,
-      price2023: updatedCommodityPrice.price_2023 !== null && updatedCommodityPrice.price_2023 !== undefined ? Number(updatedCommodityPrice.price_2023) : undefined,
-      price2024: updatedCommodityPrice.price_2024 !== null && updatedCommodityPrice.price_2024 !== undefined ? Number(updatedCommodityPrice.price_2024) : undefined,
-      price2025: updatedCommodityPrice.price_2025 || 0,
-      price2026: updatedCommodityPrice.price_2026 || 0,
-      price2027: updatedCommodityPrice.price_2027 || 0,
-      price2028: updatedCommodityPrice.price_2028 || 0,
-      price2029: updatedCommodityPrice.price_2029 || 0,
-      price2030: updatedCommodityPrice.price_2030 !== null && updatedCommodityPrice.price_2030 !== undefined ? Number(updatedCommodityPrice.price_2030) : undefined,
+      price2020: precosPorAno["2020"] ? Number(precosPorAno["2020"]) : undefined,
+      price2021: precosPorAno["2021"] ? Number(precosPorAno["2021"]) : undefined,
+      price2022: precosPorAno["2022"] ? Number(precosPorAno["2022"]) : undefined,
+      price2023: precosPorAno["2023"] ? Number(precosPorAno["2023"]) : undefined,
+      price2024: precosPorAno["2024"] ? Number(precosPorAno["2024"]) : undefined,
+      price2025: precosPorAno["2025"] ? Number(precosPorAno["2025"]) : (updatedCommodityPrice.current_price || 0),
+      price2026: precosPorAno["2026"] ? Number(precosPorAno["2026"]) : (updatedCommodityPrice.current_price || 0),
+      price2027: precosPorAno["2027"] ? Number(precosPorAno["2027"]) : (updatedCommodityPrice.current_price || 0),
+      price2028: precosPorAno["2028"] ? Number(precosPorAno["2028"]) : (updatedCommodityPrice.current_price || 0),
+      price2029: precosPorAno["2029"] ? Number(precosPorAno["2029"]) : (updatedCommodityPrice.current_price || 0),
+      price2030: precosPorAno["2030"] ? Number(precosPorAno["2030"]) : undefined,
       createdAt: new Date(updatedCommodityPrice.created_at),
       updatedAt: new Date(updatedCommodityPrice.updated_at),
     };

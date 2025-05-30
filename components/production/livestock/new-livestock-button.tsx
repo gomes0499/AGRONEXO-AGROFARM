@@ -25,6 +25,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 // Define interface for the property entity
 interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   [key: string]: any;
 }

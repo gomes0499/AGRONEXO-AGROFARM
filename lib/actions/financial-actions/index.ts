@@ -6,13 +6,14 @@ import {
   TradingDebt,
   PropertyDebt,
   Supplier,
-  LiquidityFactor,
-  Inventory,
-  CommodityInventory,
   ReceivableContract,
   SupplierAdvance,
   ThirdPartyLoan,
 } from "@/schemas/financial";
+
+// Importações diretas não são permitidas em arquivos "use server"
+// As funções serão importadas diretamente onde necessário
+
 
 // Bank Debts
 export async function getBankDebts(organizationId: string) {
@@ -20,7 +21,10 @@ export async function getBankDebts(organizationId: string) {
   
   const { data, error } = await supabase
     .from("dividas_bancarias")
-    .select("*")
+    .select(`
+      *,
+      safras:safra_id(id, nome, ano_inicio, ano_fim)
+    `)
     .eq("organizacao_id", organizationId)
     .order("created_at", { ascending: false });
     
@@ -149,7 +153,10 @@ export async function getTradingDebts(organizationId: string) {
   
   const { data, error } = await supabase
     .from("dividas_trading")
-    .select("*")
+    .select(`
+      *,
+      safras:safra_id(id, nome, ano_inicio, ano_fim)
+    `)
     .eq("organizacao_id", organizationId)
     .order("created_at", { ascending: false });
     
@@ -397,7 +404,10 @@ export async function getSuppliers(organizationId: string) {
   
   const { data, error } = await supabase
     .from("fornecedores")
-    .select("*")
+    .select(`
+      *,
+      safras:safra_id(id, nome, ano_inicio, ano_fim)
+    `)
     .eq("organizacao_id", organizationId)
     .order("created_at", { ascending: false });
     
@@ -490,269 +500,380 @@ export async function deleteSupplier(id: string) {
   return true;
 }
 
-// Liquidity Factors
-export async function getLiquidityFactors(organizationId: string) {
-  const supabase = await createClient();
-  
-  const { data, error } = await supabase
-    .from("fatores_liquidez")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .order("created_at", { ascending: false });
-    
-  if (error) {
-    throw new Error(error.message);
-  }
-  
-  return data as LiquidityFactor[];
-}
+// Liquidez agora é tratada por financial-liquidity-actions.ts
+// Os fatores de liquidez agora são acessados através da tabela caixa_disponibilidades
 
-export async function createLiquidityFactor(data: Omit<LiquidityFactor, "id" | "created_at" | "updated_at">) {
+// These functions are for compatibility with the old interface
+export async function createLiquidityFactor(data: {
+  organizacao_id: string;
+  tipo: string;
+  valor?: number;
+  valores_por_safra?: Record<string, number> | string;
+}) {
   const supabase = await createClient();
   
   console.log("createLiquidityFactor - data recebida:", data);
-  console.log("createLiquidityFactor - organizacao_id:", data.organizacao_id);
   
-  // Verificar se organizacao_id está presente
-  if (!data.organizacao_id) {
-    console.error("organizacao_id é obrigatório - dados recebidos:", data);
-    throw new Error("organizacao_id é obrigatório para criar um fator de liquidez");
+  // Garantir que valores_por_safra está como string JSON
+  let valoresPorSafraStr = '{}';
+  if (data.valores_por_safra) {
+    if (typeof data.valores_por_safra === 'object') {
+      valoresPorSafraStr = JSON.stringify(data.valores_por_safra);
+    } else {
+      valoresPorSafraStr = data.valores_por_safra;
+    }
   }
   
-  // Garantir que os dados mínimos estão presentes
-  const dataToSend = {
+  // Preparar dados para a tabela caixa_disponibilidades
+  const dataToInsert = {
     organizacao_id: data.organizacao_id,
-    tipo: data.tipo,
-    valor: data.valor,
-    banco: data.banco || ""
+    categoria: "LIQUIDEZ",
+    nome: data.tipo,
+    valores_por_safra: valoresPorSafraStr,
+    moeda: "BRL"
   };
   
-  console.log("createLiquidityFactor - dados formatados para inserção:", dataToSend);
-  
   const { data: result, error } = await supabase
-    .from("fatores_liquidez")
-    .insert(dataToSend)
-    .select();
+    .from("caixa_disponibilidades")
+    .insert(dataToInsert)
+    .select()
+    .single();
     
   if (error) {
     console.error("Erro ao criar fator de liquidez:", error);
     throw new Error(error.message);
   }
   
-  console.log("Fator de liquidez criado com sucesso:", result[0]);
-  return result[0] as LiquidityFactor;
+  // Converter resultado para formato compatível com antiga interface
+  return {
+    ...result,
+    tipo: result.nome,
+    valor: data.valor || 0,
+    valores_por_safra: typeof result.valores_por_safra === 'string'
+      ? JSON.parse(result.valores_por_safra)
+      : result.valores_por_safra
+  };
 }
 
-export async function updateLiquidityFactor(id: string, data: Partial<Omit<LiquidityFactor, "id" | "organizacao_id" | "created_at" | "updated_at">>) {
+export async function updateLiquidityFactor(id: string, data: {
+  tipo?: string;
+  valor?: number;
+  valores_por_safra?: Record<string, number> | string;
+}) {
   const supabase = await createClient();
   
+  console.log("updateLiquidityFactor - data recebida:", data);
+  
+  // Garantir que valores_por_safra está como string JSON
+  let valoresPorSafraStr = undefined;
+  if (data.valores_por_safra) {
+    if (typeof data.valores_por_safra === 'object') {
+      valoresPorSafraStr = JSON.stringify(data.valores_por_safra);
+    } else {
+      valoresPorSafraStr = data.valores_por_safra;
+    }
+  }
+  
+  // Preparar dados para atualização
+  const dataToUpdate: any = {};
+  
+  if (data.tipo) {
+    dataToUpdate.nome = data.tipo;
+  }
+  
+  if (valoresPorSafraStr) {
+    dataToUpdate.valores_por_safra = valoresPorSafraStr;
+  }
+  
   const { data: result, error } = await supabase
-    .from("fatores_liquidez")
-    .update(data)
+    .from("caixa_disponibilidades")
+    .update(dataToUpdate)
     .eq("id", id)
-    .select();
+    .select()
+    .single();
     
   if (error) {
+    console.error("Erro ao atualizar fator de liquidez:", error);
     throw new Error(error.message);
   }
   
-  return result[0] as LiquidityFactor;
+  // Converter resultado para formato compatível com antiga interface
+  return {
+    ...result,
+    tipo: result.nome,
+    valor: data.valor || 0,
+    valores_por_safra: typeof result.valores_por_safra === 'string'
+      ? JSON.parse(result.valores_por_safra)
+      : result.valores_por_safra
+  };
 }
 
 export async function deleteLiquidityFactor(id: string) {
   const supabase = await createClient();
   
+  console.log("deleteLiquidityFactor - id:", id);
+  
   const { error } = await supabase
-    .from("fatores_liquidez")
+    .from("caixa_disponibilidades")
     .delete()
-    .eq("id", id);
-    
-  if (error) {
-    throw new Error(error.message);
-  }
-  
-  return true;
-}
-
-// Inventory
-export async function getInventories(organizationId: string) {
-  const supabase = await createClient();
-  
-  const { data, error } = await supabase
-    .from("estoques")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .order("created_at", { ascending: false });
-    
-  if (error) {
-    throw new Error(error.message);
-  }
-  
-  return data as Inventory[];
-}
-
-export async function createInventory(data: Omit<Inventory, "id" | "created_at" | "updated_at">) {
-  const supabase = await createClient();
-  
-  console.log("createInventory - data recebida:", data);
-  console.log("createInventory - organizacao_id:", data.organizacao_id);
-  
-  // Verificar se organizacao_id está presente
-  if (!data.organizacao_id) {
-    console.error("organizacao_id é obrigatório - dados recebidos:", data);
-    throw new Error("organizacao_id é obrigatório para criar um estoque");
-  }
-  
-  // Garantir que os dados enviados estão corretos
-  const dataToSend = {
-    organizacao_id: data.organizacao_id,
-    tipo: data.tipo,
-    valor: data.valor
-  };
-  
-  console.log("createInventory - dados formatados para inserção:", dataToSend);
-  
-  const { data: result, error } = await supabase
-    .from("estoques")
-    .insert(dataToSend)
-    .select();
-    
-  if (error) {
-    console.error("Erro ao criar estoque:", error);
-    throw new Error(error.message);
-  }
-  
-  return result[0] as Inventory;
-}
-
-export async function updateInventory(id: string, data: Partial<Omit<Inventory, "id" | "created_at" | "updated_at">>) {
-  const supabase = await createClient();
-  
-  console.log("updateInventory - data recebida:", data);
-  console.log("updateInventory - id:", id);
-  
-  // Não mudar organizacao_id na atualização
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { organizacao_id, ...dataToUpdate } = data;
-  
-  console.log("updateInventory - dados formatados para atualização:", dataToUpdate);
-  
-  const { data: result, error } = await supabase
-    .from("estoques")
-    .update(dataToUpdate)
     .eq("id", id)
-    .select();
+    .eq("categoria", "LIQUIDEZ");
     
   if (error) {
-    console.error("Erro ao atualizar estoque:", error);
-    throw new Error(error.message);
-  }
-  
-  return result[0] as Inventory;
-}
-
-export async function deleteInventory(id: string) {
-  const supabase = await createClient();
-  
-  const { error } = await supabase
-    .from("estoques")
-    .delete()
-    .eq("id", id);
-    
-  if (error) {
+    console.error("Erro ao excluir fator de liquidez:", error);
     throw new Error(error.message);
   }
   
   return true;
 }
 
-// Commodity Inventory
-export async function getCommodityInventories(organizationId: string) {
-  const supabase = await createClient();
-  
-  const { data, error } = await supabase
-    .from("estoques_commodities")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .order("created_at", { ascending: false });
-    
-  if (error) {
-    throw new Error(error.message);
-  }
-  
-  return data as CommodityInventory[];
-}
+// Estoques e Estoques de Commodities agora são tratados por financial-liquidity-actions.ts
+// Os dados agora são acessados através da tabela caixa_disponibilidades com diferentes categorias
 
-export async function createCommodityInventory(data: Omit<CommodityInventory, "id" | "created_at" | "updated_at">) {
+// Commodity Inventory Functions (compatibility layer)
+export async function createCommodityInventory(data: {
+  organizacao_id: string;
+  commodity: string;
+  valor_total?: number;
+  valores_por_safra?: Record<string, number> | string;
+}) {
   const supabase = await createClient();
   
   console.log("createCommodityInventory - data recebida:", data);
-  console.log("createCommodityInventory - organizacao_id:", data.organizacao_id);
   
-  // Verificar se organizacao_id está presente
-  if (!data.organizacao_id) {
-    console.error("organizacao_id é obrigatório - dados recebidos:", data);
-    throw new Error("organizacao_id é obrigatório para criar um estoque de commodity");
+  // Garantir que valores_por_safra está como string JSON
+  let valoresPorSafraStr = '{}';
+  if (data.valores_por_safra) {
+    if (typeof data.valores_por_safra === 'object') {
+      valoresPorSafraStr = JSON.stringify(data.valores_por_safra);
+    } else {
+      valoresPorSafraStr = data.valores_por_safra;
+    }
   }
   
-  // Garantir que os dados mínimos estão presentes
-  // IMPORTANTE: Enviar APENAS os campos que existem na tabela
-  const dataToSend = {
+  // Preparar dados para a tabela caixa_disponibilidades
+  const dataToInsert = {
     organizacao_id: data.organizacao_id,
-    commodity: data.commodity,
-    valor_total: data.valor_total || 0
+    categoria: "ESTOQUE_COMMODITY",
+    nome: data.commodity,
+    valores_por_safra: valoresPorSafraStr,
+    moeda: "BRL"
   };
   
-  console.log("createCommodityInventory - dados formatados para inserção:", dataToSend);
-  
   const { data: result, error } = await supabase
-    .from("estoques_commodities")
-    .insert(dataToSend)
-    .select();
+    .from("caixa_disponibilidades")
+    .insert(dataToInsert)
+    .select()
+    .single();
     
   if (error) {
     console.error("Erro ao criar estoque de commodity:", error);
     throw new Error(error.message);
   }
   
-  return result[0] as CommodityInventory;
+  // Converter resultado para formato compatível com antiga interface
+  return {
+    ...result,
+    commodity: result.nome,
+    valor_total: data.valor_total || 0,
+    valores_por_safra: typeof result.valores_por_safra === 'string'
+      ? JSON.parse(result.valores_por_safra)
+      : result.valores_por_safra
+  };
 }
 
-export async function updateCommodityInventory(id: string, data: Partial<Omit<CommodityInventory, "id" | "created_at" | "updated_at">>) {
+export async function updateCommodityInventory(id: string, data: {
+  commodity?: string;
+  valor_total?: number;
+  valores_por_safra?: Record<string, number> | string;
+}) {
   const supabase = await createClient();
   
   console.log("updateCommodityInventory - data recebida:", data);
-  console.log("updateCommodityInventory - id:", id);
   
-  // Não mudar organizacao_id na atualização
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { organizacao_id, ...dataToUpdate } = data;
+  // Garantir que valores_por_safra está como string JSON
+  let valoresPorSafraStr = undefined;
+  if (data.valores_por_safra) {
+    if (typeof data.valores_por_safra === 'object') {
+      valoresPorSafraStr = JSON.stringify(data.valores_por_safra);
+    } else {
+      valoresPorSafraStr = data.valores_por_safra;
+    }
+  }
   
-  console.log("updateCommodityInventory - dados formatados para atualização:", dataToUpdate);
+  // Preparar dados para atualização
+  const dataToUpdate: any = {};
+  
+  if (data.commodity) {
+    dataToUpdate.nome = data.commodity;
+  }
+  
+  if (valoresPorSafraStr) {
+    dataToUpdate.valores_por_safra = valoresPorSafraStr;
+  }
   
   const { data: result, error } = await supabase
-    .from("estoques_commodities")
+    .from("caixa_disponibilidades")
     .update(dataToUpdate)
     .eq("id", id)
-    .select();
+    .select()
+    .single();
     
   if (error) {
     console.error("Erro ao atualizar estoque de commodity:", error);
     throw new Error(error.message);
   }
   
-  return result[0] as CommodityInventory;
+  // Converter resultado para formato compatível com antiga interface
+  return {
+    ...result,
+    commodity: result.nome,
+    valor_total: data.valor_total || 0,
+    valores_por_safra: typeof result.valores_por_safra === 'string'
+      ? JSON.parse(result.valores_por_safra)
+      : result.valores_por_safra
+  };
 }
 
+// Função para deletar estoque de commodity (usando a tabela caixa_disponibilidades)
 export async function deleteCommodityInventory(id: string) {
   const supabase = await createClient();
   
+  console.log("deleteCommodityInventory - id:", id);
+  
   const { error } = await supabase
-    .from("estoques_commodities")
+    .from("caixa_disponibilidades")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("categoria", "ESTOQUE_COMMODITY");
     
   if (error) {
+    console.error("Erro ao excluir estoque de commodity:", error);
+    throw new Error(error.message);
+  }
+  
+  return true;
+}
+
+// Inventory Functions (compatibility layer)
+export async function createInventory(data: {
+  organizacao_id: string;
+  tipo: string;
+  valor?: number;
+  valores_por_safra?: Record<string, number> | string;
+}) {
+  const supabase = await createClient();
+  
+  console.log("createInventory - data recebida:", data);
+  
+  // Garantir que valores_por_safra está como string JSON
+  let valoresPorSafraStr = '{}';
+  if (data.valores_por_safra) {
+    if (typeof data.valores_por_safra === 'object') {
+      valoresPorSafraStr = JSON.stringify(data.valores_por_safra);
+    } else {
+      valoresPorSafraStr = data.valores_por_safra;
+    }
+  }
+  
+  // Preparar dados para a tabela caixa_disponibilidades
+  const dataToInsert = {
+    organizacao_id: data.organizacao_id,
+    categoria: "ESTOQUE",
+    nome: data.tipo,
+    valores_por_safra: valoresPorSafraStr,
+    moeda: "BRL"
+  };
+  
+  const { data: result, error } = await supabase
+    .from("caixa_disponibilidades")
+    .insert(dataToInsert)
+    .select()
+    .single();
+    
+  if (error) {
+    console.error("Erro ao criar inventário:", error);
+    throw new Error(error.message);
+  }
+  
+  // Converter resultado para formato compatível com antiga interface
+  return {
+    ...result,
+    tipo: result.nome,
+    valor: data.valor || 0,
+    valores_por_safra: typeof result.valores_por_safra === 'string'
+      ? JSON.parse(result.valores_por_safra)
+      : result.valores_por_safra
+  };
+}
+
+export async function updateInventory(id: string, data: {
+  tipo?: string;
+  valor?: number;
+  valores_por_safra?: Record<string, number> | string;
+}) {
+  const supabase = await createClient();
+  
+  console.log("updateInventory - data recebida:", data);
+  
+  // Garantir que valores_por_safra está como string JSON
+  let valoresPorSafraStr = undefined;
+  if (data.valores_por_safra) {
+    if (typeof data.valores_por_safra === 'object') {
+      valoresPorSafraStr = JSON.stringify(data.valores_por_safra);
+    } else {
+      valoresPorSafraStr = data.valores_por_safra;
+    }
+  }
+  
+  // Preparar dados para atualização
+  const dataToUpdate: any = {};
+  
+  if (data.tipo) {
+    dataToUpdate.nome = data.tipo;
+  }
+  
+  if (valoresPorSafraStr) {
+    dataToUpdate.valores_por_safra = valoresPorSafraStr;
+  }
+  
+  const { data: result, error } = await supabase
+    .from("caixa_disponibilidades")
+    .update(dataToUpdate)
+    .eq("id", id)
+    .select()
+    .single();
+    
+  if (error) {
+    console.error("Erro ao atualizar inventário:", error);
+    throw new Error(error.message);
+  }
+  
+  // Converter resultado para formato compatível com antiga interface
+  return {
+    ...result,
+    tipo: result.nome,
+    valor: data.valor || 0,
+    valores_por_safra: typeof result.valores_por_safra === 'string'
+      ? JSON.parse(result.valores_por_safra)
+      : result.valores_por_safra
+  };
+}
+
+// Função para deletar inventário (usando a tabela caixa_disponibilidades)
+export async function deleteInventory(id: string) {
+  const supabase = await createClient();
+  
+  console.log("deleteInventory - id:", id);
+  
+  const { error } = await supabase
+    .from("caixa_disponibilidades")
+    .delete()
+    .eq("id", id)
+    .eq("categoria", "ESTOQUE");
+    
+  if (error) {
+    console.error("Erro ao excluir inventário:", error);
     throw new Error(error.message);
   }
   

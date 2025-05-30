@@ -35,6 +35,7 @@ import {
 interface FinancialChartProps {
   organizationId: string;
   propertyIds?: string[];
+  cultureIds?: string[]; // Add support for cultureIds
 }
 
 export function FinancialChart({
@@ -270,8 +271,8 @@ export function FinancialChart({
                 <ChartTooltip
                   content={<ChartTooltipContent />}
                   formatter={(value, name) => [
-                    formatCurrency(Number(value)),
-                    chartConfig[name as string]?.label || name,
+                    <span className="font-medium">{formatCurrency(Number(value))}</span>,
+                    <span>{chartConfig[name as string]?.label || name}</span>,
                   ]}
                   labelFormatter={(label) => `Safra: ${label}`}
                 />

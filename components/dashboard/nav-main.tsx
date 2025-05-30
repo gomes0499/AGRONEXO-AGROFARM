@@ -12,7 +12,8 @@ import { OrganizationSwitcher } from "@/components/dashboard/organization-switch
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ReportGeneratorModal } from "@/components/shared/report-generator-modal";
+import { StructuredReportGenerator } from "@/components/shared/structured-report-generator";
+import { useUser } from "@/components/auth/user-provider";
 
 export function NavMain({
   items,
@@ -24,6 +25,11 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
+  const { user } = useUser();
+
+  // Obter o nome da organização atual para o relatório
+  const organizationName =
+    user?.user_metadata?.organizacao?.nome || "Minha Organização";
 
   // Function to check if a menu item is active
   const isActive = (url: string) => {
@@ -89,12 +95,10 @@ export function NavMain({
         {/* Report Generator Button */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <ReportGeneratorModal
-              buttonText="Gerar Relatório"
-              buttonVariant="default"
-              buttonSize="default"
-              buttonIcon={true}
-              className="w-full justify-start bg-gray-100 shadow-none text-primary hover:bg-gray-200/90"
+            <StructuredReportGenerator
+              title="Gerar Relatório"
+              organizationName={organizationName}
+              className="w-full justify-start bg-muted shadow-none text-foreground hover:bg-muted/90"
             />
           </SidebarMenuItem>
         </SidebarMenu>

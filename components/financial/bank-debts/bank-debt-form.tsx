@@ -4,6 +4,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { BankDebt } from "@/schemas/financial";
+import { Harvest } from "@/schemas/production";
+import { getSafras } from "@/lib/actions/production-actions";
 import { annualFlowSchema } from "@/schemas/financial/common";
 import {
   Dialog,
@@ -32,6 +34,8 @@ import {
 import {
   createBankDebt,
   updateBankDebt,
+  createTradingDebt,
+  updateTradingDebt,
 } from "@/lib/actions/financial-actions";
 import { useState, useEffect } from "react";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
@@ -39,7 +43,7 @@ import { toast } from "sonner";
 
 // Define the currency type
 type CurrencyType = "BRL" | "USD" | "EUR" | "SOJA";
-import { YearValueEditor } from "@/components/financial/common/year-value-editor";
+import { SafraValueEditor } from "@/components/financial/common/safra-value-editor";
 
 // Define the currency options
 const currencyOptions = ["BRL", "USD", "EUR", "SOJA"] as const;
@@ -47,12 +51,16 @@ const currencyOptions = ["BRL", "USD", "EUR", "SOJA"] as const;
 // Define the debt modality options
 const debtModalityOptions = ["CUSTEIO", "INVESTIMENTOS"] as const;
 
+// Define the institution type options
+const institutionTypeOptions = ["BANCO", "TRADING", "OUTROS"] as const;
+
 // Local schema definition to ensure compatibility with React Hook Form
 const formSchema = z.object({
   organizacao_id: z.string().uuid(),
+  tipo_instituicao: z.enum(institutionTypeOptions),
   instituicao_bancaria: z
     .string()
-    .min(1, "Nome da instituição bancária é obrigatório"),
+    .min(1, "Nome da instituição é obrigatório"),
   modalidade: z.enum(debtModalityOptions),
   ano_contratacao: z.coerce
     .number()
@@ -64,6 +72,7 @@ const formSchema = z.object({
   fluxo_pagamento_anual: annualFlowSchema.or(z.string()),
   // Make moeda required with a fixed type
   moeda: z.enum(currencyOptions),
+  safra_id: z.string().uuid().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -74,6 +83,7 @@ interface BankDebtFormProps {
   organizationId: string;
   existingDebt?: BankDebt;
   onSubmit?: (debt: BankDebt) => void;
+  harvests?: Harvest[]; // Optional harvests array to avoid fetching if already available
 }
 
 export function BankDebtForm({
@@ -82,13 +92,42 @@ export function BankDebtForm({
   organizationId,
   existingDebt,
   onSubmit,
+  harvests: providedHarvests,
 }: BankDebtFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [harvests, setHarvests] = useState<Harvest[]>([]);
+  const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
+
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      // Use provided harvests if available, otherwise load them
+      if (providedHarvests && providedHarvests.length > 0) {
+        setHarvests(providedHarvests);
+      } else {
+        loadHarvests();
+      }
+    }
+  }, [open, organizationId, providedHarvests]);
+
+  const loadHarvests = async () => {
+    try {
+      setIsLoadingHarvests(true);
+      const harvestsData = await getSafras(organizationId);
+      setHarvests(harvestsData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingHarvests(false);
+    }
+  };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       organizacao_id: organizationId,
+      tipo_instituicao: "BANCO" as "BANCO" | "TRADING",
       instituicao_bancaria: existingDebt?.instituicao_bancaria || "",
       modalidade: (existingDebt?.modalidade || "CUSTEIO") as
         | "CUSTEIO"
@@ -101,6 +140,7 @@ export function BankDebtForm({
           ? JSON.parse(existingDebt.fluxo_pagamento_anual)
           : existingDebt?.fluxo_pagamento_anual || {},
       moeda: (existingDebt?.moeda || "BRL") as "BRL" | "USD" | "EUR" | "SOJA",
+      safra_id: existingDebt?.safra_id || "",
     },
   });
 
@@ -138,8 +178,11 @@ export function BankDebtForm({
         throw new Error("ID da organização não fornecido");
       }
 
+      // Preparar dados removendo o campo tipo_instituicao que não existe nas tabelas
+      const { tipo_instituicao, ...dataWithoutType } = data;
+      
       const dataToSubmit = {
-        ...data,
+        ...dataWithoutType,
         organizacao_id: data.organizacao_id || organizationId,
         fluxo_pagamento_anual:
           typeof data.fluxo_pagamento_anual === "object"
@@ -147,28 +190,70 @@ export function BankDebtForm({
             : data.fluxo_pagamento_anual,
       };
 
+      // Preparar os dados com base no tipo de instituição
+      let finalDataToSubmit;
+      
+      if (tipo_instituicao === "TRADING") {
+        // Para Trading, usamos empresa_trading e não instituicao_bancaria
+        const tradingData = {
+          ...dataToSubmit,
+          empresa_trading: dataToSubmit.instituicao_bancaria
+        };
+        
+        // Remover a propriedade instituicao_bancaria para Trading
+        const { instituicao_bancaria, ...dataWithoutInstitution } = tradingData;
+        finalDataToSubmit = dataWithoutInstitution;
+      } else {
+        // Para Banco ou Outros, usamos instituicao_bancaria
+        // For Banco or Outros types, just use the fields that are valid for the API
+        // Remove tipo since it's not in the schema
+        finalDataToSubmit = {
+          ...dataToSubmit,
+          // tipo is not needed or expected by the API
+        };
+      }
+
       let result;
+      const isTrading = tipo_instituicao === "TRADING";
 
       if (existingDebt?.id) {
         // Atualizar dívida existente
-        result = await updateBankDebt(existingDebt.id, dataToSubmit);
-        toast.success("Dívida bancária atualizada com sucesso");
+        if (isTrading) {
+          result = await updateTradingDebt(existingDebt.id, finalDataToSubmit);
+          toast.success("Dívida com trading atualizada com sucesso");
+        } else {
+          result = await updateBankDebt(existingDebt.id, finalDataToSubmit);
+          toast.success(`Dívida ${tipo_instituicao === "BANCO" ? "bancária" : "financeira"} atualizada com sucesso`);
+        }
       } else {
         // Criar nova dívida
-        result = await createBankDebt(dataToSubmit);
-        toast.success("Dívida bancária criada com sucesso");
+        if (isTrading) {
+          // For trading debt we need to cast to appropriate type
+          result = await createTradingDebt(finalDataToSubmit as any);
+          toast.success("Dívida com trading criada com sucesso");
+        } else {
+          // For bank debt, we need to ensure all required fields are present
+          result = await createBankDebt({
+            ...finalDataToSubmit,
+            status: "ATIVA",
+            safra_id: finalDataToSubmit.safra_id || harvests[0]?.id || "", // Set default safra if not provided
+            observacoes: ""
+          } as any);
+          toast.success(`Dívida ${tipo_instituicao === "BANCO" ? "bancária" : "financeira"} criada com sucesso`);
+        }
       }
 
       // Notificar componente pai
       if (onSubmit) {
-        onSubmit(result);
+        // Cast the result to BankDebt to satisfy TypeScript
+        onSubmit(result as any);
       }
 
       // Fechar modal
       onOpenChange(false);
     } catch (error) {
-      console.error("Erro ao salvar dívida bancária:", error);
-      toast.error("Erro ao salvar dívida bancária");
+      console.error("Erro ao salvar dívida:", error);
+      toast.error("Erro ao salvar dívida");
     } finally {
       setIsSubmitting(false);
     }
@@ -179,7 +264,13 @@ export function BankDebtForm({
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {existingDebt ? "Editar" : "Nova"} Dívida Bancária
+            {existingDebt ? "Editar" : "Nova"} Dívida {
+              form.watch("tipo_instituicao") === "BANCO" 
+                ? "Bancária" 
+                : form.watch("tipo_instituicao") === "TRADING" 
+                ? "com Trading" 
+                : "Financeira"
+            }
           </DialogTitle>
         </DialogHeader>
 
@@ -190,13 +281,53 @@ export function BankDebtForm({
 
               <FormField
                 control={form.control}
+                name="tipo_instituicao"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Instituição</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="BANCO">Banco</SelectItem>
+                        <SelectItem value="TRADING">Trading</SelectItem>
+                        <SelectItem value="OUTROS">Outro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="instituicao_bancaria"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Instituição Bancária</FormLabel>
+                    <FormLabel>
+                      {form.watch("tipo_instituicao") === "BANCO" 
+                        ? "Instituição Bancária" 
+                        : form.watch("tipo_instituicao") === "TRADING" 
+                        ? "Empresa Trading" 
+                        : "Nome da Instituição"}
+                    </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Nome da instituição bancária"
+                        placeholder={
+                          form.watch("tipo_instituicao") === "BANCO" 
+                            ? "Nome da instituição bancária" 
+                            : form.watch("tipo_instituicao") === "TRADING" 
+                            ? "Nome da empresa trading"
+                            : "Nome da instituição"
+                        }
                         {...field}
                         disabled={isSubmitting}
                       />
@@ -323,6 +454,44 @@ export function BankDebtForm({
                 />
               </div>
 
+              {/* Safra selection - Now more prominent */}
+              <div className="mb-6 p-4 rounded-lg border border-amber-200 bg-amber-50">
+                <h3 className="text-lg font-medium text-amber-800 mb-2">Vincular a Safra</h3>
+                <p className="text-sm text-amber-700 mb-4">
+                  Vincular esta dívida a uma safra permitirá visualizá-la organizada por período de produção.
+                </p>
+                
+                <FormField
+                  control={form.control}
+                  name="safra_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-amber-900">Safra</FormLabel>
+                      <Select
+                        disabled={isSubmitting || isLoadingHarvests}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="border-amber-300 focus:ring-amber-500">
+                            <SelectValue placeholder={isLoadingHarvests ? "Carregando safras..." : "Selecione a safra"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {harvests.map((harvest) => (
+                            <SelectItem key={harvest.id} value={harvest.id || ""}>
+                              {harvest.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -352,43 +521,14 @@ export function BankDebtForm({
                     </FormItem>
                   )}
                 />
-
-                <FormItem>
-                  <FormLabel>Valor Total</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      readOnly
-                      disabled
-                      value={(() => {
-                        const fluxoPagamento = form.watch(
-                          "fluxo_pagamento_anual"
-                        );
-                        const moeda = form.watch("moeda");
-                        const total =
-                          typeof fluxoPagamento === "object"
-                            ? Object.values(
-                                fluxoPagamento as Record<string, number>
-                              ).reduce(
-                                (acc, val) =>
-                                  acc + (typeof val === "number" ? val : 0),
-                                0
-                              )
-                            : 0;
-                        return formatGenericCurrency(
-                          total,
-                          moeda as CurrencyType
-                        );
-                      })()}
-                      className="bg-muted"
-                    />
-                  </FormControl>
-                </FormItem>
+                
+                {/* Additional field could go here in the grid */}
+                <div className="hidden md:block"></div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Fluxo de Pagamento</h3>
+              <h3 className="text-lg font-medium">Pagamentos por Safra</h3>
 
               <div>
                 <FormField
@@ -397,27 +537,14 @@ export function BankDebtForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <YearValueEditor
-                          label="Pagamentos Anuais"
-                          description="Defina os valores a serem pagos em cada ano do financiamento"
+                        <SafraValueEditor
                           values={
                             typeof field.value === "string"
                               ? JSON.parse(field.value)
                               : field.value || {}
                           }
                           onChange={field.onChange}
-                          startYear={parseInt(
-                            form.getValues("ano_contratacao")?.toString() ||
-                              new Date().getFullYear().toString()
-                          )}
-                          endYear={
-                            parseInt(
-                              form.getValues("ano_contratacao")?.toString() ||
-                                new Date().getFullYear().toString()
-                            ) + 12
-                          }
-                          currency={form.watch("moeda") as CurrencyType}
-                          disabled={isSubmitting}
+                          organizacaoId={organizationId}
                         />
                       </FormControl>
                       <FormMessage />

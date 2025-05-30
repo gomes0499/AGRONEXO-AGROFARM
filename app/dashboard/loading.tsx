@@ -6,7 +6,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function DashboardLoading() {
   return (
@@ -28,106 +27,64 @@ export default function DashboardLoading() {
       </div>
 
       <main className="flex-1 p-6">
-        <Tabs defaultValue="overview">
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="production">Produção</TabsTrigger>
-            <TabsTrigger value="financial">Financeiro</TabsTrigger>
-            <TabsTrigger value="assets">Patrimonial</TabsTrigger>
-            <TabsTrigger value="projections">Projeções</TabsTrigger>
-            <TabsTrigger value="indicators">Indicadores</TabsTrigger>
-            <TabsTrigger value="commercial">Comercial</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {/* Stat Cards Skeletons */}
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      <Skeleton className="h-4 w-24" />
-                    </CardTitle>
-                    <Skeleton className="h-4 w-4" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      <Skeleton className="h-8 w-20" />
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      <Skeleton className="h-3 w-32 mt-1" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Chart Cards Skeletons */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    <Skeleton className="h-5 w-48" />
+        <div className="h-6 mb-6 flex items-center">
+          <Skeleton className="h-6 w-36 rounded" />
+        </div>
+        
+        <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {/* Stat Cards Skeletons */}
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    <Skeleton className="h-4 w-24" />
                   </CardTitle>
-                  <CardDescription>
-                    <Skeleton className="h-4 w-72" />
-                  </CardDescription>
+                  <Skeleton className="h-4 w-4" />
                 </CardHeader>
                 <CardContent>
-                  <Skeleton className="h-64 w-full" />
+                  <div className="text-2xl font-bold">
+                    <Skeleton className="h-8 w-20" />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <Skeleton className="h-3 w-32 mt-1" />
+                  </div>
                 </CardContent>
               </Card>
+            ))}
+          </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    <Skeleton className="h-5 w-48" />
-                  </CardTitle>
-                  <CardDescription>
-                    <Skeleton className="h-4 w-72" />
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-64 w-full" />
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="production" className="space-y-6">
+          {/* Chart Cards Skeletons */}
+          <div className="grid gap-6 md:grid-cols-2">
             <Card>
-              <CardContent className="pt-6">
-                <Skeleton className="h-6 w-48 mb-2" />
-                <Skeleton className="h-4 w-full mb-6" />
-
-                <Skeleton className="h-5 w-32 mb-4" />
-                <div className="grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Skeleton key={i} className="h-10 w-full" />
-                  ))}
-                </div>
+              <CardHeader>
+                <CardTitle>
+                  <Skeleton className="h-5 w-48" />
+                </CardTitle>
+                <CardDescription>
+                  <Skeleton className="h-4 w-72" />
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-64 w-full" />
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="financial" className="space-y-6">
             <Card>
-              <CardContent className="pt-6">
-                <Skeleton className="h-6 w-48 mb-2" />
-                <Skeleton className="h-4 w-full mb-6" />
-
-                <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="rounded-md border p-3">
-                      <Skeleton className="h-3 w-24 mb-2" />
-                      <Skeleton className="h-5 w-32" />
-                    </div>
-                  ))}
-                </div>
+              <CardHeader>
+                <CardTitle>
+                  <Skeleton className="h-5 w-48" />
+                </CardTitle>
+                <CardDescription>
+                  <Skeleton className="h-4 w-72" />
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-64 w-full" />
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </main>
     </div>
   );

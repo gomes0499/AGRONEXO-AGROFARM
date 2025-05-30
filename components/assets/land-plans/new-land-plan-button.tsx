@@ -12,6 +12,7 @@ import { createLandAcquisition } from "@/lib/actions/land-acquisition-actions";
 import {
   landAcquisitionFormSchema,
   type LandAcquisitionFormValues,
+  type LandAcquisition,
 } from "@/schemas/patrimonio/land-acquisitions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -45,7 +46,7 @@ export function NewLandPlanButton({ organizationId }: NewLandPlanButtonProps) {
       const result = await createLandAcquisition({
         ...data,
         organizacao_id: organizationId,
-      });
+      } as LandAcquisition);
 
       if ('error' in result) {
         toast.error(result.error);
@@ -81,7 +82,7 @@ export function NewLandPlanButton({ organizationId }: NewLandPlanButtonProps) {
         <Form {...form}>
           <LandPlanForm 
             organizationId={organizationId}
-            onSubmit={(data) => {
+            onSubmit={(data: LandAcquisition) => {
               form.setValue('nome_fazenda', data.nome_fazenda);
               form.setValue('ano', data.ano);
               form.setValue('hectares', data.hectares);

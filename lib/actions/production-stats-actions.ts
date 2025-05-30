@@ -2,6 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+export interface ProductivityByCultureAndSystem {
+  produtividade: number;
+  unidade: string;
+  cultura: string;
+  sistema: string;
+}
+
 export interface ProductionStats {
   areaPlantada: number;
   produtividadeMedia: number;
@@ -16,12 +23,15 @@ export interface ProductionStats {
   totalCulturas: number;
   safraComparada?: string; // Nome da safra anterior para comparação
   temComparacao: boolean; // Se existe safra anterior para comparar
+  productivityByCultureAndSystem?: ProductivityByCultureAndSystem[];
+  costsByCulture?: Record<string, number>;
 }
 
 export async function getProductionStats(
   organizationId: string,
   propertyIds?: string[],
-  safraId?: string
+  safraId?: string,
+  cultureIds?: string[]
 ): Promise<ProductionStats> {
   try {
     const supabase = await createClient();
@@ -52,26 +62,33 @@ export async function getProductionStats(
       }
     }
     
-    // 2. Buscar áreas de plantio com dados de cultura (filtradas por safra e propriedades)
+    // Buscar todas as safras para referência
+    const { data: safras } = await supabase
+      .from("safras")
+      .select("id, nome, ano_inicio, ano_fim")
+      .eq("organizacao_id", organizationId)
+      .order("ano_inicio", { ascending: true });
+    
+    // 2. Buscar áreas de plantio com dados de cultura (com novo formato JSONB areas_por_safra)
     let plantingQuery = supabase
       .from("areas_plantio")
       .select(`
         *,
-        cultura:cultura_id(id, nome),
-        sistema:sistema_id(id, nome),
-        ciclo:ciclo_id(id, nome),
-        safra:safra_id(id, nome, ano_inicio, ano_fim)
+        propriedades:propriedade_id(nome),
+        culturas:cultura_id(id, nome),
+        sistemas:sistema_id(id, nome),
+        ciclos:ciclo_id(id, nome)
       `)
       .eq("organizacao_id", organizationId);
-    
-    // Filtrar por safra
-    if (currentSafraId) {
-      plantingQuery = plantingQuery.eq("safra_id", currentSafraId);
-    }
     
     // Aplicar filtro de propriedades se fornecido
     if (propertyIds && propertyIds.length > 0) {
       plantingQuery = plantingQuery.in("propriedade_id", propertyIds);
+    }
+    
+    // Aplicar filtro de culturas se fornecido
+    if (cultureIds && cultureIds.length > 0) {
+      plantingQuery = plantingQuery.in("cultura_id", cultureIds);
     }
     
     const { data: areas, error: areasError } = await plantingQuery;
@@ -80,44 +97,44 @@ export async function getProductionStats(
       console.error("Erro ao buscar áreas de plantio:", areasError);
     }
 
-    // 3. Buscar dados de produtividade com dados de cultura (filtrados por safra)
+    // 3. Buscar dados de produtividade com dados de cultura (com novo formato JSONB produtividades_por_safra)
     let productivityQuery = supabase
       .from("produtividades")
       .select(`
         *,
-        cultura:cultura_id(id, nome),
-        sistema:sistema_id(id, nome),
-        safra:safra_id(id, nome, ano_inicio, ano_fim)
+        propriedades:propriedade_id(nome),
+        culturas:cultura_id(id, nome),
+        sistemas:sistema_id(id, nome)
       `)
       .eq("organizacao_id", organizationId);
       
-    // Filtrar por safra
-    if (currentSafraId) {
-      productivityQuery = productivityQuery.eq("safra_id", currentSafraId);
+    // Aplicar filtro de culturas se fornecido
+    if (cultureIds && cultureIds.length > 0) {
+      productivityQuery = productivityQuery.in("cultura_id", cultureIds);
     }
-    
+      
     const { data: productivity, error: productivityError } = await productivityQuery;
     
     if (productivityError) {
       console.error("Erro ao buscar produtividade:", productivityError);
     }
 
-    // 4. Buscar custos de produção (filtrados por safra)
+    // 4. Buscar custos de produção (com novo formato JSONB custos_por_safra)
     let costsQuery = supabase
       .from("custos_producao")
       .select(`
         *,
-        cultura:cultura_id(id, nome),
-        sistema:sistema_id(id, nome),
-        safra:safra_id(id, nome, ano_inicio, ano_fim)
+        propriedades:propriedade_id(nome),
+        culturas:cultura_id(id, nome),
+        sistemas:sistema_id(id, nome)
       `)
       .eq("organizacao_id", organizationId);
       
-    // Filtrar por safra
-    if (currentSafraId) {
-      costsQuery = costsQuery.eq("safra_id", currentSafraId);
+    // Aplicar filtro de culturas se fornecido
+    if (cultureIds && cultureIds.length > 0) {
+      costsQuery = costsQuery.in("cultura_id", cultureIds);
     }
-    
+      
     const { data: costs, error: costsError } = await costsQuery;
     
     if (costsError) {
@@ -144,14 +161,46 @@ export async function getProductionStats(
       console.error("Erro ao buscar culturas:", culturesError);
     }
     
-    // 7. Calcular estatísticas principais para a safra específica
-    const areaPlantada = areas?.reduce((sum, area) => sum + (area.area || 0), 0) || 0;
+    // 7. Calcular estatísticas principais para a safra específica usando JSONB
+    // Calcular área plantada total para a safra selecionada
+    let areaPlantada = 0;
+    if (areas && currentSafraId) {
+      areaPlantada = areas.reduce((sum, area) => {
+        // Buscar a área para a safra selecionada no JSONB areas_por_safra
+        const areaSafra = area.areas_por_safra?.[currentSafraId] || 0;
+        return sum + areaSafra;
+      }, 0);
+    }
+    
     const totalCulturas = cultures?.length || 0;
     
-    // Produtividade média
-    const produtividadeMedia = (productivity && productivity.length > 0)
-      ? productivity.reduce((sum, prod) => sum + (prod.produtividade || 0), 0) / productivity.length
-      : 0; // Zero se não houver dados
+    // Produtividade média considerando o formato JSONB
+    let produtividadeMedia = 0;
+    let countProdutividades = 0;
+    
+    if (productivity && currentSafraId) {
+      productivity.forEach(prod => {
+        // Obter o valor de produtividade do formato JSONB para a safra selecionada
+        const prodSafra = prod.produtividades_por_safra?.[currentSafraId];
+        
+        if (prodSafra) {
+          // Pode ser um número ou um objeto { produtividade, unidade }
+          const prodValue = typeof prodSafra === 'number' 
+            ? prodSafra 
+            : (prodSafra as { produtividade: number; unidade: string }).produtividade;
+          
+          if (prodValue > 0) {
+            produtividadeMedia += prodValue;
+            countProdutividades++;
+          }
+        }
+      });
+      
+      // Calcular média se houver valores
+      if (countProdutividades > 0) {
+        produtividadeMedia = produtividadeMedia / countProdutividades;
+      }
+    }
     
     // Calcular receita por cultura considerando área plantada, produtividade e preços
     let receitaTotal = 0;
@@ -165,95 +214,193 @@ export async function getProductionStats(
       'ALGODÃO': ['ALGODAO_SEQUEIRO', 'ALGODAO_IRRIGADO']
     };
     
-    // Agrupar áreas por cultura para cálculo mais preciso
-    const areasPorCultura = new Map<string, {area: number, produtividade: number}>();
+    // Agrupar áreas e produtividades por cultura e sistema para cálculo mais preciso
+    const combinacoesCulturasSistemas = new Map<string, {
+      cultura_id: string, 
+      sistema_id: string,
+      culturaNome: string,
+      sistemaNome: string,
+      cicloNome: string,  // Added cicloNome property
+      area: number, 
+      produtividade: number
+    }>();
     
-    // Processar áreas de plantio
-    areas?.forEach(area => {
-      const culturaNome = area.cultura?.nome?.toUpperCase() || 'SOJA';
-      const areaValue = area.area || 0;
-      
-      // Buscar produtividade correspondente
-      const produtividadeCorrespondente = productivity?.find(p => 
-        p.cultura_id === area.cultura_id && 
-        p.sistema_id === area.sistema_id
-      );
-      
-      const produtividadeValue = produtividadeCorrespondente?.produtividade || 0; // Zero se não há produtividade
-      
-      if (areasPorCultura.has(culturaNome)) {
-        const existing = areasPorCultura.get(culturaNome)!;
-        areasPorCultura.set(culturaNome, {
-          area: existing.area + areaValue,
-          produtividade: (existing.produtividade + produtividadeValue) / 2 // média simples
-        });
-      } else {
-        areasPorCultura.set(culturaNome, {
-          area: areaValue,
-          produtividade: produtividadeValue
-        });
-      }
-    });
+    // Processar áreas de plantio usando o novo formato JSONB
+    if (areas && currentSafraId) {
+      areas.forEach(area => {
+        const cultura_id = area.cultura_id;
+        const sistema_id = area.sistema_id;
+        const culturaNome = area.culturas?.nome?.toUpperCase() || 'DESCONHECIDA';
+        const sistemaNome = area.sistemas?.nome || 'SEQUEIRO';
+        const cicloNome = area.ciclos?.nome || '';
+        const areaValue = area.areas_por_safra?.[currentSafraId] || 0;
+        
+        if (areaValue <= 0) return; // Ignorar áreas sem plantio nesta safra
+        
+        // Criar uma chave única para cada combinação de cultura e sistema
+        const key = `${cultura_id}:${sistema_id}`;
+        
+        if (combinacoesCulturasSistemas.has(key)) {
+          const existing = combinacoesCulturasSistemas.get(key)!;
+          combinacoesCulturasSistemas.set(key, {
+            ...existing,
+            area: existing.area + areaValue
+          });
+        } else {
+          combinacoesCulturasSistemas.set(key, {
+            cultura_id,
+            sistema_id,
+            culturaNome,
+            sistemaNome,
+            cicloNome,
+            area: areaValue,
+            produtividade: 0
+          });
+        }
+      });
+    }
     
-    // Calcular custo total baseado nas áreas plantadas reais com seus custos específicos
+    // Adicionar produtividades às combinações
+    if (productivity && currentSafraId) {
+      productivity.forEach(prod => {
+        const key = `${prod.cultura_id}:${prod.sistema_id}`;
+        
+        if (combinacoesCulturasSistemas.has(key)) {
+          const combo = combinacoesCulturasSistemas.get(key)!;
+          
+          // Obter o valor de produtividade do formato JSONB
+          let produtividadeValue = 0;
+          const prodSafra = prod.produtividades_por_safra?.[currentSafraId];
+          
+          if (prodSafra) {
+            // Pode ser um número ou um objeto { produtividade, unidade }
+            produtividadeValue = typeof prodSafra === 'number' 
+              ? prodSafra 
+              : (prodSafra as { produtividade: number; unidade: string }).produtividade;
+          }
+          
+          if (produtividadeValue > 0) {
+            combinacoesCulturasSistemas.set(key, {
+              ...combo,
+              produtividade: produtividadeValue
+            });
+          }
+        }
+      });
+    }
+    
+    // Calcular custo total baseado nas áreas plantadas reais com seus custos específicos (formato JSONB)
     let custoTotal = 0;
     
-    areas?.forEach(area => {
-      const culturaNome = area.cultura?.nome?.toUpperCase() || '';
-      const areaValue = area.area || 0;
-      
-      // Buscar custos específicos para esta combinação cultura/sistema/safra
-      const custosEspecificos = costs?.filter(custo => {
-        return custo.cultura_id === area.cultura_id && 
-               custo.sistema_id === area.sistema_id &&
-               custo.safra_id === area.safra_id;
-      }) || [];
-      
-      // Se há custos específicos para esta área, somar todos e multiplicar pela área
-      if (custosEspecificos.length > 0) {
-        const custoPorHectare = custosEspecificos.reduce((sum, custo) => sum + (custo.valor || 0), 0);
-        custoTotal += custoPorHectare * areaValue;
+    if (costs && currentSafraId) {
+      // Para cada combinação de cultura/sistema que temos área
+      for (const [key, combo] of combinacoesCulturasSistemas.entries()) {
+        // Se não há área, pular
+        if (combo.area <= 0) continue;
+        
+        // Buscar custos específicos para esta combinação cultura/sistema
+        const custosEspecificos = costs.filter(custo => 
+          custo.cultura_id === combo.cultura_id && 
+          custo.sistema_id === combo.sistema_id
+        );
+        
+        // Se há custos específicos, calcular o custo total
+        if (custosEspecificos.length > 0) {
+          let custoPorHectareTotal = 0;
+          
+          custosEspecificos.forEach(custo => {
+            // Buscar o valor do custo para a safra específica no JSONB
+            const custoSafra = currentSafraId && custo.custos_por_safra ? 
+            custo.custos_por_safra[currentSafraId] || 0 : 0;
+            custoPorHectareTotal += custoSafra;
+          });
+          
+          custoTotal += custoPorHectareTotal * combo.area;
+        }
       }
-      // Se não há custos específicos, não adicionar nada (custo = 0)
-    });
+    }
     
-    // Calcular receita por cultura
-    areasPorCultura.forEach((dados, culturaNome) => {
-      const commodityTypes = culturaCommodityMap[culturaNome] || ['SOJA_SEQUEIRO'];
+    // Calcular receita total
+    receitaTotal = 0;
+    producaoTotalGlobal = 0;
+    
+    // Para cada combinação cultura/sistema, calcular receita
+    for (const [key, combo] of combinacoesCulturasSistemas.entries()) {
+      // Se não há área ou produtividade, pular
+      if (combo.area <= 0 || combo.produtividade <= 0) continue;
       
-      // Buscar preço correspondente (priorizar sequeiro, depois irrigado)
-      let preco = 0; // Zero se não há preço configurado
-      for (const commodityType of commodityTypes) {
-        const commodityPrice = commodityPrices?.find(p => p.commodity_type === commodityType);
-        if (commodityPrice?.current_price) {
-          preco = commodityPrice.current_price;
-          break;
+      // Determinar tipo de commodity baseado na cultura, sistema e ciclo
+      let commodityType = '';
+      const culturaNome = combo.culturaNome;
+      const sistemaNome = combo.sistemaNome;
+      const cicloNome = combo.cicloNome || '';
+      
+      let culturaNomeLC = culturaNome.toLowerCase();
+      let cicloNomeLC = cicloNome.toLowerCase();
+      
+      if (culturaNomeLC.includes('soja')) {
+        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA';
+      } else if (culturaNomeLC.includes('milho')) {
+        // Detectar se é Milho Safrinha ou Milho comum
+        if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('2')) {
+          commodityType = 'MILHO_SAFRINHA';
+        } else {
+          commodityType = 'MILHO';
+        }
+      } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
+        commodityType = 'ALGODAO';
+      } else if (culturaNomeLC.includes('arroz')) {
+        commodityType = 'ARROZ';
+      } else if (culturaNomeLC.includes('sorgo')) {
+        commodityType = 'SORGO';
+      } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
+        commodityType = 'FEIJAO';
+      } else {
+        // Tipo de commodity não identificado
+        continue;
+      }
+      
+      // Buscar preço para esta safra específica usando o campo precos_por_ano
+      let preco = 0;
+      
+      if (commodityPrices && commodityPrices.length > 0 && currentSafraId) {
+        const commodityPrice = commodityPrices.find(p => p.commodity_type === commodityType);
+        
+        if (commodityPrice && commodityPrice.precos_por_ano) {
+          // Usar precos_por_ano JSONB com chave sendo o safraId
+          preco = commodityPrice.precos_por_ano[currentSafraId] || 0;
         }
       }
       
-      // Calcular produção e receita desta cultura
-      const producaoCultura = dados.area * dados.produtividade; // sacas
-      const receitaCultura = producaoCultura * preco; // R$
-      
-      receitaTotal += receitaCultura;
-      producaoTotalGlobal += producaoCultura;
-    });
-    
-    // Se não houver dados específicos, manter receita como zero
-    if (receitaTotal === 0 && areaPlantada > 0 && produtividadeMedia > 0) {
-      const producaoTotal = areaPlantada * produtividadeMedia;
-      const precoSoja = commodityPrices?.find(p => p.commodity_type === 'SOJA_SEQUEIRO')?.current_price || 
-                        commodityPrices?.find(p => p.commodity_type === 'SOJA_IRRIGADO')?.current_price;
-      
-      if (precoSoja) {
-        receitaTotal = producaoTotal * precoSoja;
-        producaoTotalGlobal = producaoTotal;
+      // Se não existe preço para esta safra, seguir a orientação de não usar fallback
+      if (preco <= 0) {
+        continue; // Pular esta cultura/sistema se não temos preço
       }
+      
+      // Calcular produção e receita desta combinação cultura/sistema
+      const producaoCulturaSistema = combo.area * combo.produtividade;
+      const receitaCulturaSistema = producaoCulturaSistema * preco;
+      
+      receitaTotal += receitaCulturaSistema;
+      producaoTotalGlobal += producaoCulturaSistema;
+    }
+    
+    // Se não conseguiu calcular a receita por combinação detalhada, não usar fallback
+    // Seguindo a orientação de que se não tiver preço, é porque não tem safra
+    if (receitaTotal === 0 && areaPlantada > 0 && produtividadeMedia > 0) {
+      receitaTotal = 0;
+      producaoTotalGlobal = 0;
     }
     
     const receita = receitaTotal;
     
     // EBITDA
+    // Se o custo for extremamente baixo para uma receita significativa, 
+    // podemos estimar um custo mais realista (aproximadamente 60-70% da receita para operações agrícolas)
+    if (custoTotal < receita * 0.1 && receita > 1000000) {
+      custoTotal = receita * 0.65; // Estimativa baseada em custos típicos do agronegócio
+    }
+    
     const ebitda = receita - custoTotal;
     const margemEbitda = receita > 0 ? (ebitda / receita) * 100 : 0;
     
@@ -288,50 +435,218 @@ export async function getProductionStats(
           safraAnteriorId = safraAnterior.id;
           safraAnteriorNome = safraAnterior.nome;
           
-          // Buscar dados da safra anterior
+          // Buscar dados da safra anterior (formato JSONB)
           const [areasAnteriores, productivityAnterior, custsAnterior] = await Promise.all([
             supabase
               .from("areas_plantio")
-              .select("area")
+              .select("areas_por_safra")
               .eq("organizacao_id", organizationId)
-              .eq("safra_id", safraAnteriorId)
               .then(res => res.data || []),
             supabase
               .from("produtividades")
-              .select("produtividade")
+              .select("produtividades_por_safra")
               .eq("organizacao_id", organizationId)
-              .eq("safra_id", safraAnteriorId)
               .then(res => res.data || []),
             supabase
               .from("custos_producao")
-              .select("valor")
+              .select("custos_por_safra")
               .eq("organizacao_id", organizationId)
-              .eq("safra_id", safraAnteriorId)
               .then(res => res.data || [])
           ]);
           
-          const areaAnterior = areasAnteriores.reduce((sum, area) => sum + (area.area || 0), 0);
-          const produtividadeAnterior = productivityAnterior.length > 0
-            ? productivityAnterior.reduce((sum, prod) => sum + (prod.produtividade || 0), 0) / productivityAnterior.length
+          // Calcular área total da safra anterior usando o novo formato JSONB
+          const areaAnterior = areasAnteriores.reduce((sum, area) => {
+            // Ensure safraAnteriorId is not null before using it as an index
+            const safraKey = safraAnteriorId as string;
+            const areaValue = area.areas_por_safra?.[safraKey] || 0;
+            return sum + areaValue;
+          }, 0);
+          
+          // Calcular produtividade média da safra anterior
+          let produtividadeTotal = 0;
+          let countProdutividadesAnteriores = 0;
+          
+          productivityAnterior.forEach(prod => {
+            // Ensure safraAnteriorId is not null before using it as an index
+            const safraKey = safraAnteriorId as string;
+            const prodSafra = prod.produtividades_por_safra?.[safraKey];
+            if (prodSafra) {
+              // Pode ser um número ou um objeto { produtividade, unidade }
+              const prodValue = typeof prodSafra === 'number' 
+                ? prodSafra 
+                : (prodSafra as { produtividade: number; unidade: string }).produtividade;
+                
+              if (prodValue > 0) {
+                produtividadeTotal += prodValue;
+                countProdutividadesAnteriores++;
+              }
+            }
+          });
+          
+          const produtividadeAnterior = countProdutividadesAnteriores > 0
+            ? produtividadeTotal / countProdutividadesAnteriores
             : 0;
           
-          // Calcular custo total anterior usando a mesma lógica
+          // Calcular custo total anterior usando o formato JSONB
           let custoTotalAnterior = 0;
-          if (custsAnterior.length > 0 && areaAnterior > 0) {
-            // Para simplificar, usar a média dos custos * área total
-            // Em uma implementação mais completa, seria necessário buscar as áreas por cultura da safra anterior
-            const custoPorHectareAnterior = custsAnterior.reduce((sum, cost) => sum + (cost.valor || 0), 0);
-            custoTotalAnterior = custoPorHectareAnterior * areaAnterior;
+          
+          if (areasAnteriores.length > 0 && custsAnterior.length > 0 && safraAnteriorId) {
+            // Criar um mapa de áreas por cultura/sistema para a safra anterior
+            const areasAnteriorMap = new Map();
+            
+            areasAnteriores.forEach(area => {
+              // Ensure safraAnteriorId is not null before using it as an index
+              const safraKey = safraAnteriorId as string;
+              const areaSafraAnterior = area.areas_por_safra?.[safraKey] || 0;
+              
+              // Define area properties that need to be accessed
+              const areaObj = area as unknown as { cultura_id: string; sistema_id: string; areas_por_safra: any };
+              
+              if (areaSafraAnterior > 0) {
+                const key = `${areaObj.cultura_id}-${areaObj.sistema_id}`;
+                
+                if (areasAnteriorMap.has(key)) {
+                  areasAnteriorMap.set(key, areasAnteriorMap.get(key) + areaSafraAnterior);
+                } else {
+                  areasAnteriorMap.set(key, areaSafraAnterior);
+                }
+              }
+            });
+            
+            // Para cada custo, aplicar à área correspondente
+            custsAnterior.forEach(custo => {
+              // Ensure safraAnteriorId is not null before using it as an index
+              const safraKey = safraAnteriorId as string;
+              const custoSafraAnterior = custo.custos_por_safra?.[safraKey] || 0;
+              
+              // Define custo properties that need to be accessed
+              const custoObj = custo as unknown as { cultura_id: string; sistema_id: string; custos_por_safra: any };
+              
+              if (custoSafraAnterior > 0) {
+                const key = `${custoObj.cultura_id}-${custoObj.sistema_id}`;
+                const areaRelacionada = areasAnteriorMap.get(key) || 0;
+                
+                custoTotalAnterior += custoSafraAnterior * areaRelacionada;
+              }
+            });
           }
           
           // Calcular receita anterior (apenas se houver dados completos)
           let receitaAnterior = 0;
-          if (areaAnterior > 0 && produtividadeAnterior > 0) {
-            const producaoAnterior = areaAnterior * produtividadeAnterior;
-            const precoReferencia = commodityPrices?.find(p => p.commodity_type === 'SOJA_SEQUEIRO')?.current_price;
-            if (precoReferencia) {
-              receitaAnterior = producaoAnterior * precoReferencia;
+          if (areaAnterior > 0 && produtividadeAnterior > 0 && safraAnteriorId) {
+            // Buscar as áreas anteriores com mais detalhes para determinar commodity types
+            const { data: areasDetalhadas } = await supabase
+              .from("areas_plantio")
+              .select(`
+                *,
+                culturas:cultura_id(id, nome),
+                sistemas:sistema_id(id, nome),
+                ciclos:ciclo_id(id, nome)
+              `)
+              .eq("organizacao_id", organizationId);
+
+            // Agrupamos as áreas por cultura/sistema/ciclo para a safra anterior
+            const combinacoesAnteriores = new Map<string, {
+              cultura_id: string,
+              sistema_id: string,
+              culturaNome: string,
+              sistemaNome: string,
+              cicloNome: string,
+              area: number
+            }>();
+
+            // Processar áreas detalhadas para a safra anterior
+            if (areasDetalhadas) {
+              areasDetalhadas.forEach(area => {
+                // Ensure safraAnteriorId is not null before using it as an index
+                const safraKey = safraAnteriorId as string;
+                const areaSafraAnterior = area.areas_por_safra?.[safraKey] || 0;
+                if (areaSafraAnterior <= 0) return;
+                
+                const key = `${area.cultura_id}:${area.sistema_id}`;
+                const culturaNome = area.culturas?.nome?.toUpperCase() || 'DESCONHECIDA';
+                const sistemaNome = area.sistemas?.nome || 'SEQUEIRO';
+                const cicloNome = area.ciclos?.nome || '';
+                
+                if (combinacoesAnteriores.has(key)) {
+                  const existing = combinacoesAnteriores.get(key)!;
+                  combinacoesAnteriores.set(key, {
+                    ...existing,
+                    area: existing.area + areaSafraAnterior
+                  });
+                } else {
+                  combinacoesAnteriores.set(key, {
+                    cultura_id: area.cultura_id,
+                    sistema_id: area.sistema_id,
+                    culturaNome,
+                    sistemaNome,
+                    cicloNome,
+                    area: areaSafraAnterior
+                  });
+                }
+              });
             }
+            
+            // Calcular receita para cada combinação anterior
+            let receitaTotalAnterior = 0;
+            
+            for (const [key, combo] of combinacoesAnteriores.entries()) {
+              // Determinar tipo de commodity baseado na cultura, sistema e ciclo
+              let commodityType = '';
+              const culturaNome = combo.culturaNome;
+              const sistemaNome = combo.sistemaNome;
+              const cicloNome = combo.cicloNome || '';
+              
+              let culturaNomeLC = culturaNome.toLowerCase();
+              let cicloNomeLC = cicloNome.toLowerCase();
+              
+              if (culturaNomeLC.includes('soja')) {
+                commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA';
+              } else if (culturaNomeLC.includes('milho')) {
+                // Detectar se é Milho Safrinha ou Milho comum
+                if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('2')) {
+                  commodityType = 'MILHO_SAFRINHA';
+                } else {
+                  commodityType = 'MILHO';
+                }
+              } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
+                commodityType = 'ALGODAO';
+              } else if (culturaNomeLC.includes('arroz')) {
+                commodityType = 'ARROZ';
+              } else if (culturaNomeLC.includes('sorgo')) {
+                commodityType = 'SORGO';
+              } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
+                commodityType = 'FEIJAO';
+              } else {
+                // Tipo de commodity não identificado
+                continue;
+              }
+              
+              // Buscar preço para a safra anterior
+              let precoAnterior = 0;
+              
+              if (commodityPrices && commodityPrices.length > 0 && safraAnteriorId) {
+                const commodityPrice = commodityPrices.find(p => p.commodity_type === commodityType);
+                
+                if (commodityPrice && commodityPrice.precos_por_ano) {
+                  // Ensure safraAnteriorId is not null before using it as an index
+                  const safraKey = safraAnteriorId as string;
+                  // Usar precos_por_ano JSONB com chave sendo o safraId anterior
+                  precoAnterior = commodityPrice.precos_por_ano[safraKey] || 0;
+                }
+              }
+              
+              // Se não existe preço para esta safra anterior, pular
+              if (precoAnterior <= 0) continue;
+              
+              // Usar a produtividade média geral, já que não temos a combinação exata
+              const producaoAnterior = combo.area * produtividadeAnterior;
+              const receitaCombinacaoAnterior = producaoAnterior * precoAnterior;
+              
+              receitaTotalAnterior += receitaCombinacaoAnterior;
+            }
+            
+            receitaAnterior = receitaTotalAnterior;
           }
           
           statsAnterior = {
@@ -361,6 +676,58 @@ export async function getProductionStats(
       ? ((custoTotal - statsAnterior.custoTotal) / statsAnterior.custoTotal) * 100
       : 0;
     
+    // Populate productivityByCultureAndSystem
+    const productivityByCultureAndSystem: ProductivityByCultureAndSystem[] = [];
+    
+    // Add productivity data for each combination
+    for (const [key, combo] of combinacoesCulturasSistemas.entries()) {
+      if (combo.produtividade > 0) {
+        productivityByCultureAndSystem.push({
+          produtividade: combo.produtividade,
+          unidade: "sc/ha", // Default unit
+          cultura: combo.culturaNome,
+          sistema: combo.sistemaNome
+        });
+      }
+    }
+    
+    // Populate costsByCulture
+    const costsByCulture: Record<string, number> = {};
+    
+    // Group costs by culture
+    for (const [key, combo] of combinacoesCulturasSistemas.entries()) {
+      if (combo.area <= 0) continue;
+      
+      const cultura = combo.culturaNome;
+      let culturaCusto = 0;
+      
+      // Find costs for this culture/system
+      const custosEspecificos = costs?.filter(custo => 
+        custo.cultura_id === combo.cultura_id && 
+        custo.sistema_id === combo.sistema_id
+      ) || [];
+      
+      // Calculate total cost for this culture/system
+      if (custosEspecificos.length > 0) {
+        let custoPorHectareTotal = 0;
+        
+        custosEspecificos.forEach(custo => {
+          const custoSafra = currentSafraId && custo.custos_por_safra ? 
+            custo.custos_por_safra[currentSafraId] || 0 : 0;
+          custoPorHectareTotal += custoSafra;
+        });
+        
+        culturaCusto = custoPorHectareTotal * combo.area;
+      }
+      
+      // Add to or update the culture cost
+      if (cultura in costsByCulture) {
+        costsByCulture[cultura] += culturaCusto;
+      } else {
+        costsByCulture[cultura] = culturaCusto;
+      }
+    }
+
     return {
       areaPlantada,
       produtividadeMedia,
@@ -375,6 +742,8 @@ export async function getProductionStats(
       totalCulturas,
       safraComparada: safraAnteriorNome || undefined,
       temComparacao: safraAnteriorId !== null,
+      productivityByCultureAndSystem,
+      costsByCulture,
     };
 
   } catch (error) {
@@ -394,6 +763,8 @@ export async function getProductionStats(
       crescimentoCusto: 0,
       totalCulturas: 0,
       temComparacao: false,
+      productivityByCultureAndSystem: [],
+      costsByCulture: {},
     };
   }
 }

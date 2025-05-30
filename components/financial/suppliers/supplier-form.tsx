@@ -17,7 +17,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { YearValueEditor } from "../common/year-value-editor";
+import { SafraValueEditor } from "../common/safra-value-editor";
+import { Harvest } from "@/schemas/production";
+import { getSafras } from "@/lib/actions/production-actions";
 import { 
   Dialog,
   DialogContent,
@@ -65,6 +67,28 @@ export function SupplierForm({
 }: SupplierFormProps) {
   console.log("Supplier form - organizationId recebido:", organizationId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [harvests, setHarvests] = useState<Harvest[]>([]);
+  const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
+
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      loadHarvests();
+    }
+  }, [open, organizationId]);
+
+  const loadHarvests = async () => {
+    try {
+      setIsLoadingHarvests(true);
+      const harvestsData = await getSafras(organizationId);
+      setHarvests(harvestsData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingHarvests(false);
+    }
+  };
 
   // Inicializar formulário com esquema definido localmente
   const form = useForm<FormValues>({
@@ -201,21 +225,20 @@ export function SupplierForm({
               name="valores_por_ano"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valores Anuais</FormLabel>
+                  <FormLabel>Valores por Safra</FormLabel>
                   <FormControl>
-                    <YearValueEditor
-                      label="Pagamentos Anuais"
-                      description="Adicione os valores a serem pagos por ano"
+                    <SafraValueEditor
+                      label="Pagamentos por Safra"
+                      description="Adicione os valores a serem pagos por safra"
                       values={
                         typeof field.value === "string"
                           ? JSON.parse(field.value)
                           : field.value || {}
                       }
                       onChange={field.onChange}
-                      startYear={2025}
-                      endYear={2040}
+                      safras={harvests.map(h => ({ id: h.id || "", nome: h.nome }))}
                       currency={form.watch("moeda")}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoadingHarvests}
                     />
                   </FormControl>
                   <FormMessage />

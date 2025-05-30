@@ -30,9 +30,11 @@ export default function ProjectionsLoading() {
           ))}
         </div>
 
-        {/* Tabs Skeleton */}
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-64" />
+        {/* Simple Label Skeleton */}
+        <div className="space-y-4 w-full max-w-full">
+          <div className="flex space-x-2 mb-2">
+            <Skeleton className="h-8 w-32 rounded" />
+          </div>
           
           {/* Projection Cards Skeleton */}
           <div className="grid gap-4">

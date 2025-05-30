@@ -66,7 +66,7 @@ export function LocationStep({ form }: LocationStepProps) {
                 Cidade*
               </FormLabel>
               <FormControl>
-                <Input placeholder="Ex: Sorriso" {...field} />
+                <Input placeholder="Ex: Sorriso" value={field.value || ""} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -82,7 +82,7 @@ export function LocationStep({ form }: LocationStepProps) {
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
                 Estado*
               </FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value || undefined}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o estado" />
@@ -111,7 +111,7 @@ export function LocationStep({ form }: LocationStepProps) {
                 Número da Matrícula*
               </FormLabel>
               <FormControl>
-                <Input placeholder="Ex: 12345" {...field} />
+                <Input placeholder="Ex: 12345" value={field.value || ""} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>

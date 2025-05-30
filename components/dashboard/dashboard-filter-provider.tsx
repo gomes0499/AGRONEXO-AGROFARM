@@ -17,6 +17,11 @@ interface FilterContextValue {
   allSystemIds: string[];
   allCycleIds: string[];
   allSafraIds: string[];
+  setPropertyIds: (ids: string[]) => void;
+  setCultureIds: (ids: string[]) => void;
+  setSystemIds: (ids: string[]) => void;
+  setCycleIds: (ids: string[]) => void;
+  setSafraIds: (ids: string[]) => void;
 }
 
 const FilterContext = createContext<FilterContextValue | undefined>(undefined);
@@ -53,6 +58,11 @@ export function DashboardFilterProvider({
     hasActiveFilters,
     isPending,
     getFilteredIds,
+    setPropertyIds,
+    setCultureIds,
+    setSystemIds,
+    setCycleIds,
+    setSafraIds
   } = useDashboardFilters({
     totalProperties,
     totalCultures,
@@ -90,6 +100,11 @@ export function DashboardFilterProvider({
     allSystemIds,
     allCycleIds,
     allSafraIds,
+    setPropertyIds,
+    setCultureIds,
+    setSystemIds,
+    setCycleIds,
+    setSafraIds,
   };
 
   return (

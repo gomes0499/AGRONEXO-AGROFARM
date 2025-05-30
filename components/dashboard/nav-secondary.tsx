@@ -12,6 +12,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { FullReportGenerator } from "@/components/shared/full-report-generator";
+import { useUser } from "@/components/auth/user-provider";
 
 export function NavSecondary({
   items,
@@ -22,9 +24,14 @@ export function NavSecondary({
     url: string;
     icon: LucideIcon;
     isThemeToggle?: boolean;
+    isReportGenerator?: boolean;
   }[];
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const pathname = usePathname();
+  const { user } = useUser();
+  
+  // Obter o nome da organização atual para o relatório
+  const organizationName = user?.user_metadata?.organizacao?.nome || "Minha Organização";
 
   // Function to check if a menu item is active
   const isActive = (url: string) => {
@@ -62,6 +69,25 @@ export function NavSecondary({
                       <span className="text-sm">{item.title}</span>
                     </div>
                     <ThemeToggle />
+                  </div>
+                </SidebarMenuItem>
+              );
+            }
+            
+            // Special handling for report generator
+            if (item.isReportGenerator) {
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <item.icon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{item.title}</span>
+                    </div>
+                    <FullReportGenerator 
+                      title="" 
+                      className="h-6 w-6 p-0" 
+                      organizationName={organizationName}
+                    />
                   </div>
                 </SidebarMenuItem>
               );

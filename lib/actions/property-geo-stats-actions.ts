@@ -56,18 +56,19 @@ const ESTADOS_NOMES: Record<string, string> = {
   'TO': 'Tocantins'
 };
 
-// Cores para diferentes estados (baseado em uma paleta consistente)
+// Cores para diferentes estados (usando tons da paleta roxa da aplicação)
 const CORES_ESTADOS = [
-  '#3B82F6', // Azul
-  '#EAB308', // Amarelo
-  '#10B981', // Verde
-  '#F59E0B', // Laranja
-  '#EF4444', // Vermelho
-  '#8B5CF6', // Roxo
-  '#06B6D4', // Ciano
-  '#84CC16', // Lima
-  '#F97316', // Laranja escuro
-  '#EC4899', // Rosa
+  '#1B124E', // Roxo escuro primário
+  '#3F2C88', // Roxo médio
+  '#5139A5', // Roxo principal
+  '#6346C2', // Roxo claro
+  '#7553DF', // Roxo mais claro
+  '#8760FC', // Lavanda escuro
+  '#9A6DFF', // Lavanda médio
+  '#AC7AFF', // Lavanda claro
+  '#BE87FF', // Lilás
+  '#D094FF', // Rosa lilás
+  '#E2A1FF', // Rosa claro
 ];
 
 export async function getPropertyGeoStats(

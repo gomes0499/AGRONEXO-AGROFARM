@@ -1,44 +1,34 @@
 import { Metadata } from "next";
 import { Suspense } from "react";
 import { getOrganizationId, getSession } from "@/lib/auth";
-import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 
-// Imports das actions financeiras
-import {
-  getBankDebts,
-  getTradingDebts,
-  getPropertyDebts,
-  getSuppliers,
-  getLiquidityFactors,
-  getInventories,
-  getCommodityInventories,
-  getReceivableContracts,
-  getSupplierAdvances,
-  getThirdPartyLoans,
-} from "@/lib/actions/financial-actions";
+// Import our new financial module components
+import { DividasBancariasListing } from "@/components/financial/dividas-bancarias/dividas-bancarias-listing";
+import { DividasTerrasListing } from "@/components/financial/dividas-terras/dividas-terras-listing";
+import { DividasFornecedoresListing } from "@/components/financial/dividas-fornecedores/dividas-fornecedores-listing";
+import { CaixaDisponibilidadesListing } from "@/components/financial/caixa-disponibilidades/caixa-disponibilidades-listing";
+import { FinanceirasListing } from "@/components/financial/financeiras/financeiras-listing";
+import { OutrasDespesasListing } from "@/components/financial/outras-despesas/outras-despesas-listing";
 
-import { BankDebtListing } from "@/components/financial/bank-debts/bank-debt-listing";
-import { TradingDebtListing } from "@/components/financial/trading-debts/trading-debt-listing";
-import { PropertyDebtListing } from "@/components/financial/property-debts/property-debt-listing";
-import { SupplierListing } from "@/components/financial/suppliers/supplier-listing";
-import { LiquidityFactorListing } from "@/components/financial/liquidity/liquidity-factor-listing";
-import { InventoryListing } from "@/components/financial/inventory/inventory-listing";
-import { CommodityInventoryListing } from "@/components/financial/commodity-inventory/commodity-inventory-listing";
-import { ReceivableListing } from "@/components/financial/receivables/receivable-listing";
-import { AdvanceListing } from "@/components/financial/advances/advance-listing";
-import { LoanListing } from "@/components/financial/loans/loan-listing";
+// Import our new actions
+import { getDividasBancarias } from "@/lib/actions/financial-actions/dividas-bancarias";
+import { getDividasTerras } from "@/lib/actions/financial-actions/dividas-terras";
+import { getDividasFornecedores } from "@/lib/actions/financial-actions/dividas-fornecedores";
+import { getCaixaDisponibilidades } from "@/lib/actions/financial-actions/caixa-disponibilidades";
+import { getFinanceiras } from "@/lib/actions/financial-actions/financeiras";
+import { getOutrasDespesas } from "@/lib/actions/financial-actions/outras-despesas";
 
 export const metadata: Metadata = {
   title: "Financeiro | SR Consultoria",
-  description: "Gestão financeira e controle de dívidas e investimentos",
+  description: "Gestão financeira e controle de dívidas e disponibilidades",
 };
 
 export default async function FinancialPage() {
-  await requireSuperAdmin();
   const session = await getSession();
   const organizationId = await getOrganizationId();
+
   if (!session?.organization || !session?.organizationId) {
     throw new Error("Organização não encontrada ou usuário não autenticado");
   }
@@ -48,95 +38,110 @@ export default async function FinancialPage() {
     nome: session.organization.nome,
   };
 
+  // Fetch data from our new tables with error handling
   const [
-    bankDebts,
-    tradingDebts,
-    propertyDebts,
-    suppliers,
-    liquidityFactors,
-    inventories,
-    commodityInventories,
-    receivableContracts,
-    supplierAdvances,
-    thirdPartyLoans,
+    dividasBancarias,
+    dividasTerras,
+    dividasFornecedores,
+    caixaDisponibilidades,
+    financeiras,
+    outrasDespesas,
   ] = await Promise.all([
-    getBankDebts(organizationId),
-    getTradingDebts(organizationId),
-    getPropertyDebts(organizationId),
-    getSuppliers(organizationId),
-    getLiquidityFactors(organizationId),
-    getInventories(organizationId),
-    getCommodityInventories(organizationId),
-    getReceivableContracts(organizationId),
-    getSupplierAdvances(organizationId),
-    getThirdPartyLoans(organizationId),
+    getDividasBancarias(organizationId).catch((err) => {
+      console.error("Erro ao buscar dívidas bancárias:", err);
+      return [];
+    }),
+    getDividasTerras(organizationId).catch((err) => {
+      console.error("Erro ao buscar dívidas de terras:", err);
+      return [];
+    }),
+    getDividasFornecedores(organizationId).catch((err) => {
+      console.error("Erro ao buscar dívidas de fornecedores:", err);
+      return [];
+    }),
+    getCaixaDisponibilidades(organizationId).catch((err) => {
+      console.error("Erro ao buscar caixa e disponibilidades:", err);
+      return [];
+    }),
+    getFinanceiras(organizationId).catch((err) => {
+      console.error("Erro ao buscar operações financeiras:", err);
+      return [];
+    }),
+    getOutrasDespesas(organizationId).catch((err) => {
+      console.error("Erro ao buscar outras despesas:", err);
+      return [];
+    }),
   ]);
+
+  // Calculate totals for outras_despesas
+  const outrasDespesasWithTotal = outrasDespesas.map((item) => {
+    const valores = item.valores_por_safra || {};
+    let total = 0;
+
+    if (typeof valores === "string") {
+      try {
+        const parsedValues = JSON.parse(valores);
+        total = Object.values(parsedValues).reduce<number>(
+          (sum, value) => sum + (Number(value) || 0),
+          0
+        );
+      } catch (e) {
+        console.error("Erro ao processar valores_por_safra:", e);
+      }
+    } else {
+      total = Object.values(valores).reduce<number>(
+        (sum, value) => sum + (Number(value) || 0),
+        0
+      );
+    }
+
+    return {
+      ...item,
+      total,
+    };
+  });
 
   return (
     <div className="-mt-6 -mx-4 md:-mx-6">
-      <Tabs defaultValue="bank-debts">
+      <Tabs defaultValue="dividas-bancarias">
         <div className="bg-muted/50 border-b">
-          <div className="container mx-auto px-4 md:px-6 py-2">
-            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+          <div className="container max-w-full px-4 md:px-6 py-2">
+            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start w-full">
               <TabsTrigger
-                value="bank-debts"
+                value="dividas-bancarias"
                 className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
               >
                 Dívidas Bancárias
               </TabsTrigger>
               <TabsTrigger
-                value="trading-debts"
+                value="dividas-terras"
                 className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
               >
-                Dívidas Trading
+                Dívidas Terras
               </TabsTrigger>
               <TabsTrigger
-                value="property-debts"
+                value="dividas-fornecedores"
                 className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
               >
-                Dívidas Imóveis
+                Dívidas Fornecedores
               </TabsTrigger>
               <TabsTrigger
-                value="suppliers"
+                value="caixa-disponibilidades"
                 className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
               >
-                Fornecedores
+                Caixa e Disponibilidades
               </TabsTrigger>
               <TabsTrigger
-                value="liquidity"
+                value="financeiras"
                 className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
               >
-                Liquidez
+                Operações Financeiras
               </TabsTrigger>
               <TabsTrigger
-                value="inventories"
+                value="outras-despesas"
                 className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
               >
-                Estoques
-              </TabsTrigger>
-              <TabsTrigger
-                value="commodity-stocks"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
-                Commodities
-              </TabsTrigger>
-              <TabsTrigger
-                value="receivables"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
-                Recebíveis
-              </TabsTrigger>
-              <TabsTrigger
-                value="supplier-advances"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
-                Adiantamentos
-              </TabsTrigger>
-              <TabsTrigger
-                value="third-party-loans"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
-                Empréstimos
+                Outras Despesas
               </TabsTrigger>
             </TabsList>
           </div>
@@ -150,73 +155,45 @@ export default async function FinancialPage() {
               </div>
             }
           >
-            <TabsContent value="bank-debts" className="space-y-4">
-              <BankDebtListing
+            <TabsContent value="dividas-bancarias" className="space-y-4">
+              <DividasBancariasListing
                 organization={organization}
-                initialBankDebts={bankDebts}
+                initialDividasBancarias={dividasBancarias}
               />
             </TabsContent>
 
-            <TabsContent value="trading-debts" className="space-y-4">
-              <TradingDebtListing
+            <TabsContent value="dividas-terras" className="space-y-4">
+              <DividasTerrasListing
                 organization={organization}
-                initialTradingDebts={tradingDebts}
+                initialDividasTerras={dividasTerras}
               />
             </TabsContent>
 
-            <TabsContent value="property-debts" className="space-y-4">
-              <PropertyDebtListing
+            <TabsContent value="dividas-fornecedores" className="space-y-4">
+              <DividasFornecedoresListing
                 organization={organization}
-                initialPropertyDebts={propertyDebts.filter((debt): debt is typeof debt & { propriedade: NonNullable<typeof debt.propriedade> } => debt.propriedade !== null)}
+                initialDividasFornecedores={dividasFornecedores}
               />
             </TabsContent>
 
-            <TabsContent value="suppliers" className="space-y-4">
-              <SupplierListing
+            <TabsContent value="caixa-disponibilidades" className="space-y-4">
+              <CaixaDisponibilidadesListing
                 organization={organization}
-                initialSuppliers={suppliers}
+                initialItems={caixaDisponibilidades}
               />
             </TabsContent>
 
-            <TabsContent value="liquidity" className="space-y-4">
-              <LiquidityFactorListing
+            <TabsContent value="financeiras" className="space-y-4">
+              <FinanceirasListing
                 organization={organization}
-                initialLiquidityFactors={liquidityFactors}
+                initialItems={financeiras}
               />
             </TabsContent>
 
-            <TabsContent value="inventories" className="space-y-4">
-              <InventoryListing
+            <TabsContent value="outras-despesas" className="space-y-4">
+              <OutrasDespesasListing
                 organization={organization}
-                initialInventories={inventories}
-              />
-            </TabsContent>
-
-            <TabsContent value="commodity-stocks" className="space-y-4">
-              <CommodityInventoryListing
-                organization={organization}
-                initialCommodityInventories={commodityInventories}
-              />
-            </TabsContent>
-
-            <TabsContent value="receivables" className="space-y-4">
-              <ReceivableListing
-                organization={organization}
-                initialReceivables={receivableContracts}
-              />
-            </TabsContent>
-
-            <TabsContent value="supplier-advances" className="space-y-4">
-              <AdvanceListing
-                organization={organization}
-                initialAdvances={supplierAdvances}
-              />
-            </TabsContent>
-
-            <TabsContent value="third-party-loans" className="space-y-4">
-              <LoanListing
-                organization={organization}
-                initialLoans={thirdPartyLoans}
+                initialItems={outrasDespesasWithTotal}
               />
             </TabsContent>
           </Suspense>

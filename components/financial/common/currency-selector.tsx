@@ -21,6 +21,8 @@ interface CurrencySelectorProps {
   label: string;
   control: any;
   disabled?: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
 export function CurrencySelector({
@@ -28,7 +30,35 @@ export function CurrencySelector({
   label,
   control,
   disabled = false,
+  value,
+  onChange,
 }: CurrencySelectorProps) {
+  // Support both direct use and form field use
+  const isFormField = !!control && !!name;
+  
+  if (!isFormField) {
+    return (
+      <div className="space-y-2">
+        <label className="text-sm font-medium">{label}</label>
+        <Select
+          disabled={disabled}
+          onValueChange={onChange}
+          value={value}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione a moeda" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="BRL">Real (R$)</SelectItem>
+            <SelectItem value="USD">Dólar (US$)</SelectItem>
+            <SelectItem value="EUR">Euro (€)</SelectItem>
+            <SelectItem value="SOJA">Soja (sacas)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+  
   return (
     <FormField
       control={control}

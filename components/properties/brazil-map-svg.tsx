@@ -84,7 +84,7 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
       return stateData.color;
     }
     
-    return '#cbd5e1'; // Cor mais escura para estados sem dados
+    return '#E2E8F0'; // Cor mais clara para estados sem dados
   };
 
   const getStateOpacity = (geoProperties: any) => {
@@ -121,8 +121,8 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
                     key={geo.rsmKey}
                     geography={geo}
                     fill={getStateFillColor(geo.properties)}
-                    stroke="#64748b"
-                    strokeWidth={0.8}
+                    stroke="#94A3B8"
+                    strokeWidth={0.5}
                     style={{
                       default: {
                         opacity: getStateOpacity(geo.properties),

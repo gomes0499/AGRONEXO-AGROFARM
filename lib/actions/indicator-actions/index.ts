@@ -19,6 +19,19 @@ import {
   updateCommodityPricesBatch
 } from "./commodity-price-actions";
 
+// Import exchange rate functions individually
+import {
+  getExchangeRatesByOrganizationId,
+  getExchangeRateById,
+  getExchangeRateByType,
+  createExchangeRate,
+  updateExchangeRate,
+  deleteExchangeRate,
+  initializeDefaultExchangeRates,
+  ensureExchangeRatesExist,
+  updateExchangeRatesBatch
+} from "./exchange-rate-actions";
+
 // Re-export commodity price functions individually to comply with "use server" requirements
 export { 
   getCommodityPricesByOrganizationId,
@@ -30,6 +43,19 @@ export {
   initializeDefaultCommodityPrices,
   ensureCommodityPricesExist,
   updateCommodityPricesBatch
+};
+
+// Re-export exchange rate functions individually to comply with "use server" requirements
+export {
+  getExchangeRatesByOrganizationId,
+  getExchangeRateById,
+  getExchangeRateByType,
+  createExchangeRate,
+  updateExchangeRate,
+  deleteExchangeRate,
+  initializeDefaultExchangeRates,
+  ensureExchangeRatesExist,
+  updateExchangeRatesBatch
 };
 
 // Função utilitária para obter o nível do indicador (client-side)

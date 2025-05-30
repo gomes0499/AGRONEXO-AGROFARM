@@ -41,8 +41,8 @@ const ChartLegendMultirow = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "flex flex-wrap items-start justify-center gap-x-3 gap-y-2 px-2 pb-2",
-        "sm:gap-x-4 sm:px-4",
+        "flex flex-wrap items-start justify-center gap-x-4 gap-y-3 px-3 pb-3",
+        "sm:gap-x-5 sm:px-4",
         className
       )}
       {...domProps}
@@ -51,21 +51,21 @@ const ChartLegendMultirow = React.forwardRef<
         <div
           key={`legend-item-${index}`}
           className={cn(
-            "flex items-center gap-1.5 group cursor-pointer hover:opacity-80 transition-opacity",
+            "flex items-center gap-2 group cursor-pointer hover:opacity-80 transition-opacity",
             "min-w-0 flex-shrink-0 max-w-[140px] sm:max-w-[160px] lg:max-w-[180px]"
           )}
           title={item.value}
         >
           <div
             className={cn(
-              "w-3 h-3 rounded-sm shrink-0 border border-white/20",
+              "w-3.5 h-3.5 rounded-[3px] shrink-0 border border-white/20",
               "group-hover:scale-110 transition-transform duration-200"
             )}
             style={{ backgroundColor: item.color }}
           />
           <span
             className={cn(
-              "text-xs font-medium text-muted-foreground",
+              "text-sm font-medium text-muted-foreground",
               "group-hover:text-foreground transition-colors",
               "leading-tight text-left"
             )}

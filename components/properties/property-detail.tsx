@@ -33,9 +33,11 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
     const typeInfo = {
       PROPRIO: { label: "Própria", variant: "default" as const },
       ARRENDADO: { label: "Arrendada", variant: "secondary" as const },
+      PARCERIA: { label: "Parceria", variant: "outline" as const },
+      COMODATO: { label: "Comodato", variant: "ghost" as const },
     };
 
-    const type = typeInfo[property.tipo] || typeInfo.PROPRIO;
+    const type = property.tipo ? typeInfo[property.tipo] : typeInfo.PROPRIO;
     
     return (
       <InfoField
@@ -65,9 +67,9 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
 
   // Função para renderizar área cultivada com porcentagem
   const renderCultivatedAreaField = () => {
-    if (!property.area_cultivada) return null;
+    if (!property.area_cultivada || !property.area_total) return null;
 
-    const cultivationPercentage = Math.round((property.area_cultivada / property.area_total) * 100);
+    const cultivationPercentage = Math.round((property.area_cultivada / (property.area_total || 1)) * 100);
     
     return (
       <InfoField

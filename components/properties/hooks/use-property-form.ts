@@ -23,8 +23,9 @@ export function usePropertyForm({
   const [isLoading, setIsLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  const form = useForm<PropertyFormValues>({
-    resolver: zodResolver(propertyFormSchema),
+  // Use 'any' as a temporary workaround for the complex resolver typing issue
+  const form = useForm({
+    resolver: zodResolver(propertyFormSchema) as any,
     defaultValues: {
       nome: "",
       proprietario: "",
@@ -34,12 +35,12 @@ export function usePropertyForm({
       area_total: 0,
       area_cultivada: 0,
       valor_atual: 0,
-      tipo: "PROPRIO",
+      tipo: "PROPRIO" as const,
       ano_aquisicao: new Date().getFullYear(),
       onus: "",
       avaliacao_banco: 0,
     },
-  });
+  }) as any;
 
   // Carregar dados da propriedade quando estiver em modo de edição
   useEffect(() => {

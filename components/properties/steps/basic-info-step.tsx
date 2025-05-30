@@ -193,7 +193,7 @@ export function BasicInfoStep({
                   <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
                   Estado*
                 </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || undefined}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o estado" />

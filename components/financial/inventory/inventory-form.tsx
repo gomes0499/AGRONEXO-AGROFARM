@@ -19,12 +19,20 @@ import {
 import { FinancialFormModal } from "../common/financial-form-modal";
 import { createInventory, updateInventory } from "@/lib/actions/financial-actions";
 import { CurrencyField } from "@/components/shared/currency-field";
+import { SafraValueEditor } from "../common/safra-value-editor";
+import { Harvest } from "@/schemas/production";
+import { getSafras } from "@/lib/actions/production-actions";
 
 // Define local schema para incluir organizacao_id
 const formSchema = z.object({
   organizacao_id: z.string().uuid(),
-  tipo: z.enum(["FERTILIZANTES", "DEFENSIVOS", "ALMOXARIFADO", "OUTROS"]),
-  valor: z.coerce.number().min(0, "Valor deve ser positivo"),
+  tipo: z.enum([
+    "FERTILIZANTES", "DEFENSIVOS", "ALMOXARIFADO", "OUTROS", "SEMENTES",
+    "MAQUINAS_E_EQUIPAMENTOS", "COMBUSTIVEIS", "PECAS_E_ACESSORIOS",
+    "MEDICAMENTOS_VETERINARIOS", "RACAO_ANIMAL"
+  ]),
+  valor: z.coerce.number().min(0, "Valor deve ser positivo").optional(),
+  valores_por_safra: z.record(z.string(), z.number()).optional(),
 });
 
 // Tipo para os valores do formulário
@@ -46,19 +54,50 @@ export function InventoryForm({
   onSubmit,
 }: InventoryFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [harvests, setHarvests] = useState<Harvest[]>([]);
+  const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
+
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      loadHarvests();
+    }
+  }, [open, organizationId]);
+
+  const loadHarvests = async () => {
+    try {
+      setIsLoadingHarvests(true);
+      const harvestsData = await getSafras(organizationId);
+      setHarvests(harvestsData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingHarvests(false);
+    }
+  };
   
+  // Parse existing valores_por_safra
+  const parseValoresPorSafra = (valores: any) => {
+    if (!valores) return {};
+    if (typeof valores === "string") {
+      try {
+        return JSON.parse(valores);
+      } catch {
+        return {};
+      }
+    }
+    return valores;
+  };
+
   // Inicializar formulário
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       organizacao_id: organizationId,
-      ...(existingInventory ? {
-        tipo: existingInventory.tipo,
-        valor: existingInventory.valor
-      } : {}),
-      // Garantir campos obrigatórios ou com valores padrão específicos
       tipo: existingInventory?.tipo || "FERTILIZANTES",
       valor: existingInventory?.valor || 0,
+      valores_por_safra: parseValoresPorSafra(existingInventory?.valores_por_safra),
     },
   });
   
@@ -71,7 +110,7 @@ export function InventoryForm({
   }, [organizationId, form]);
   
   // Função para lidar com o envio do formulário
-  const handleSubmit = form.handleSubmit(async (values: FormValues) => {
+  const onSubmitHandler = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
       
@@ -85,9 +124,18 @@ export function InventoryForm({
       const orgId = values.organizacao_id || organizationId;
       console.log("Enviando estoque com organizacao_id:", orgId);
       
+      // Calculate total from safra values
+      const valoresPorSafra = values.valores_por_safra || {};
+      const valorTotal = Object.values(valoresPorSafra as Record<string, number>).reduce(
+        (acc, val) => acc + (typeof val === "number" ? val : 0),
+        0
+      );
+      
       const dataToSubmit = {
         ...values,
         organizacao_id: orgId,
+        valor: valorTotal,
+        valores_por_safra: valoresPorSafra,
       };
 
       let result;
@@ -115,7 +163,7 @@ export function InventoryForm({
     } finally {
       setIsSubmitting(false);
     }
-  });
+  };
 
   return (
     <FinancialFormModal
@@ -127,9 +175,9 @@ export function InventoryForm({
       showFooter={false}
     >
       <Form {...form}>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmitHandler)} className="space-y-6">
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="tipo"
             render={({ field }) => (
               <FormItem>
@@ -149,6 +197,12 @@ export function InventoryForm({
                     <SelectItem value="FERTILIZANTES">Fertilizantes</SelectItem>
                     <SelectItem value="DEFENSIVOS">Defensivos</SelectItem>
                     <SelectItem value="ALMOXARIFADO">Almoxarifado</SelectItem>
+                    <SelectItem value="SEMENTES">Sementes</SelectItem>
+                    <SelectItem value="MAQUINAS_E_EQUIPAMENTOS">Máquinas e Equipamentos</SelectItem>
+                    <SelectItem value="COMBUSTIVEIS">Combustíveis</SelectItem>
+                    <SelectItem value="PECAS_E_ACESSORIOS">Peças e Acessórios</SelectItem>
+                    <SelectItem value="MEDICAMENTOS_VETERINARIOS">Medicamentos Veterinários</SelectItem>
+                    <SelectItem value="RACAO_ANIMAL">Ração Animal</SelectItem>
                     <SelectItem value="OUTROS">Outros</SelectItem>
                   </SelectContent>
                 </Select>
@@ -157,10 +211,24 @@ export function InventoryForm({
             )}
           />
           
-          <CurrencyField
-            name="valor"
-            label="Valor"
-            control={form.control}
+          <FormField
+            control={form.control as any}
+            name="valores_por_safra"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Valores por Safra</FormLabel>
+                <FormControl>
+                  <div className="w-full">
+                    <SafraValueEditor
+                      values={field.value || {}}
+                      onChange={field.onChange}
+                      organizacaoId={organizationId}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
           
           <div className="flex justify-end gap-2">

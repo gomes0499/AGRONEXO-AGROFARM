@@ -1,19 +1,15 @@
 "use client";
 
-import { DebtPositionListing } from "./debt-position-listing";
+import { DebtPositionTab } from "./debt-position-tab";
 
 interface DebtProjectionTabProps {
   organizationId: string;
-  activeConfigId: string | null;
 }
 
-export function DebtProjectionTab({ organizationId, activeConfigId }: DebtProjectionTabProps) {
+export function DebtProjectionTab({ organizationId }: DebtProjectionTabProps) {
   return (
     <div className="space-y-6 w-full overflow-hidden">
-      <DebtPositionListing 
-        organizationId={organizationId}
-        activeConfigId={activeConfigId}
-      />
+      <DebtPositionTab />
     </div>
   );
 }

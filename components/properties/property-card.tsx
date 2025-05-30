@@ -82,9 +82,11 @@ export function PropertyCard({ property, onDelete }: PropertyCardProps) {
   const propertyTypeInfo = {
     PROPRIO: { label: "Próprio", variant: "default" as const },
     ARRENDADO: { label: "Arrendado", variant: "secondary" as const },
+    PARCERIA: { label: "Parceria", variant: "outline" as const },
+    COMODATO: { label: "Comodato", variant: "ghost" as const },
   };
 
-  const typeInfo = propertyTypeInfo[property.tipo] || propertyTypeInfo.PROPRIO;
+  const typeInfo = property.tipo ? propertyTypeInfo[property.tipo] : propertyTypeInfo.PROPRIO;
 
   return (
     <Card className="w-full h-full overflow-hidden transition-all duration-200 hover:shadow-md">
@@ -163,7 +165,7 @@ export function PropertyCard({ property, onDelete }: PropertyCardProps) {
             />
             <span
               className="font-medium truncate"
-              title={property.proprietario}
+              title={property.proprietario || ""}
             >
               {property.proprietario}
             </span>

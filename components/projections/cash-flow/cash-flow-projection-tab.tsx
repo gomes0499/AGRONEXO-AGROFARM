@@ -1,19 +1,15 @@
 "use client";
 
-import { CashFlowListing } from "./cash-flow-listing";
+import { FluxoCaixaTab } from "./fluxo-caixa-tab";
 
 interface CashFlowProjectionTabProps {
   organizationId: string;
-  activeConfigId: string | null;
 }
 
-export function CashFlowProjectionTab({ organizationId, activeConfigId }: CashFlowProjectionTabProps) {
+export function CashFlowProjectionTab({ organizationId }: CashFlowProjectionTabProps) {
   return (
     <div className="space-y-6 w-full overflow-hidden">
-      <CashFlowListing 
-        organizationId={organizationId}
-        activeConfigId={activeConfigId}
-      />
+      <FluxoCaixaTab organizationId={organizationId} />
     </div>
   );
 }

@@ -18,7 +18,7 @@ import { CardHeaderPrimary } from "@/components/organization/common/data-display
 import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { FinancialPagination } from "../common/financial-pagination";
 import { useFinancialFilters } from "@/hooks/use-financial-filters";
-import { formatCurrency, formatGenericCurrency } from "@/lib/utils/formatters";
+import { formatCurrency } from "@/lib/utils/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 

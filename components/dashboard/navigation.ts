@@ -2,7 +2,8 @@ import { BuildingIcon,
   WalletIcon, LineChartIcon, MapIcon, 
   LandmarkIcon, GaugeIcon, StoreIcon, PaintbrushIcon,
   BarChartIcon,
-  Brain
+  Brain,
+  FileText
 } from "lucide-react";
 import { LayoutDashboardIcon } from "lucide-react";
 

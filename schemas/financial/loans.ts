@@ -6,6 +6,7 @@ export const thirdPartyLoanSchema = z.object({
   organizacao_id: z.string().uuid(),
   beneficiario: z.string().min(1, "Nome do beneficiário é obrigatório"), 
   valor: z.coerce.number().positive("Valor deve ser positivo"),
+  safra_id: z.string().uuid().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

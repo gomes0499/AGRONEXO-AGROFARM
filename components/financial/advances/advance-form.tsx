@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { CurrencyField } from "@/components/shared/currency-field";
+import { SafraValueEditor } from "../common/safra-value-editor";
+import { Harvest } from "@/schemas/production";
+import { getSafras } from "@/lib/actions/production-actions";
 import { 
   Dialog,
   DialogContent,
@@ -32,7 +35,8 @@ import {
 
 // Define exact form schema type to match current database structure
 const formSchema = z.object({
-  valor: z.coerce.number().positive("Valor deve ser positivo"),
+  valor: z.coerce.number().positive("Valor deve ser positivo").optional(),
+  valores_por_safra: z.record(z.string(), z.number()).optional(),
   fornecedor_id: z.string().uuid("ID do fornecedor é obrigatório"),
   organizacao_id: z.string().uuid(),
 });
@@ -59,39 +63,69 @@ export function AdvanceForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [suppliers, setSuppliers] = useState<Array<{id: string, nome: string}>>([]);
   const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
+  const [harvests, setHarvests] = useState<Harvest[]>([]);
+  const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
   
   // Helper de parsear datas removido
+
+  // Parse existing valores_por_safra
+  const parseValoresPorSafra = (valores: any) => {
+    if (!valores) return {};
+    if (typeof valores === "string") {
+      try {
+        return JSON.parse(valores);
+      } catch {
+        return {};
+      }
+    }
+    return valores;
+  };
 
   // Initialize form with explicit type
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       organizacao_id: organizationId,
-      ...(existingAdvance || {}),
-      // Garantir campos obrigatórios ou com valores padrão específicos
       fornecedor_id: existingAdvance?.fornecedor_id || "",
       valor: existingAdvance?.valor || 0,
+      valores_por_safra: parseValoresPorSafra(existingAdvance?.valores_por_safra || {}),
     },
   });
   
-  // Carregar lista de fornecedores quando o formulário abrir
+  // Carregar lista de fornecedores e safras quando o formulário abrir
   useEffect(() => {
     if (open && organizationId) {
-      setIsLoadingSuppliers(true);
-      getSuppliersByOrganization(organizationId)
-        .then(data => {
-          setSuppliers(data);
-          console.log("Fornecedores carregados:", data.length);
-        })
-        .catch(error => {
-          console.error("Erro ao carregar fornecedores:", error);
-          toast.error("Erro ao carregar lista de fornecedores");
-        })
-        .finally(() => {
-          setIsLoadingSuppliers(false);
-        });
+      loadSuppliers();
+      loadHarvests();
     }
   }, [open, organizationId]);
+
+  const loadSuppliers = async () => {
+    try {
+      setIsLoadingSuppliers(true);
+      const data = await getSuppliersByOrganization(organizationId);
+      setSuppliers(data);
+      console.log("Fornecedores carregados:", data.length);
+    } catch (error) {
+      console.error("Erro ao carregar fornecedores:", error);
+      toast.error("Erro ao carregar lista de fornecedores");
+    } finally {
+      setIsLoadingSuppliers(false);
+    }
+  };
+
+  const loadHarvests = async () => {
+    try {
+      setIsLoadingHarvests(true);
+      const harvestsData = await getSafras(organizationId);
+      setHarvests(harvestsData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingHarvests(false);
+    }
+  };
   
   // Garantir que o organization_id seja definido no formulário
   useEffect(() => {
@@ -125,9 +159,18 @@ export function AdvanceForm({
       
       console.log("Enviando adiantamento com organizacao_id:", orgId);
       
+      // Calculate total from safra values
+      const valoresPorSafra = data.valores_por_safra || {};
+      const valorTotal = Object.values(valoresPorSafra as Record<string, number>).reduce(
+        (acc, val) => acc + (typeof val === "number" ? val : 0),
+        0
+      );
+      
       // Preparar dados para envio
       const dataToSubmit = {
         ...data,
+        valor: valorTotal,
+        valores_por_safra: JSON.stringify(valoresPorSafra),
         organizacao_id: orgId
       };
 
@@ -206,10 +249,26 @@ export function AdvanceForm({
             )}
           />
           
-          <CurrencyField
-            name="valor"
-            label="Valor"
+          <FormField
             control={form.control}
+            name="valores_por_safra"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Valores por Safra</FormLabel>
+                <FormControl>
+                  <SafraValueEditor
+                    label="Valor"
+                    description="Defina o valor do adiantamento para cada safra"
+                    values={field.value || {}}
+                    onChange={field.onChange}
+                    safras={harvests.map(h => ({ id: h.id || "", nome: h.nome }))}
+                    currency="BRL"
+                    disabled={isSubmitting || isLoadingHarvests}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
           
           {/* Campos de data removidos conforme solicitado */}

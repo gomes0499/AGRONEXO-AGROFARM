@@ -5,9 +5,7 @@ import { SeedSale, LivestockSale } from "@/schemas/commercial";
 import { Culture, Harvest } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
 import { deleteSeedSale } from "@/lib/actions/commercial-actions";
-import { useFinancialCalculations } from "@/hooks/use-financial-calculations";
 import { toast } from "sonner";
-import { FinancialSummary } from "@/components/commercial/common/financial-summary";
 import { SeedSalesTable } from "@/components/commercial/seeds/seed-sales-table";
 import { NewSeedSaleButton } from "@/components/commercial/seeds/new-seed-sale-button";
 import {
@@ -60,10 +58,7 @@ export function SeedSalesList({
     setSeedSales(initialSeedSales);
   }, [initialSeedSales]);
 
-  const { calculateFinancialSummary } = useFinancialCalculations();
-
-  // Calcular o resumo financeiro
-  const financialSummary = calculateFinancialSummary(seedSales);
+  // Nenhum cálculo financeiro necessário
 
   // Função para adicionar nova venda à lista
   const handleAdd = (newSale: SeedSale) => {
@@ -133,9 +128,6 @@ export function SeedSalesList({
         className="mb-4"
       />
       <CardContent className="space-y-4">
-        {/* Resumo Financeiro */}
-        <FinancialSummary summary={financialSummary} />
-
         {/* Tabela de Vendas */}
         <SeedSalesTable
           sales={seedSales}

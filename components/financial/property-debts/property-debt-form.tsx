@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { PropertyDebt } from "@/schemas/financial/property-debts";
+import { Harvest } from "@/schemas/production";
+import { getSafras } from "@/lib/actions/production-actions";
 import { currencyEnum, annualFlowSchema } from "@/schemas/financial";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PropertySelector } from "./property-selector";
-import { YearValueEditor } from "../common/year-value-editor";
+import { SafraValueEditor } from "../common/safra-value-editor";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +52,7 @@ const formSchema = z.object({
   moeda: currencyEnum,
   valor_total: z.coerce.number().min(0, "Valor total deve ser positivo"),
   fluxo_pagamento_anual: annualFlowSchema.or(z.string()),
+  safra_id: z.string().uuid().optional(),
 });
 
 // Tipo para os valores do formulário
@@ -71,6 +74,28 @@ export function PropertyDebtForm({
   onSubmit,
 }: PropertyDebtFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [harvests, setHarvests] = useState<Harvest[]>([]);
+  const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
+
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      loadHarvests();
+    }
+  }, [open, organizationId]);
+
+  const loadHarvests = async () => {
+    try {
+      setIsLoadingHarvests(true);
+      const harvestsData = await getSafras(organizationId);
+      setHarvests(harvestsData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingHarvests(false);
+    }
+  };
 
   // Inicializar formulário com esquema definido localmente
   const form = useForm<FormValues>({
@@ -98,6 +123,7 @@ export function PropertyDebtForm({
         typeof existingDebt?.fluxo_pagamento_anual === "string"
           ? JSON.parse(existingDebt.fluxo_pagamento_anual)
           : existingDebt?.fluxo_pagamento_anual || {},
+      safra_id: existingDebt?.safra_id || "",
     },
   });
 
@@ -379,19 +405,18 @@ export function PropertyDebtForm({
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <YearValueEditor
-                      label="Pagamentos Anuais"
-                      description="Adicione os valores a serem pagos por ano"
+                    <SafraValueEditor
+                      label="Pagamentos por Safra"
+                      description="Adicione os valores a serem pagos por safra"
                       values={
                         typeof field.value === "string"
                           ? JSON.parse(field.value)
                           : field.value || {}
                       }
                       onChange={field.onChange}
-                      startYear={2023}
-                      endYear={2040}
+                      safras={harvests.map(h => ({ id: h.id || "", nome: h.nome }))}
                       currency={form.watch("moeda")}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoadingHarvests}
                     />
                   </FormControl>
                   <FormMessage />

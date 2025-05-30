@@ -6,6 +6,7 @@ export const receivableContractSchema = z.object({
   organizacao_id: z.string().uuid(),
   commodity: commodityTypeEnum, // Campo obrigatório
   valor: z.coerce.number().positive("Valor deve ser positivo"),
+  safra_id: z.string().uuid().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

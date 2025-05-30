@@ -3,7 +3,7 @@ import {
   getCultures, 
   getSystems, 
   getCycles, 
-  getHarvests 
+  getSafras 
 } from "@/lib/actions/production-actions";
 import { ProjectionGlobalFilterClient } from "./projection-global-filter-client";
 
@@ -26,15 +26,15 @@ export async function ProjectionGlobalFilterWrapper({
     getCultures(organizationId),
     getSystems(organizationId),
     getCycles(organizationId),
-    getHarvests(organizationId),
+    getSafras(organizationId),
   ]);
 
   // Converter para o formato esperado pelos filtros
   const properties = propertiesData.map((p) => ({
     id: p.id || "",
     nome: p.nome,
-    cidade: p.cidade,
-    estado: p.estado,
+    cidade: p.cidade ?? undefined,
+    estado: p.estado ?? undefined,
   }));
 
   const cultures = culturesData.map((c) => ({

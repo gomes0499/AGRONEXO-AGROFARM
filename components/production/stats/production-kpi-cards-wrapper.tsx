@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -15,6 +15,7 @@ import { ProdutividadeChart } from "./produtividade-chart";
 import { ReceitaChart } from "./receita-chart";
 import { FinancialChart } from "./financial-chart";
 import { createClient } from "@/lib/supabase/client";
+import { useDashboardFilterContext } from "@/components/dashboard/dashboard-filter-provider";
 
 interface SafraOption {
   id: string;
@@ -35,44 +36,76 @@ export function ProductionKpiCardsWrapper({
   const [safras, setSafras] = useState<SafraOption[]>([]);
   const [selectedSafraId, setSelectedSafraId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [cultures, setCultures] = useState<{ id: string; nome: string }[]>([]);
+  const [selectedCultureIds, setSelectedCultureIds] = useState<string[]>([]);
+  const { getFilteredPropertyIds, getFilteredCultureIds, allPropertyIds, allCultureIds, filters } = useDashboardFilterContext();
 
   useEffect(() => {
-    async function fetchSafras() {
+    async function fetchData() {
       try {
         const supabase = createClient();
-        const { data, error } = await supabase
-          .from("safras")
-          .select("id, nome, ano_inicio, ano_fim")
-          .eq("organizacao_id", organizationId)
-          .order("ano_inicio", { ascending: false });
+        
+        // Buscar safras e culturas em paralelo
+        const [safrasResponse, culturesResponse] = await Promise.all([
+          supabase
+            .from("safras")
+            .select("id, nome, ano_inicio, ano_fim")
+            .eq("organizacao_id", organizationId)
+            .order("ano_inicio", { ascending: false }),
+          supabase
+            .from("culturas")
+            .select("id, nome")
+            .eq("organizacao_id", organizationId)
+            .order("nome", { ascending: true })
+        ]);
 
-        if (error) {
-          console.error("Erro ao buscar safras:", error);
-          return;
+        if (safrasResponse.error) {
+          console.error("Erro ao buscar safras:", safrasResponse.error);
+        } else {
+          setSafras(safrasResponse.data || []);
+
+          // Definir safra atual como padrão
+          const currentYear = new Date().getFullYear();
+          const currentSafra =
+            safrasResponse.data?.find((s) => s.ano_inicio === currentYear) || safrasResponse.data?.[0];
+          if (currentSafra) {
+            setSelectedSafraId(currentSafra.id);
+          }
         }
 
-        setSafras(data || []);
-
-        // Definir safra atual como padrão
-        const currentYear = new Date().getFullYear();
-        const currentSafra =
-          data?.find((s) => s.ano_inicio === currentYear) || data?.[0];
-        if (currentSafra) {
-          setSelectedSafraId(currentSafra.id);
+        if (culturesResponse.error) {
+          console.error("Erro ao buscar culturas:", culturesResponse.error);
+        } else {
+          setCultures(culturesResponse.data || []);
+          // Verificar se existem filtros de cultura ativos no contexto global
+          const filteredCultureIds = getFilteredCultureIds(allCultureIds);
+          const dashboardHasCultureFilter = filteredCultureIds.length < allCultureIds.length;
+          
+          if (dashboardHasCultureFilter && filteredCultureIds.length > 0) {
+            // Usar filtros do dashboard se existirem
+            setSelectedCultureIds(filteredCultureIds);
+          } else {
+            // Caso contrário, selecionar todas as culturas por padrão
+            setSelectedCultureIds(culturesResponse.data?.map(c => c.id) || []);
+          }
         }
       } catch (error) {
-        console.error("Erro ao buscar safras:", error);
+        console.error("Erro ao buscar dados:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchSafras();
-  }, [organizationId]);
+    fetchData();
+  }, [organizationId, getFilteredCultureIds, allCultureIds, filters.cultureIds]);
 
-  const handleSafraChange = (safraId: string) => {
+  const handleSafraChange = React.useCallback((safraId: string) => {
     setSelectedSafraId(safraId);
-  };
+  }, []);
+  
+  const handleCultureChange = React.useCallback((cultureIds: string[]) => {
+    setSelectedCultureIds(cultureIds);
+  }, []);
 
   if (loading) {
     return (
@@ -99,36 +132,17 @@ export function ProductionKpiCardsWrapper({
 
   return (
     <div className="space-y-6">
-      {/* KPIs de Produção com Seletor de Safra */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold">Indicadores de Produção</h3>
-            <p className="text-sm text-muted-foreground">
-              Dados específicos por safra agrícola
-            </p>
-          </div>
-          <Select value={selectedSafraId} onValueChange={handleSafraChange}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Selecionar safra" />
-            </SelectTrigger>
-            <SelectContent>
-              {safras.map((safra) => (
-                <SelectItem key={safra.id} value={safra.id}>
-                  {safra.nome} ({safra.ano_inicio}/{safra.ano_fim})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {selectedSafraId && (
-          <ProductionKpiCardsClient
-            organizationId={organizationId}
-            propertyIds={propertyIds}
-            safraId={selectedSafraId}
-          />
-        )}
+      {/* KPIs de Produção com Seletor de Safra integrado no header */}
+      <div>
+        <ProductionKpiCardsClient
+          organizationId={organizationId}
+          propertyIds={getFilteredPropertyIds(allPropertyIds)}
+          safraId={selectedSafraId}
+          onSafraChange={handleSafraChange}
+          cultures={cultures}
+          selectedCultureIds={selectedCultureIds}
+          onCultureChange={handleCultureChange}
+        />
       </div>
 
       {/* Gráficos de Produção */}
@@ -136,22 +150,26 @@ export function ProductionKpiCardsWrapper({
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <AreaPlantadaChart
             organizationId={organizationId}
-            propertyIds={propertyIds}
+            propertyIds={getFilteredPropertyIds(allPropertyIds)}
+            cultureIds={selectedCultureIds}
           />
           <ProdutividadeChart
             organizationId={organizationId}
-            propertyIds={propertyIds}
+            propertyIds={getFilteredPropertyIds(allPropertyIds)}
+            cultureIds={selectedCultureIds}
           />
         </div>
-        
+
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <ReceitaChart
             organizationId={organizationId}
-            propertyIds={propertyIds}
+            propertyIds={getFilteredPropertyIds(allPropertyIds)}
+            cultureIds={selectedCultureIds}
           />
           <FinancialChart
             organizationId={organizationId}
-            propertyIds={propertyIds}
+            propertyIds={getFilteredPropertyIds(allPropertyIds)}
+            cultureIds={selectedCultureIds}
           />
         </div>
       </div>

@@ -21,12 +21,10 @@ import { cn } from "@/lib/utils";
 
 interface CashFlowListingProps {
   organizationId: string;
-  activeConfigId: string | null;
 }
 
 export function CashFlowListing({
   organizationId,
-  activeConfigId,
 }: CashFlowListingProps) {
   const [cashFlowData, setCashFlowData] = useState<CashFlowData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,11 +35,6 @@ export function CashFlowListing({
 
   useEffect(() => {
     async function loadCashFlowData() {
-      if (!activeConfigId) {
-        setCashFlowData(null);
-        setLoading(false);
-        return;
-      }
 
       try {
         setLoading(true);
@@ -66,7 +59,7 @@ export function CashFlowListing({
     }
 
     loadCashFlowData();
-  }, [organizationId, activeConfigId, filters]);
+  }, [organizationId, filters]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -129,16 +122,8 @@ export function CashFlowListing({
         <CardContent className="p-6">
           <EmptyState
             icon={<ChartPie className="h-10 w-10 text-muted-foreground" />}
-            title={
-              !activeConfigId
-                ? "Configuração de Projeção Necessária"
-                : "Nenhum dado disponível"
-            }
-            description={
-              !activeConfigId
-                ? "Você precisa criar uma configuração de projeção primeiro na aba Configurações"
-                : "Nenhum dado encontrado para os filtros selecionados. Verifique se há dados financeiros e projeções cadastradas."
-            }
+            title="Nenhum dado disponível"
+            description="Nenhum dado encontrado para os filtros selecionados. Verifique se há dados financeiros e projeções cadastradas."
           />
         </CardContent>
       </Card>
@@ -177,8 +162,8 @@ export function CashFlowListing({
               </TableHeader>
               <TableBody>
                 {/* RECEITAS AGRÍCOLAS */}
-                <TableRow className="bg-green-50/30">
-                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-green-800 bg-green-100">
+                <TableRow className="bg-primary">
+                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-primary-foreground">
                     RECEITAS AGRÍCOLAS
                   </TableCell>
                 </TableRow>
@@ -252,14 +237,14 @@ export function CashFlowListing({
                 </TableRow>
 
                 {/* Total Receitas */}
-                <TableRow className="hover:bg-muted/30 bg-green-50/50">
-                  <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-green-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableRow className="hover:bg-muted/30 bg-gray-50">
+                  <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Total Receitas Agrícolas
                   </TableCell>
                   {cashFlowData.years.map((year) => (
                     <TableCell 
                       key={year.safraId} 
-                      className="text-center font-mono font-bold text-green-700 min-w-[120px] w-[120px] bg-green-50/50"
+                      className="text-center font-mono font-bold min-w-[120px] w-[120px] bg-gray-50"
                     >
                       {formatMillions(year.receitasAgricolas.total)}
                     </TableCell>
@@ -267,21 +252,21 @@ export function CashFlowListing({
                 </TableRow>
 
                 {/* DESPESAS AGRÍCOLAS */}
-                <TableRow className="bg-red-50/30">
-                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-red-800 bg-red-100">
+                <TableRow className="bg-primary">
+                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-primary-foreground">
                     DESPESAS AGRÍCOLAS
                   </TableCell>
                 </TableRow>
 
                 {/* Total Despesas Agrícolas */}
-                <TableRow className="hover:bg-muted/30 bg-red-50/50">
-                  <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-red-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableRow className="hover:bg-muted/30 bg-gray-50">
+                  <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Total Despesas Agrícolas
                   </TableCell>
                   {cashFlowData.years.map((year) => (
                     <TableCell 
                       key={year.safraId} 
-                      className="text-center font-mono font-bold text-red-700 min-w-[120px] w-[120px] bg-red-50/50"
+                      className="text-center font-mono font-bold min-w-[120px] w-[120px] bg-gray-50"
                     >
                       {formatMillions(-year.despesasAgricolas.total)}
                     </TableCell>
@@ -289,8 +274,8 @@ export function CashFlowListing({
                 </TableRow>
 
                 {/* OUTRAS DESPESAS */}
-                <TableRow className="bg-orange-50/30">
-                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-orange-800 bg-orange-100">
+                <TableRow className="bg-primary">
+                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-primary-foreground">
                     OUTRAS DESPESAS
                   </TableCell>
                 </TableRow>
@@ -341,16 +326,16 @@ export function CashFlowListing({
                 </TableRow>
 
                 {/* FLUXO DA ATIVIDADE */}
-                <TableRow className="hover:bg-muted/30 bg-blue-50/50">
-                  <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-blue-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableRow className="hover:bg-muted/30 bg-gray-50">
+                  <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     FLUXO DE CAIXA DA ATIVIDADE
                   </TableCell>
                   {cashFlowData.years.map((year) => (
                     <TableCell 
                       key={year.safraId} 
                       className={cn(
-                        "text-center font-mono font-bold min-w-[120px] w-[120px] bg-blue-50/50",
-                        year.fluxoAtividade >= 0 ? "text-blue-700" : "text-red-700"
+                        "text-center font-mono font-bold min-w-[120px] w-[120px] bg-gray-50",
+                        year.fluxoAtividade < 0 ? "text-destructive" : ""
                       )}
                     >
                       {formatMillions(year.fluxoAtividade)}
@@ -359,8 +344,8 @@ export function CashFlowListing({
                 </TableRow>
 
                 {/* INVESTIMENTOS */}
-                <TableRow className="bg-purple-50/30">
-                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-purple-800 bg-purple-100">
+                <TableRow className="bg-primary">
+                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-primary-foreground">
                     INVESTIMENTOS
                   </TableCell>
                 </TableRow>
@@ -411,8 +396,8 @@ export function CashFlowListing({
                 </TableRow>
 
                 {/* FINANCEIRAS */}
-                <TableRow className="bg-yellow-50/30">
-                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-yellow-800 bg-yellow-100">
+                <TableRow className="bg-primary">
+                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-primary-foreground">
                     FINANCEIRAS
                   </TableCell>
                 </TableRow>
@@ -462,17 +447,24 @@ export function CashFlowListing({
                   ))}
                 </TableRow>
 
+                {/* RESULTADO FINAL */}
+                <TableRow className="bg-primary">
+                  <TableCell colSpan={1 + cashFlowData.years.length} className="font-bold text-center text-primary-foreground">
+                    RESULTADO FINAL
+                  </TableCell>
+                </TableRow>
+
                 {/* FLUXO LÍQUIDO */}
-                <TableRow className="hover:bg-muted/30 bg-indigo-50/50">
-                  <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-indigo-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableRow className="hover:bg-muted/30 bg-gray-50">
+                  <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     FLUXO DE CAIXA LÍQUIDO
                   </TableCell>
                   {cashFlowData.years.map((year) => (
                     <TableCell 
                       key={year.safraId} 
                       className={cn(
-                        "text-center font-mono font-bold min-w-[120px] w-[120px] bg-indigo-50/50",
-                        year.fluxoLiquido >= 0 ? "text-indigo-700" : "text-red-700"
+                        "text-center font-mono font-bold min-w-[120px] w-[120px] bg-gray-50",
+                        year.fluxoLiquido < 0 ? "text-destructive" : ""
                       )}
                     >
                       {formatMillions(year.fluxoLiquido)}
@@ -481,7 +473,7 @@ export function CashFlowListing({
                 </TableRow>
 
                 {/* FLUXO ACUMULADO */}
-                <TableRow className="hover:bg-muted/30 bg-gray-50/50">
+                <TableRow className="hover:bg-muted/30 bg-gray-50">
                   <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     FLUXO DE CAIXA ACUMULADO
                   </TableCell>
@@ -489,8 +481,8 @@ export function CashFlowListing({
                     <TableCell 
                       key={year.safraId} 
                       className={cn(
-                        "text-center font-mono font-bold min-w-[120px] w-[120px] bg-gray-50/50",
-                        year.fluxoAcumulado >= 0 ? "text-gray-700" : "text-red-700"
+                        "text-center font-mono font-bold min-w-[120px] w-[120px] bg-gray-50",
+                        year.fluxoAcumulado < 0 ? "text-destructive" : ""
                       )}
                     >
                       {formatMillions(year.fluxoAcumulado)}

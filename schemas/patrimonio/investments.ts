@@ -11,6 +11,7 @@ export const investmentSchema = z.object({
   valor_unitario: monetaryValueSchema,
   valor_total: monetaryValueSchema.optional(),
   tipo: patrimonioTipoEnum.default("REALIZADO"),
+  safra_id: z.string().uuid().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
@@ -20,10 +21,10 @@ export type Investment = z.infer<typeof investmentSchema>;
 // Form schema
 export const investmentFormSchema = z.object({
   categoria: z.string().min(1, "Categoria é obrigatória"),
-  ano: yearSchema,
   quantidade: quantitySchema,
   valor_unitario: monetaryValueSchema,
   tipo: patrimonioTipoEnum,
+  safra_id: z.string().uuid().optional(),
 });
 export type InvestmentFormValues = z.infer<typeof investmentFormSchema>;
 

@@ -77,9 +77,9 @@ export function ProductionNavClient({
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
-        className="w-full"
+        className="w-full max-w-full"
       >
-        <TabsList>
+        <TabsList className="w-full">
           {/* Configurações como primeira tab */}
           <TabsTrigger value="config" className="relative">
             Configurações

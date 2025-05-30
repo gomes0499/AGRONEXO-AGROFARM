@@ -2,7 +2,7 @@
 
 import { TrendingUp, Loader2, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   Card,
   CardContent,
@@ -70,7 +70,7 @@ export function PropertyValueChartClient({
         }
 
         const { data, error } = await query.order("valor_atual", {
-          ascending: false,
+          ascending: true, // Modificado para ordenar do menor para o maior
         });
 
         if (error) {
@@ -157,16 +157,14 @@ export function PropertyValueChartClient({
     );
   }
 
-  // Preparar dados para o gráfico
-  const chartData = properties.map((property) => ({
-    nome:
-      property.nome.length > 20
-        ? property.nome.substring(0, 20) + "..."
-        : property.nome,
-    nomeCompleto: property.nome,
-    valor: property.valor_atual,
-    valorFormatado: formatCurrency(property.valor_atual),
-  }));
+  // Dados já estão ordenados do menor para o maior pela query
+  const chartData = properties
+    .map((property) => ({
+      nome: "", // Removendo os nomes para não aparecerem na label do eixo X
+      nomeCompleto: property.nome,
+      valor: property.valor_atual,
+      valorFormatado: formatCurrency(property.valor_atual),
+    }));
 
   // Calcular total
   const totalValue = properties.reduce((acc, p) => acc + p.valor_atual, 0);
@@ -191,29 +189,35 @@ export function PropertyValueChartClient({
         </CardTitle>
         <CardDescription className="text-white/80">Ranking patrimonial das propriedades</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[320px]">
+      <CardContent className="p-4">
+        <ChartContainer config={chartConfig} className="h-[200px] w-full">
           <BarChart
             accessibilityLayer
             data={chartData}
             margin={{
-              top: 20,
-              right: 30,
-              left: 20,
-              bottom: 80,
+              top: 5,
+              right: 0,
+              left: 0,
+              bottom: 5,
             }}
+            barSize={24}
+            maxBarSize={30}
           >
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="nome"
               tickLine={false}
-              tickMargin={15}
               axisLine={false}
-              interval={0}
-              angle={-45}
-              textAnchor="end"
-              height={100}
-              fontSize={11}
+              tick={false}
+              height={0}
+            />
+            <YAxis 
+              type="number"
+              tickLine={true}
+              axisLine={true}
+              tickFormatter={(value) => value >= 1000000 ? `${(value/1000000).toFixed(0)}M` : value >= 1000 ? `${(value/1000).toFixed(0)}K` : value}
+              fontSize={9}
+              width={30}
             />
             <ChartTooltip
               cursor={false}
@@ -225,7 +229,7 @@ export function PropertyValueChartClient({
                       <p className="font-semibold text-sm">
                         {data.nomeCompleto}
                       </p>
-                      <p className="text-primary font-bold">
+                      <p className="text-primary font-bold mt-1">
                         {data.valorFormatado}
                       </p>
                     </div>
@@ -237,19 +241,20 @@ export function PropertyValueChartClient({
             <Bar
               dataKey="valor"
               fill="var(--color-valor)"
-              radius={[4, 4, 0, 0]}
+              radius={[3, 3, 0, 0]}
+              minPointSize={2}
             />
           </BarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 font-medium leading-none">
-          <TrendingUp className="h-4 w-4" />
-          Total: {formatCurrency(totalValue)}
-        </div>
-        <div className="leading-none text-muted-foreground">
+      <CardFooter className="flex justify-between items-center py-2 px-4 border-t">
+        <div className="text-xs text-muted-foreground">
           {properties.length}{" "}
-          {properties.length === 1 ? "propriedade" : "propriedades"} cadastradas
+          {properties.length === 1 ? "propriedade" : "propriedades"}
+        </div>
+        <div className="text-sm font-medium flex items-center gap-2">
+          <TrendingUp className="h-3.5 w-3.5 text-primary" />
+          {formatCurrency(totalValue)}
         </div>
       </CardFooter>
     </Card>

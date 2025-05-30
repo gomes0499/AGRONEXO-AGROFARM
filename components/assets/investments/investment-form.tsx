@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getSafras } from "@/lib/actions/production-actions";
 import {
   Select,
   SelectContent,
@@ -51,16 +52,35 @@ export function InvestmentForm({
   onCancel,
 }: InvestmentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string }>>([]);
+  const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
   const isEditing = !!initialData?.id;
+
+  // Carregar safras
+  useEffect(() => {
+    async function loadHarvests() {
+      try {
+        setIsLoadingHarvests(true);
+        const harvestsData = await getSafras(organizationId);
+        setHarvests(harvestsData.map(h => ({ id: h.id, nome: h.nome })));
+      } catch (error) {
+        console.error("Erro ao carregar safras:", error);
+        toast.error("Erro ao carregar safras");
+      } finally {
+        setIsLoadingHarvests(false);
+      }
+    }
+    loadHarvests();
+  }, [organizationId]);
 
   const form = useForm<InvestmentFormValues>({
     resolver: zodResolver(investmentFormSchema),
     defaultValues: {
       categoria: initialData?.categoria || "",
-      ano: initialData?.ano || new Date().getFullYear(),
       quantidade: initialData?.quantidade || 1,
       valor_unitario: initialData?.valor_unitario || 0,
       tipo: initialData?.tipo || "REALIZADO",
+      safra_id: initialData?.safra_id || "",
     },
   });
 
@@ -77,10 +97,11 @@ export function InvestmentForm({
     try {
       setIsSubmitting(true);
 
-      // Preparar dados para envio (incluindo valor_total calculado)
+      // Preparar dados para envio (incluindo valor_total calculado e ano)
       const dataToSubmit = {
         organizacao_id: organizationId,
         ...values,
+        ano: new Date().getFullYear(), // Usar ano atual já que removemos o campo
         valor_total: valorTotal, // Incluir valor calculado até que o banco seja ajustado
       };
 
@@ -171,18 +192,25 @@ export function InvestmentForm({
 
         <FormField
           control={form.control}
-          name="ano"
+          name="safra_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Ano</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  placeholder="Ex: 2024"
-                  {...field}
-                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                />
-              </FormControl>
+              <FormLabel>Safra</FormLabel>
+              <Select onValueChange={(value) => field.onChange(value === "none" ? "" : value)} defaultValue={field.value || "none"}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoadingHarvests ? "Carregando safras..." : "Selecione uma safra (opcional)"} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma safra</SelectItem>
+                  {harvests.map((harvest) => (
+                    <SelectItem key={harvest.id} value={harvest.id}>
+                      {harvest.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

@@ -100,10 +100,11 @@ export function LeaseList({ leases, propertyId, organizationId }: LeaseListProps
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
                   <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome da Fazenda</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Safra</TableHead>
                   <TableHead className="font-semibold text-primary-foreground">Arrendantes</TableHead>
                   <TableHead className="font-semibold text-primary-foreground">Período</TableHead>
                   <TableHead className="font-semibold text-primary-foreground">Área (ha)</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground">Custo por Hectare</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">Tipo Pagamento</TableHead>
                   <TableHead className="font-semibold text-primary-foreground">Status</TableHead>
                   <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md">Ações</TableHead>
                 </TableRow>
@@ -114,19 +115,40 @@ export function LeaseList({ leases, propertyId, organizationId }: LeaseListProps
                     <TableCell className="font-medium">
                       {lease.nome_fazenda}
                     </TableCell>
+                    <TableCell>
+                      {lease.safra ? (
+                        <div className="text-sm">
+                          <div className="font-medium">{lease.safra.nome}</div>
+                          <div className="text-muted-foreground">
+                            {lease.safra.ano_inicio}/{lease.safra.ano_fim}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>{lease.arrendantes}</TableCell>
                     <TableCell>
                       {formatDate(lease.data_inicio)} -{" "}
                       {formatDate(lease.data_termino)}
                     </TableCell>
                     <TableCell>{formatArea(lease.area_arrendada)}</TableCell>
-                    <TableCell>{formatSacas(lease.custo_hectare)}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={isActive(lease) ? "default" : "destructive"}
-                      >
-                        {isActive(lease) ? "Ativo" : "Vencido"}
+                      <Badge variant="outline">
+                        {lease.tipo_pagamento || "SACAS"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Badge
+                          variant={isActive(lease) ? "default" : "destructive"}
+                        >
+                          {isActive(lease) ? "Ativo" : "Vencido"}
+                        </Badge>
+                        {lease.ativo !== undefined && !lease.ativo && (
+                          <Badge variant="secondary">Inativo</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

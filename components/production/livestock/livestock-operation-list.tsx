@@ -56,9 +56,13 @@ import {
 } from "@/schemas/production";
 
 // Define interface for the property entity
+// Use the same Property type as in production-actions.ts
 interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
+  cidade?: string | null;
+  estado?: string | null;
   [key: string]: any;
 }
 
@@ -205,22 +209,26 @@ export function LivestockOperationList({
 
   return (
     <Card className="shadow-sm border-muted/80">
-      <CardHeaderPrimary
-        title="Operações Pecuárias"
-        icon={<Factory className="h-5 w-5" />}
-        description="Gestão de operações de confinamento e ciclos produtivos"
-        action={
-          <Button 
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-            onClick={handleCreate}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Operação
-          </Button>
-        }
-        className="mb-4"
-      />
+      <CardHeader className="bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="rounded-full p-2 bg-white/20">
+            <Factory className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <CardTitle className="text-white">Operações Pecuárias</CardTitle>
+            <CardDescription className="text-white/80">
+              Gestão de operações de confinamento e ciclos produtivos
+            </CardDescription>
+          </div>
+        </div>
+        <Button variant="secondary" className="gap-1" size="sm" onClick={handleCreate}>
+          <Plus className="h-4 w-4" />
+          Nova Operação
+        </Button>
+      </CardHeader>
       <CardContent>
+        <div className="mt-4 mb-6"></div>
+        
         {operations.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhuma operação pecuária cadastrada.</div>
@@ -229,7 +237,7 @@ export function LivestockOperationList({
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Nova Operação
+              Adicionar Primeira Operação
             </Button>
           </div>
         ) : (
@@ -237,11 +245,11 @@ export function LivestockOperationList({
             <Table>
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
-                  <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Ciclo</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground">Origem</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground">Propriedade</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground">Volume de Abate</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground rounded-tl-md uppercase">Ciclo</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground uppercase">Origem</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground uppercase">Propriedade</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground uppercase">Volume de Abate</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -249,10 +257,10 @@ export function LivestockOperationList({
                   const propertyName = getPropertyName(item);
                   return (
                     <TableRow key={item.id}>
-                      <TableCell>{translateCycle(item.ciclo)}</TableCell>
-                      <TableCell>{translateOrigin(item.origem)}</TableCell>
-                      <TableCell>{propertyName}</TableCell>
-                      <TableCell>{getSlaughterVolumes(item)}</TableCell>
+                      <TableCell className="uppercase">{translateCycle(item.ciclo)}</TableCell>
+                      <TableCell className="uppercase">{translateOrigin(item.origem)}</TableCell>
+                      <TableCell className="uppercase">{propertyName}</TableCell>
+                      <TableCell className="uppercase">{getSlaughterVolumes(item)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -316,7 +324,11 @@ export function LivestockOperationList({
             </DialogTitle>
           </DialogHeader>
           <LivestockOperationForm
-            properties={properties}
+            properties={properties.map(p => ({
+              ...p,
+              cidade: p.cidade || undefined,
+              estado: p.estado || undefined
+            }))}
             harvests={harvests}
             organizationId={organizationId}
             operation={editingOperation}

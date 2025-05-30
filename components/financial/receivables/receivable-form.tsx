@@ -35,11 +35,20 @@ import {
   updateReceivableContract,
 } from "@/lib/actions/financial-actions";
 import { CurrencyField } from "@/components/shared/currency-field";
+import { SafraValueEditor } from "../common/safra-value-editor";
+import { Harvest } from "@/schemas/production";
+import { getSafras } from "@/lib/actions/production-actions";
+
+// Extended ReceivableContract type to include valores_por_safra
+interface ExtendedReceivableContract extends ReceivableContract {
+  valores_por_safra?: Record<string, number> | string;
+}
 
 // Definindo o schema diretamente para evitar problemas de tipagem
 const formSchema = z.object({
   commodity: commodityTypeEnum,
-  valor: z.coerce.number().positive("Valor deve ser positivo"),
+  valor: z.coerce.number().positive("Valor deve ser positivo").optional(),
+  valores_por_safra: z.record(z.string(), z.number()).optional(),
   organizacao_id: z.string().uuid(),
 });
 
@@ -50,7 +59,7 @@ interface ReceivableFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
-  existingReceivable?: ReceivableContract;
+  existingReceivable?: ExtendedReceivableContract;
   onSubmit?: (receivable: ReceivableContract) => void;
 }
 
@@ -63,6 +72,41 @@ export function ReceivableForm({
 }: ReceivableFormProps) {
   console.log("Receivable form - organizationId recebido:", organizationId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [harvests, setHarvests] = useState<Harvest[]>([]);
+  const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
+
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      loadHarvests();
+    }
+  }, [open, organizationId]);
+
+  const loadHarvests = async () => {
+    try {
+      setIsLoadingHarvests(true);
+      const harvestsData = await getSafras(organizationId);
+      setHarvests(harvestsData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingHarvests(false);
+    }
+  };
+
+  // Parse existing valores_por_safra
+  const parseValoresPorSafra = (valores: any) => {
+    if (!valores) return {};
+    if (typeof valores === "string") {
+      try {
+        return JSON.parse(valores);
+      } catch {
+        return {};
+      }
+    }
+    return valores;
+  };
 
   // Inicializar formulário com esquema definido localmente
   const form = useForm<FormValues>({
@@ -70,6 +114,7 @@ export function ReceivableForm({
     defaultValues: {
       commodity: existingReceivable?.commodity || "SOJA",
       valor: existingReceivable?.valor || 0,
+      valores_por_safra: parseValoresPorSafra(existingReceivable?.valores_por_safra),
       organizacao_id: organizationId || existingReceivable?.organizacao_id || "",
     },
   });
@@ -95,9 +140,18 @@ export function ReceivableForm({
       
       console.log("Enviando contrato recebível com organizacao_id:", values.organizacao_id);
 
+      // Calculate total from safra values
+      const valoresPorSafra = values.valores_por_safra || {};
+      const valorTotal = Object.values(valoresPorSafra as Record<string, number>).reduce(
+        (acc, val) => acc + (typeof val === "number" ? val : 0),
+        0
+      );
+      
       // Preparar valores simplificados para envio
       const dataToSubmit = {
-        ...values
+        ...values,
+        valor: valorTotal,
+        valores_por_safra: JSON.stringify(valoresPorSafra),
       };
       
       // Adicionar logs para depuração
@@ -183,11 +237,26 @@ export function ReceivableForm({
               )}
             />
 
-            <CurrencyField
-              name="valor"
-              label="Valor"
+            <FormField
               control={form.control}
-              isRevenue={true}
+              name="valores_por_safra"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valores por Safra</FormLabel>
+                  <FormControl>
+                    <SafraValueEditor
+                      label="Valor"
+                      description="Defina o valor do contrato recebível para cada safra"
+                      values={field.value || {}}
+                      onChange={field.onChange}
+                      safras={harvests.map(h => ({ id: h.id, nome: h.nome }))}
+                      currency="BRL"
+                      disabled={isSubmitting || isLoadingHarvests}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <div className="flex justify-end gap-2">

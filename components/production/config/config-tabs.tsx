@@ -30,9 +30,9 @@ export function ConfigTabs({
       defaultValue="cultures"
       value={activeTab}
       onValueChange={setActiveTab}
-      className="w-full"
+      className="w-full max-w-full"
     >
-      <TabsList className="">
+      <TabsList className="w-full justify-start h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap">
         <TabsTrigger value="cultures">Culturas</TabsTrigger>
         <TabsTrigger value="systems">Sistemas</TabsTrigger>
         <TabsTrigger value="cycles">Ciclos</TabsTrigger>

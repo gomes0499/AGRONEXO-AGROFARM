@@ -5,9 +5,7 @@ import { LivestockSale } from "@/schemas/commercial";
 import { Harvest } from "@/schemas/production";
 import { Property } from "@/schemas/properties";
 import { deleteLivestockSale } from "@/lib/actions/commercial-actions";
-import { useFinancialCalculations } from "@/hooks/use-financial-calculations";
 import { toast } from "sonner";
-import { FinancialSummary } from "@/components/commercial/common/financial-summary";
 import { LivestockSalesTable } from "@/components/commercial/livestock/livestock-sales-table";
 import { NewLivestockSaleButton } from "@/components/commercial/livestock/new-livestock-sale-button";
 import {
@@ -58,10 +56,7 @@ export function LivestockSalesList({
     setLivestockSales(initialLivestockSales);
   }, [initialLivestockSales]);
 
-  const { calculateFinancialSummary } = useFinancialCalculations();
-
-  // Calcular o resumo financeiro
-  const financialSummary = calculateFinancialSummary(livestockSales);
+  // Nenhum cálculo financeiro necessário
 
   // Função para adicionar nova venda à lista
   const handleAdd = (newSale: LivestockSale) => {
@@ -126,9 +121,6 @@ export function LivestockSalesList({
         className="mb-4"
       />
       <CardContent className="space-y-4">
-        {/* Resumo Financeiro */}
-        <FinancialSummary summary={financialSummary} />
-
         {/* Tabela de Vendas */}
         <LivestockSalesTable
           sales={livestockSales}

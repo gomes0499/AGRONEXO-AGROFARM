@@ -2,13 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronsUpDown, PlusCircle, Building } from "lucide-react";
-
-import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown, PlusCircle } from "lucide-react";
 import { useOrganization } from "@/components/auth/organization-provider";
 import { useUser } from "@/components/auth/user-provider";
 import { createClient } from "@/lib/supabase/client";
-import { UserRole } from "@/lib/auth/roles";
 
 import {
   SidebarMenu,
@@ -29,7 +26,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -193,7 +189,7 @@ export function OrganizationSwitcher() {
       <SidebarMenuItem className="flex items-center gap-2">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <SidebarMenuButton className="flex w-full justify-between bg-gray-100 h-10">
+            <SidebarMenuButton className="flex w-full justify-between bg-muted h-10">
               <div className="flex items-center gap-2">
                 <Avatar className="h-7 w-7 rounded-md">
                   {organization && organization.logo ? (
@@ -202,13 +198,13 @@ export function OrganizationSwitcher() {
                       alt={organization.nome || ""}
                     />
                   ) : null}
-                  <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
+                  <AvatarFallback className="rounded-md bg-primary text-xs text-foreground">
                     {organization && organization.nome
                       ? getInitials(organization.nome)
                       : "OR"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="truncate text-sm font-medium text-primary ">
+                <span className="truncate text-sm font-medium text-foreground ">
                   {loading ? (
                     <Skeleton className="h-4 w-24" />
                   ) : (

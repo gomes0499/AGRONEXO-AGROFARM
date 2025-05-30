@@ -2,27 +2,24 @@ import { Metadata } from "next";
 import { Suspense } from "react";
 import { getOrganizationId } from "@/lib/auth";
 import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
+import { createClient } from "@/lib/supabase/server";
 import {
-  getPlantingAreas,
-  getCultures,
-  getSystems,
-  getCycles,
-  getHarvests,
-  getProductionCosts,
-  getProductivities,
-  getLivestock,
-  getLivestockOperations,
+  getProductionDataUnified,
+  getPlantingAreasUnified,
+  getProductivitiesUnified,
+  getProductionCostsUnified,
+  getLivestockDataUnified,
+  getLivestockOperationsDataUnified,
 } from "@/lib/actions/production-actions";
-import { getProperties } from "@/lib/actions/property-actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Componentes
-import { PlantingAreaList } from "@/components/production/planting-areas/planting-area-list";
-import { ProductionCostList } from "@/components/production/costs/production-cost-list";
-import { ProductivityList } from "@/components/production/productivity/productivity-list";
+import { UnifiedPlantingAreaListing } from "@/components/production/planting-areas/unified-planting-area-listing";
+import { UnifiedProductionCostListing } from "@/components/production/costs/unified-production-cost-listing";
+import { UnifiedProductivityListing } from "@/components/production/productivity/unified-productivity-listing";
+import { UnifiedConfig } from "@/components/production/config/unified-config";
 import { LivestockList } from "@/components/production/livestock/livestock-list";
 import { LivestockOperationList } from "@/components/production/livestock/livestock-operation-list";
-import { UnifiedConfig } from "@/components/production/config/unified-config";
 
 import { Loader2 } from "lucide-react";
 
@@ -48,25 +45,88 @@ export default async function ProductionPage() {
   await requireSuperAdmin();
 
   const organizationId = await getOrganizationId();
-  const propertiesData = await getProperties(organizationId);
-  const cultures = await getCultures(organizationId);
-  const systems = await getSystems(organizationId);
-  const cycles = await getCycles(organizationId);
-  const harvests = await getHarvests(organizationId);
-  const plantingAreas = await getPlantingAreas(organizationId);
-  const productionCosts = await getProductionCosts(organizationId);
-  const productivityData = await getProductivities(organizationId);
-  const livestockData = await getLivestock(organizationId);
-  const livestockOperationsData = await getLivestockOperations(organizationId);
+  
+  // Try-catch for robust error handling with fallbacks
+  let productionConfig, plantingAreasData, productivitiesData, productionCostsData;
+  let livestockData: { livestock: any[]; properties?: any[] } = { livestock: [] };
+  let livestockOperationsData: { operations: any[]; properties?: any[]; safras?: any[] } = { operations: [] };
+  
+  try {
+    // Get main production data (required)
+    [
+      productionConfig,
+      plantingAreasData,
+      productivitiesData,
+      productionCostsData,
+    ] = await Promise.all([
+      getProductionDataUnified(organizationId),
+      getPlantingAreasUnified(organizationId),
+      getProductivitiesUnified(organizationId),
+      getProductionCostsUnified(organizationId),
+    ]);
+  } catch (error) {
+    console.error("Erro ao carregar dados de produção:", error);
+    throw error;
+  }
+  
+  // Try to get livestock data separately - using a more permissive approach
+  try {
+    const supabase = await createClient();
+    
+    // Check if rebanhos table exists
+    const { data: livestockItems, error: livestockError } = await supabase
+      .from("rebanhos")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .limit(10);
+    
+    if (!livestockError && livestockItems) {
+      // If no error, the table exists, so get the data properly
+      try {
+        const data = await getLivestockDataUnified(organizationId);
+        livestockData = data;
+      } catch (e) {
+        console.log("Erro ao buscar dados completos de rebanho:", e);
+      }
+    } else {
+      console.log("Tabela rebanhos não existe ou não está acessível");
+    }
+  } catch (error) {
+    console.error("Erro ao verificar tabela de rebanho:", error);
+  }
+  
+  // Try to get livestock operations data separately - using a more permissive approach
+  try {
+    const supabase = await createClient();
+    
+    // Check if vendas_pecuaria table exists
+    const { data: operationsItems, error: operationsError } = await supabase
+      .from("vendas_pecuaria")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .limit(10);
+    
+    if (!operationsError && operationsItems) {
+      // If no error, the table exists, so get the data properly
+      try {
+        const data = await getLivestockOperationsDataUnified(organizationId);
+        livestockOperationsData = data;
+      } catch (e) {
+        console.log("Erro ao buscar dados completos de operações pecuárias:", e);
+      }
+    } else {
+      console.log("Tabela vendas_pecuaria não existe ou não está acessível");
+    }
+  } catch (error) {
+    console.error("Erro ao verificar tabela de operações pecuárias:", error);
+  }
 
-  // Converter propriedades para o formato esperado pelos componentes
-  const properties: Property[] = propertiesData.map((p) => ({
-    id: p.id || "",
-    nome: p.nome,
-    cidade: p.cidade,
-    estado: p.estado,
-    area_total: p.area_total,
-  }));
+  const { safras, cultures, systems, cycles, properties } = productionConfig;
+  const { plantingAreas } = plantingAreasData;
+  const { productivities } = productivitiesData;
+  const { productionCosts } = productionCostsData;
+  const { livestock = [] } = livestockData || { livestock: [] };
+  const { operations = [] } = livestockOperationsData || { operations: [] };
 
   // Componente de Configurações
   const ConfigComponent = (
@@ -74,53 +134,39 @@ export default async function ProductionPage() {
       cultures={cultures}
       systems={systems}
       cycles={cycles}
-      harvests={harvests}
+      harvests={safras}
       organizationId={organizationId}
     />
   );
 
   // Componente de Áreas de Plantio
   const PlantingAreasComponent = (
-    <PlantingAreaList
-      initialPlantingAreas={plantingAreas}
-      properties={properties}
-      cultures={cultures}
-      systems={systems}
-      cycles={cycles}
-      harvests={harvests}
-      organizationId={organizationId}
+    <UnifiedPlantingAreaListing
+      plantingAreas={plantingAreas}
+      safras={safras}
     />
   );
 
   // Componente de Custos de Produção
   const CostsComponent = (
-    <ProductionCostList
-      initialCosts={productionCosts}
-      cultures={cultures}
-      systems={systems}
-      harvests={harvests}
-      properties={properties}
-      organizationId={organizationId}
+    <UnifiedProductionCostListing
+      productionCosts={productionCosts}
+      safras={safras}
     />
   );
 
   // Componente de Produtividade
   const ProductivityComponent = (
-    <ProductivityList
-      initialProductivities={productivityData}
-      cultures={cultures}
-      systems={systems}
-      harvests={harvests}
-      properties={properties}
-      organizationId={organizationId}
+    <UnifiedProductivityListing
+      productivities={productivities}
+      safras={safras}
     />
   );
 
   // Componente de Rebanho
   const LivestockComponent = (
     <LivestockList
-      key="livestock-list"
-      initialLivestock={livestockData}
+      initialLivestock={livestock}
       properties={properties}
       organizationId={organizationId}
     />
@@ -129,9 +175,9 @@ export default async function ProductionPage() {
   // Componente de Operações Pecuárias
   const LivestockOperationsComponent = (
     <LivestockOperationList
-      initialOperations={livestockOperationsData}
+      initialOperations={operations}
       properties={properties}
-      harvests={harvests}
+      harvests={safras}
       organizationId={organizationId}
     />
   );
@@ -140,8 +186,8 @@ export default async function ProductionPage() {
     <div className="-mt-6 -mx-4 md:-mx-6">
       <Tabs defaultValue="config">
         <div className="bg-muted/50 border-b">
-          <div className="container mx-auto px-4 md:px-6 py-2">
-            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+          <div className="container max-w-full px-4 md:px-6 py-2">
+            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start w-full">
               <TabsTrigger
                 value="config"
                 className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"

@@ -61,7 +61,11 @@ export default async function LeaseDetailsPage({
           backLabel="Voltar"
         />
         <div className="flex flex-col gap-6 p-6">
-          <LeaseDetail lease={lease} propertyId={params.id} />
+          <LeaseDetail 
+            lease={lease} 
+            propertyId={params.id} 
+            organizationId={session.organizationId}
+          />
         </div>
       </>
     );

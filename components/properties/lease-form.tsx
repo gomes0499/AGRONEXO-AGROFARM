@@ -17,6 +17,7 @@ import {
   updateLease,
   getProperties,
   getPropertyById,
+  getSafras,
 } from "@/lib/actions/property-actions";
 import {
   formatArea,
@@ -75,10 +76,12 @@ export function LeaseForm({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [safras, setSafras] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(
     null
   );
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
   const [isLoadingCommodities, setIsLoadingCommodities] = useState(false);
   const [activeTab, setActiveTab] = useState("informacoes-contrato");
   const isEditing = !!lease?.id;
@@ -99,6 +102,7 @@ export function LeaseForm({
     mode: "onSubmit", // Só validar quando o usuário submeter o formulário
     defaultValues: {
       propriedade_id: propertyId,
+      safra_id: lease?.safra_id || "",
       numero_arrendamento: lease?.numero_arrendamento || "",
       area_fazenda: lease?.area_fazenda || 0,
       area_arrendada: lease?.area_arrendada || 0,
@@ -111,8 +115,10 @@ export function LeaseForm({
         ? new Date(lease.data_termino)
         : new Date(new Date().setFullYear(new Date().getFullYear() + 5)),
       custo_hectare: lease?.custo_hectare || 0,
-      custo_ano: lease?.custo_ano || 0,
-      custos_projetados_anuais: lease?.custos_projetados_anuais || JSON.stringify({}),
+      tipo_pagamento: lease?.tipo_pagamento || "SACAS",
+      custos_por_ano: lease?.custos_por_ano || {},
+      ativo: lease?.ativo ?? true,
+      observacoes: lease?.observacoes || "",
     },
   });
 
@@ -123,7 +129,7 @@ export function LeaseForm({
       // Garante que os custos projetados estão atualizados
       const currentCosts = projectionCosts;
       if (Object.keys(currentCosts).length > 0) {
-        values.custos_projetados_anuais = JSON.stringify(currentCosts);
+        values.custos_por_ano = currentCosts;
       }
       
       toast.info("Enviando formulário...");
@@ -153,17 +159,25 @@ export function LeaseForm({
     const costPerHectare = form.getValues("custo_hectare");
 
     if (area && costPerHectare) {
-      form.setValue("custo_ano", area * costPerHectare);
+      return area * costPerHectare;
     }
+    return 0;
   };
 
-  // Buscar a lista de propriedades para o dropdown
+  // Buscar a lista de propriedades e safras para os dropdowns
   useEffect(() => {
-    const fetchProperties = async () => {
+    const fetchData = async () => {
       try {
         setIsLoadingProperties(true);
-        const propertiesList = await getProperties(organizationId);
+        setIsLoadingSafras(true);
+        
+        const [propertiesList, safrasList] = await Promise.all([
+          getProperties(organizationId),
+          getSafras(organizationId)
+        ]);
+        
         setProperties(propertiesList);
+        setSafras(safrasList);
 
         // Se for edição, use a propriedade atual
         if (isEditing && propertyId) {
@@ -181,26 +195,25 @@ export function LeaseForm({
             setSelectedProperty(property);
 
             // Preencher automaticamente os campos relacionados à propriedade
-            form.setValue("area_fazenda", property.area_total);
+            form.setValue("area_fazenda", property.area_total || 0);
             form.setValue("nome_fazenda", property.nome);
           } catch (error) {
             toast.error("Erro ao buscar dados da propriedade");
           }
         }
       } catch (error) {
-        toast.error("Erro ao carregar a lista de propriedades");
+        toast.error("Erro ao carregar dados");
       } finally {
         setIsLoadingProperties(false);
+        setIsLoadingSafras(false);
       }
     };
 
-    fetchProperties();
+    fetchData();
   }, [organizationId, propertyId, isEditing, form]);
 
-  // Atualiza o custo anual quando a área ou o custo por hectare mudar
-  useEffect(() => {
-    calculateAnnualCost();
-  }, [form.watch("area_arrendada"), form.watch("custo_hectare")]);
+  // Calcular o custo anual atual
+  const custoAnual = calculateAnnualCost();
 
   // Função para atualizar a propriedade selecionada
   const handlePropertyChange = async (value: string) => {
@@ -213,7 +226,7 @@ export function LeaseForm({
       setSelectedProperty(property);
 
       // Preencher automaticamente os campos relacionados à propriedade
-      form.setValue("area_fazenda", property.area_total);
+      form.setValue("area_fazenda", property.area_total || 0);
       form.setValue("nome_fazenda", property.nome);
     } catch (error) {
       toast.error("Erro ao buscar dados da propriedade");
@@ -282,8 +295,7 @@ export function LeaseForm({
 
   // Calcular os custos projetados com base no custo anual e preço da commodity
   useEffect(() => {
-    const custo_ano = form.getValues("custo_ano");
-    if (!custo_ano || commodities.length === 0) return;
+    if (!custoAnual || commodities.length === 0) return;
 
     const selectedCommodityData = commodities.find(c => c.commodityType === selectedCommodity);
     if (!selectedCommodityData) return;
@@ -291,25 +303,25 @@ export function LeaseForm({
     const newProjectionCosts: {[year: string]: number} = {};
     
     // Ano atual - usando currentPrice
-    newProjectionCosts[currentYear.toString()] = custo_ano * selectedCommodityData.currentPrice;
+    newProjectionCosts[currentYear.toString()] = custoAnual * selectedCommodityData.currentPrice;
     
     // Anos futuros
     if (projectionYears.includes("2025")) 
-      newProjectionCosts["2025"] = custo_ano * selectedCommodityData.price2025;
+      newProjectionCosts["2025"] = custoAnual * selectedCommodityData.price2025;
     if (projectionYears.includes("2026")) 
-      newProjectionCosts["2026"] = custo_ano * selectedCommodityData.price2026;
+      newProjectionCosts["2026"] = custoAnual * selectedCommodityData.price2026;
     if (projectionYears.includes("2027")) 
-      newProjectionCosts["2027"] = custo_ano * selectedCommodityData.price2027;
+      newProjectionCosts["2027"] = custoAnual * selectedCommodityData.price2027;
     if (projectionYears.includes("2028")) 
-      newProjectionCosts["2028"] = custo_ano * selectedCommodityData.price2028;
+      newProjectionCosts["2028"] = custoAnual * selectedCommodityData.price2028;
     if (projectionYears.includes("2029")) 
-      newProjectionCosts["2029"] = custo_ano * selectedCommodityData.price2029;
+      newProjectionCosts["2029"] = custoAnual * selectedCommodityData.price2029;
 
     setProjectionCosts(newProjectionCosts);
     
-    // Atualizar o campo custos_projetados_anuais no formulário
-    form.setValue("custos_projetados_anuais", JSON.stringify(newProjectionCosts));
-  }, [form.watch("custo_ano"), selectedCommodity, commodities]);
+    // Atualizar o campo custos_por_ano no formulário
+    form.setValue("custos_por_ano", newProjectionCosts);
+  }, [custoAnual, selectedCommodity, commodities]);
 
   return (
     <div className="space-y-6">
@@ -395,6 +407,50 @@ export function LeaseForm({
                       )}
                     />
 
+                    {/* Dropdown de Seleção de Safra */}
+                    <FormField
+                      control={form.control}
+                      name="safra_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Safra *</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            disabled={isLoadingSafras}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue
+                                  placeholder={
+                                    isLoadingSafras
+                                      ? "Carregando..."
+                                      : "Selecione uma safra"
+                                  }
+                                />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {safras.map((safra) => (
+                                <SelectItem
+                                  key={safra.id}
+                                  value={safra.id}
+                                >
+                                  {safra.nome} ({safra.ano_inicio}/{safra.ano_fim})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Safra base para cálculo dos custos do arrendamento
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
                       name="numero_arrendamento"
@@ -407,6 +463,37 @@ export function LeaseForm({
                               {...field}
                             />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Campo Tipo de Pagamento */}
+                    <FormField
+                      control={form.control}
+                      name="tipo_pagamento"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Pagamento</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo de pagamento" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="SACAS">Sacas</SelectItem>
+                              <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                              <SelectItem value="MISTO">Misto</SelectItem>
+                              <SelectItem value="PERCENTUAL_PRODUCAO">% da Produção</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Forma de pagamento do arrendamento
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -548,8 +635,7 @@ export function LeaseForm({
                                 const numericValue =
                                   parseFormattedNumber(cleanValue);
                                 field.onChange(numericValue);
-                                // Atualizar o custo anual após mudar a área
-                                setTimeout(() => calculateAnnualCost(), 0);
+                                // O custo anual será calculado automaticamente
                               }}
                               onBlur={(e) => {
                                 field.onBlur();
@@ -599,8 +685,7 @@ export function LeaseForm({
                                 // Garantir que é um número válido
                                 const value = parseFloat(e.target.value);
                                 field.onChange(isNaN(value) ? 0 : value);
-                                // Atualizar o custo anual após mudar o custo por hectare
-                                setTimeout(() => calculateAnnualCost(), 0);
+                                // O custo anual será calculado automaticamente
                               }}
                               onBlur={field.onBlur}
                               value={field.value || ""}
@@ -612,34 +697,17 @@ export function LeaseForm({
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="custo_ano"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Custo Anual (sacas)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="text"
-                              placeholder="Calculado automaticamente"
-                              {...field}
-                              value={
-                                field.value !== undefined &&
-                                field.value !== null
-                                  ? formatSacas(field.value)
-                                  : ""
-                              }
-                              disabled={true} // Somente leitura, calculado automaticamente
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Custo total anual em sacas (calculado
-                            automaticamente)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="bg-muted/50 p-4 rounded-lg">
+                      <div className="text-sm font-medium text-muted-foreground mb-2">
+                        Custo Anual (sacas)
+                      </div>
+                      <div className="text-2xl font-bold">
+                        {formatSacas(custoAnual)}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Calculado automaticamente (área × custo/hectare)
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex justify-between mt-6">
@@ -840,7 +908,7 @@ export function LeaseForm({
                             <div className="space-y-2">
                               <div className="flex justify-between">
                                 <span className="text-sm text-muted-foreground">Sacas:</span>
-                                <span className="text-sm font-medium">{form.getValues("custo_ano") ? formatSacas(form.getValues("custo_ano")) : "0 sc"}</span>
+                                <span className="text-sm font-medium">{custoAnual ? formatSacas(custoAnual) : "0 sc"}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-sm text-muted-foreground">Preço saca:</span>
@@ -881,6 +949,56 @@ export function LeaseForm({
                         ))}
                       </div>
                     )}
+                    </div>
+
+                    {/* Campos Ativo e Observações */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <FormField
+                        control={form.control}
+                        name="ativo"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">
+                                Contrato Ativo
+                              </FormLabel>
+                              <FormDescription>
+                                Indica se o contrato de arrendamento está ativo
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={field.value}
+                                onChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="observacoes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Observações</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Observações adicionais sobre o contrato"
+                                className="resize-none"
+                                {...field}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Informações adicionais sobre o contrato
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                   <div className="flex justify-between mt-6">

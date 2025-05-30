@@ -6,6 +6,11 @@ export const supplierAdvanceSchema = z.object({
   organizacao_id: z.string().uuid(),
   fornecedor_id: z.string().uuid().optional(),
   valor: z.coerce.number().positive("Valor deve ser positivo"),
+  safra_id: z.string().uuid().optional(),
+  valores_por_safra: z.union([
+    z.record(z.string(), z.number()),
+    z.string(),
+  ]).optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
   

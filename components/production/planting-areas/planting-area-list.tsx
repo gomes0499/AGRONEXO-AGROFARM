@@ -1,12 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Edit2Icon, Trash2, MoreHorizontal, Sprout, Plus } from "lucide-react";
+import { Sprout, PlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -15,28 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 
 import { deletePlantingArea } from "@/lib/actions/production-actions";
 import { PlantingAreaForm } from "./planting-area-form";
+import { MultiSafraPlantingAreaForm } from "./multi-safra-planting-area-form";
+import { PlantingAreaRowActions } from "./planting-area-row-actions";
 import { formatArea } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
@@ -54,6 +34,7 @@ import {
 // Define interfaces for the property and reference entities
 interface Property {
   id: string;
+  organizacao_id: string;
   nome: string;
   [key: string]: any;
 }
@@ -89,9 +70,9 @@ export function PlantingAreaList({
     useState<PlantingArea[]>(initialPlantingAreas);
   const [editingArea, setEditingArea] = useState<PlantingArea | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [isMultiSafraModalOpen, setIsMultiSafraModalOpen] =
+    useState<boolean>(false);
   const [deletingAreaId, setDeletingAreaId] = useState<string | null>(null);
-
   // Hook para gerenciar filtros e paginação
   const {
     searchTerm,
@@ -107,7 +88,7 @@ export function PlantingAreaList({
     setPageSize,
   } = useProductionTable({
     data: plantingAreas,
-    searchFields: ["area"], // Campos para busca textual
+    searchFields: ["cultura_id", "sistema_id"], // Campos para busca textual
     initialPageSize: 20,
   });
 
@@ -122,21 +103,6 @@ export function PlantingAreaList({
     setIsEditModalOpen(true);
   };
 
-  // Função para excluir uma área
-  const handleDelete = async (id: string) => {
-    try {
-      setDeletingAreaId(id);
-      await deletePlantingArea(id);
-      setPlantingAreas(plantingAreas.filter((area) => area.id !== id));
-      toast.success("Área de plantio excluída com sucesso!");
-    } catch (error) {
-      console.error("Erro ao excluir área de plantio:", error);
-      toast.error("Ocorreu um erro ao excluir a área de plantio.");
-    } finally {
-      setDeletingAreaId(null);
-    }
-  };
-
   // Função para atualizar a lista após edição
   const handleUpdate = (updatedArea: PlantingArea) => {
     setPlantingAreas(
@@ -148,29 +114,46 @@ export function PlantingAreaList({
     setEditingArea(null);
   };
 
-  // Função para adicionar nova área à lista
-  const handleAdd = (newArea: PlantingArea) => {
-    setPlantingAreas([...plantingAreas, newArea]);
-    setIsCreateModalOpen(false);
+  // Função para adicionar múltiplas áreas à lista
+  const handleAddMultiple = (newAreas: PlantingArea[]) => {
+    setPlantingAreas([...plantingAreas, ...newAreas]);
   };
 
-  // Função para abrir modal de criação
-  const handleCreate = () => {
-    setIsCreateModalOpen(true);
+  // Função para lidar com múltiplas áreas
+  const handleMultiSafraSuccess = (newAreas: PlantingArea[]) => {
+    handleAddMultiple(newAreas);
+    setIsMultiSafraModalOpen(false);
+  };
+
+  // Função para abrir modal de múltiplas safras
+  const handleOpenMultiSafra = () => {
+    setIsMultiSafraModalOpen(true);
   };
 
   // Criar opções para filtros
   const filterOptions = {
-    safras: harvests.filter(h => h.id).map(h => ({ value: h.id!, label: h.nome })),
-    culturas: cultures.filter(c => c.id).map(c => ({ value: c.id!, label: c.nome })),
-    sistemas: systems.filter(s => s.id).map(s => ({ value: s.id!, label: s.nome })),
-    propriedades: properties.filter(p => p.id).map(p => ({ value: p.id!, label: p.nome })),
+    safras: harvests
+      .filter((h) => h.id)
+      .map((h) => ({ value: h.id!, label: h.nome })),
+    culturas: cultures
+      .filter((c) => c.id)
+      .map((c) => ({ value: c.id!, label: c.nome })),
+    sistemas: systems
+      .filter((s) => s.id)
+      .map((s) => ({ value: s.id!, label: s.nome })),
+    propriedades: properties
+      .filter((p) => p.id)
+      .map((p) => ({ value: p.id!, label: p.nome })),
   };
 
   // Ordenar áreas paginadas por safra, cultura e sistema
   const sortedAreas = [...paginatedData].sort((a, b) => {
-    const safraA = harvests.find((h) => h.id === a.safra_id)?.nome || "";
-    const safraB = harvests.find((h) => h.id === b.safra_id)?.nome || "";
+    // Get first safra_id from areas_por_safra keys
+    const firstSafraIdA = Object.keys(a.areas_por_safra || {})[0] || "";
+    const firstSafraIdB = Object.keys(b.areas_por_safra || {})[0] || "";
+    
+    const safraA = harvests.find((h) => h.id === firstSafraIdA)?.nome || "";
+    const safraB = harvests.find((h) => h.id === firstSafraIdB)?.nome || "";
 
     // Primeiro por safra (decrescente)
     if (safraA !== safraB) {
@@ -202,75 +185,99 @@ export function PlantingAreaList({
         systems.find((s) => s.id === area.sistema_id)?.nome || "Desconhecido",
       cycle: cycles.find((c) => c.id === area.ciclo_id)?.nome || "Desconhecido",
       harvest:
-        harvests.find((h) => h.id === area.safra_id)?.nome || "Desconhecida",
+        // Get the first safra from the areas_por_safra keys
+        harvests.find((h) => h.id === Object.keys(area.areas_por_safra || {})[0])?.nome || "Desconhecida",
     };
   };
 
   return (
     <Card className="shadow-sm border-muted/80">
-      <CardHeaderPrimary
-        title="Áreas de Plantio"
-        icon={<Sprout className="h-5 w-5" />}
-        description="Registros de áreas plantadas por safra, cultura e sistema"
-        action={
-          <Button 
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-            onClick={handleCreate}
+      <CardHeader className="bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="rounded-full p-2 bg-white/20">
+            <Sprout className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <CardTitle className="text-white flex items-center gap-2">
+              Áreas de Plantio
+            </CardTitle>
+            <CardDescription className="text-white/80">
+              Registros de áreas plantadas por safra, cultura e sistema
+            </CardDescription>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            className="gap-1"
+            onClick={handleOpenMultiSafra}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <PlusIcon className="h-4 w-4" />
             Nova Área
           </Button>
-        }
-        className="mb-4"
-      />
+        </div>
+      </CardHeader>
       <CardContent>
-        {/* Filtros e busca */}
-        <ProductionTableFilter
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          filters={filters}
-          onFiltersChange={setFilters}
-          safras={filterOptions.safras}
-          culturas={filterOptions.culturas}
-          sistemas={filterOptions.sistemas}
-          propriedades={filterOptions.propriedades}
-        />
+        <div className="space-y-4">
+          {/* Filtros e busca */}
+          <ProductionTableFilter
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            filters={filters}
+            onFiltersChange={setFilters}
+            safras={filterOptions.safras}
+            culturas={filterOptions.culturas}
+            sistemas={filterOptions.sistemas}
+            propriedades={filterOptions.propriedades}
+          />
+          
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {paginatedData.length} de {totalItems} áreas de plantio
+            </p>
+          </div>
 
-        {plantingAreas.length === 0 ? (
+          {plantingAreas.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhuma área de plantio cadastrada.</div>
             <Button 
-              onClick={handleCreate}
+              onClick={handleOpenMultiSafra}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Área
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Adicionar Primeira Área
             </Button>
           </div>
-        ) : totalItems === 0 ? (
-          <div className="text-center py-10 text-muted-foreground space-y-4">
-            <div>Nenhuma área de plantio encontrada com os filtros aplicados.</div>
-            <Button 
-              onClick={handleCreate}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Área
-            </Button>
-          </div>
-        ) : (
-          <>
+          ) : totalItems === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <div>Nenhuma área de plantio encontrada para os filtros aplicados.</div>
+            </div>
+          ) : (
             <div className="rounded-md border">
               <Table>
-                <TableHeader>
-                  <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Safra</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Propriedade</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Cultura</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Sistema</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Ciclo</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Área</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                <TableHeader className="bg-primary rounded-t-md">
+                  <TableRow className="border-b-0 hover:bg-primary">
+                    <TableHead className="text-white font-semibold first:rounded-tl-md uppercase">
+                      Safra
+                    </TableHead>
+                    <TableHead className="text-white font-semibold uppercase">
+                      Propriedade
+                    </TableHead>
+                    <TableHead className="text-white font-semibold uppercase">
+                      Cultura
+                    </TableHead>
+                    <TableHead className="text-white font-semibold uppercase">
+                      Sistema
+                    </TableHead>
+                    <TableHead className="text-white font-semibold uppercase">
+                      Ciclo
+                    </TableHead>
+                    <TableHead className="text-white font-semibold uppercase">
+                      Área
+                    </TableHead>
+                    <TableHead className="text-white font-semibold text-right last:rounded-tr-md w-[100px] uppercase">
+                      Ações
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -278,99 +285,48 @@ export function PlantingAreaList({
                     const refs = getRefNames(area);
                     return (
                       <TableRow key={area.id}>
-                        <TableCell className="font-medium">{refs.harvest}</TableCell>
-                        <TableCell>{refs.property}</TableCell>
-                        <TableCell>{refs.culture}</TableCell>
-                        <TableCell>{refs.system}</TableCell>
-                        <TableCell>{refs.cycle}</TableCell>
-                        <TableCell>{formatArea(area.area)}</TableCell>
+                        <TableCell className="font-medium uppercase">
+                          {refs.harvest}
+                        </TableCell>
+                        <TableCell className="uppercase">{refs.property}</TableCell>
+                        <TableCell className="uppercase">{refs.culture}</TableCell>
+                        <TableCell className="uppercase">{refs.system}</TableCell>
+                        <TableCell className="uppercase">{refs.cycle}</TableCell>
+                        <TableCell className="uppercase">
+                          {Object.entries(area.areas_por_safra || {}).map(([safraId, areaValue], index) => (
+                            <span key={safraId}>
+                              {index > 0 && ", "}
+                              {formatArea(areaValue)}
+                            </span>
+                          ))}
+                        </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8"
-                                disabled={deletingAreaId === area.id}
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Ações</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEdit(area)}>
-                                <Edit2Icon className="h-4 w-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem 
-                                    onSelect={(e) => e.preventDefault()}
-                                    className="text-destructive focus:text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Excluir
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Excluir Área de Plantio</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Tem certeza que deseja excluir esta área de plantio? Esta ação não pode ser desfeita.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(area.id || "")}
-                                      className="bg-destructive text-white hover:bg-destructive/90"
-                                    >
-                                      {deletingAreaId === area.id ? "Excluindo..." : "Excluir"}
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <PlantingAreaRowActions
+                            plantingArea={area}
+                            onEdit={() => handleEdit(area)}
+                            onDelete={() => {
+                              setPlantingAreas(plantingAreas.filter((a) => a.id !== area.id));
+                              toast.success("Área de plantio excluída com sucesso!");
+                            }}
+                          />
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
+              
+              <ProductionTablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+              />
             </div>
-            
-            {/* Paginação */}
-            <ProductionTablePagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              pageSize={pageSize}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
-            />
-          </>
-        )}
-
-        {/* Modal de criação */}
-        <FormModal
-          open={isCreateModalOpen}
-          onOpenChange={setIsCreateModalOpen}
-          title="Nova Área de Plantio"
-          description="Adicione uma nova área de plantio."
-        >
-          <PlantingAreaForm
-            properties={properties}
-            cultures={cultures}
-            systems={systems}
-            cycles={cycles}
-            harvests={harvests}
-            organizationId={organizationId}
-            onSuccess={handleAdd}
-            onCancel={() => setIsCreateModalOpen(false)}
-          />
-        </FormModal>
+          )}
+        </div>
 
         {/* Modal de edição */}
         <FormModal
@@ -393,6 +349,27 @@ export function PlantingAreaList({
             />
           )}
         </FormModal>
+
+        {/* Modal de múltiplas safras */}
+        <FormModal
+          open={isMultiSafraModalOpen}
+          onOpenChange={setIsMultiSafraModalOpen}
+          title="Nova Área - Múltiplas Safras"
+          description="Adicione áreas de plantio para múltiplas safras de uma só vez."
+          className="max-w-4xl"
+        >
+          <MultiSafraPlantingAreaForm
+            properties={properties}
+            cultures={cultures}
+            systems={systems}
+            cycles={cycles}
+            harvests={harvests}
+            organizationId={organizationId}
+            onSuccess={handleMultiSafraSuccess}
+            onCancel={() => setIsMultiSafraModalOpen(false)}
+          />
+        </FormModal>
+
       </CardContent>
     </Card>
   );

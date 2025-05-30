@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Enum for commodity types
+// Enum for commodity types (excluding exchange rates)
 export const CommodityType = z.enum([
   "SOJA_SEQUEIRO",
   "SOJA_IRRIGADO",
@@ -9,15 +9,41 @@ export const CommodityType = z.enum([
   "ALGODAO_CAPULHO",
   "ARROZ_IRRIGADO",
   "SORGO",
-  "FEIJAO",
+  "FEIJAO"
+]);
+
+// Enum for exchange rate types
+export const ExchangeRateType = z.enum([
   "DOLAR_ALGODAO",
   "DOLAR_SOJA",
   "DOLAR_FECHAMENTO"
 ]);
 
-export type CommodityTypeEnum = z.infer<typeof CommodityType>;
+// Combined enum for all price types (including legacy types from database)
+export const AllPriceType = z.enum([
+  "SOJA_SEQUEIRO",
+  "SOJA_IRRIGADO", 
+  "MILHO_SEQUEIRO",
+  "MILHO_SAFRINHA",
+  "ALGODAO_CAPULHO",
+  "ARROZ_IRRIGADO",
+  "SORGO",
+  "FEIJAO",
+  "DOLAR_ALGODAO",
+  "DOLAR_SOJA",
+  "DOLAR_FECHAMENTO",
+  // Legacy types from database
+  "SOJA",
+  "MILHO",
+  "ALGODAO", 
+  "ARROZ"
+]);
 
-// Mapping for display names
+export type CommodityTypeEnum = z.infer<typeof CommodityType>;
+export type ExchangeRateTypeEnum = z.infer<typeof ExchangeRateType>;
+export type AllPriceTypeEnum = z.infer<typeof AllPriceType>;
+
+// Mapping for display names - commodities only
 export const commodityDisplayNames: Record<CommodityTypeEnum, string> = {
   SOJA_SEQUEIRO: "Soja Sequeiro",
   SOJA_IRRIGADO: "Soja Irrigado",
@@ -26,13 +52,34 @@ export const commodityDisplayNames: Record<CommodityTypeEnum, string> = {
   ALGODAO_CAPULHO: "Algodão (capulho)",
   ARROZ_IRRIGADO: "Arroz Irrigado",
   SORGO: "Sorgo",
-  FEIJAO: "Feijão (sem tipo)",
+  FEIJAO: "Feijão (sem tipo)"
+};
+
+// Mapping for display names - exchange rates only
+export const exchangeRateDisplayNames: Record<ExchangeRateTypeEnum, string> = {
   DOLAR_ALGODAO: "Dólar Algodão",
   DOLAR_SOJA: "Dólar Soja",
   DOLAR_FECHAMENTO: "Dólar Fechamento"
 };
 
-// Mapping for units
+// Additional mappings for legacy types in database
+export const legacyPriceDisplayNames: Record<string, string> = {
+  SOJA: "Soja",
+  MILHO: "Milho", 
+  ALGODAO: "Algodão",
+  ARROZ: "Arroz",
+  SORGO: "Sorgo",
+  FEIJAO: "Feijão"
+};
+
+// Combined mapping for all price types (including legacy)
+export const allPriceDisplayNames: Record<string, string> = {
+  ...commodityDisplayNames,
+  ...exchangeRateDisplayNames,
+  ...legacyPriceDisplayNames
+};
+
+// Mapping for units - commodities only
 export const commodityUnits: Record<CommodityTypeEnum, string> = {
   SOJA_SEQUEIRO: "R$/Saca",
   SOJA_IRRIGADO: "R$/Saca",
@@ -41,17 +88,39 @@ export const commodityUnits: Record<CommodityTypeEnum, string> = {
   ALGODAO_CAPULHO: "R$/@",
   ARROZ_IRRIGADO: "R$/Saca",
   SORGO: "R$/Saca",
-  FEIJAO: "R$/Saca",
+  FEIJAO: "R$/Saca"
+};
+
+// Mapping for units - exchange rates only
+export const exchangeRateUnits: Record<ExchangeRateTypeEnum, string> = {
   DOLAR_ALGODAO: "R$",
   DOLAR_SOJA: "R$",
   DOLAR_FECHAMENTO: "R$"
 };
 
-// Types for commodity prices
+// Additional mappings for legacy units in database
+export const legacyPriceUnits: Record<string, string> = {
+  SOJA: "R$/Saca",
+  MILHO: "R$/Saca", 
+  ALGODAO: "R$/@",
+  ARROZ: "R$/Saca",
+  SORGO: "R$/Saca",
+  FEIJAO: "R$/Saca",
+  SOJA_IRRIGADO: "R$/Saca"
+};
+
+// Combined mapping for all price units (including legacy)
+export const allPriceUnits: Record<string, string> = {
+  ...commodityUnits,
+  ...exchangeRateUnits,
+  ...legacyPriceUnits
+};
+
+// Types for commodity prices (updated to use combined enum for compatibility)
 export type CommodityPriceType = {
   id: string;
   organizacaoId: string;
-  commodityType: CommodityTypeEnum;
+  commodityType: AllPriceTypeEnum; // Using AllPriceTypeEnum for compatibility
   unit: string;
   currentPrice: number;
   price2020?: number;
@@ -69,6 +138,9 @@ export type CommodityPriceType = {
   updatedAt: Date;
 };
 
+// Type for exchange rates (alias for compatibility)
+export type ExchangeRateType = CommodityPriceType;
+
 export type CommodityPriceCreateType = Omit<CommodityPriceType, "id" | "createdAt" | "updatedAt"> & {
   id?: string;
 };
@@ -77,10 +149,10 @@ export type CommodityPriceUpdateType = Partial<CommodityPriceCreateType> & {
   id: string;
 };
 
-// Base schema for commodity prices
+// Base schema for all price types (commodities and exchange rates)
 const commodityPriceBaseSchema = z.object({
   organizacaoId: z.string().uuid({ message: "ID da organização inválido" }),
-  commodityType: CommodityType,
+  commodityType: AllPriceType, // Updated to use AllPriceType
   unit: z.string().min(1, { message: "Unidade é obrigatória" }),
   currentPrice: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }),
   price2020: z.number().nonnegative({ message: "Preço deve ser positivo ou zero" }).optional(),
@@ -115,7 +187,7 @@ export const commodityPriceSchema = commodityPriceBaseSchema.extend({
   updatedAt: z.date(),
 });
 
-// Default values for commodity prices
+// Default values for commodity prices only
 export const defaultCommodityPrices: Record<CommodityTypeEnum, CommodityPriceCreateType> = {
   SOJA_SEQUEIRO: {
     organizacaoId: "",
@@ -204,7 +276,11 @@ export const defaultCommodityPrices: Record<CommodityTypeEnum, CommodityPriceCre
     price2027: 170,
     price2028: 170,
     price2029: 170
-  },
+  }
+};
+
+// Default values for exchange rates only
+export const defaultExchangeRates: Record<ExchangeRateTypeEnum, CommodityPriceCreateType> = {
   DOLAR_ALGODAO: {
     organizacaoId: "",
     commodityType: "DOLAR_ALGODAO",
@@ -239,6 +315,12 @@ export const defaultCommodityPrices: Record<CommodityTypeEnum, CommodityPriceCre
     price2029: 5.7000
   }
 };
+
+// Combined defaults for all price types (for backwards compatibility)
+export const defaultAllPrices = {
+  ...defaultCommodityPrices,
+  ...defaultExchangeRates
+} as Record<AllPriceTypeEnum, CommodityPriceCreateType>;
 
 // Forms schema for commodity prices
 export const commodityPriceFormSchema = commodityPriceBaseSchema.omit({

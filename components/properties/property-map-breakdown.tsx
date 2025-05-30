@@ -387,39 +387,48 @@ function PropertyMapBreakdownContent({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Lista de estados com indicadores */}
-              <div className="space-y-2">
-                {geoStats.estadosData.slice(0, 5).map((estado: any, index: number) => (
+              {/* Legenda de cores para estados */}
+              <div className="flex flex-wrap gap-3 mb-3 justify-center">
+                {geoStats.estadosData.slice(0, 7).map((estado: any) => (
                   <div
                     key={estado.estado}
-                    className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
+                    className="flex items-center gap-2"
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: estado.color }}
-                      />
-                      <span className="font-medium text-sm">
-                        {estado.estado}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {estado.totalPropriedades}{" "}
-                        {estado.totalPropriedades === 1
-                          ? "propriedade"
-                          : "propriedades"}
-                      </span>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {estado.percentualArea.toFixed(1)}%
-                    </Badge>
+                    <div
+                      className="w-3.5 h-3.5 rounded-[3px] border border-border/30"
+                      style={{ backgroundColor: estado.color }}
+                    />
+                    <span className="text-sm font-medium">
+                      {estado.estado} <span className="text-muted-foreground font-normal">({estado.totalPropriedades})</span>
+                    </span>
                   </div>
                 ))}
               </div>
 
               {/* Mapa SVG do Brasil */}
-              <div className="mt-6">
+              <div>
                 <BrazilMapSvg estadosData={geoStats.estadosData} />
               </div>
+              
+              {/* Mais estados na legenda (se houver) */}
+              {geoStats.estadosData.length > 7 && (
+                <div className="flex flex-wrap gap-3 mt-3 justify-center">
+                  {geoStats.estadosData.slice(7).map((estado: any) => (
+                    <div
+                      key={estado.estado}
+                      className="flex items-center gap-2"
+                    >
+                      <div
+                        className="w-3.5 h-3.5 rounded-[3px] border border-border/30"
+                        style={{ backgroundColor: estado.color }}
+                      />
+                      <span className="text-sm font-medium">
+                        {estado.estado} <span className="text-muted-foreground font-normal">({estado.totalPropriedades})</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

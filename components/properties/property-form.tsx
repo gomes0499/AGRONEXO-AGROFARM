@@ -170,31 +170,33 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
   const isEditing = !!property?.id;
 
   const form = useForm<PropertyFormValues>({
-    resolver: zodResolver(propertyFormSchema),
+    resolver: zodResolver(propertyFormSchema) as any,
     defaultValues: {
       nome: property?.nome || "",
       ano_aquisicao: property?.ano_aquisicao || null,
-      proprietario: property?.proprietario || "",
-      cidade: property?.cidade || "",
-      estado: property?.estado || "",
-      numero_matricula: property?.numero_matricula || "",
-      cartorio_registro: property?.cartorio_registro || null,
-      numero_car: property?.numero_car || null,
-      data_inicio: property?.data_inicio || null,
-      data_termino: property?.data_termino || null,
-      tipo_anuencia: property?.tipo_anuencia || null,
-      area_total: property?.area_total || 0,
+      proprietario: property?.proprietario || null,
+      cidade: property?.cidade || null,
+      estado: property?.estado || null,
+      numero_matricula: property?.numero_matricula || null,
+      area_total: property?.area_total || null,
       area_cultivada: property?.area_cultivada || null,
       valor_atual: property?.valor_atual || null,
       onus: property?.onus || null,
       avaliacao_banco: property?.avaliacao_banco || null,
       tipo: property?.tipo || "PROPRIO",
-    },
+      status: property?.status || "ATIVA",
+      // Campos adicionais
+      cartorio_registro: property?.cartorio_registro || null,
+      numero_car: property?.numero_car || null,
+      data_inicio: property?.data_inicio || null,
+      data_termino: property?.data_termino || null,
+      tipo_anuencia: property?.tipo_anuencia || null,
+    } as PropertyFormValues,
   });
 
   // Observar mudanças no campo tipo para mostrar campos condicionais
-  const propertyType = useWatch({
-    control: form.control,
+  const propertyType = useWatch<PropertyFormValues>({
+    control: form.control as any, // Use type assertion to avoid control type errors
     name: "tipo",
   });
 
@@ -215,9 +217,16 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
     try {
       setIsSubmitting(true);
 
-      // Adiciona a imagem às propriedades
-      const dataWithImage = {
+      // Ensure status and tipo are always defined and match the enum types
+      const validatedValues = {
         ...values,
+        status: values.status || "ATIVA",
+        tipo: values.tipo || "PROPRIO",
+      };
+
+      // Adiciona a imagem às propriedades
+      const dataWithImage: PropertyFormValues & { imagem?: string | null } = {
+        ...validatedValues,
         imagem: imageUrl,
       };
 
@@ -356,7 +365,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                 <CardContent className="pt-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="nome"
                       render={({ field }) => (
                         <FormItem>
@@ -373,14 +382,15 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                     />
 
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="tipo"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Tipo de Propriedade</FormLabel>
                           <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            onValueChange={(value) => field.onChange(value as "PROPRIO" | "ARRENDADO" | "PARCERIA" | "COMODATO")}
+                            defaultValue={field.value || "PROPRIO"}
+                            value={field.value || "PROPRIO"}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -391,6 +401,12 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                               <SelectItem value="PROPRIO">Própria</SelectItem>
                               <SelectItem value="ARRENDADO">
                                 Arrendada
+                              </SelectItem>
+                              <SelectItem value="PARCERIA">
+                                Parceria
+                              </SelectItem>
+                              <SelectItem value="COMODATO">
+                                Comodato
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -405,7 +421,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="proprietario"
                       render={({ field }) => (
                         <FormItem>
@@ -413,7 +429,12 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                           <FormControl>
                             <Input
                               placeholder="Nome do proprietário"
-                              {...field}
+                              value={field.value || ""}
+                              onChange={(e) => field.onChange(e.target.value || null)}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              name={field.name}
+                              disabled={field.disabled}
                             />
                           </FormControl>
                           <FormMessage />
@@ -424,7 +445,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                     {/* Condicional para mostrar ano de aquisição ou datas de arrendamento */}
                     {propertyType === "PROPRIO" ? (
                       <FormField
-                        control={form.control}
+                        control={form.control as any}
                         name="ano_aquisicao"
                         render={({ field }) => (
                           <FormItem>
@@ -433,14 +454,17 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                               <Input
                                 type="number"
                                 placeholder="2020"
-                                {...field}
                                 onChange={(e) =>
                                   field.onChange(
                                     e.target.value
                                       ? Number.parseInt(e.target.value)
-                                      : ""
+                                      : null
                                   )
                                 }
+                                onBlur={field.onBlur}
+                                ref={field.ref}
+                                name={field.name}
+                                disabled={field.disabled}
                                 value={field.value ?? ""}
                               />
                             </FormControl>
@@ -450,15 +474,15 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                       />
                     ) : (
                       <FormField
-                        control={form.control}
+                        control={form.control as any}
                         name="tipo_anuencia"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Tipo de Anuência</FormLabel>
                             <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value || ""}
-                              value={field.value || ""}
+                              onValueChange={(value) => field.onChange(value || null)}
+                              defaultValue={field.value || undefined}
+                              value={field.value || undefined}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -482,13 +506,21 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                     )}
 
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="numero_matricula"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Número da Matrícula</FormLabel>
                           <FormControl>
-                            <Input placeholder="12345" {...field} />
+                            <Input 
+                              placeholder="12345" 
+                              value={field.value || ""}
+                              onChange={(e) => field.onChange(e.target.value || null)}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              name={field.name}
+                              disabled={field.disabled}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -499,27 +531,17 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                   {/* Datas de início e término para arrendamento */}
                   {propertyType === "ARRENDADO" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
+                      <Controller
                         name="data_inicio"
+                        control={form.control as any}
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Data de Início do Contrato</FormLabel>
                             <FormControl>
-                              <Controller
-                                name="data_inicio"
-                                control={form.control}
-                                render={({ field }) => (
-                                  <DatePicker
-                                    date={
-                                      field.value
-                                        ? new Date(field.value)
-                                        : undefined
-                                    }
-                                    onSelect={(date) => field.onChange(date)}
-                                    placeholder="Selecione a data de início"
-                                  />
-                                )}
+                              <DatePicker
+                                date={field.value ? new Date(field.value) : undefined}
+                                onSelect={(date) => field.onChange(date)}
+                                placeholder="Selecione a data de início"
                               />
                             </FormControl>
                             <FormDescription>
@@ -530,27 +552,17 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
+                      <Controller
                         name="data_termino"
+                        control={form.control as any}
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Data de Término do Contrato</FormLabel>
                             <FormControl>
-                              <Controller
-                                name="data_termino"
-                                control={form.control}
-                                render={({ field }) => (
-                                  <DatePicker
-                                    date={
-                                      field.value
-                                        ? new Date(field.value)
-                                        : undefined
-                                    }
-                                    onSelect={(date) => field.onChange(date)}
-                                    placeholder="Selecione a data de término"
-                                  />
-                                )}
+                              <DatePicker
+                                date={field.value ? new Date(field.value) : undefined}
+                                onSelect={(date) => field.onChange(date)}
+                                placeholder="Selecione a data de término"
                               />
                             </FormControl>
                             <FormDescription>
@@ -565,7 +577,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="cartorio_registro"
                       render={({ field }) => (
                         <FormItem>
@@ -573,11 +585,12 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                           <FormControl>
                             <Input
                               placeholder="Nome do cartório de registro de imóvel"
-                              {...field}
                               value={field.value || ""}
-                              onChange={(e) =>
-                                field.onChange(e.target.value || null)
-                              }
+                              onChange={(e) => field.onChange(e.target.value || null)}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              name={field.name}
+                              disabled={field.disabled}
                             />
                           </FormControl>
                           <FormDescription>
@@ -590,7 +603,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                     />
 
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="numero_car"
                       render={({ field }) => (
                         <FormItem>
@@ -598,11 +611,12 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                           <FormControl>
                             <Input
                               placeholder="Cadastro Ambiental Rural (CAR)"
-                              {...field}
                               value={field.value || ""}
-                              onChange={(e) =>
-                                field.onChange(e.target.value || null)
-                              }
+                              onChange={(e) => field.onChange(e.target.value || null)}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              name={field.name}
+                              disabled={field.disabled}
                             />
                           </FormControl>
                           <FormDescription>
@@ -616,13 +630,21 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="cidade"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Cidade</FormLabel>
                           <FormControl>
-                            <Input placeholder="Cidade" {...field} />
+                            <Input 
+                              placeholder="Cidade" 
+                              value={field.value || ""}
+                              onChange={(e) => field.onChange(e.target.value || null)}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              name={field.name}
+                              disabled={field.disabled}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -630,14 +652,15 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                     />
 
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="estado"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Estado</FormLabel>
                           <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            onValueChange={(value) => field.onChange(value || null)}
+                            defaultValue={field.value || undefined}
+                            value={field.value || undefined}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -672,7 +695,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                 <CardContent className="pt-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="area_total"
                       render={({ field }) => (
                         <FormItem>
@@ -681,7 +704,6 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                             <Input
                               type="text"
                               placeholder="Digite a área total em hectares"
-                              {...field}
                               onChange={(e) => {
                                 // Limpa a formatação e pega apenas números e vírgulas
                                 const cleanValue = e.target.value.replace(
@@ -691,7 +713,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                                 // Converte para número para armazenar no form
                                 const numericValue =
                                   parseFormattedNumber(cleanValue);
-                                field.onChange(numericValue);
+                                field.onChange(numericValue || null);
                               }}
                               onBlur={(e) => {
                                 field.onBlur();
@@ -715,6 +737,9 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                                   ? formatArea(field.value)
                                   : ""
                               }
+                              ref={field.ref}
+                              name={field.name}
+                              disabled={field.disabled}
                             />
                           </FormControl>
                           <FormDescription>Em hectares</FormDescription>
@@ -724,7 +749,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                     />
 
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="area_cultivada"
                       render={({ field }) => (
                         <FormItem>
@@ -733,7 +758,6 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                             <Input
                               type="text"
                               placeholder="Digite a área cultivada em hectares"
-                              {...field}
                               onChange={(e) => {
                                 // Limpa a formatação e pega apenas números e vírgulas
                                 const cleanValue = e.target.value.replace(
@@ -743,7 +767,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                                 // Converte para número para armazenar no form
                                 const numericValue =
                                   parseFormattedNumber(cleanValue);
-                                field.onChange(numericValue);
+                                field.onChange(numericValue || null);
                               }}
                               onBlur={(e) => {
                                 field.onBlur();
@@ -756,9 +780,6 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                                 }
                               }}
                               onFocus={(e) => {
-                                console.error("Erro ao carregar imagem:", e);
-                                console.log("URL que falhou:", imageUrl);
-                                // Tentar definir uma imagem de fallback
                                 // Quando ganhar foco, mostra apenas o número sem formatação
                                 if (field.value) {
                                   e.target.value = field.value.toString();
@@ -770,6 +791,9 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                                   ? formatArea(field.value)
                                   : ""
                               }
+                              ref={field.ref}
+                              name={field.name}
+                              disabled={field.disabled}
                             />
                           </FormControl>
                           <FormDescription>
@@ -783,7 +807,7 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                     <CurrencyField
                       name="valor_atual"
                       label="Valor Atual (R$)"
-                      control={form.control}
+                      control={form.control as any}
                       placeholder="Digite o valor atual da propriedade"
                       disabled={isSubmitting}
                     />
@@ -793,13 +817,13 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                     <CurrencyField
                       name="avaliacao_banco"
                       label="Avaliação do Imóvel (R$)"
-                      control={form.control}
+                      control={form.control as any}
                       placeholder="Digite o valor da avaliação do imóvel"
                       disabled={isSubmitting}
                     />
 
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="onus"
                       render={({ field }) => (
                         <FormItem>
@@ -807,11 +831,12 @@ export function PropertyForm({ property, organizationId, onSuccess, isDrawer = f
                           <FormControl>
                             <Textarea
                               placeholder="Descreva se há algum ônus sobre a propriedade"
-                              {...field}
                               value={field.value || ""}
-                              onChange={(e) =>
-                                field.onChange(e.target.value || null)
-                              }
+                              onChange={(e) => field.onChange(e.target.value || null)}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              name={field.name}
+                              disabled={field.disabled}
                             />
                           </FormControl>
                           <FormDescription>

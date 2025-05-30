@@ -86,14 +86,14 @@ export const harvestFormSchema = harvestSchema.omit({
 export type HarvestFormValues = z.infer<typeof harvestFormSchema>;
 
 // =======================================
-// Planting Area Schema
+// Planting Area Schema (Multi-Safra JSONB)
 // =======================================
 
 // Enum for productivity units
 export const productivityUnitEnum = z.enum(["sc/ha", "@/ha", "kg/ha"]);
 export type ProductivityUnit = z.infer<typeof productivityUnitEnum>;
 
-// Schema for Planting Areas (Áreas de Plantio)
+// Schema for Planting Areas (Áreas de Plantio) - Multi-Safra JSONB
 export const plantingAreaSchema = z.object({
   id: z.string().uuid().optional(),
   organizacao_id: z.string().uuid(),
@@ -101,52 +101,71 @@ export const plantingAreaSchema = z.object({
   cultura_id: z.string().uuid(),
   sistema_id: z.string().uuid(),
   ciclo_id: z.string().uuid(),
-  safra_id: z.string().uuid(),
-  area: z.coerce.number().min(0, "Área deve ser positiva"),
+  areas_por_safra: z.record(z.string(), z.coerce.number().min(0, "Área deve ser positiva")),
+  observacoes: z.string().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
 
 export type PlantingArea = z.infer<typeof plantingAreaSchema>;
 
-export const plantingAreaFormSchema = plantingAreaSchema.omit({
-  id: true,
-  organizacao_id: true,
-  created_at: true,
-  updated_at: true
+// Form schema for creating/editing planting areas
+export const plantingAreaFormSchema = z.object({
+  propriedade_id: z.string().uuid(),
+  cultura_id: z.string().uuid(),
+  sistema_id: z.string().uuid(),
+  ciclo_id: z.string().uuid(),
+  areas_por_safra: z.record(z.string(), z.coerce.number().min(0.01, "Área deve ser maior que 0"))
+    .refine(data => Object.keys(data).length > 0, "Adicione pelo menos uma área por safra"),
+  observacoes: z.string().optional(),
 });
 export type PlantingAreaFormValues = z.infer<typeof plantingAreaFormSchema>;
 
+// Schema for multi-safra planting area form
+export const multiSafraPlantingAreaFormSchema = plantingAreaFormSchema;
+export type MultiSafraPlantingAreaFormValues = PlantingAreaFormValues;
+
 // =======================================
-// Productivity Schema
+// Productivity Schema (Multi-Safra JSONB)
 // =======================================
 
-// Schema for Productivity (Produtividade)
+// Schema for Productivity (Produtividade) - Multi-Safra JSONB
 export const productivitySchema = z.object({
   id: z.string().uuid().optional(),
   organizacao_id: z.string().uuid(),
+  propriedade_id: z.string().uuid().optional(),
   cultura_id: z.string().uuid(),
   sistema_id: z.string().uuid(),
-  safra_id: z.string().uuid(),
-  propriedade_id: z.string().uuid(),
-  produtividade: z.coerce.number().min(0, "Produtividade deve ser positiva"),
-  unidade: productivityUnitEnum,
+  produtividades_por_safra: z.record(z.string(), z.object({
+    produtividade: z.coerce.number().min(0, "Produtividade deve ser positiva"),
+    unidade: productivityUnitEnum
+  })),
+  observacoes: z.string().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
 
 export type Productivity = z.infer<typeof productivitySchema>;
 
-export const productivityFormSchema = productivitySchema.omit({
-  id: true,
-  organizacao_id: true,
-  created_at: true,
-  updated_at: true
+// Form schema for creating/editing productivity
+export const productivityFormSchema = z.object({
+  propriedade_id: z.string().uuid().optional(),
+  cultura_id: z.string().uuid(),
+  sistema_id: z.string().uuid(),
+  produtividades_por_safra: z.record(z.string(), z.object({
+    produtividade: z.coerce.number().min(0.01, "Produtividade deve ser maior que 0"),
+    unidade: productivityUnitEnum
+  })).refine(data => Object.keys(data).length > 0, "Adicione pelo menos uma produtividade por safra"),
+  observacoes: z.string().optional(),
 });
 export type ProductivityFormValues = z.infer<typeof productivityFormSchema>;
 
+// Schema for multi-safra productivity form
+export const multiSafraProductivityFormSchema = productivityFormSchema;
+export type MultiSafraProductivityFormValues = ProductivityFormValues;
+
 // =======================================
-// Production Cost Schema
+// Production Cost Schema (Multi-Safra JSONB)
 // =======================================
 
 // Enum for production cost categories
@@ -165,29 +184,39 @@ export const productionCostCategoryEnum = z.enum([
 ]);
 export type ProductionCostCategory = z.infer<typeof productionCostCategoryEnum>;
 
-// Schema for Production Costs (Custos de Produção)
+// Schema for Production Costs (Custos de Produção) - Multi-Safra JSONB
 export const productionCostSchema = z.object({
   id: z.string().uuid().optional(),
   organizacao_id: z.string().uuid(),
+  propriedade_id: z.string().uuid().optional(),
   cultura_id: z.string().uuid(),
   sistema_id: z.string().uuid(),
-  safra_id: z.string().uuid(),
-  propriedade_id: z.string().uuid(),
   categoria: productionCostCategoryEnum,
-  valor: z.coerce.number().min(0, "Valor deve ser positivo"),
+  custos_por_safra: z.record(z.string(), z.coerce.number().min(0, "Valor deve ser positivo")),
+  descricao: z.string().optional(),
+  observacoes: z.string().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
 
 export type ProductionCost = z.infer<typeof productionCostSchema>;
 
-export const productionCostFormSchema = productionCostSchema.omit({
-  id: true,
-  organizacao_id: true,
-  created_at: true,
-  updated_at: true
+// Form schema for creating/editing production costs
+export const productionCostFormSchema = z.object({
+  propriedade_id: z.string().uuid().optional(),
+  cultura_id: z.string().uuid(),
+  sistema_id: z.string().uuid(),
+  categoria: productionCostCategoryEnum,
+  custos_por_safra: z.record(z.string(), z.coerce.number().min(0.01, "Valor deve ser maior que 0"))
+    .refine(data => Object.keys(data).length > 0, "Adicione pelo menos um custo por safra"),
+  descricao: z.string().optional(),
+  observacoes: z.string().optional(),
 });
 export type ProductionCostFormValues = z.infer<typeof productionCostFormSchema>;
+
+// Schema for multi-safra production cost form
+export const multiSafraProductionCostFormSchema = productionCostFormSchema;
+export type MultiSafraProductionCostFormValues = ProductionCostFormValues;
 
 // =======================================
 // Livestock Schema

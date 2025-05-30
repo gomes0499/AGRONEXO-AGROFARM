@@ -1,12 +1,18 @@
 import { z } from "zod";
 import { inventoryTypeEnum, commodityTypeEnum } from "./common";
 
+// Schema para valores por safra
+export const safraValuesSchema = z.record(z.string(), z.number());
+export type SafraValuesType = z.infer<typeof safraValuesSchema>;
+
 // Schema para Estoques
 export const inventorySchema = z.object({
   id: z.string().uuid().optional(),
   organizacao_id: z.string().uuid(),
   tipo: inventoryTypeEnum,
-  valor: z.coerce.number().min(0, "Valor deve ser positivo"),
+  valor: z.coerce.number().min(0, "Valor deve ser positivo").optional(),
+  valores_por_safra: safraValuesSchema.or(z.string()).optional(),
+  safra_id: z.string().uuid().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
@@ -37,7 +43,9 @@ export const commodityInventorySchema = z.object({
   id: z.string().uuid().optional(),
   organizacao_id: z.string().uuid(),
   commodity: commodityTypeEnum,
-  valor_total: z.coerce.number().min(0, "Valor total deve ser positivo"),
+  valor_total: z.coerce.number().min(0, "Valor total deve ser positivo").optional(),
+  valores_por_safra: safraValuesSchema.or(z.string()).optional(),
+  safra_id: z.string().uuid().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

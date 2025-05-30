@@ -18,14 +18,30 @@ import { errorHandler } from '@/utils/error-handler';
 import { formatISO } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 
+// Helper function to check if precos table exists and return appropriate error
+async function safeExecuteWithPrecosTable<T>(
+  operation: () => Promise<T>,
+  fallbackValue: T
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error: any) {
+    if (error?.code === '42P01' || error?.message?.includes('relation "public.precos" does not exist')) {
+      console.warn('Tabela precos não existe ainda, retornando valor padrão');
+      return fallbackValue;
+    }
+    throw error;
+  }
+}
+
 
 export async function getPrices(organizacaoId: string, safraId?: string) {
-  try {
+  return safeExecuteWithPrecosTable(async () => {
     const supabase = await createClient();
     
     let query = supabase
       .from('precos')
-      .select('*, safra:safras(*)')
+      .select('*')
       .eq('organizacao_id', organizacaoId)
       .order('data_referencia', { ascending: false });
     
@@ -33,36 +49,72 @@ export async function getPrices(organizacaoId: string, safraId?: string) {
       query = query.eq('safra_id', safraId);
     }
     
-    const { data, error } = await query;
+    const { data: prices, error } = await query;
     
     if (error) throw error;
     
-    return data as Price[];
-  } catch (error) {
-    return errorHandler(error, 'Erro ao buscar preços');
-  }
+    // Buscar safras separadamente se necessário
+    if (prices && prices.length > 0) {
+      const safraIds = [...new Set(prices.map(p => p.safra_id).filter(Boolean))];
+      
+      if (safraIds.length > 0) {
+        const { data: safras } = await supabase
+          .from('safras')
+          .select('*')
+          .in('id', safraIds);
+        
+        // Mapear safras para os preços
+        const safraMap = safras?.reduce((acc, safra) => {
+          acc[safra.id] = safra;
+          return acc;
+        }, {} as Record<string, any>) || {};
+        
+        return prices.map(price => ({
+          ...price,
+          safra: price.safra_id ? safraMap[price.safra_id] : null
+        })) as Price[];
+      }
+    }
+    
+    return prices as Price[] || [];
+  }, []);
 }
 
 /**
  * Obtém um preço específico por ID
  */
 export async function getPriceById(id: string, organizacaoId: string) {
-  try {
+  return safeExecuteWithPrecosTable(async () => {
     const supabase = await createClient();
     
-    const { data, error } = await supabase
+    const { data: price, error } = await supabase
       .from('precos')
-      .select('*, safra:safras(*)')
+      .select('*')
       .eq('id', id)
       .eq('organizacao_id', organizacaoId)
       .single();
     
     if (error) throw error;
     
-    return data as Price;
-  } catch (error) {
-    return errorHandler(error, 'Erro ao buscar preço');
-  }
+    // Buscar safra separadamente se necessário
+    if (price && price.safra_id) {
+      const { data: safra } = await supabase
+        .from('safras')
+        .select('*')
+        .eq('id', price.safra_id)
+        .single();
+      
+      return {
+        ...price,
+        safra: safra || null
+      } as Price;
+    }
+    
+    return {
+      ...price,
+      safra: null
+    } as Price;
+  }, null);
 }
 
 /**

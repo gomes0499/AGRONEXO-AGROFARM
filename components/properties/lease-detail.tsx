@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Lease } from "@/schemas/properties";
 import {
@@ -8,6 +8,7 @@ import {
   formatCurrency,
   formatSacas,
 } from "@/lib/utils/formatters";
+import { getSafrasByIds } from "@/lib/actions/property-actions";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -59,11 +60,13 @@ import {
 interface LeaseDetailProps {
   lease: Lease;
   propertyId: string;
+  organizationId?: string;
 }
 
-export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
+export function LeaseDetail({ lease, propertyId, organizationId }: LeaseDetailProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-  // Não há mais tabs nesta versão do componente
+  const [safrasMap, setSafrasMap] = useState<{[key: string]: any}>({});
+  const [loadingSafras, setLoadingSafras] = useState(false);
   const router = useRouter();
 
   const handleDelete = async () => {
@@ -112,17 +115,66 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
 
   // Obter os anos da projeção de custos
   const custos =
-    typeof lease.custos_projetados_anuais === "string"
-      ? JSON.parse(lease.custos_projetados_anuais)
-      : lease.custos_projetados_anuais;
+    typeof lease.custos_por_ano === "string"
+      ? JSON.parse(lease.custos_por_ano)
+      : lease.custos_por_ano;
 
-  const anos = Object.keys(custos).sort();
+  // Buscar informações das safras
+  useEffect(() => {
+    const fetchSafras = async () => {
+      if (!organizationId || !custos || Object.keys(custos).length === 0) {
+        return;
+      }
+
+      try {
+        setLoadingSafras(true);
+        const safraIds = Object.keys(custos);
+        const safrasData = await getSafrasByIds(organizationId, safraIds);
+        
+        // Criar um mapa de ID -> dados da safra
+        const safrasMap: {[key: string]: any} = {};
+        safrasData.forEach((safra: any) => {
+          safrasMap[safra.id] = safra;
+        });
+        
+        setSafrasMap(safrasMap);
+      } catch (error) {
+        console.error("Erro ao buscar safras:", error);
+      } finally {
+        setLoadingSafras(false);
+      }
+    };
+
+    fetchSafras();
+  }, [organizationId, custos]);
+
+  // Ordenar as safras cronologicamente quando os dados estiverem disponíveis
+  const anos = Object.keys(custos).sort((a, b) => {
+    const safraA = safrasMap[a];
+    const safraB = safrasMap[b];
+    
+    if (safraA && safraB) {
+      // Ordenar por ano de início das safras
+      return safraA.ano_inicio - safraB.ano_inicio;
+    }
+    
+    // Fallback para ordenação por UUID se não tiver dados da safra
+    return a.localeCompare(b);
+  });
 
   // Preparar dados para o gráfico - convertendo de sacas para R$
-  const chartData = anos.map((ano) => ({
-    ano,
-    valor: custos[ano], // usando valor em sacas (formatação será feita na exibição)
-  }));
+  const chartData = anos.map((safraId) => {
+    const safra = safrasMap[safraId];
+    const displayName = safra 
+      ? `${safra.ano_inicio}/${safra.ano_fim}` // Mostrar apenas os anos para ficar mais limpo
+      : safraId.substring(0, 8);
+    
+    return {
+      ano: displayName,
+      valor: custos[safraId],
+      safraId: safraId // Manter ID original para referência
+    };
+  });
 
   // Configuração do gráfico
   const chartConfig = {
@@ -214,44 +266,59 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {anos.map((ano) => (
-                <div key={ano} className="border p-4 rounded-lg">
-                  <h3 className="text-sm font-medium mb-1">Ano {ano}</h3>
-                  <div className="flex items-center">
-                    <DollarSign
-                      size={16}
-                      className="mr-1 text-muted-foreground"
-                    />
-                    <p className="text-xl font-bold">
-                      {formatCurrency(custos[ano])}
-                    </p>
-                  </div>
-                  {ano === anos[0] ? (
-                    <Badge className="mt-2" variant="outline">
-                      Ano Base
-                    </Badge>
-                  ) : (
-                    <div className="flex items-center mt-2 text-xs">
-                      <Percent size={12} className="mr-1" />
-                      <span
-                        className={
-                          custos[ano] > custos[anos[0]]
-                            ? "text-red-500"
-                            : "text-green-500"
-                        }
-                      >
-                        {custos[ano] !== custos[anos[0]]
-                          ? `${custos[ano] > custos[anos[0]] ? "+" : ""}${(
-                              ((custos[ano] - custos[anos[0]]) /
-                                custos[anos[0]]) *
-                              100
-                            ).toFixed(1)}%`
-                          : "0%"}
-                      </span>
-                    </div>
-                  )}
+              {loadingSafras ? (
+                <div className="col-span-5 text-center py-4">
+                  <div className="text-sm text-muted-foreground">Carregando informações das safras...</div>
                 </div>
-              ))}
+              ) : (
+                anos.map((safraId) => {
+                  const safra = safrasMap[safraId];
+                  const displayName = safra 
+                    ? `${safra.nome} (${safra.ano_inicio}/${safra.ano_fim})`
+                    : safraId.substring(0, 8) + "...";
+                  
+                  return (
+                    <div key={safraId} className="border p-4 rounded-lg">
+                      <h3 className="text-sm font-medium mb-1 line-clamp-2" title={displayName}>
+                        {displayName}
+                      </h3>
+                      <div className="flex items-center">
+                        <DollarSign
+                          size={16}
+                          className="mr-1 text-muted-foreground"
+                        />
+                        <p className="text-xl font-bold">
+                          {formatCurrency(custos[safraId])}
+                        </p>
+                      </div>
+                      {safraId === anos[0] ? (
+                        <Badge className="mt-2" variant="outline">
+                          Safra Base
+                        </Badge>
+                      ) : (
+                        <div className="flex items-center mt-2 text-xs">
+                          <Percent size={12} className="mr-1" />
+                          <span
+                            className={
+                              custos[safraId] > custos[anos[0]]
+                                ? "text-red-500"
+                                : "text-green-500"
+                            }
+                          >
+                            {custos[safraId] !== custos[anos[0]]
+                              ? `${custos[safraId] > custos[anos[0]] ? "+" : ""}${(
+                                  ((custos[safraId] - custos[anos[0]]) /
+                                    custos[anos[0]]) *
+                                  100
+                                ).toFixed(1)}%`
+                              : "0%"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </CardContent>
         </Card>
@@ -319,7 +386,7 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
                         size={16}
                         className="mr-1 text-muted-foreground"
                       />
-                      {formatSacas(lease.custo_ano)}
+                      {formatSacas(lease.area_arrendada * (lease.custo_hectare || 0))}
                     </div>
                   </div>
                 </div>
@@ -358,6 +425,65 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
                   </p>
                 </div>
               </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                    Safra Base
+                  </h3>
+                  {lease.safra ? (
+                    <div>
+                      <p className="font-medium">{lease.safra.nome}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {lease.safra.ano_inicio}/{lease.safra.ano_fim}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">Não informado</p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                    Tipo de Pagamento
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      {lease.tipo_pagamento || "SACAS"}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                    Status do Contrato
+                  </h3>
+                  <div className="flex gap-1">
+                    <Badge variant={isActive() ? "default" : "destructive"}>
+                      {isActive() ? "Ativo" : "Vencido"}
+                    </Badge>
+                    {lease.ativo !== undefined && !lease.ativo && (
+                      <Badge variant="secondary">Inativo</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {lease.observacoes && (
+                <>
+                  <Separator />
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                      Observações
+                    </h3>
+                    <p className="text-sm bg-muted/50 p-3 rounded-lg">
+                      {lease.observacoes}
+                    </p>
+                  </div>
+                </>
+              )}
 
               <Separator />
 
@@ -426,7 +552,7 @@ export function LeaseDetail({ lease, propertyId }: LeaseDetailProps) {
                   </h3>
                   <p className="text-xl font-bold flex items-center">
                     <AreaChart size={16} className="text-muted-foreground" />
-                    {formatSacas(lease.custo_ano)}
+                    {formatSacas(lease.area_arrendada * (lease.custo_hectare || 0))}
                   </p>
                 </div>
 

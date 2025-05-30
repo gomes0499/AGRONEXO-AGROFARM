@@ -83,7 +83,7 @@ export function CommodityInventoryListing({
 
   // Calcular o total de estoques
   const totalInventoryValue = filteredInventories.reduce(
-    (sum, inventory) => sum + inventory.valor_total,
+    (sum, inventory) => sum + (inventory.valor_total || 0),
     0
   );
 

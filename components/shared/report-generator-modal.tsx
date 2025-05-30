@@ -43,9 +43,9 @@ export function ReportGeneratorModal({
         <Button
           variant={buttonVariant}
           size={buttonSize}
-          className={cn(className, buttonIcon && "flex items-center")}
+          className={cn(className, buttonIcon && "flex items-center text-foreground")}
         >
-          {buttonIcon && <FileBarChart className="mr-2 h-4 w-4" />}
+          {buttonIcon && <FileBarChart className="mr-2 h-4 w-4 text-foreground" />}
           {buttonText}
         </Button>
       </DialogTrigger>
