@@ -10,6 +10,7 @@ import { annualFlowSchema } from "@/schemas/financial/common";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -40,6 +41,7 @@ import {
 import { useState, useEffect } from "react";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
+import { Building2 } from "lucide-react";
 
 // Define the currency type
 type CurrencyType = "BRL" | "USD" | "EUR" | "SOJA";
@@ -260,202 +262,216 @@ export function BankDebtForm({
   });
 
   return (
-    <Dialog open={open} onOpenChange={(open) => !open && onOpenChange(false)}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {existingDebt ? "Editar" : "Nova"} Dívida {
-              form.watch("tipo_instituicao") === "BANCO" 
-                ? "Bancária" 
-                : form.watch("tipo_instituicao") === "TRADING" 
-                ? "com Trading" 
-                : "Financeira"
-            }
-          </DialogTitle>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent 
+        className="!max-w-[700px] !important p-0 overflow-hidden" 
+        style={{ maxWidth: "700px !important" }}
+      >
+        <DialogHeader className="p-6 pb-2">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-xl font-semibold">
+              {existingDebt ? "Editar" : "Nova"} Dívida {
+                form.watch("tipo_instituicao") === "BANCO" 
+                  ? "Bancária" 
+                  : form.watch("tipo_instituicao") === "TRADING" 
+                  ? "com Trading" 
+                  : "Financeira"
+              }
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-muted-foreground mt-1">
+            {existingDebt 
+              ? "Edite os detalhes da dívida." 
+              : "Cadastre uma nova dívida bancária ou financeira."}
+          </DialogDescription>
         </DialogHeader>
-
-        <Form {...form}>
+        
+        <div className="px-6 py-2 max-h-[75vh] overflow-y-auto">
+          <Form {...form}>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
+            <div className="space-y-5">
               <h3 className="text-lg font-medium">Informações Básicas</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-5">
+                  <FormField
+                    control={form.control}
+                    name="tipo_instituicao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tipo de Instituição</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
+                          disabled={isSubmitting}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o tipo" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="BANCO">Banco</SelectItem>
+                            <SelectItem value="TRADING">Trading</SelectItem>
+                            <SelectItem value="OUTROS">Outro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="tipo_instituicao"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Instituição</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      defaultValue={field.value}
-                      disabled={isSubmitting}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="BANCO">Banco</SelectItem>
-                        <SelectItem value="TRADING">Trading</SelectItem>
-                        <SelectItem value="OUTROS">Outro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="instituicao_bancaria"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {form.watch("tipo_instituicao") === "BANCO" 
-                        ? "Instituição Bancária" 
-                        : form.watch("tipo_instituicao") === "TRADING" 
-                        ? "Empresa Trading" 
-                        : "Nome da Instituição"}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={
-                          form.watch("tipo_instituicao") === "BANCO" 
-                            ? "Nome da instituição bancária" 
+                  <FormField
+                    control={form.control}
+                    name="instituicao_bancaria"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {form.watch("tipo_instituicao") === "BANCO" 
+                            ? "Instituição Bancária" 
                             : form.watch("tipo_instituicao") === "TRADING" 
-                            ? "Nome da empresa trading"
-                            : "Nome da instituição"
-                        }
-                        {...field}
-                        disabled={isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="modalidade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Modalidade</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        defaultValue={field.value}
-                        disabled={isSubmitting}
-                      >
+                            ? "Empresa Trading" 
+                            : "Nome da Instituição"}
+                        </FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a modalidade" />
-                          </SelectTrigger>
+                          <Input
+                            placeholder={
+                              form.watch("tipo_instituicao") === "BANCO" 
+                                ? "Nome da instituição bancária" 
+                                : form.watch("tipo_instituicao") === "TRADING" 
+                                ? "Nome da empresa trading"
+                                : "Nome da instituição"
+                            }
+                            {...field}
+                            disabled={isSubmitting}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="CUSTEIO">Custeio</SelectItem>
-                          <SelectItem value="INVESTIMENTOS">
-                            Investimentos
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="ano_contratacao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ano de Contratação</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={1900}
-                          max={new Date().getFullYear()}
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value))
-                          }
+                  <FormField
+                    control={form.control}
+                    name="modalidade"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Modalidade</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
                           disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a modalidade" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="CUSTEIO">Custeio</SelectItem>
+                            <SelectItem value="INVESTIMENTOS">
+                              Investimentos
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="indexador"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Indexador</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        defaultValue={field.value}
-                        disabled={isSubmitting}
-                      >
+                <div className="space-y-5">
+                  <FormField
+                    control={form.control}
+                    name="ano_contratacao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ano de Contratação</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o indexador" />
-                          </SelectTrigger>
+                          <Input
+                            type="number"
+                            min={1900}
+                            max={new Date().getFullYear()}
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value))
+                            }
+                            disabled={isSubmitting}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="CDI">CDI</SelectItem>
-                          <SelectItem value="SELIC">SELIC</SelectItem>
-                          <SelectItem value="IPCA">IPCA</SelectItem>
-                          <SelectItem value="IGPM">IGPM</SelectItem>
-                          <SelectItem value="INCC">INCC</SelectItem>
-                          <SelectItem value="TR">TR</SelectItem>
-                          <SelectItem value="TJLP">TJLP</SelectItem>
-                          <SelectItem value="TLP">TLP</SelectItem>
-                          <SelectItem value="PRE">PRÉ-FIXADO</SelectItem>
-                          <SelectItem value="CDI+PRE">CDI + PRÉ</SelectItem>
-                          <SelectItem value="IPCA+PRE">IPCA + PRÉ</SelectItem>
-                          <SelectItem value="OUTRO">OUTRO</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="taxa_real"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Taxa Real (%)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          placeholder="Taxa real em %"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value))
-                          }
+                  <FormField
+                    control={form.control}
+                    name="indexador"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Indexador</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
                           disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o indexador" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="CDI">CDI</SelectItem>
+                            <SelectItem value="SELIC">SELIC</SelectItem>
+                            <SelectItem value="IPCA">IPCA</SelectItem>
+                            <SelectItem value="IGPM">IGPM</SelectItem>
+                            <SelectItem value="INCC">INCC</SelectItem>
+                            <SelectItem value="TR">TR</SelectItem>
+                            <SelectItem value="TJLP">TJLP</SelectItem>
+                            <SelectItem value="TLP">TLP</SelectItem>
+                            <SelectItem value="PRE">PRÉ-FIXADO</SelectItem>
+                            <SelectItem value="CDI+PRE">CDI + PRÉ</SelectItem>
+                            <SelectItem value="IPCA+PRE">IPCA + PRÉ</SelectItem>
+                            <SelectItem value="OUTRO">OUTRO</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="taxa_real"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Taxa Real (%)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            placeholder="Taxa real em %"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value))
+                            }
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               {/* Safra selection - Now more prominent */}
-              <div className="mb-6 p-4 rounded-lg border border-amber-200 bg-amber-50">
+              <div className="p-4 rounded-lg border border-amber-200 bg-amber-50">
                 <h3 className="text-lg font-medium text-amber-800 mb-2">Vincular a Safra</h3>
                 <p className="text-sm text-amber-700 mb-4">
                   Vincular esta dívida a uma safra permitirá visualizá-la organizada por período de produção.
@@ -492,39 +508,34 @@ export function BankDebtForm({
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="moeda"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Moeda</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        defaultValue={field.value}
-                        disabled={isSubmitting}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a moeda" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="BRL">Real (R$)</SelectItem>
-                          <SelectItem value="USD">Dólar (US$)</SelectItem>
-                          <SelectItem value="EUR">Euro (€)</SelectItem>
-                          <SelectItem value="SOJA">Soja (sacas)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Additional field could go here in the grid */}
-                <div className="hidden md:block"></div>
-              </div>
+              <FormField
+                control={form.control}
+                name="moeda"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Moeda</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a moeda" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="BRL">Real (R$)</SelectItem>
+                        <SelectItem value="USD">Dólar (US$)</SelectItem>
+                        <SelectItem value="EUR">Euro (€)</SelectItem>
+                        <SelectItem value="SOJA">Soja (sacas)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="space-y-4">
@@ -545,6 +556,7 @@ export function BankDebtForm({
                           }
                           onChange={field.onChange}
                           organizacaoId={organizationId}
+                          safras={harvests}
                         />
                       </FormControl>
                       <FormMessage />
@@ -554,7 +566,7 @@ export function BankDebtForm({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
@@ -563,7 +575,29 @@ export function BankDebtForm({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="min-w-[100px]"
+              >
+                {isSubmitting && (
+                  <div className="mr-2 h-4 w-4 animate-spin">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-loader-2"
+                    >
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                  </div>
+                )}
                 {isSubmitting
                   ? "Salvando..."
                   : existingDebt
@@ -573,6 +607,7 @@ export function BankDebtForm({
             </div>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

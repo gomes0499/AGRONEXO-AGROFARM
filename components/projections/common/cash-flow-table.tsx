@@ -123,7 +123,7 @@ export function CashFlowTable({
         </div>
       </CardHeader>
       <CardContent className="overflow-hidden">
-        <div className="overflow-x-auto overflow-y-hidden border rounded-md max-w-full">
+        <div className="overflow-x-auto overflow-y-hidden border rounded-md" style={{ maxWidth: '100%' }}>
           <div className="min-w-max">
             <Table>
               <TableHeader>

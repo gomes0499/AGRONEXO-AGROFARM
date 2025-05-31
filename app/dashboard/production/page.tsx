@@ -144,6 +144,11 @@ export default async function ProductionPage() {
     <UnifiedPlantingAreaListing
       plantingAreas={plantingAreas}
       safras={safras}
+      properties={properties}
+      cultures={cultures}
+      systems={systems}
+      cycles={cycles}
+      organizationId={organizationId}
     />
   );
 
@@ -152,6 +157,10 @@ export default async function ProductionPage() {
     <UnifiedProductionCostListing
       productionCosts={productionCosts}
       safras={safras}
+      properties={properties}
+      cultures={cultures}
+      systems={systems}
+      organizationId={organizationId}
     />
   );
 
@@ -160,6 +169,10 @@ export default async function ProductionPage() {
     <UnifiedProductivityListing
       productivities={productivities}
       safras={safras}
+      properties={properties}
+      cultures={cultures}
+      systems={systems}
+      organizationId={organizationId}
     />
   );
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Factory } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -57,7 +57,7 @@ export function NewLivestockOperationButton({
         <Button
           onClick={() => setIsOpen(true)}
           className={cn("transition-all hover:scale-105", className)}
-          size="sm"
+          size="default"
         >
           <Plus className="h-4 w-4 mr-2" />
           Nova Operação
@@ -66,9 +66,12 @@ export function NewLivestockOperationButton({
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
           <DrawerContent className="h-[90%] max-h-none rounded-t-xl">
             <DrawerHeader className="text-left border-b pb-4">
-              <DrawerTitle className="text-xl font-semibold">
-                Nova Operação Pecuária
-              </DrawerTitle>
+              <div className="flex items-center gap-2">
+                <Factory className="h-5 w-5 text-primary" />
+                <DrawerTitle className="text-xl font-semibold">
+                  Nova Operação Pecuária
+                </DrawerTitle>
+              </div>
               <DrawerDescription className="text-muted-foreground mt-1">
                 Cadastre uma nova operação de confinamento ou abate.
               </DrawerDescription>
@@ -93,17 +96,24 @@ export function NewLivestockOperationButton({
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)} className={cn(className)}>
+      <Button 
+        onClick={() => setIsOpen(true)} 
+        className={cn(className)} 
+        size="default"
+      >
         <Plus className="h-4 w-4 mr-2" />
         Nova Operação
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
+        <DialogContent className="max-w-[500px] p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-2">
-            <DialogTitle className="text-xl font-semibold">
-              Nova Operação Pecuária
-            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Factory className="h-5 w-5 text-primary" />
+              <DialogTitle className="text-xl font-semibold">
+                Nova Operação Pecuária
+              </DialogTitle>
+            </div>
             <DialogDescription className="text-muted-foreground mt-1">
               Cadastre uma nova operação de confinamento ou abate.
             </DialogDescription>

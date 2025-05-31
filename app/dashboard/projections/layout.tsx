@@ -25,9 +25,9 @@ export default async function ProjectionsLayout({
   }
   
   return (
-    <div className="flex flex-col min-h-screen overflow-hidden">
+    <div className="flex flex-col min-h-screen overflow-x-hidden">
       <SiteHeader title="Projeções" />
-      <div className="flex-1 p-4 md:p-6 pt-2 overflow-hidden">
+      <div className="flex-1 p-4 md:p-6 pt-2 overflow-x-hidden">
         {children}
       </div>
     </div>

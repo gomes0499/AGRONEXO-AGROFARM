@@ -5,6 +5,8 @@ import { getSession } from "@/lib/auth";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { Separator } from "@/components/ui/separator";
 import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
+import { PropertyMigrationHelper } from "@/components/properties/property-migration-helper";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Nova Propriedade | SR Consultoria",
@@ -20,7 +22,30 @@ export default async function NewPropertyPage() {
   if (!session?.organizationId) {
     redirect("/dashboard");
   }
-
+  
+  // Verificar se todas as colunas necessárias existem na tabela propriedades
+  const supabase = await createClient();
+  const columnsToCheck = ['imagem', 'cartorio_registro', 'numero_car', 'data_inicio', 'data_termino', 'tipo_anuencia'];
+  
+  // Verificar cada coluna essencial
+  let allColumnsExist = true;
+  let missingColumns = [];
+  
+  for (const column of columnsToCheck) {
+    const { count, error } = await supabase
+      .from('information_schema.columns')
+      .select('column_name', { count: 'exact', head: true })
+      .eq('table_name', 'propriedades')
+      .eq('column_name', column);
+    
+    if (error || !count || count === 0) {
+      allColumnsExist = false;
+      missingColumns.push(column);
+    }
+  }
+  
+  console.log("Verificação de colunas:", allColumnsExist ? "Todas as colunas existem" : `Colunas faltando: ${missingColumns.join(', ')}`);
+  
   return (
     <>
       <SiteHeader 
@@ -37,7 +62,14 @@ export default async function NewPropertyPage() {
           </p>
         </div>
         <Separator />
-        <PropertyForm organizationId={session.organizationId} />
+        
+        {!allColumnsExist ? (
+          <div className="my-4">
+            <PropertyMigrationHelper missingColumns={missingColumns} />
+          </div>
+        ) : (
+          <PropertyForm organizationId={session.organizationId} />
+        )}
       </div>
     </>
   );

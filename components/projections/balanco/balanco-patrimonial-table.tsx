@@ -51,19 +51,19 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
           description="Visão consolidada do patrimônio da empresa por período"
         />
         <CardContent className="p-6">
-          <div className="overflow-x-auto overflow-y-hidden border rounded-md">
+          <div className="overflow-x-auto overflow-y-hidden border rounded-md" style={{ maxWidth: '100%' }}>
             <div className="min-w-max">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
-                      BALANÇO PATRIMONIAL
+                    <TableHead className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
+                      Balanço Patrimonial
                     </TableHead>
                     {data.anos.map((ano, index) => (
                       <TableHead 
                         key={ano} 
                         className={cn(
-                          "font-semibold text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
+                          "font-medium text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
                           index === data.anos.length - 1 && "rounded-tr-md"
                         )}
                       >
@@ -74,9 +74,9 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                 </TableHeader>
                 <TableBody>
                   {/* === SEÇÃO DE ATIVO === */}
-                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      ATIVO
+                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Ativo
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -90,8 +90,8 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   {/* === ATIVO CIRCULANTE === */}
                   <TableRow className="bg-gray-50 font-semibold">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      ATIVO CIRCULANTE
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Ativo Circulante
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.ativo.circulante.total[ano] || 0;
@@ -112,7 +112,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                   {/* Detalhes do Ativo Circulante */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      CAIXA E BANCOS
+                      Caixa e Bancos
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -126,7 +126,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      CLIENTES
+                      Clientes
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -140,7 +140,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      ADIANTAMENTOS A FORNECEDORES
+                      Adiantamentos a Fornecedores
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -154,7 +154,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30 bg-muted/5">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-muted/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      ESTOQUES
+                      Estoques
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -225,7 +225,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      EMPRÉSTIMOS A TERCEIROS
+                      Empréstimos a Terceiros
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -239,8 +239,8 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   {/* === ATIVO NÃO CIRCULANTE === */}
                   <TableRow className="bg-gray-50 font-semibold">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      ATIVO NÃO CIRCULANTE
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Ativo Não Circulante
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.ativo.nao_circulante.total[ano] || 0;
@@ -260,7 +260,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      INVESTIMENTOS
+                      Investimentos
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -274,7 +274,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30 bg-muted/5">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-muted/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      IMOBILIZADO
+                      Imobilizado
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -346,7 +346,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                   {/* === TOTAL DO ATIVO === */}
                   <TableRow className="bg-gray-50 font-bold border-t-2 border-gray-200">
                     <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      TOTAL DO ATIVO
+                      Total do Ativo
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.ativo.total[ano] || 0;
@@ -365,9 +365,9 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                   </TableRow>
 
                   {/* === SEÇÃO DE PASSIVO === */}
-                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      PASSIVO
+                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Passivo
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -381,8 +381,8 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   {/* === PASSIVO CIRCULANTE === */}
                   <TableRow className="bg-gray-50 font-semibold">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      PASSIVO CIRCULANTE
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Passivo Circulante
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.passivo.circulante.total[ano] || 0;
@@ -403,7 +403,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                   {/* Detalhes do Passivo Circulante */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      FORNECEDORES
+                      Fornecedores
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -417,7 +417,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      EMPRÉSTIMOS E FINANCIAMENTOS (CP)
+                      Empréstimos e Financiamentos (CP)
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -431,7 +431,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      ADIANTAMENTOS DE CLIENTES
+                      Adiantamentos de Clientes
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -445,7 +445,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      IMPOSTOS E TAXAS
+                      Impostos e Taxas
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -459,8 +459,8 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   {/* === PASSIVO NÃO CIRCULANTE === */}
                   <TableRow className="bg-gray-50 font-semibold">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      PASSIVO NÃO CIRCULANTE
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Passivo Não Circulante
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.passivo.nao_circulante.total[ano] || 0;
@@ -481,7 +481,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                   {/* Detalhes do Passivo Não Circulante */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      EMPRÉSTIMOS E FINANCIAMENTOS (LP)
+                      Empréstimos e Financiamentos (LP)
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -495,7 +495,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      FINANCIAMENTOS DE TERRAS
+                      Financiamentos de Terras
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -509,7 +509,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      ARRENDAMENTOS
+                      Arrendamentos
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -523,8 +523,8 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   {/* === PATRIMÔNIO LÍQUIDO === */}
                   <TableRow className="bg-gray-50 font-semibold">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      PATRIMÔNIO LÍQUIDO
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Patrimônio Líquido
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.passivo.patrimonio_liquido.total[ano] || 0;
@@ -545,7 +545,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                   {/* Detalhes do Patrimônio Líquido */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      CAPITAL SOCIAL
+                      Capital Social
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -559,7 +559,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      RESERVAS
+                      Reservas
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -573,7 +573,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      LUCROS ACUMULADOS
+                      Lucros Acumulados
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.passivo.patrimonio_liquido.lucros_acumulados[ano] || 0;
@@ -594,7 +594,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                   {/* === TOTAL DO PASSIVO + PL === */}
                   <TableRow className="bg-gray-50 font-bold border-t-2 border-gray-200">
                     <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      TOTAL DO PASSIVO + PL
+                      Total do Passivo + PL
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.passivo.total[ano] || 0;

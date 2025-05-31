@@ -21,16 +21,17 @@ export const propertySchema = z.object({
   id: z.string().uuid().optional(),
   organizacao_id: z.string().uuid(),
   nome: z.string().min(1, "Nome da propriedade é obrigatório"),
-  ano_aquisicao: z.coerce.number().int().min(1900).nullable(),
+  // Ano de aquisição só é obrigatório para propriedades próprias
+  ano_aquisicao: z.coerce.number().int().min(1900).nullable().optional(),
   proprietario: z.string().nullable(),
   cidade: z.string().nullable(),
   estado: z.string().nullable(),
   numero_matricula: z.string().nullable(),
   area_total: z.coerce.number().min(0, "Área total deve ser positiva").nullable(),
   area_cultivada: z.coerce.number().min(0, "Área cultivada deve ser positiva").nullable(),
-  valor_atual: z.coerce.number().min(0, "Valor atual deve ser positivo").nullable(),
+  valor_atual: z.coerce.number().min(0, "Valor atual deve ser positivo").nullable().transform(val => val === 0 ? null : val),
   onus: z.string().nullable(),
-  avaliacao_banco: z.coerce.number().nullable(),
+  avaliacao_banco: z.coerce.number().nullable().transform(val => val === 0 ? null : val),
   tipo: propertyTypeEnum.default("PROPRIO"),
   status: propertyStatusEnum.default("ATIVA"),
   // Campos adicionais
@@ -47,12 +48,57 @@ export const propertySchema = z.object({
 export type Property = z.infer<typeof propertySchema>;
 
 // Schema para formulário de propriedades (sem ID e com campos opcionais)
-export const propertyFormSchema = propertySchema.omit({ 
+// Schema base para o formulário (sem validações condicionais)
+const basePropertyFormSchema = propertySchema.omit({ 
   id: true, 
   organizacao_id: true,
   created_at: true,
   updated_at: true 
 });
+
+// Schema refinado com validações condicionais baseadas no tipo de propriedade
+export const propertyFormSchema = basePropertyFormSchema
+  // Uma única função superRefine para todas as validações condicionais
+  .superRefine((data, ctx) => {
+    // Validação para propriedades próprias
+    if (data.tipo === "PROPRIO") {
+      if (!data.ano_aquisicao) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Ano de aquisição é obrigatório para propriedades próprias",
+          path: ["ano_aquisicao"],
+        });
+      }
+    } 
+    // Validação para propriedades arrendadas
+    else if (data.tipo === "ARRENDADO") {
+      if (!data.data_inicio) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Data de início é obrigatória para propriedades arrendadas",
+          path: ["data_inicio"],
+        });
+      }
+      
+      if (!data.data_termino) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Data de término é obrigatória para propriedades arrendadas",
+          path: ["data_termino"],
+        });
+      }
+      
+      if (!data.tipo_anuencia) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Tipo de anuência é obrigatório para propriedades arrendadas",
+          path: ["tipo_anuencia"],
+        });
+      }
+    }
+    // Para outros tipos de propriedade, não exigimos campos específicos
+  });
+
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 
 // Schema para Arrendamento (matches database table exactly)
@@ -66,11 +112,16 @@ export const leaseSchema = z.object({
   arrendantes: z.string().min(1, "Nome dos arrendantes é obrigatório"),
   data_inicio: z.coerce.date(),
   data_termino: z.coerce.date(),
-  area_fazenda: z.coerce.number().min(0, "Área da fazenda deve ser positiva"),
-  area_arrendada: z.coerce.number().min(0, "Área arrendada deve ser positiva"),
+  area_fazenda: z.coerce.number().min(0.01, "Área da fazenda deve ser positiva"),
+  area_arrendada: z.coerce.number().min(0.01, "Área arrendada deve ser positiva"),
   custo_hectare: z.coerce.number().min(0, "Custo por hectare deve ser positivo").nullable(),
   tipo_pagamento: leasePaymentTypeEnum.default("SACAS"),
-  custos_por_ano: z.record(z.string(), z.any()).default({}), // JSONB format: {"safra_id": value}
+  // Garantir que custos_por_ano tenha pelo menos uma entrada
+  custos_por_ano: z.record(z.string(), z.any())
+    .refine(data => Object.keys(data).length > 0, {
+      message: "É necessário informar pelo menos um custo anual"
+    })
+    .default({}),
   ativo: z.boolean().default(true),
   observacoes: z.string().nullable().optional(),
   created_at: z.date().optional(),
@@ -92,6 +143,29 @@ export const leaseFormSchema = leaseSchema.omit({
   organizacao_id: true,
   created_at: true,
   updated_at: true
+}).superRefine((data, ctx) => {
+  // Validação de datas
+  if (data.data_inicio && data.data_termino) {
+    const inicio = new Date(data.data_inicio);
+    const termino = new Date(data.data_termino);
+    
+    if (termino <= inicio) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A data de término deve ser posterior à data de início",
+        path: ["data_termino"],
+      });
+    }
+  }
+  
+  // Validação de áreas
+  if (data.area_arrendada > data.area_fazenda) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "A área arrendada não pode ser maior que a área total da fazenda",
+      path: ["area_arrendada"],
+    });
+  }
 });
 export type LeaseFormValues = z.infer<typeof leaseFormSchema>;
 

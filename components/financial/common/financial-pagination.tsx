@@ -62,7 +62,7 @@ export function FinancialPagination({
 
   if (totalPages <= 1) {
     return (
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 px-2 bg-gray-50 rounded-md">
         <div className="text-sm text-muted-foreground">
           {totalItems === 0 ? (
             "Nenhum item encontrado"
@@ -93,7 +93,7 @@ export function FinancialPagination({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-4 px-2 bg-gray-50 rounded-md">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-4 px-4 bg-gray-50 rounded-md">
       <div className="text-sm font-medium text-gray-700">
         Mostrando {startItem} a {endItem} de {totalItems} {totalItems === 1 ? "item" : "itens"}
       </div>

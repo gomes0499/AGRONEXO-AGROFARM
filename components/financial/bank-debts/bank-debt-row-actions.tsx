@@ -1,15 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { BankDebt } from "@/schemas/financial";
 import { FinancialDeleteAlert } from "../common/financial-delete-alert";
 import { deleteBankDebt } from "@/lib/actions/financial-actions";
@@ -46,28 +39,24 @@ export function BankDebtRowActions({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <MoreHorizontal className="h-4 w-4" />
-            <span className="sr-only">Abrir menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onEdit}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => setIsDeleteAlertOpen(true)}
-            className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Excluir
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center justify-center gap-1">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={onEdit}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+          onClick={() => setIsDeleteAlertOpen(true)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
 
       <FinancialDeleteAlert
         open={isDeleteAlertOpen}

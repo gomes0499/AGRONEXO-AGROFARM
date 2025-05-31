@@ -225,8 +225,8 @@ export default async function ManageOrganizationPage({
 
       {/* Tabs Navigation - logo abaixo do site header */}
       <Tabs defaultValue={activeTab}>
-        <div className="bg-muted/50 border-b">
-          <div className="container mx-auto px-4 md:px-6 py-2">
+        <div className="bg-muted/50 border-b sticky top-0 z-10 w-full">
+          <div className="w-full px-4 md:px-6 py-2">
             <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
               <TabsTrigger
                 value="info"

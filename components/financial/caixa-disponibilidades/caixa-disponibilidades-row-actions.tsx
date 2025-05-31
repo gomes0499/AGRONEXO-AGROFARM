@@ -3,14 +3,8 @@
 import { useState } from "react";
 import { CaixaDisponibilidadesListItem } from "@/schemas/financial/caixa_disponibilidades";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { EditIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 
 interface CaixaDisponibilidadesRowActionsProps {
   item: CaixaDisponibilidadesListItem;
@@ -27,27 +21,29 @@ export function CaixaDisponibilidadesRowActions({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-            <MoreHorizontalIcon className="h-4 w-4" />
-            <span className="sr-only">Abrir menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onEdit} className="gap-2">
-            <EditIcon className="h-4 w-4" />
-            <span>Editar</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => setIsDeleteDialogOpen(true)}
-            className="text-destructive gap-2 focus:text-destructive"
-          >
-            <Trash2Icon className="h-4 w-4" />
-            <span>Excluir</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center justify-center gap-1">
+        {/* Botão de edição principal */}
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={onEdit}
+          title="Editar"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        
+        {/* Botão de exclusão */}
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+          onClick={() => setIsDeleteDialogOpen(true)}
+          title="Excluir"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
 
       {/* Diálogo de confirmação para exclusão */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

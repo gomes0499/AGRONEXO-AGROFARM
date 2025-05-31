@@ -4,15 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import {
-  Loader2,
-  DollarSign,
-  CalendarIcon,
-  Leaf,
-  Settings,
-  Tag,
-  MapPin,
-} from "lucide-react";
+import { Loader2, DollarSign, Leaf, Settings, Tag, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -36,22 +28,28 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   type ProductionCost,
-  type ProductionCostFormValues,
   productionCostFormSchema,
   type Culture,
   type System,
   type Harvest,
 } from "@/schemas/production";
+
+// Ajustando para omitir os campos que removemos do formulário
+import { z } from "zod";
+type ProductionCostFormValues = {
+  propriedade_id: string;
+  cultura_id: string;
+  sistema_id: string;
+  categoria: string;
+  custos_por_safra: Record<string, number>;
+};
 import {
   createProductionCost,
   updateProductionCost,
 } from "@/lib/actions/production-actions";
-import {
-  formatCurrency,
-  parseFormattedNumber,
-  isNegativeValue,
-} from "@/lib/utils/formatters";
+import { formatCurrency } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
+import { SafraCostEditor } from "../common/safra-cost-editor";
 
 // Define interface for the property entity
 interface Property {
@@ -155,85 +153,6 @@ const CATEGORY_GROUPS = COST_CATEGORIES.reduce<
   return acc;
 }, {});
 
-// Componente reutilizável para campos de moeda
-const CurrencyField = ({
-  name,
-  label,
-  control,
-  placeholder = "R$ 0,00",
-  description,
-  disabled = false,
-}: {
-  name: string;
-  label: string;
-  control: any;
-  placeholder?: string;
-  description?: string;
-  disabled?: boolean;
-}) => (
-  <FormField
-    control={control}
-    name={name}
-    render={({ field }) => {
-      // Track input focus state
-      const [isFocused, setIsFocused] = useState(false);
-
-      return (
-        <FormItem>
-          <FormLabel className="text-sm font-medium">{label}</FormLabel>
-          <FormControl>
-            <input
-              placeholder={placeholder}
-              disabled={disabled}
-              className={cn(
-                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                isNegativeValue(field.value) &&
-                  "text-red-600 focus:text-foreground"
-              )}
-              onChange={(e) => {
-                // Allow continuous typing by preserving the raw input
-                const rawValue = e.target.value.replace(/[^\d.,\-]/g, "");
-                const numericValue = parseFormattedNumber(rawValue);
-                field.onChange(numericValue);
-              }}
-              onBlur={(e) => {
-                setIsFocused(false);
-                field.onBlur();
-                if (field.value !== undefined && field.value !== null) {
-                  e.target.value = formatCurrency(field.value);
-                }
-              }}
-              onFocus={(e) => {
-                setIsFocused(true);
-                if (field.value) {
-                  // Show raw value without formatting for editing
-                  e.target.value = String(Math.abs(field.value));
-                } else {
-                  e.target.value = "";
-                }
-              }}
-              value={
-                isFocused
-                  ? field.value !== undefined && field.value !== null
-                    ? String(Math.abs(field.value))
-                    : ""
-                  : field.value !== undefined && field.value !== null
-                  ? formatCurrency(field.value)
-                  : ""
-              }
-            />
-          </FormControl>
-          {description && (
-            <FormDescription className="text-xs text-muted-foreground">
-              {description}
-            </FormDescription>
-          )}
-          <FormMessage />
-        </FormItem>
-      );
-    }}
-  />
-);
 
 export function ProductionCostForm({
   cultures,
@@ -247,8 +166,6 @@ export function ProductionCostForm({
 }: ProductionCostFormProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedSafraId, setSelectedSafraId] = useState<string>("");
-  const [currentCost, setCurrentCost] = useState<number>(0);
   const isEditing = !!cost?.id;
 
   // Initialize form with correct defaultValues based on the updated schema
@@ -260,8 +177,6 @@ export function ProductionCostForm({
       propriedade_id: cost?.propriedade_id || "",
       categoria: (cost?.categoria as any) || "OUTROS",
       custos_por_safra: cost?.custos_por_safra || {},
-      descricao: cost?.descricao || "",
-      observacoes: cost?.observacoes || "",
     },
   });
 
@@ -280,42 +195,24 @@ export function ProductionCostForm({
     setSelectedCategory(form.getValues("categoria"));
   }, [form]);
 
-  // Initialize current cost if editing an existing cost
-  useEffect(() => {
-    if (isEditing && selectedSafraId && cost?.custos_por_safra) {
-      const costValue = cost.custos_por_safra[selectedSafraId] || 0;
-      setCurrentCost(costValue);
-    }
-  }, [isEditing, selectedSafraId, cost]);
-
   // Encontrar detalhes da categoria selecionada
   const selectedCategoryDetails = COST_CATEGORIES.find(
     (cat) => cat.value === selectedCategory
   );
 
-  // Encontrar detalhes da cultura, sistema e safra selecionados
+  // Encontrar detalhes da cultura, sistema e propriedade selecionados
   const selectedCulture = cultures.find(
     (c) => c.id === form.watch("cultura_id")
   );
   const selectedSystem = systems.find((s) => s.id === form.watch("sistema_id"));
-  const selectedHarvest = harvests.find((h) => h.id === selectedSafraId);
   const selectedProperty = properties.find(
     (p) => p.id === form.watch("propriedade_id")
   );
 
-  // Helper functions for managing costs per safra
-  const updateCostForSafra = (safraId: string, cost: number) => {
-    const currentCosts = form.getValues("custos_por_safra") || {};
-    form.setValue("custos_por_safra", {
-      ...currentCosts,
-      [safraId]: cost,
-    });
-  };
-
   const onSubmit = async (values: ProductionCostFormValues) => {
     try {
       setIsSubmitting(true);
-      
+
       // Ensure at least one cost is defined for a safra
       const costsPerSafra = values.custos_por_safra;
       if (Object.keys(costsPerSafra).length === 0) {
@@ -323,12 +220,29 @@ export function ProductionCostForm({
         return;
       }
 
+      // Filtrar apenas valores maiores que zero
+      const validCosts: Record<string, number> = {};
+      Object.entries(values.custos_por_safra).forEach(([safraId, value]) => {
+        if (value > 0) {
+          validCosts[safraId] = value;
+        }
+      });
+
+      if (Object.keys(validCosts).length === 0) {
+        toast.error("Adicione pelo menos um custo válido por safra");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Atualizar com os valores filtrados
+      values.custos_por_safra = validCosts;
+
       if (isEditing && cost?.id) {
         // Atualizar item existente
         const updatedItem = await updateProductionCost(cost.id, {
           custos_por_safra: values.custos_por_safra,
-          descricao: values.descricao,
-          observacoes: values.observacoes
+          descricao: "",
+          observacoes: "",
         });
         toast.success("Custo de produção atualizado com sucesso!");
         onSuccess?.(updatedItem);
@@ -341,15 +255,15 @@ export function ProductionCostForm({
           sistema_id: values.sistema_id,
           categoria: values.categoria,
           custos_por_safra: values.custos_por_safra,
-          descricao: values.descricao,
-          observacoes: values.observacoes
+          descricao: "",
+          observacoes: "",
         });
         toast.success("Custo de produção criado com sucesso!");
         onSuccess?.(newItem);
       }
 
-      // O revalidatePath já é chamado nas funções do servidor
-      // Não precisamos de router.refresh() aqui
+      // A revalidação já é feita pelas funções do servidor
+      // Não precisamos forçar refresh aqui
     } catch (error) {
       console.error("Erro ao salvar custo de produção:", error);
       toast.error("Ocorreu um erro ao salvar o custo de produção.");
@@ -361,310 +275,174 @@ export function ProductionCostForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Safra Selector */}
-            <div>
-              <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                Safra
-              </FormLabel>
-              <Select
-                onValueChange={(value) => {
-                  setSelectedSafraId(value);
-                  // Get the cost for this safra if it exists
-                  const costs = form.getValues("custos_por_safra");
-                  const cost = costs[value] || 0;
-                  setCurrentCost(cost);
-                }}
-                value={selectedSafraId}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione a safra" />
-                </SelectTrigger>
-                <SelectContent>
-                  {harvests.map((harvest) => (
-                    <SelectItem key={harvest.id} value={harvest.id || ""}>
-                      {harvest.nome}
-                      {harvest.ano_inicio === new Date().getFullYear() && (
-                        <Badge variant="outline" className="ml-2 py-0 h-4">
-                          Atual
-                        </Badge>
-                      )}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Cost input for selected safra */}
-            <div>
-              <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                Valor (R$/ha)
-              </FormLabel>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Ex: 150.50"
-                value={currentCost || ""}
-                onChange={(e) => {
-                  const value = e.target.value ? parseFloat(e.target.value) : 0;
-                  setCurrentCost(value);
-                  if (selectedSafraId) {
-                    updateCostForSafra(selectedSafraId, value);
-                  }
-                }}
-                disabled={isSubmitting || !selectedSafraId}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Valor do custo em reais por hectare (R$/ha)
-              </p>
-            </div>
-          </div>
-          
-          {/* Costs per safra summary */}
-          {Object.keys(form.watch("custos_por_safra")).length > 0 && (
-            <div className="rounded-md border p-3 bg-muted/20">
-              <h3 className="text-sm font-medium mb-2">Custos por safra adicionados:</h3>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(form.watch("custos_por_safra")).map(([safraId, cost]) => {
-                  const harvest = harvests.find(h => h.id === safraId);
-                  if (!harvest || !cost) return null;
-                  
-                  return (
-                    <Badge key={safraId} variant="secondary" className="flex items-center gap-1">
-                      <span>{harvest.nome}: {formatCurrency(cost as number)}</span>
-                      <button
-                        type="button"
-                        className="ml-1 text-muted-foreground hover:text-destructive"
-                        onClick={() => {
-                          const updatedCosts = { ...form.getValues("custos_por_safra") };
-                          delete updatedCosts[safraId];
-                          form.setValue("custos_por_safra", updatedCosts);
-                          if (selectedSafraId === safraId) {
-                            setCurrentCost(0);
-                          }
-                        }}
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <FormField
-            control={form.control}
-            name="propriedade_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  Propriedade
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={isSubmitting}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a propriedade" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {properties.map((property: Property) => (
-                      <SelectItem key={property.id} value={property.id}>
-                        {property.nome}
-                        {property.cidade && property.estado && (
-                          <span className="text-muted-foreground ml-1">
-                            ({property.cidade}/{property.estado})
-                          </span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {selectedProperty && (
-            <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border border-muted">
-              <p className="font-medium text-foreground">
-                Propriedade selecionada:
-              </p>
-              <p className="mt-1">
-                {selectedProperty.nome}
-                {selectedProperty.cidade && selectedProperty.estado && (
-                  <span>
-                    {" "}
-                    - {selectedProperty.cidade}/{selectedProperty.estado}
-                  </span>
+        <div className="space-y-5">
+          {/* Primeira seção: Propriedade e Categoria */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-5">
+              <FormField
+                control={form.control}
+                name="propriedade_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      Propriedade
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione a propriedade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {properties.map((property: Property) => (
+                          <SelectItem key={property.id} value={property.id}>
+                            {property.nome}
+                            {property.cidade && property.estado && (
+                              <span className="text-muted-foreground ml-1">
+                                ({property.cidade}/{property.estado})
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </p>
-              {selectedProperty.areaTotal && (
-                <p className="mt-1">
-                  Área total: {selectedProperty.areaTotal} hectares
-                </p>
-              )}
+              />
+
+              <FormField
+                control={form.control}
+                name="cultura_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                      <Leaf className="h-4 w-4 text-muted-foreground" />
+                      Cultura
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione a cultura" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {cultures.map((culture) => (
+                          <SelectItem key={culture.id} value={culture.id || ""}>
+                            {culture.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          )}
 
-          <FormField
-            control={form.control}
-            name="categoria"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                  <Tag className="h-4 w-4 text-muted-foreground" />
-                  Categoria
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={isSubmitting}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a categoria" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.entries(CATEGORY_GROUPS).map(
-                      ([group, categories]) => (
-                        <div key={group}>
-                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                            {group}
-                          </div>
-                          {categories.map((category) => (
-                            <SelectItem
-                              key={category.value}
-                              value={category.value}
-                            >
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`w-2 h-2 rounded-full ${
-                                    category.color.split(" ")[0]
-                                  }`}
-                                  aria-hidden="true"
-                                />
-                                {category.label}
+            <div className="space-y-5">
+              <FormField
+                control={form.control}
+                name="categoria"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                      <Tag className="h-4 w-4 text-muted-foreground" />
+                      Categoria
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione a categoria" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.entries(CATEGORY_GROUPS).map(
+                          ([group, categories]) => (
+                            <div key={group}>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                {group}
                               </div>
-                            </SelectItem>
-                          ))}
-                          <Separator className="my-1" />
-                        </div>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                              {categories.map((category) => (
+                                <SelectItem
+                                  key={category.value}
+                                  value={category.value}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className={`w-2 h-2 rounded-full ${
+                                        category.color.split(" ")[0]
+                                      }`}
+                                      aria-hidden="true"
+                                    />
+                                    {category.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                              <Separator className="my-1" />
+                            </div>
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="cultura_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                    <Leaf className="h-4 w-4 text-muted-foreground" />
-                    Cultura
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione a cultura" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {cultures.map((culture) => (
-                        <SelectItem key={culture.id} value={culture.id || ""}>
-                          {culture.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="sistema_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                    <Settings className="h-4 w-4 text-muted-foreground" />
-                    Sistema
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione o sistema" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {systems.map((system) => (
-                        <SelectItem key={system.id} value={system.id || ""}>
-                          {system.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="sistema_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      Sistema
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione o sistema" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {systems.map((system) => (
+                          <SelectItem key={system.id} value={system.id || ""}>
+                            {system.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
-
-          {/* Description field */}
-          <FormField
-            control={form.control}
-            name="descricao"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">
-                  Descrição
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Descrição do custo (opcional)"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           {/* Resumo das seleções */}
           {(selectedCategoryDetails ||
             selectedCulture ||
             selectedSystem ||
-            selectedHarvest ||
             selectedProperty) && (
-            <Card className="mt-4 bg-muted/30 border-muted">
+            <Card className="bg-muted/30 border-muted">
               <CardContent className="p-3">
                 <div className="flex flex-wrap gap-x-4 gap-y-2">
                   {selectedCategoryDetails && (
@@ -685,28 +463,6 @@ export function ProductionCostForm({
                       </span>
                       <span className="text-sm font-medium">
                         {selectedProperty.nome}
-                      </span>
-                    </div>
-                  )}
-
-                  {selectedHarvest && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">
-                        Safra:
-                      </span>
-                      <span className="text-sm font-medium">
-                        {selectedHarvest.nome}
-                      </span>
-                    </div>
-                  )}
-
-                  {currentCost > 0 && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">
-                        Valor:
-                      </span>
-                      <span className="text-sm font-medium text-primary">
-                        {formatCurrency(currentCost)}
                       </span>
                     </div>
                   )}
@@ -736,24 +492,23 @@ export function ProductionCostForm({
               </CardContent>
             </Card>
           )}
-          
-          {/* Observations field */}
+
+          {/* SafraCostEditor - posicionado por último */}
+          <Separator className="my-4" />
+
           <FormField
             control={form.control}
-            name="observacoes"
+            name="custos_por_safra"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium">
-                  Observações
-                </FormLabel>
-                <FormControl>
-                  <textarea
-                    className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Observações adicionais (opcional)"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
+                <SafraCostEditor
+                  label="Custos por Safra"
+                  description={`Defina os custos por safra (R$/ha)`}
+                  values={field.value}
+                  onChange={field.onChange}
+                  safras={harvests}
+                  disabled={isSubmitting}
+                />
                 <FormMessage />
               </FormItem>
             )}

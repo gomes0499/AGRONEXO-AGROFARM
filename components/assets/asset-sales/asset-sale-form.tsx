@@ -86,6 +86,7 @@ export function AssetSaleForm({
       valor_unitario: initialData?.valor_unitario || 0,
       tipo: initialData?.tipo || "REALIZADO",
       safra_id: initialData?.safra_id || "",
+      ano: initialData?.ano || new Date().getFullYear(), // Adicionar ano como valor padrão
     },
   });
 
@@ -99,12 +100,14 @@ export function AssetSaleForm({
 
   const onSubmit = async (values: AssetSaleFormValues) => {
     try {
+      console.log("Form submitted with values:", values);
       setIsSubmitting(true);
 
       const dataToSubmit = {
         organizacao_id: organizationId,
         ...values,
-        ano: new Date().getFullYear(), // Usar ano atual já que removemos o campo
+        // Usar o ano informado ou o ano atual se não houver
+        ano: values.ano || new Date().getFullYear(),
       };
 
       let result;
@@ -131,7 +134,12 @@ export function AssetSaleForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form 
+        onSubmit={(e) => {
+          console.log("Form submitted, calling handleSubmit");
+          form.handleSubmit(onSubmit)(e);
+        }} 
+        className="space-y-4">
         <FormField
           control={form.control}
           name="tipo"
@@ -261,7 +269,25 @@ export function AssetSaleForm({
           >
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="button" 
+            disabled={isSubmitting}
+            onClick={() => {
+              console.log("Submit button clicked, triggering validation");
+              console.log("Form state:", form.getValues());
+              // Validar o formulário manualmente
+              form.trigger().then((isValid) => {
+                console.log("Form validation result:", isValid);
+                if (isValid) {
+                  const values = form.getValues();
+                  onSubmit(values);
+                } else {
+                  console.error("Form validation failed:", form.formState.errors);
+                  toast.error("Por favor, preencha corretamente todos os campos obrigatórios.");
+                }
+              });
+            }}
+          >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isEditing ? "Atualizar" : "Criar"}
           </Button>

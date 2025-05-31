@@ -7,6 +7,7 @@ import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { BankDebtPaymentsDetail } from "./bank-debt-payments-detail";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   TableCell,
   TableRow,
@@ -83,11 +84,11 @@ export function BankDebtDetailRow({
             {debt.instituicao_bancaria}
           </div>
         </TableCell>
-        <TableCell>{(debt as any).tipo_instituicao || debt.tipo || "-"}</TableCell>
-        <TableCell>{debt.modalidade || "-"}</TableCell>
-        <TableCell>{debt.indexador || "-"}</TableCell>
-        <TableCell>{debt.taxa_real ? `${debt.taxa_real}%` : "-"}</TableCell>
-        <TableCell>{debt.moeda || "BRL"}</TableCell>
+        <TableCell><Badge variant="default" className="font-normal">{(debt as any).tipo_instituicao || debt.tipo || "-"}</Badge></TableCell>
+        <TableCell><Badge variant="default" className="font-normal">{debt.modalidade || "-"}</Badge></TableCell>
+        <TableCell><Badge variant="default" className="font-normal">{debt.indexador || "-"}</Badge></TableCell>
+        <TableCell><Badge variant="default" className="font-normal">{debt.taxa_real ? `${debt.taxa_real}%` : "-"}</Badge></TableCell>
+        <TableCell><Badge variant="default" className="font-normal">{debt.moeda || "BRL"}</Badge></TableCell>
         <TableCell>
           {formatGenericCurrency(
             calculateTotal(debt),
@@ -101,7 +102,7 @@ export function BankDebtDetailRow({
               "Não vinculada"}
           </TableCell>
         )}
-        <TableCell className="text-right">
+        <TableCell className="text-center">
           <BankDebtRowActions
             bankDebt={debt}
             onEdit={() => onEdit(debt)}

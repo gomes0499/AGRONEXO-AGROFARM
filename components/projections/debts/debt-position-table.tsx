@@ -53,6 +53,12 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
   const formatRatio = (value: number) => {
     return value.toFixed(2);
   };
+  
+  const formatCategoria = (categoria: string) => {
+    // Converte string de uppercase para normal case
+    if (!categoria) return '';
+    return categoria.charAt(0) + categoria.slice(1).toLowerCase();
+  };
 
   return (
     <div className="space-y-6">
@@ -63,19 +69,19 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
           description="Análise consolidada da posição de endividamento e disponibilidades financeiras"
         />
         <CardContent className="p-6">
-          <div className="overflow-x-auto overflow-y-hidden border rounded-md">
+          <div className="overflow-x-auto overflow-y-hidden border rounded-md" style={{ maxWidth: '100%' }}>
             <div className="min-w-max">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
-                      POSIÇÃO DE DÍVIDA
+                    <TableHead className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
+                      Posição de Dívida
                     </TableHead>
                     {anos.map((ano, index) => (
                       <TableHead 
                         key={ano} 
                         className={cn(
-                          "font-semibold text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
+                          "font-medium text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
                           index === anos.length - 1 && "rounded-tr-md"
                         )}
                       >
@@ -86,9 +92,9 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                 </TableHeader>
                 <TableBody>
                   {/* === SEÇÃO DE DÍVIDAS === */}
-                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      DÍVIDAS
+                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Dívidas
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -104,7 +110,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {dividas.map((divida, index) => (
                     <TableRow key={index} className="hover:bg-muted/30">
                       <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                        {divida.categoria.toUpperCase()}
+                        {formatCategoria(divida.categoria)}
                       </TableCell>
                       {anos.map((ano) => (
                         <TableCell 
@@ -122,8 +128,8 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   
                   {/* Total do endividamento */}
                   <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      ENDIVIDAMENTO TOTAL
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Endividamento Total
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -136,9 +142,9 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   </TableRow>
 
                   {/* === SEÇÃO DE ATIVOS === */}
-                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      CAIXAS E DISPONIBILIDADES
+                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Caixas e Disponibilidades
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -154,7 +160,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {ativos.map((ativo, index) => (
                     <TableRow key={index} className="hover:bg-muted/30">
                       <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                        {ativo.categoria.toUpperCase()}
+                        {formatCategoria(ativo.categoria)}
                       </TableCell>
                       {anos.map((ano) => (
                         <TableCell 
@@ -172,8 +178,8 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   
                   {/* Total das disponibilidades */}
                   <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      TOTAL CAIXAS E DISPONIBILIDADES
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Total Caixas e Disponibilidades
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -186,9 +192,9 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   </TableRow>
 
                   {/* === SEÇÃO DE ANÁLISE === */}
-                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      ANÁLISE E INDICADORES
+                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Análise e Indicadores
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -202,8 +208,8 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
 
                   {/* Dívida Líquida */}
                   <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      DÍVIDA LÍQUIDA
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Dívida Líquida
                     </TableCell>
                     {anos.map((ano) => {
                       const valor = indicadores.divida_liquida[ano] || 0;
@@ -224,7 +230,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* Dólar Fechamento */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      DÓLAR FECHAMENTO
+                      Dólar Fechamento
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -239,7 +245,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* Dívida em Dólar */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      DÍVIDA EM DÓLAR
+                      Dívida em Dólar
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -254,7 +260,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* Dívida Líquida em Dólar */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      DÍVIDA LÍQUIDA EM DÓLAR
+                      Dívida Líquida em Dólar
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -267,9 +273,9 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   </TableRow>
 
                   {/* === SEÇÃO DE INDICADORES === */}
-                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      INDICADORES DE RECEITA E ENDIVIDAMENTO
+                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Indicadores de Receita e Endividamento
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -284,7 +290,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* Receita (Ano Safra) */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      RECEITA (ANO SAFRA)
+                      Receita (Ano Safra)
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -299,7 +305,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* Ebitda (Ano Safra) */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      EBITDA (ANO SAFRA)
+                      EBITDA (Ano Safra)
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -314,7 +320,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* Dívida/ Receita */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      DÍVIDA/ RECEITA
+                      Dívida/ Receita
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -329,7 +335,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* Dívida/ Ebitda */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      DÍVIDA/ EBITDA
+                      Dívida/ Ebitda
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -344,7 +350,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* Dívida Líquida/ Receita */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      DÍVIDA LÍQUIDA/ RECEITA
+                      Dívida Líquida/ Receita
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -358,8 +364,8 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
 
                   {/* Dívida Líquida/ Ebitda */}
                   <TableRow className="font-medium border-t-2 border-gray-100">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      DÍVIDA LÍQUIDA/ EBITDA
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Dívida Líquida/ Ebitda
                     </TableCell>
                     {anos.map((ano) => {
                       const valor = indicadores.indicadores_calculados.divida_liquida_ebitda[ano] || 0;

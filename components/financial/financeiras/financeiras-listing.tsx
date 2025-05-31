@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FinanceirasForm } from "./financeiras-form";
 import { deleteFinanceiras } from "@/lib/actions/financial-actions/financeiras";
 import { FinanceirasRowActions } from "./financeiras-row-actions";
+import { FinanceirasPopoverEditor } from "./financeiras-popover-editor";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
@@ -130,31 +131,8 @@ export function FinanceirasListing({
     return formatMap[categoria] || categoria;
   };
 
-  // Render category badge
-  const renderCategoriaBadge = (categoria: FinanceirasCategoriaType) => {
-    let variant: "default" | "secondary" | "outline" = "default";
-    
-    switch (categoria) {
-      case "NOVAS_LINHAS_CREDITO":
-        variant = "default";
-        break;
-      case "REFINANCIAMENTO_BANCOS":
-      case "REFINANCIAMENTO_CLIENTES":
-        variant = "secondary";
-        break;
-      case "OUTROS_CREDITOS":
-        variant = "outline";
-        break;
-      default:
-        variant = "outline";
-    }
-    
-    return (
-      <Badge variant={variant} className="font-normal uppercase">
-        {formatCategoria(categoria)}
-      </Badge>
-    );
-  };
+  // Função para exibir categoria em formato legível
+  // A função formatCategoria já existe acima
 
   return (
     <Card className="shadow-sm border-muted/80">
@@ -206,11 +184,11 @@ export function FinanceirasListing({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="w-10 font-semibold text-primary-foreground rounded-tl-md"></TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Nome</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Categoria</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground w-[180px] uppercase">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
+                    <TableHead className="w-10 font-medium text-primary-foreground rounded-tl-md"></TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Nome</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Categoria</TableHead>
+                    <TableHead className="font-medium text-primary-foreground w-[180px]">Valor Total</TableHead>
+                    <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -231,29 +209,41 @@ export function FinanceirasListing({
                             )}
                           </Button>
                         </TableCell>
-                        <TableCell className="font-medium uppercase" onClick={() => toggleExpanded(item.id || '')}>
+                        <TableCell className="font-medium" onClick={() => toggleExpanded(item.id || '')}>
                           {item.nome}
                         </TableCell>
-                        <TableCell className="uppercase" onClick={() => toggleExpanded(item.id || '')}>
-                          {renderCategoriaBadge(item.categoria)}
+                        <TableCell onClick={() => toggleExpanded(item.id || '')}>
+                          <Badge variant="default" className="font-normal">
+                            {formatCategoria(item.categoria)}
+                          </Badge>
                         </TableCell>
-                        <TableCell className="uppercase" onClick={() => toggleExpanded(item.id || '')}>
+                        <TableCell onClick={() => toggleExpanded(item.id || '')}>
                           <span className="font-medium text-sm">
                             {formatGenericCurrency(
                               calculateTotal(item),
                               "BRL"
                             )}
                           </span>
-                          <span className="ml-1 text-xs text-muted-foreground uppercase">
+                          <span className="ml-1 text-xs text-muted-foreground">
                             BRL
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <FinanceirasRowActions
-                            item={item}
-                            onEdit={() => setEditingItem(item)}
-                            onDelete={() => handleDeleteItem(item.id || '')}
-                          />
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Editor de Valores por Safra via Popover */}
+                            <FinanceirasPopoverEditor
+                              item={item}
+                              organizationId={organization.id}
+                              onUpdate={handleUpdateItem}
+                            />
+                            
+                            {/* Botões de Editar/Excluir */}
+                            <FinanceirasRowActions
+                              item={item}
+                              onEdit={() => setEditingItem(item)}
+                              onDelete={() => handleDeleteItem(item.id || '')}
+                            />
+                          </div>
                         </TableCell>
                       </TableRow>
                       {item.isExpanded && (
@@ -273,7 +263,7 @@ export function FinanceirasListing({
                 </TableBody>
               </Table>
               
-              <div className="p-2 bg-muted/10">
+              <div className="mt-8">
                 <FinancialPagination
                   currentPage={currentPage}
                   totalPages={totalPages}

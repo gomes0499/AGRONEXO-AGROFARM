@@ -11,6 +11,7 @@ interface UsePropertyFormProps {
   propertyId?: string;
   mode: "create" | "edit";
   onSuccess?: () => void;
+  initialData?: any; // Property data for edit mode
 }
 
 export function usePropertyForm({
@@ -18,34 +19,54 @@ export function usePropertyForm({
   propertyId,
   mode,
   onSuccess,
+  initialData,
 }: UsePropertyFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(initialData?.imagem || null);
+  // A tabela já está pronta, não precisamos mais dessa verificação
+  const tableReady = true;
 
   // Use 'any' as a temporary workaround for the complex resolver typing issue
   const form = useForm({
     resolver: zodResolver(propertyFormSchema) as any,
-    defaultValues: {
+    defaultValues: initialData ? {
+      ...initialData,
+      // Garantir que valores numéricos sejam corretos
+      area_total: initialData.area_total || null,
+      area_cultivada: initialData.area_cultivada || null,
+      valor_atual: initialData.valor_atual || null,
+      avaliacao_banco: initialData.avaliacao_banco || null,
+      ano_aquisicao: initialData.ano_aquisicao || null,
+      // Garantir que valores de data sejam Date ou null
+      data_inicio: initialData.data_inicio ? new Date(initialData.data_inicio) : null,
+      data_termino: initialData.data_termino ? new Date(initialData.data_termino) : null,
+    } : {
       nome: "",
       proprietario: "",
       cidade: "",
       estado: "",
       numero_matricula: "",
-      area_total: 0,
-      area_cultivada: 0,
-      valor_atual: 0,
+      area_total: null,
+      area_cultivada: null,
+      valor_atual: null, // NULL em vez de 0 para evitar constraint
       tipo: "PROPRIO" as const,
       ano_aquisicao: new Date().getFullYear(),
       onus: "",
-      avaliacao_banco: 0,
+      avaliacao_banco: null, // NULL em vez de 0 para evitar constraint
+      // Valores para propriedades arrendadas
+      cartorio_registro: "",
+      numero_car: "",
+      data_inicio: undefined,
+      data_termino: undefined,
+      tipo_anuencia: "",
     },
   }) as any;
 
   // Carregar dados da propriedade quando estiver em modo de edição
   useEffect(() => {
     const loadPropertyData = async () => {
-      if (mode === "edit" && propertyId) {
+      if (mode === "edit" && propertyId && tableReady) {
         try {
           const property = await getPropertyById(propertyId);
           
@@ -82,7 +103,7 @@ export function usePropertyForm({
     };
 
     loadPropertyData();
-  }, [mode, propertyId, form]);
+  }, [mode, propertyId, form, tableReady]);
 
   const onSubmit = async (values: PropertyFormValues) => {
     try {
@@ -129,5 +150,6 @@ export function usePropertyForm({
     setImageUrl,
     onSubmit,
     resetForm,
+    tableReady,
   };
 }

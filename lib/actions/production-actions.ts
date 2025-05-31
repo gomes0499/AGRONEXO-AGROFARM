@@ -713,23 +713,50 @@ export async function updateProductivity(id: string, data: {
 }) {
   const supabase = await createClient();
   
-  const { data: result, error } = await supabase
-    .from("produtividades")
-    .update({
-      ...data,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", id)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Erro ao atualizar produtividade:", error);
+  try {
+    // Converter os valores complexos para valores numéricos simples
+    // Fazemos a mesma abordagem que na função de criação
+    let updateData = { ...data };
+    
+    if (data.produtividades_por_safra) {
+      // Convertemos para o formato de números simples
+      const numericProductivities: Record<string, number> = {};
+      
+      Object.entries(data.produtividades_por_safra).forEach(([safraId, value]) => {
+        if (value && value.produtividade !== undefined) {
+          // Armazenar apenas o valor numérico de produtividade
+          numericProductivities[safraId] = Number(value.produtividade);
+        }
+      });
+      
+      // Substituímos o objeto complexo pelo objeto de números simples
+      updateData = {
+        ...data,
+        produtividades_por_safra: numericProductivities
+      };
+    }
+    
+    const { data: result, error } = await supabase
+      .from("produtividades")
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Erro ao atualizar produtividade:", error);
+      throw new Error("Não foi possível atualizar a produtividade");
+    }
+    
+    revalidatePath("/dashboard/production");
+    return result;
+  } catch (error) {
+    console.error("Erro ao processar atualização de produtividade:", error);
     throw new Error("Não foi possível atualizar a produtividade");
   }
-  
-  revalidatePath("/dashboard/production");
-  return result;
 }
 
 export async function deleteProductivity(id: string) {
@@ -1058,7 +1085,7 @@ export async function getLivestockOperations(organizationId: string, filters?: {
   const supabase = await createClient();
   
   let query = supabase
-    .from("vendas_pecuaria")
+    .from("operacoes_pecuarias")
     .select(`
       *,
       propriedades:propriedade_id(nome)
@@ -1087,7 +1114,7 @@ export async function getLivestockOperationById(id: string) {
   const supabase = await createClient();
   
   const { data, error } = await supabase
-    .from("vendas_pecuaria")
+    .from("operacoes_pecuarias")
     .select(`
       *,
       propriedades:propriedade_id(nome)
@@ -1115,13 +1142,14 @@ export async function createLivestockOperation(data: {
   // Processar volume_abate_por_safra para garantir que seja um JSONB válido
   const processedData = {
     ...data,
+    // Para JSONB no PostgreSQL, enviamos o objeto diretamente sem JSON.stringify
     volume_abate_por_safra: typeof data.volume_abate_por_safra === 'string' 
-      ? data.volume_abate_por_safra 
-      : JSON.stringify(data.volume_abate_por_safra)
+      ? JSON.parse(data.volume_abate_por_safra) 
+      : data.volume_abate_por_safra
   };
   
   const { data: result, error } = await supabase
-    .from("vendas_pecuaria")
+    .from("operacoes_pecuarias")
     .insert(processedData)
     .select()
     .single();
@@ -1145,12 +1173,15 @@ export async function updateLivestockOperation(id: string, data: {
   
   // Processar volume_abate_por_safra para garantir que seja um JSONB válido
   const processedData = { ...data };
-  if (processedData.volume_abate_por_safra && typeof processedData.volume_abate_por_safra !== 'string') {
-    processedData.volume_abate_por_safra = JSON.stringify(processedData.volume_abate_por_safra);
+  // Para JSONB no PostgreSQL, enviamos o objeto diretamente sem JSON.stringify
+  if (processedData.volume_abate_por_safra) {
+    processedData.volume_abate_por_safra = typeof processedData.volume_abate_por_safra === 'string' 
+      ? JSON.parse(processedData.volume_abate_por_safra) 
+      : processedData.volume_abate_por_safra;
   }
   
   const { data: result, error } = await supabase
-    .from("vendas_pecuaria")
+    .from("operacoes_pecuarias")
     .update({
       ...processedData,
       updated_at: new Date().toISOString()
@@ -1172,7 +1203,7 @@ export async function deleteLivestockOperation(id: string) {
   const supabase = await createClient();
   
   const { error } = await supabase
-    .from("vendas_pecuaria")
+    .from("operacoes_pecuarias")
     .delete()
     .eq("id", id);
   
@@ -1244,28 +1275,56 @@ export async function createMultiSafraProductivities(
 ) {
   const supabase = await createClient();
   
-  const completeData = {
-    organizacao_id: organizationId,
-    propriedade_id: data.propriedade_id,
-    cultura_id: data.cultura_id,
-    sistema_id: data.sistema_id,
-    produtividades_por_safra: data.produtividades_por_safra,
-    observacoes: data.observacoes
-  };
-  
-  const { data: result, error } = await supabase
-    .from("produtividades")
-    .insert(completeData)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Erro ao criar produtividades múltiplas:", error);
+  try {
+    // Vamos usar uma abordagem mais simples: vamos converter as produtividades complexas
+    // para valores numéricos simples, para evitar o erro de tipo do PostgreSQL
+    
+    // Criamos um objeto com valores numéricos simples
+    const numericProductivities: Record<string, number> = {};
+    
+    // Processar cada entrada para extrair apenas o valor numérico
+    Object.entries(data.produtividades_por_safra).forEach(([safraId, value]) => {
+      if (value && value.produtividade > 0) {
+        // Armazenar apenas o valor numérico de produtividade
+        numericProductivities[safraId] = Number(value.produtividade);
+      }
+    });
+    
+    // Verificar se temos alguma produtividade válida
+    if (Object.keys(numericProductivities).length === 0) {
+      throw new Error("Nenhuma produtividade válida informada");
+    }
+    
+    // Preparar os dados para inserção com formato simplificado
+    const completeData = {
+      organizacao_id: organizationId,
+      propriedade_id: data.propriedade_id || null,
+      cultura_id: data.cultura_id,
+      sistema_id: data.sistema_id,
+      // Usar apenas números para evitar o erro de tipo JSONB
+      produtividades_por_safra: numericProductivities,
+      observacoes: data.observacoes || null
+    };
+    
+    const { data: result, error } = await supabase
+      .from("produtividades")
+      .insert(completeData)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Erro ao criar produtividades múltiplas:", error);
+      throw new Error("Não foi possível criar as produtividades");
+    }
+    
+    // Se chegamos aqui, a inserção foi bem-sucedida
+    revalidatePath("/dashboard/production");
+    return result as Productivity;
+    
+  } catch (error) {
+    console.error("Erro ao processar produtividades múltiplas:", error);
     throw new Error("Não foi possível criar as produtividades");
   }
-  
-  revalidatePath("/dashboard/production");
-  return result as Productivity;
 }
 
 // MultiSafraProductionCost form function
@@ -1283,30 +1342,43 @@ export async function createMultiSafraProductionCosts(
 ) {
   const supabase = await createClient();
   
-  const completeData = {
-    organizacao_id: organizationId,
-    propriedade_id: data.propriedade_id,
-    cultura_id: data.cultura_id,
-    sistema_id: data.sistema_id,
-    categoria: data.categoria,
-    custos_por_safra: data.custos_por_safra,
-    descricao: data.descricao,
-    observacoes: data.observacoes
-  };
-  
-  const { data: result, error } = await supabase
-    .from("custos_producao")
-    .insert(completeData)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Erro ao criar custos múltiplos:", error);
+  try {
+    // Garantir que os custos estejam no formato numérico correto
+    const formattedCosts: Record<string, number> = {};
+    
+    Object.entries(data.custos_por_safra).forEach(([safraId, value]) => {
+      // Converter para número e garantir que seja um valor válido
+      formattedCosts[safraId] = Number(value);
+    });
+    
+    const completeData = {
+      organizacao_id: organizationId,
+      propriedade_id: data.propriedade_id,
+      cultura_id: data.cultura_id,
+      sistema_id: data.sistema_id,
+      categoria: data.categoria,
+      custos_por_safra: formattedCosts,
+      descricao: data.descricao,
+      observacoes: data.observacoes
+    };
+    
+    const { data: result, error } = await supabase
+      .from("custos_producao")
+      .insert(completeData)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Erro ao criar custos múltiplos:", error);
+      throw new Error("Não foi possível criar os custos");
+    }
+    
+    revalidatePath("/dashboard/production");
+    return result as ProductionCost;
+  } catch (error) {
+    console.error("Erro ao processar custos múltiplos:", error);
     throw new Error("Não foi possível criar os custos");
   }
-  
-  revalidatePath("/dashboard/production");
-  return result as ProductionCost;
 }
 
 export async function getProductionCostsUnified(organizationId: string) {

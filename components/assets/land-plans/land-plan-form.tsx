@@ -64,6 +64,7 @@ export function LandPlanForm({
     }
     loadHarvests();
   }, [organizationId]);
+  
 
   const form = useForm<LandAcquisitionFormValues>({
     resolver: zodResolver(landAcquisitionFormSchema),
@@ -72,7 +73,10 @@ export function LandPlanForm({
       hectares: initialData?.hectares || 0,
       sacas: initialData?.sacas || 0,
       valor_total: initialData?.valor_total || 0,
-      tipo: initialData?.tipo || "PLANEJADO",
+      // Forçar tipo a ser um valor válido para tipo_aquisicao_terra
+      tipo: (initialData?.tipo && ["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(initialData.tipo)) 
+        ? initialData.tipo 
+        : "COMPRA",
       ano: initialData?.ano || new Date().getFullYear(),
       safra_id: initialData?.safra_id || "",
     }
@@ -81,6 +85,15 @@ export function LandPlanForm({
   const { watch } = form;
   const hectares = watch("hectares") || 0;
   const sacas = watch("sacas") || 0;
+  
+  // Garantir que o tipo seja sempre um valor válido após a inicialização do form
+  useEffect(() => {
+    const currentTipo = form.getValues("tipo");
+    if (!["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(currentTipo)) {
+      console.warn(`Normalizando tipo inválido: ${currentTipo} -> "COMPRA"`);
+      form.setValue("tipo", "COMPRA");
+    }
+  }, [form]);
 
   const totalSacasCalculated = useMemo(() => {
     return hectares * sacas;
@@ -90,11 +103,43 @@ export function LandPlanForm({
     try {
       setIsSubmitting(true);
       
+      // Garantir que o tipo esteja dentro dos valores aceitos e forçar um dos valores válidos
+      let tipoValido = values.tipo;
+      
+      // Verificar explicitamente por "PLANEJADO" e "REALIZADO" e substituí-los
+      if (tipoValido === "PLANEJADO" || tipoValido === "REALIZADO") {
+        console.warn(`Detectado valor legado para tipo: "${tipoValido}". Substituindo por "COMPRA"`);
+        tipoValido = "COMPRA";
+      }
+      else if (!["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(tipoValido)) {
+        console.warn(`Tipo de aquisição inválido: ${tipoValido}. Usando valor padrão "COMPRA"`);
+        tipoValido = "COMPRA";
+      }
+      
+      console.log("Valores originais do formulário:", JSON.stringify(values, null, 2));
+      console.log("Valores do watch:", {
+        nome_fazenda: form.watch("nome_fazenda"),
+        hectares: form.watch("hectares"),
+        sacas: form.watch("sacas"),
+        valor_total: form.watch("valor_total"),
+        tipo: form.watch("tipo"), // Verificar valor do tipo
+        ano: form.watch("ano"),
+        safra_id: form.watch("safra_id"),
+      });
+      
+      // Explicitamente atribuir um valor válido para o tipo
       const dataWithTotal = {
-        ...values,
-        ano: new Date().getFullYear(), // Usar ano atual já que removemos o campo
+        nome_fazenda: values.nome_fazenda,
+        hectares: values.hectares,
+        sacas: values.sacas,
+        valor_total: values.valor_total,
+        tipo: tipoValido, // Força um dos valores aceitos
+        ano: values.ano,
+        safra_id: values.safra_id,
         total_sacas: totalSacasCalculated
       };
+      
+      console.log("Dados finais para envio:", JSON.stringify(dataWithTotal, null, 2));
 
       let result;
       if (isEditing && initialData?.id) {
@@ -130,16 +175,18 @@ export function LandPlanForm({
           name="tipo"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tipo</FormLabel>
+              <FormLabel>Tipo de Aquisição</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <SelectValue placeholder="Selecione o tipo de aquisição" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="PLANEJADO">Planejado</SelectItem>
-                  <SelectItem value="REALIZADO">Realizado</SelectItem>
+                  <SelectItem value="COMPRA">Compra</SelectItem>
+                  <SelectItem value="ARRENDAMENTO_LONGO_PRAZO">Arrendamento de Longo Prazo</SelectItem>
+                  <SelectItem value="PARCERIA">Parceria</SelectItem>
+                  <SelectItem value="OUTROS">Outros</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

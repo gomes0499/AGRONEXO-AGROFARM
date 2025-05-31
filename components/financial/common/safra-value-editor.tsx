@@ -10,6 +10,7 @@ import { TrashIcon, PlusCircleIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatGenericCurrency, parseFormattedNumber, CurrencyType } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
+import { CurrencyField } from "@/components/shared/currency-field";
 
 interface SafraValue {
   safra_id: string;
@@ -229,22 +230,15 @@ export function SafraValueEditor({
                   
                   <div className="flex-1">
                     <Label className="text-xs text-muted-foreground">Valor</Label>
-                    <Input
-                      type="text"
-                      value={
-                        item.isFocused
-                          ? item.valor.toString()
-                          : formatGenericCurrency(item.valor, currency)
-                      }
-                      onChange={(e) => updateValue(index, e.target.value)}
+                    <CurrencyField
+                      defaultValue={item.valor}
+                      onChange={(value) => updateValue(index, value.toString())}
                       onFocus={() => handleFocus(index)}
                       onBlur={() => handleBlur(index)}
-                      className={cn(
-                        "h-9",
-                        item.valor < 0 && "text-red-600 border-red-300"
-                      )}
                       placeholder="0,00"
                       disabled={disabled}
+                      className="h-9"
+                      currency={currency}
                     />
                   </div>
                   

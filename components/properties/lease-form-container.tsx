@@ -11,6 +11,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { useLeaseForm } from "./hooks/use-lease-form";
 import { LeaseFormStep } from "./steps/lease-form-step";
 import type { Lease } from "@/schemas/properties";
@@ -63,13 +64,7 @@ export function LeaseFormContainer({
     onSuccess,
   });
 
-  console.log("LeaseFormContainer rendered with:", { 
-    organizationId, 
-    propertyId, 
-    lease, 
-    actualMode, 
-    isDrawerOpen 
-  });
+  // Removed console.log for cleaner production code
 
   const handleClose = (newOpen: boolean) => {
     if (!newOpen) {
@@ -83,61 +78,67 @@ export function LeaseFormContainer({
       {children && <SheetTrigger asChild>{children}</SheetTrigger>}
       <SheetContent
         side="right"
-        className="w-[90vw] sm:w-[800px] lg:w-[1000px] xl:w-[1200px] overflow-hidden flex flex-col"
+        className="w-[90vw] sm:w-[800px] lg:w-[1000px] xl:w-[1200px] flex flex-col p-0 overflow-hidden"
       >
-        <SheetHeader className="space-y-3">
-          <SheetTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            {actualMode === "edit" ? "Editar Arrendamento" : "Novo Arrendamento"}
-          </SheetTitle>
-          <SheetDescription>
-            {actualMode === "edit"
-              ? "Atualize as informações do contrato de arrendamento."
-              : "Cadastre um novo contrato de arrendamento para esta propriedade."}
-          </SheetDescription>
-        </SheetHeader>
+        <div className="flex flex-col h-full">
+          <div className="flex-shrink-0 p-6 border-b">
+            <SheetHeader className="space-y-3">
+              <SheetTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                {actualMode === "edit" ? "Editar Arrendamento" : "Novo Arrendamento"}
+              </SheetTitle>
+              <SheetDescription>
+                {actualMode === "edit"
+                  ? "Atualize as informações do contrato de arrendamento."
+                  : "Cadastre um novo contrato de arrendamento para esta propriedade."}
+              </SheetDescription>
+            </SheetHeader>
+          </div>
 
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(
-              (data) => {
-                console.log("Form validation passed, submitting:", data);
-                onSubmit(data);
-              },
-              (errors) => {
-                console.log("Form validation errors:", errors);
-              }
-            )}
-            className="flex flex-col flex-1"
-          >
-            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-              <LeaseFormStep form={form} />
+          <div className="flex-1 overflow-y-auto py-6 px-6">
+            <div className="space-y-6">
+              <Form {...form}>
+                <LeaseFormStep form={form} organizationId={organizationId} />
+              </Form>
             </div>
+          </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end gap-2 pt-4 border-t">
+          {/* Submit Button */}
+          <div className="flex-shrink-0 p-6 border-t">
+            <div className="flex justify-end gap-2">
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => {
-                  console.log("Current form values:", form.getValues());
-                  console.log("Form errors:", form.formState.errors);
-                  console.log("Form is valid:", form.formState.isValid);
-                }}
-              >
-                Debug
-              </Button>
-              <Button
-                type="submit"
                 disabled={isLoading}
                 className="min-w-32"
-                onClick={() => console.log("Submit button clicked!")}
+                onClick={() => {
+                  console.log("Submit button clicked manually");
+                  const formValues = form.getValues();
+                  console.log("Form values:", formValues);
+                  
+                  // Validar manualmente
+                  form.trigger().then(isValid => {
+                    console.log("Form is valid:", isValid);
+                    
+                    if (isValid) {
+                      const values = form.getValues();
+                      onSubmit(values);
+                    } else {
+                      const errors = form.formState.errors;
+                      console.error("Form validation errors:", errors);
+                      
+                      if (Object.keys(errors).length > 0) {
+                        const errorFields = Object.keys(errors).join(", ");
+                        toast.error(`Corrija os campos: ${errorFields}`);
+                      }
+                    }
+                  });
+                }}
               >
                 {isLoading ? "Salvando..." : actualMode === "edit" ? "Atualizar" : "Salvar Arrendamento"}
               </Button>
             </div>
-          </form>
-        </Form>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );

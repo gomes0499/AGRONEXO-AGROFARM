@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,6 +13,7 @@ import { DividasTerrasListItem, DividasTerrasFormValues, dividasTerrasFormSchema
 import { PropertySelector } from "../property-debts/property-selector";
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { toast } from "sonner";
+import { getSafras } from "@/lib/actions/production-actions";
 
 interface DividasTerrasFormProps {
   open: boolean;
@@ -29,6 +31,28 @@ export function DividasTerrasForm({
   onSubmit,
 }: DividasTerrasFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [safras, setSafras] = useState<any[]>([]);
+  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
+
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      loadSafras();
+    }
+  }, [open, organizationId]);
+  
+  const loadSafras = async () => {
+    try {
+      setIsLoadingSafras(true);
+      const safrasData = await getSafras(organizationId);
+      setSafras(safrasData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingSafras(false);
+    }
+  };
 
   const form = useForm<DividasTerrasFormValues>({
     resolver: zodResolver(dividasTerrasFormSchema),
@@ -85,78 +109,93 @@ export function DividasTerrasForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{existingDivida ? "Editar" : "Nova"} Dívida de Terra</DialogTitle>
+      <DialogContent className="max-w-[650px] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-xl font-semibold">
+              {existingDivida ? "Editar" : "Nova"} Dívida de Terra
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-muted-foreground mt-1">
+            {existingDivida 
+              ? "Edite os detalhes da dívida de terra."
+              : "Cadastre uma nova dívida de terra."
+            }
+          </DialogDescription>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="nome"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nome da dívida" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="propriedade_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Propriedade</FormLabel>
-                  <FormControl>
-                    <PropertySelector
-                      organizationId={organizationId}
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="valores_por_safra"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valores por Safra</FormLabel>
-                  <FormControl>
-                    <SafraValueEditor
-                      organizacaoId={organizationId}
-                      values={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Salvando..." : existingDivida ? "Atualizar" : "Adicionar"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <div className="px-6 py-2 max-h-[70vh] overflow-y-auto">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="nome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome da dívida" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="propriedade_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Propriedade</FormLabel>
+                    <FormControl>
+                      <PropertySelector
+                        organizationId={organizationId}
+                        value={field.value}
+                        onChange={field.onChange}
+                        label=""
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="valores_por_safra"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valores por Safra</FormLabel>
+                    <FormControl>
+                      <SafraValueEditor
+                        organizacaoId={organizationId}
+                        values={field.value}
+                        onChange={field.onChange}
+                        safras={safras}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Salvando..." : existingDivida ? "Atualizar" : "Adicionar"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

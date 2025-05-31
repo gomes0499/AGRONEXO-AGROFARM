@@ -151,8 +151,8 @@ export const CulturesTab = forwardRef<any, CulturesTabProps>(function CulturesTa
           <Table>
             <TableHeader>
               <TableRow className="bg-primary hover:bg-primary">
-                <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome</TableHead>
-                <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                <TableHead className="font-medium text-primary-foreground rounded-tl-md">Nome</TableHead>
+                <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -98,7 +98,7 @@ export function LivestockOperationForm({
       setVolumeEntries(entries);
       setSelectedHarvests(entries.map((entry) => entry.harvestId));
     } else {
-      // Adicionar uma entrada vazia por padrão
+      // Adicionar uma entrada vazia por padrão com volume já como número
       setVolumeEntries([{ harvestId: "", volume: 0 }]);
     }
   }, [isEditing, operation]);
@@ -153,7 +153,14 @@ export function LivestockOperationForm({
       }
     }
 
-    newEntries[index] = { ...newEntries[index], [field]: value };
+    // Se o campo for "volume", garanta que é um número
+    if (field === "volume" && typeof value === "string") {
+      const numValue = parseFloat(value) || 0;
+      newEntries[index] = { ...newEntries[index], [field]: numValue };
+    } else {
+      newEntries[index] = { ...newEntries[index], [field]: value };
+    }
+    
     setVolumeEntries(newEntries);
   };
 
@@ -161,8 +168,11 @@ export function LivestockOperationForm({
   const prepareVolumeData = (): Record<string, number> => {
     const volumeData: Record<string, number> = {};
     volumeEntries.forEach((entry) => {
-      if (entry.harvestId && entry.volume) {
+      // Verificar se harvestId existe e o volume é um número positivo
+      if (entry.harvestId && typeof entry.volume === 'number' && entry.volume > 0) {
         volumeData[entry.harvestId] = Number(entry.volume);
+      } else if (entry.harvestId && typeof entry.volume === 'string' && parseFloat(entry.volume) > 0) {
+        volumeData[entry.harvestId] = parseFloat(entry.volume);
       }
     });
     return volumeData;

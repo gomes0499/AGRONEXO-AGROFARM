@@ -6,11 +6,35 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Plus, Trash2, DollarSign } from "lucide-react";
 import { formatCurrencyCompact } from "@/lib/utils/formatters";
-import type { ProductionCost, Safra } from "@/lib/actions/production-actions";
+import type { ProductionCost, Safra, Culture, System } from "@/lib/actions/production-actions";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover";
+import { toast } from "sonner";
+import { deleteProductionCost, updateProductionCost } from "@/lib/actions/production-actions";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Property } from "@/lib/actions/production-actions";
+import { NewProductionCostButton } from "./new-production-cost-button";
 
 interface UnifiedProductionCostListingProps {
   productionCosts: ProductionCost[];
   safras: Safra[];
+  properties: Property[];
+  cultures: Culture[];
+  systems: System[];
+  organizationId: string;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -43,9 +67,18 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function UnifiedProductionCostListing({ 
   productionCosts, 
-  safras 
+  safras,
+  properties,
+  cultures,
+  systems,
+  organizationId
 }: UnifiedProductionCostListingProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingCost, setEditingCost] = useState<ProductionCost | null>(null);
+  const [editingValues, setEditingValues] = useState<Record<string, number>>({});
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [deletingCost, setDeletingCost] = useState<ProductionCost | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filtrar safras para mostrar apenas 2021/22 a 2029/30
   const filteredSafras = safras
@@ -85,6 +118,93 @@ export function UnifiedProductionCostListing({
     return cost.custos_por_safra[safraId] || 0;
   };
 
+  const handleStartEdit = (cost: ProductionCost) => {
+    // Copia os valores atuais dos custos para o estado de edição
+    const currentValues = {...cost.custos_por_safra};
+    
+    // Garante que todos os valores sejam números
+    Object.keys(currentValues).forEach(key => {
+      if (typeof currentValues[key] !== 'number') {
+        currentValues[key] = parseFloat(currentValues[key] as any) || 0;
+      }
+    });
+    
+    // Atualiza o estado com o custo selecionado e seus valores
+    setEditingCost(cost);
+    setEditingValues(currentValues);
+  };
+
+  const handleEditValueChange = (safraId: string, value: string) => {
+    // Importante: verificamos se estamos editando algum custo
+    if (!editingCost) return;
+    
+    // Convertemos para número, usando 0 se não for um número válido
+    const numValue = parseFloat(value) || 0;
+    
+    // Atualizamos o estado com o novo valor para esta safra
+    setEditingValues(prev => ({
+      ...prev,
+      [safraId]: numValue
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    // Verificamos se há um custo sendo editado
+    if (!editingCost) {
+      console.error("Nenhum custo sendo editado");
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      
+      // Filtramos apenas os valores que são maiores que zero
+      const validValues = Object.fromEntries(
+        Object.entries(editingValues)
+          .filter(([_, value]) => value > 0)
+      );
+      
+      // Verificamos se há pelo menos um custo válido
+      if (Object.keys(validValues).length === 0) {
+        toast.error("Adicione pelo menos um custo válido por safra");
+        return;
+      }
+      
+      await updateProductionCost(editingCost.id, {
+        custos_por_safra: validValues,
+        observacoes: editingCost.observacoes
+      });
+      
+      toast.success("Custos de produção atualizados com sucesso!");
+      setEditingCost(null);
+      
+      // A revalidação já é feita pela função updateProductionCost
+    } catch (error) {
+      console.error("Erro ao atualizar custos:", error);
+      toast.error("Erro ao atualizar custos de produção");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingCost) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteProductionCost(deletingCost.id);
+      toast.success("Custo de produção excluído com sucesso!");
+      setDeletingCost(null);
+      
+      // A revalidação já é feita pela função deleteProductionCost
+    } catch (error) {
+      console.error("Erro ao excluir custo:", error);
+      toast.error("Erro ao excluir custo de produção");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4">
@@ -99,10 +219,16 @@ export function UnifiedProductionCostListing({
             </CardDescription>
           </div>
         </div>
-        <Button variant="secondary" className="gap-1" size="sm">
-          <Plus className="h-4 w-4" />
-          Novo Custo
-        </Button>
+        <NewProductionCostButton 
+          variant="secondary" 
+          className="gap-1" 
+          size="default"
+          cultures={cultures}
+          systems={systems}
+          harvests={safras}
+          properties={properties}
+          organizationId={organizationId}
+        />
       </CardHeader>
       <CardContent>
         {/* Search and Filter */}
@@ -172,17 +298,81 @@ export function UnifiedProductionCostListing({
                     })}
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <Popover onOpenChange={(open) => {
+                          if (open) {
+                            handleStartEdit(cost);
+                          } else {
+                            setEditingCost(null);
+                          }
+                        }}>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleStartEdit(cost)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-auto p-4">
+                            <div className="grid gap-4 w-[600px] max-h-[400px] overflow-y-auto">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-medium text-sm">Editar Custos de Produção</h4>
+                                <Badge variant="outline" className="ml-auto">
+                                  {cost.propriedades?.nome || "Geral"} • {cost.culturas?.nome} • {cost.sistemas?.nome}
+                                </Badge>
+                                {getCategoryBadge(cost.categoria)}
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-4">
+                                {filteredSafras.map(safra => {
+                                  const currentValue = editingCost?.id === cost.id 
+                                    ? (editingValues[safra.id] || 0) 
+                                    : (cost.custos_por_safra[safra.id] || 0);
+                                    
+                                  return (
+                                    <div key={safra.id} className="space-y-2">
+                                      <label className="text-sm font-medium">{safra.nome}</label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={currentValue || ""}
+                                        onChange={(e) => handleEditValueChange(safra.id, e.target.value)}
+                                        placeholder="0.00"
+                                        className="text-right"
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              
+                              <div className="flex justify-end gap-2 mt-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setEditingCost(null)}
+                                  disabled={isUpdating}
+                                >
+                                  Cancelar
+                                </Button>
+                                <Button 
+                                  size="sm"
+                                  onClick={handleSaveChanges}
+                                  disabled={isUpdating}
+                                >
+                                  {isUpdating ? "Salvando..." : "Salvar"}
+                                </Button>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                         <Button 
                           variant="ghost" 
                           size="sm"
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          onClick={() => setDeletingCost(cost)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -201,6 +391,31 @@ export function UnifiedProductionCostListing({
           </div>
         )}
       </CardContent>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deletingCost} onOpenChange={(open) => !open && setDeletingCost(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Custo de Produção</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este custo de produção? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteConfirm();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

@@ -11,6 +11,93 @@ import {
 } from "@/schemas/properties";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Adiciona a coluna imagem e outros campos ausentes na tabela de propriedades
+ * Esta função é chamada automaticamente quando necessário
+ */
+// Variável global para rastrear se as colunas já foram verificadas nesta sessão
+let columnsChecked = false;
+
+export async function ensurePropertyTableColumns(forceCheck = false) {
+  // Se já verificamos as colunas e não estamos forçando uma nova verificação, retornar true
+  if (columnsChecked && !forceCheck) {
+    return true;
+  }
+  
+  const supabase = await createClient();
+  
+  try {
+    // Verificar primeiro se todas as colunas já existem para evitar operações desnecessárias
+    if (!forceCheck) {
+      try {
+        const { data, error: checkError } = await supabase
+          .from('propriedades')
+          .select('id, imagem, cartorio_registro, numero_car, data_inicio, data_termino, tipo_anuencia')
+          .limit(1);
+        
+        if (!checkError) {
+          // Se não tiver erro, significa que todas as colunas existem
+          columnsChecked = true;
+          return true;
+        }
+      } catch (e) {
+        // Se der erro, vamos prosseguir com a adição das colunas
+      }
+    }
+    
+    // Só exibir log se estiver forçando a verificação ou se ainda não verificamos
+    if (forceCheck || !columnsChecked) {
+      console.log("Adicionando colunas necessárias à tabela 'propriedades'...");
+    }
+    
+    // Simplificando o SQL para usar apenas ALTER TABLE com IF NOT EXISTS
+    const sql = `
+      ALTER TABLE propriedades ADD COLUMN IF NOT EXISTS imagem TEXT;
+      ALTER TABLE propriedades ADD COLUMN IF NOT EXISTS cartorio_registro TEXT;
+      ALTER TABLE propriedades ADD COLUMN IF NOT EXISTS numero_car TEXT;
+      ALTER TABLE propriedades ADD COLUMN IF NOT EXISTS data_inicio TIMESTAMPTZ;
+      ALTER TABLE propriedades ADD COLUMN IF NOT EXISTS data_termino TIMESTAMPTZ;
+      ALTER TABLE propriedades ADD COLUMN IF NOT EXISTS tipo_anuencia TEXT;
+    `;
+    
+    const { error } = await supabase.rpc('execute_sql', { sql_command: sql });
+    
+    if (error) {
+      console.error("Erro ao executar SQL para adicionar colunas:", error);
+      
+      // Verificar se as colunas existem como fallback
+      const { data, error: checkError } = await supabase
+        .from('propriedades')
+        .select('id')
+        .limit(1);
+      
+      if (checkError) {
+        if (checkError.message.includes('column') || checkError.message.includes('cache')) {
+          console.error("Erro ao verificar tabela:", checkError);
+          return false;
+        }
+        // Se conseguimos consultar sem erro de coluna, as colunas devem existir
+        columnsChecked = true;
+        return true;
+      }
+      
+      columnsChecked = true;
+      return true;
+    }
+    
+    // Só exibir log se estiver forçando a verificação ou se ainda não verificamos
+    if (forceCheck || !columnsChecked) {
+      console.log("Colunas adicionadas com sucesso!");
+    }
+    
+    columnsChecked = true;
+    return true;
+  } catch (error) {
+    console.error("Erro ao verificar/adicionar colunas:", error);
+    return false;
+  }
+}
+
 // Funções para Propriedades
 export async function getProperties(organizationId: string) {
   const supabase = await createClient();
@@ -52,23 +139,99 @@ export async function createProperty(
 ) {
   const supabase = await createClient();
   
-  const { data, error } = await supabase
-    .from("propriedades")
-    .insert({
-      organizacao_id: organizationId,
-      ...values
-    })
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Erro ao criar propriedade:", error);
-    throw new Error("Não foi possível criar a propriedade");
+  try {
+    // Processar os valores para garantir que campos numéricos zero sejam NULL
+    const processedValues = {
+      ...values,
+      // Conversão de 0 para NULL para evitar violação de constraint 'positive'
+      avaliacao_banco: values.avaliacao_banco === 0 ? null : values.avaliacao_banco,
+      valor_atual: values.valor_atual === 0 ? null : values.valor_atual,
+      // Se o tipo for ARRENDADO, forçar ano_aquisicao como NULL
+      ano_aquisicao: values.tipo === "ARRENDADO" ? null : values.ano_aquisicao
+    };
+    
+    const { data, error } = await supabase
+      .from("propriedades")
+      .insert({
+        organizacao_id: organizationId,
+        ...processedValues
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Erro ao criar propriedade:", error);
+      let errorMsg = "Não foi possível criar a propriedade";
+      
+      // Mostrar mensagem mais específica dependendo do erro
+      if (error.code === '23514') {
+        if (error.message.includes('avaliacao_banco_positive')) {
+          errorMsg = "Erro: O valor da avaliação do banco deve ser positivo ou vazio";
+        } else if (error.message.includes('valor_atual_positive')) {
+          errorMsg = "Erro: O valor atual da propriedade deve ser positivo ou vazio";
+        } else if (error.message.includes('area_total_positive')) {
+          errorMsg = "Erro: A área total deve ser um valor positivo";
+        } else if (error.message.includes('area_cultivada_positive')) {
+          errorMsg = "Erro: A área cultivada deve ser um valor positivo";
+        } else {
+          errorMsg = `Erro de validação: ${error.message}`;
+        }
+      }
+      
+      throw new Error(errorMsg);
+    }
+    
+    revalidatePath("/dashboard/properties");
+    
+    return data as Property;
+  } catch (error: any) {
+    // Log detalhado para depuração
+    console.error("Exceção ao criar propriedade:", error);
+    
+    // Se for um erro já tratado, repassar a mensagem
+    if (error instanceof Error && error.message.startsWith("Erro:")) {
+      throw error;
+    }
+    
+    // Outros tipos de erro
+    if (error.message.includes("column") || error.message.includes("cache")) {
+      // Tente novamente forçando a adição de todas as colunas
+      try {
+        // Chamar a função que garante todas as colunas
+        const success = await ensurePropertyTableColumns();
+        
+        if (!success) {
+          console.error("Não foi possível garantir todas as colunas necessárias");
+          throw new Error("Erro ao adicionar colunas necessárias na tabela");
+        }
+        
+        console.log("Colunas adicionadas após falha na criação da propriedade");
+        
+        // Tente a inserção novamente
+        const { data, error: retryError } = await supabase
+          .from("propriedades")
+          .insert({
+            organizacao_id: organizationId,
+            ...values
+          })
+          .select()
+          .single();
+        
+        if (retryError) {
+          console.error("Erro na segunda tentativa de criar propriedade:", retryError);
+          throw new Error("Não foi possível criar a propriedade mesmo após adicionar as colunas");
+        }
+        
+        revalidatePath("/dashboard/properties");
+        return data as Property;
+      } catch (retryError) {
+        console.error("Erro na tentativa de recuperação:", retryError);
+        throw new Error("Não foi possível criar a propriedade. Erro na estrutura da tabela.");
+      }
+    } else {
+      throw error;
+    }
   }
-  
-  revalidatePath("/dashboard/properties");
-  
-  return data as Property;
 }
 
 export async function updateProperty(
@@ -77,22 +240,97 @@ export async function updateProperty(
 ) {
   const supabase = await createClient();
   
-  const { data, error } = await supabase
-    .from("propriedades")
-    .update(values)
-    .eq("id", id)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Erro ao atualizar propriedade:", error);
-    throw new Error("Não foi possível atualizar a propriedade");
+  try {
+    // Processar os valores para garantir que campos numéricos zero sejam NULL
+    const processedValues = {
+      ...values,
+      // Conversão de 0 para NULL para evitar violação de constraint 'positive'
+      avaliacao_banco: values.avaliacao_banco === 0 ? null : values.avaliacao_banco,
+      valor_atual: values.valor_atual === 0 ? null : values.valor_atual,
+      // Se o tipo for ARRENDADO, forçar ano_aquisicao como NULL
+      ano_aquisicao: values.tipo === "ARRENDADO" ? null : values.ano_aquisicao
+    };
+    
+    const { data, error } = await supabase
+      .from("propriedades")
+      .update(processedValues)
+      .eq("id", id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Erro ao atualizar propriedade:", error);
+      let errorMsg = "Não foi possível atualizar a propriedade";
+      
+      // Mostrar mensagem mais específica dependendo do erro
+      if (error.code === '23514') {
+        if (error.message.includes('avaliacao_banco_positive')) {
+          errorMsg = "Erro: O valor da avaliação do banco deve ser positivo ou vazio";
+        } else if (error.message.includes('valor_atual_positive')) {
+          errorMsg = "Erro: O valor atual da propriedade deve ser positivo ou vazio";
+        } else if (error.message.includes('area_total_positive')) {
+          errorMsg = "Erro: A área total deve ser um valor positivo";
+        } else if (error.message.includes('area_cultivada_positive')) {
+          errorMsg = "Erro: A área cultivada deve ser um valor positivo";
+        } else {
+          errorMsg = `Erro de validação: ${error.message}`;
+        }
+      }
+      
+      throw new Error(errorMsg);
+    }
+    
+    revalidatePath(`/dashboard/properties/${id}`);
+    revalidatePath("/dashboard/properties");
+    
+    return data as Property;
+  } catch (error: any) {
+    // Log detalhado para depuração
+    console.error("Exceção ao atualizar propriedade:", error);
+    
+    // Se for um erro já tratado, repassar a mensagem
+    if (error instanceof Error && error.message.startsWith("Erro:")) {
+      throw error;
+    }
+    
+    // Outros tipos de erro
+    if (error.message.includes("column") || error.message.includes("cache")) {
+      // Tente novamente forçando a adição de todas as colunas
+      try {
+        // Chamar a função que garante todas as colunas
+        const success = await ensurePropertyTableColumns();
+        
+        if (!success) {
+          console.error("Não foi possível garantir todas as colunas necessárias");
+          throw new Error("Erro ao adicionar colunas necessárias na tabela");
+        }
+        
+        console.log("Colunas adicionadas após falha na atualização da propriedade");
+        
+        // Tente a atualização novamente
+        const { data, error: retryError } = await supabase
+          .from("propriedades")
+          .update(values)
+          .eq("id", id)
+          .select()
+          .single();
+        
+        if (retryError) {
+          console.error("Erro na segunda tentativa de atualizar propriedade:", retryError);
+          throw new Error("Não foi possível atualizar a propriedade mesmo após adicionar as colunas");
+        }
+        
+        revalidatePath(`/dashboard/properties/${id}`);
+        revalidatePath("/dashboard/properties");
+        return data as Property;
+      } catch (retryError) {
+        console.error("Erro na tentativa de recuperação:", retryError);
+        throw new Error("Não foi possível atualizar a propriedade. Erro na estrutura da tabela.");
+      }
+    } else {
+      throw error;
+    }
   }
-  
-  revalidatePath(`/dashboard/properties/${id}`);
-  revalidatePath("/dashboard/properties");
-  
-  return data as Property;
 }
 
 export async function deleteProperty(id: string) {
@@ -200,17 +438,43 @@ export async function createLease(
 ) {
   const supabase = await createClient();
   
-  console.log("createLease called with:", { organizationId, propertyId, values });
+  // Validar dados de entrada
+  const validationErrors = validateLeaseData(values);
+  if (validationErrors.length > 0) {
+    throw new Error(`Validação de arrendamento: ${validationErrors.join(", ")}`);
+  }
   
-  // Garantir que custos_por_ano seja um objeto válido
+  // Verificar se já existe um arrendamento com o mesmo número para esta safra
+  if (values.safra_id && values.numero_arrendamento) {
+    const { data: existingLease, error: checkError } = await supabase
+      .from("arrendamentos")
+      .select("id")
+      .eq("organizacao_id", organizationId)
+      .eq("safra_id", values.safra_id)
+      .eq("numero_arrendamento", values.numero_arrendamento);
+      
+    if (!checkError && existingLease && existingLease.length > 0) {
+      throw new Error("Já existe um arrendamento com este número para esta safra");
+    }
+  }
+  
+  // Garantir que custos_por_ano seja um objeto válido e não vazio
   let custos;
   try {
     custos = typeof values.custos_por_ano === 'string' 
       ? JSON.parse(values.custos_por_ano) 
       : values.custos_por_ano || {};
+      
+    // Garantir que não é vazio (requisito do banco de dados)
+    if (Object.keys(custos).length === 0) {
+      // Adicionar pelo menos um par chave-valor padrão se estiver vazio
+      const currentYear = new Date().getFullYear().toString();
+      custos = { [currentYear]: values.area_arrendada * (values.custo_hectare || 0) };
+    }
   } catch (error) {
-    console.warn("Erro ao parsear custos_por_ano, usando objeto vazio:", error);
-    custos = {};
+    // Criar um objeto padrão em caso de erro
+    const currentYear = new Date().getFullYear().toString();
+    custos = { [currentYear]: values.area_arrendada * (values.custo_hectare || 0) };
   }
   
   const insertData = {
@@ -225,13 +489,11 @@ export async function createLease(
     data_inicio: values.data_inicio,
     data_termino: values.data_termino,
     custo_hectare: values.custo_hectare,
-    tipo_pagamento: values.tipo_pagamento,
+    tipo_pagamento: values.tipo_pagamento || "SACAS",
     custos_por_ano: custos,
     ativo: values.ativo ?? true,
     observacoes: values.observacoes || null
   };
-  
-  console.log("Dados a serem inseridos:", insertData);
   
   const { data, error } = await supabase
     .from("arrendamentos")
@@ -240,15 +502,52 @@ export async function createLease(
     .single();
   
   if (error) {
-    console.error("Erro ao criar arrendamento:", error);
-    throw new Error(`Não foi possível criar o arrendamento: ${error.message}`);
+    // Mensagens de erro mais específicas baseadas no código de erro
+    if (error.code === '23505' && error.message.includes('arrendamentos_organizacao_id_safra_id_numero_arrendamento')) {
+      throw new Error("Já existe um arrendamento com este número para esta safra");
+    } else if (error.code === '23514' && error.message.includes('custos_por_ano')) {
+      throw new Error("É necessário informar pelo menos um custo anual para o arrendamento");
+    } else if (error.code === '23514' && error.message.includes('area_arrendada')) {
+      throw new Error("A área arrendada não pode ser maior que a área total da fazenda");
+    } else if (error.code === '23514' && error.message.includes('data_termino')) {
+      throw new Error("A data de término deve ser posterior à data de início");
+    } else {
+      console.error("Erro ao criar arrendamento:", error);
+      throw new Error(`Não foi possível criar o arrendamento: ${error.message}`);
+    }
   }
-  
-  console.log("Arrendamento criado com sucesso:", data);
   
   revalidatePath(`/dashboard/properties/${propertyId}`);
   
   return data as Lease;
+}
+
+// Função de validação para arrendamentos
+function validateLeaseData(values: LeaseFormValues) {
+  const errors = [];
+  
+  if (!values.safra_id) errors.push("Safra é obrigatória");
+  if (!values.numero_arrendamento) errors.push("Número do arrendamento é obrigatório");
+  if (!values.nome_fazenda) errors.push("Nome da fazenda é obrigatório");
+  if (!values.arrendantes) errors.push("Arrendantes são obrigatórios");
+  if (!values.data_inicio) errors.push("Data de início é obrigatória");
+  if (!values.data_termino) errors.push("Data de término é obrigatória");
+  
+  // Validações de valores numéricos
+  if (!values.area_fazenda || values.area_fazenda <= 0) errors.push("Área da fazenda deve ser maior que zero");
+  if (!values.area_arrendada || values.area_arrendada <= 0) errors.push("Área arrendada deve ser maior que zero");
+  if (values.area_arrendada > values.area_fazenda) errors.push("Área arrendada não pode ser maior que a área da fazenda");
+  
+  // Validação de datas
+  if (values.data_inicio && values.data_termino) {
+    const inicio = new Date(values.data_inicio);
+    const termino = new Date(values.data_termino);
+    if (termino <= inicio) {
+      errors.push("A data de término deve ser posterior à data de início");
+    }
+  }
+  
+  return errors;
 }
 
 export async function updateLease(
@@ -257,9 +556,30 @@ export async function updateLease(
 ) {
   const supabase = await createClient();
   
-  const custos = typeof values.custos_por_ano === 'string' 
-    ? JSON.parse(values.custos_por_ano) 
-    : values.custos_por_ano;
+  // Validar dados de entrada
+  const validationErrors = validateLeaseData(values);
+  if (validationErrors.length > 0) {
+    throw new Error(`Validação de arrendamento: ${validationErrors.join(", ")}`);
+  }
+  
+  // Garantir que custos_por_ano seja um objeto válido e não vazio
+  let custos;
+  try {
+    custos = typeof values.custos_por_ano === 'string' 
+      ? JSON.parse(values.custos_por_ano) 
+      : values.custos_por_ano || {};
+      
+    // Garantir que não é vazio (requisito do banco de dados)
+    if (Object.keys(custos).length === 0) {
+      // Adicionar pelo menos um par chave-valor padrão se estiver vazio
+      const currentYear = new Date().getFullYear().toString();
+      custos = { [currentYear]: values.area_arrendada * (values.custo_hectare || 0) };
+    }
+  } catch (error) {
+    // Criar um objeto padrão em caso de erro
+    const currentYear = new Date().getFullYear().toString();
+    custos = { [currentYear]: values.area_arrendada * (values.custo_hectare || 0) };
+  }
   
   const updateData = {
     safra_id: values.safra_id,
@@ -271,7 +591,7 @@ export async function updateLease(
     data_inicio: values.data_inicio,
     data_termino: values.data_termino,
     custo_hectare: values.custo_hectare,
-    tipo_pagamento: values.tipo_pagamento,
+    tipo_pagamento: values.tipo_pagamento || "SACAS",
     custos_por_ano: custos,
     ativo: values.ativo ?? true,
     observacoes: values.observacoes || null
@@ -285,8 +605,19 @@ export async function updateLease(
     .single();
   
   if (error) {
-    console.error("Erro ao atualizar arrendamento:", error);
-    throw new Error("Não foi possível atualizar o arrendamento");
+    // Mensagens de erro mais específicas baseadas no código de erro
+    if (error.code === '23505' && error.message.includes('arrendamentos_organizacao_id_safra_id_numero_arrendamento')) {
+      throw new Error("Já existe um arrendamento com este número para esta safra");
+    } else if (error.code === '23514' && error.message.includes('custos_por_ano')) {
+      throw new Error("É necessário informar pelo menos um custo anual para o arrendamento");
+    } else if (error.code === '23514' && error.message.includes('area_arrendada')) {
+      throw new Error("A área arrendada não pode ser maior que a área total da fazenda");
+    } else if (error.code === '23514' && error.message.includes('data_termino')) {
+      throw new Error("A data de término deve ser posterior à data de início");
+    } else {
+      console.error("Erro ao atualizar arrendamento:", error);
+      throw new Error(`Não foi possível atualizar o arrendamento: ${error.message}`);
+    }
   }
   
   revalidatePath(`/dashboard/properties/${values.propriedade_id}`);

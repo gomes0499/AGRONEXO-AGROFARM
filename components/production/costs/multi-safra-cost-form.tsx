@@ -123,13 +123,38 @@ export function MultiSafraProductionCostForm({
   const onSubmit = async (values: MultiSafraProductionCostFormValues) => {
     setIsSubmitting(true);
     try {
+      // Verificar se há pelo menos um custo por safra
+      if (Object.keys(values.custos_por_safra).length === 0) {
+        toast.error("Adicione pelo menos um custo por safra");
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Ensure propriedade_id is provided (it's required by the API)
       const finalValues = {
         ...values,
         propriedade_id: values.propriedade_id || ''
       };
+      
+      // Filtrar apenas valores maiores que zero
+      const validCosts: Record<string, number> = {};
+      Object.entries(values.custos_por_safra).forEach(([safraId, value]) => {
+        if (value > 0) {
+          validCosts[safraId] = value;
+        }
+      });
+      
+      if (Object.keys(validCosts).length === 0) {
+        toast.error("Adicione pelo menos um custo válido por safra");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Atualizar com os valores filtrados
+      finalValues.custos_por_safra = validCosts;
+      
       const newCosts = await createMultiSafraProductionCosts(organizationId, finalValues);
-      toast.success(`${Object.keys(values.custos_por_safra).length} custo(s) criado(s) com sucesso!`);
+      toast.success(`${Object.keys(validCosts).length} custo(s) criado(s) com sucesso!`);
       
       if (onSuccess) {
         // Convert to expected array type with date conversion and explicit casting
@@ -140,6 +165,8 @@ export function MultiSafraProductionCostForm({
           updated_at: newCosts.updated_at ? new Date(newCosts.updated_at) : undefined
         }]); // Cast to satisfy TypeScript
       }
+      
+      // A revalidação já é feita pelas funções do servidor
     } catch (error) {
       console.error("Erro ao criar custos:", error);
       toast.error("Ocorreu um erro ao criar os custos.");

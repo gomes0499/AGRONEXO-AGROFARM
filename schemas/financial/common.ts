@@ -37,7 +37,11 @@ export const commodityTypeEnum = z.enum([
 export type CommodityType = z.infer<typeof commodityTypeEnum>;
 
 // Categorias de fornecedores (deve corresponder exatamente às categorias na tabela dividas_fornecedores)
-export const categoriaFornecedorEnum = z.enum(["INSUMOS", "SERVIÇOS", "OUTROS"]);
+export const categoriaFornecedorEnum = z.enum([
+  "FERTILIZANTES", "DEFENSIVOS", "SEMENTES", "COMBUSTIVEIS", 
+  "MAQUINAS", "SERVICOS", "INSUMOS_GERAIS", "VETERINARIOS", 
+  "CONSULTORIA", "TRANSPORTE", "OUTROS"
+]);
 export type CategoriaFornecedorType = z.infer<typeof categoriaFornecedorEnum>;
 
 // Helpers para validação de JSON

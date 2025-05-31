@@ -52,8 +52,9 @@ export default async function EditPropertyPage({
           </div>
           <Separator />
           <PropertyForm 
-            property={property} 
-            organizationId={session.organizationId} 
+            initialData={property} 
+            organizationId={session.organizationId}
+            mode="edit" 
           />
         </div>
       </>

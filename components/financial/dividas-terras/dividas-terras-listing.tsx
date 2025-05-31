@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DividasTerrasForm } from "./dividas-terras-form";
 import { deleteDividaTerra } from "@/lib/actions/financial-actions/dividas-terras";
 import { DividasTerrasRowActions } from "./dividas-terras-row-actions";
+import { DividasTerrasPopoverEditor } from "./dividas-terras-popover-editor";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
@@ -171,18 +172,29 @@ export function DividasTerrasListing({
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <DividasTerrasRowActions
-                          dividaTerra={divida}
-                          onEdit={() => setEditingDivida(divida)}
-                          onDelete={() => handleDeleteDivida(divida.id)}
-                        />
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Editor de Valores por Safra via Popover */}
+                          <DividasTerrasPopoverEditor
+                            divida={divida}
+                            organizationId={organization.id}
+                            onUpdate={handleUpdateDivida}
+                          />
+                          
+                          {/* Botões de Editar/Excluir */}
+                          <DividasTerrasRowActions
+                            dividaTerra={divida}
+                            onEdit={() => setEditingDivida(divida)}
+                            onDelete={() => handleDeleteDivida(divida.id)}
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
               
-              <FinancialPagination
+              <div className="mt-8">
+                <FinancialPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
@@ -190,6 +202,7 @@ export function DividasTerrasListing({
                 onItemsPerPageChange={handleItemsPerPageChange}
                 totalItems={totalDividasTerras}
               />
+              </div>
             </div>
           )}
         </div>

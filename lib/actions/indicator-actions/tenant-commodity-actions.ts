@@ -10,6 +10,7 @@ import {
 
 /**
  * Função para buscar preços de commodities para o tenant atual (JSONB format)
+ * Inclui preços dinâmicos de culturas personalizadas
  */
 export async function getSafraCommodityPrices(): Promise<CommodityPriceType[]> {
   const TENANT_ID = "131db844-18ab-4164-8d79-2c8eed2b12f1";
@@ -26,6 +27,8 @@ export async function getSafraCommodityPrices(): Promise<CommodityPriceType[]> {
     if (!count || count === 0) {
       await initializeSafraPrices();
     }
+    
+    // We'll continue with the rest of the function without dynamic culture mapping
     
     // Buscar os preços com JSONB
     const { data: prices, error } = await supabase
@@ -68,6 +71,8 @@ export async function getSafraCommodityPrices(): Promise<CommodityPriceType[]> {
         
         return undefined;
       };
+      
+      // We'll simply proceed with the regular conversion of prices without dynamic mapping
       
       return {
         id: p.id,

@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DividasBancariasForm } from "./dividas-bancarias-form";
 import { deleteDividaBancaria } from "@/lib/actions/financial-actions/dividas-bancarias";
 import { DividasBancariasRowActions } from "./dividas-bancarias-row-actions";
+import { DividasBancariasPopoverEditor } from "./dividas-bancarias-popover-editor";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
@@ -172,13 +173,13 @@ export function DividasBancariasListing({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md uppercase">Nome</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Tipo</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Modalidade</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Indexador</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Taxa</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground w-[180px] uppercase">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
+                    <TableHead className="font-medium text-primary-foreground rounded-tl-md">Nome</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Tipo</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Modalidade</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Indexador</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Taxa</TableHead>
+                    <TableHead className="font-medium text-primary-foreground w-[180px]">Valor Total</TableHead>
+                    <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -190,7 +191,7 @@ export function DividasBancariasListing({
                         <TableRow 
                           className={divida.isExpanded ? "bg-muted/30 hover:bg-muted/30" : ""}
                         >
-                          <TableCell className="uppercase">
+                          <TableCell>
                             <div className="flex items-center gap-2">
                               <Button 
                                 variant="ghost"
@@ -215,45 +216,55 @@ export function DividasBancariasListing({
                               {divida.nome || divida.instituicao_bancaria}
                             </div>
                           </TableCell>
-                          <TableCell className="uppercase">
-                            <Badge variant="outline" className="font-normal uppercase">
+                          <TableCell>
+                            <Badge variant="default" className="font-normal">
                               {divida.tipo_instituicao || divida.tipo || "-"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="uppercase">
-                            <Badge variant="secondary" className="font-normal uppercase">
+                          <TableCell>
+                            <Badge variant="default" className="font-normal">
                               {divida.modalidade || "-"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="uppercase">
-                            <Badge variant="default" className="font-normal bg-blue-100 text-blue-800 hover:bg-blue-100 uppercase">
+                          <TableCell>
+                            <Badge variant="default" className="font-normal">
                               {divida.indexador || "-"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="uppercase">
+                          <TableCell>
                             {divida.taxa_real ? (
-                              <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 uppercase">
+                              <Badge variant="default" className="font-normal">
                                 {divida.taxa_real}%
-                              </span>
+                              </Badge>
                             ) : "-"}
                           </TableCell>
-                          <TableCell className="uppercase">
+                          <TableCell>
                             <span className="font-medium text-sm">
                               {formatGenericCurrency(
                                 calculateTotal(divida),
                                 divida.moeda || "BRL"
                               )}
                             </span>
-                            <span className="ml-1 text-xs text-muted-foreground uppercase">
+                            <span className="ml-1 text-xs text-muted-foreground">
                               {divida.moeda || "BRL"}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <DividasBancariasRowActions
-                              dividaBancaria={divida}
-                              onEdit={() => setEditingDivida(divida)}
-                              onDelete={() => handleDeleteDivida(divida.id)}
-                            />
+                            <div className="flex items-center justify-end gap-1">
+                              {/* Editor de Valores por Safra via Popover */}
+                              <DividasBancariasPopoverEditor
+                                divida={divida}
+                                organizationId={organization.id}
+                                onUpdate={handleUpdateDivida}
+                              />
+                              
+                              {/* Botões de Editar/Excluir */}
+                              <DividasBancariasRowActions
+                                dividaBancaria={divida}
+                                onEdit={() => setEditingDivida(divida)}
+                                onDelete={() => handleDeleteDivida(divida.id)}
+                              />
+                            </div>
                           </TableCell>
                         </TableRow>
                         {divida.isExpanded && (
@@ -274,7 +285,7 @@ export function DividasBancariasListing({
                 </TableBody>
               </Table>
               
-              <div className="mt-6">
+              <div className="mt-8">
                 <FinancialPagination
                   currentPage={currentPage}
                   totalPages={totalPages}

@@ -153,8 +153,8 @@ export function LivestockList({
             </CardDescription>
           </div>
         </div>
-        <Button variant="secondary" className="gap-1" size="sm" onClick={handleCreate}>
-          <Plus className="h-4 w-4" />
+        <Button variant="secondary" className="gap-1" size="default" onClick={handleCreate}>
+          <Plus className="h-4 w-4 mr-2" />
           Novo Animal
         </Button>
       </CardHeader>
@@ -177,14 +177,14 @@ export function LivestockList({
             <Table>
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
-                  <TableHead className="font-semibold text-primary-foreground rounded-tl-md uppercase">Tipo</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground uppercase">Categoria</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground uppercase">Quantidade</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground uppercase">Unidade</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground uppercase">Preço</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground uppercase">Valor Total</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground uppercase">Propriedade</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
+                  <TableHead className="font-medium text-primary-foreground rounded-tl-md">Tipo</TableHead>
+                  <TableHead className="font-medium text-primary-foreground">Categoria</TableHead>
+                  <TableHead className="font-medium text-primary-foreground">Quantidade</TableHead>
+                  <TableHead className="font-medium text-primary-foreground">Unidade</TableHead>
+                  <TableHead className="font-medium text-primary-foreground">Preço</TableHead>
+                  <TableHead className="font-medium text-primary-foreground">Valor Total</TableHead>
+                  <TableHead className="font-medium text-primary-foreground">Propriedade</TableHead>
+                  <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -193,9 +193,9 @@ export function LivestockList({
                   const totalValue = item.quantidade * item.preco_unitario;
                   return (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium uppercase">{item.tipo_animal}</TableCell>
-                      <TableCell className="uppercase">{item.categoria}</TableCell>
-                      <TableCell className="uppercase">
+                      <TableCell className="font-medium">{item.tipo_animal}</TableCell>
+                      <TableCell>{item.categoria}</TableCell>
+                      <TableCell>
                         {item.unidade_preco === "CABECA"
                           ? item.quantidade
                           : item.unidade_preco === "KG"
@@ -211,12 +211,12 @@ export function LivestockList({
                             })`
                           : ""}
                       </TableCell>
-                      <TableCell className="uppercase">
+                      <TableCell>
                         {PRICE_UNITS[
                           item.unidade_preco as keyof typeof PRICE_UNITS
                         ]?.split(" ")[0] || "Por cabeça"}
                       </TableCell>
-                      <TableCell className="uppercase">
+                      <TableCell>
                         {formatCurrency(item.preco_unitario)}
                         {item.unidade_preco === "KG"
                           ? "/kg"
@@ -224,8 +224,8 @@ export function LivestockList({
                           ? "/@"
                           : ""}
                       </TableCell>
-                      <TableCell className="uppercase">{formatCurrency(totalValue)}</TableCell>
-                      <TableCell className="uppercase">{propertyName}</TableCell>
+                      <TableCell>{formatCurrency(totalValue)}</TableCell>
+                      <TableCell>{propertyName}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

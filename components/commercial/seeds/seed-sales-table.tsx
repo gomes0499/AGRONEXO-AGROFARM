@@ -112,7 +112,11 @@ export function SeedSalesTable(props: SeedSalesTableProps) {
       // Criar a linha da tabela
       let row = (
         <TableRow key={sale.id || i}>
-          <TableCell>{getPropertyName(sale.propriedade_id)}</TableCell>
+          <TableCell>
+            <Badge variant="default">
+              {getPropertyName(sale.propriedade_id)}
+            </Badge>
+          </TableCell>
           <TableCell>{getCultureName(sale.cultura_id)}</TableCell>
           <TableCell>{getSafraName(sale.safra_id)}</TableCell>
           <TableCell className="font-medium">
@@ -150,14 +154,14 @@ export function SeedSalesTable(props: SeedSalesTableProps) {
       <Table>
         <TableHeader>
           <TableRow className="bg-primary hover:bg-primary">
-            <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Propriedade</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">Cultura</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">Safra</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">Receita Bruta</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">Custos Totais</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">Lucro Líquido</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">Margem (%)</TableHead>
-            <TableHead className="text-right font-semibold text-primary-foreground rounded-tr-md">Ações</TableHead>
+            <TableHead className="font-medium text-primary-foreground rounded-tl-md">Propriedade</TableHead>
+            <TableHead className="font-medium text-primary-foreground">Cultura</TableHead>
+            <TableHead className="font-medium text-primary-foreground">Safra</TableHead>
+            <TableHead className="font-medium text-primary-foreground">Receita Bruta</TableHead>
+            <TableHead className="font-medium text-primary-foreground">Custos Totais</TableHead>
+            <TableHead className="font-medium text-primary-foreground">Lucro Líquido</TableHead>
+            <TableHead className="font-medium text-primary-foreground">Margem (%)</TableHead>
+            <TableHead className="text-right font-medium text-primary-foreground rounded-tr-md">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>{renderTableRows()}</TableBody>

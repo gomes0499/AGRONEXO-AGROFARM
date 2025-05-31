@@ -167,15 +167,12 @@ export function MemberDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <DialogContent className="sm:max-w-[95%] md:max-w-[90%] lg:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex flex-row items-center space-y-0 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5 text-primary" />
             Detalhes do Membro
           </DialogTitle>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-2">
@@ -216,14 +213,31 @@ export function MemberDetailsModal({
 
               {/* Tabs com informações detalhadas */}
               <Tabs defaultValue="personal" className="w-full">
-                <TabsList className="grid grid-cols-3 mb-4">
-                  <TabsTrigger value="personal">Pessoais</TabsTrigger>
-                  <TabsTrigger value="contact">Contato</TabsTrigger>
-                  <TabsTrigger value="documents">Documentos</TabsTrigger>
-                </TabsList>
+                <div className="bg-muted/50 border-b mb-4">
+                  <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+                    <TabsTrigger 
+                      value="personal"
+                      className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+                    >
+                      Pessoais
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="contact"
+                      className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+                    >
+                      Contato
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="documents"
+                      className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+                    >
+                      Documentos
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
                 {/* Dados Pessoais */}
-                <TabsContent value="personal" className="space-y-4">
+                <TabsContent value="personal" className="space-y-4 p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InfoField 
                       icon={User} 
@@ -293,7 +307,7 @@ export function MemberDetailsModal({
                 </TabsContent>
 
                 {/* Contato e Endereço */}
-                <TabsContent value="contact" className="space-y-4">
+                <TabsContent value="contact" className="space-y-4 p-4">
                   <h4 className="text-md font-semibold mb-3">Contato</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InfoField 
@@ -346,7 +360,7 @@ export function MemberDetailsModal({
                 </TabsContent>
 
                 {/* Documentos */}
-                <TabsContent value="documents" className="space-y-4">
+                <TabsContent value="documents" className="space-y-4 p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InfoField 
                       icon={CreditCard} 

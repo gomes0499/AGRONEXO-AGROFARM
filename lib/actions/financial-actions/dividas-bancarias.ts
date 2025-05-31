@@ -73,11 +73,11 @@ export async function createDividaBancaria(
   const newDividaBancaria = {
     organizacao_id: organizacaoId,
     instituicao_bancaria: values.nome, // Usar nome como instituicao_bancaria
-    tipo: values.categoria?.startsWith('BANCO') ? 'BANCO' : 'OUTROS', // Valores permitidos para tipo_instituicao_financeira
-    modalidade: 'CUSTEIO', // Padrão
+    tipo: values.tipo || 'BANCO',
+    modalidade: values.categoria || 'CUSTEIO',
     ano_contratacao: new Date().getFullYear(), // Ano atual
-    indexador: 'CDI', // Padrão
-    taxa_real: 6.5, // Valor padrão
+    indexador: values.indexador || 'CDI',
+    taxa_real: values.taxa_real || 6.5,
     valores_por_ano: values.valores_por_safra || {}, // Usar valores_por_safra como valores_por_ano
     moeda: values.moeda || "BRL",
   };
@@ -112,7 +112,10 @@ export async function updateDividaBancaria(
   
   const updatedDividaBancaria = {
     instituicao_bancaria: values.nome, // Usar nome como instituicao_bancaria
-    tipo: values.categoria?.startsWith('BANCO') ? 'BANCO' : 'OUTROS', // Valores permitidos para tipo_instituicao_financeira
+    tipo: values.tipo || 'BANCO',
+    modalidade: values.categoria || 'CUSTEIO',
+    indexador: values.indexador || 'CDI',
+    taxa_real: values.taxa_real || 6.5,
     valores_por_ano: values.valores_por_safra || {}, // Usar valores_por_safra como valores_por_ano
     moeda: values.moeda || "BRL",
   };

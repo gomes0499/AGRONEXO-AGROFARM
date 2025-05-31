@@ -276,12 +276,12 @@ export function UnifiedPricesTab({
       commodityType as ExchangeRateTypeEnum
     );
     return isExchangeRate ? (
-      <Badge variant="secondary" className="flex items-center gap-1">
+      <Badge variant="default" className="flex items-center gap-1 font-normal">
         <CircleDollarSign className="h-3 w-3" />
         Câmbio
       </Badge>
     ) : (
-      <Badge variant="outline" className="flex items-center gap-1">
+      <Badge variant="default" className="flex items-center gap-1 font-normal">
         <TrendingUp className="h-3 w-3" />
         Commodity
       </Badge>
@@ -301,46 +301,46 @@ export function UnifiedPricesTab({
       <Table>
         <TableHeader className="sticky top-0 z-10">
           <TableRow className="bg-primary hover:bg-primary">
-            <TableHead className="font-semibold text-primary-foreground rounded-tl-md w-[200px] bg-primary">
+            <TableHead className="font-medium text-primary-foreground rounded-tl-md w-[200px] bg-primary">
               Item
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground w-[80px] bg-primary">
+            <TableHead className="font-medium text-primary-foreground w-[80px] bg-primary">
               Tipo
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               Unidade
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               Atual
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               2021/22
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               2022/23
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               2023/24
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               2024/25
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               2025/26
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               2026/27
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               2027/28
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               2028/29
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground bg-primary">
+            <TableHead className="font-medium text-primary-foreground bg-primary">
               2029/30
             </TableHead>
-            <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[60px] bg-primary">
+            <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[60px] bg-primary">
               Ações
             </TableHead>
           </TableRow>

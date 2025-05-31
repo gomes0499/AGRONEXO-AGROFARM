@@ -340,12 +340,40 @@ BEGIN
         WHEN 'ciclos' THEN
             table_check = 'areas_plantio';
         WHEN 'safras' THEN
-            table_check = 'areas_plantio';
+            -- Special case for safras since they're stored in JSONB
+            SELECT COUNT(*) INTO usage_count 
+            FROM areas_plantio 
+            WHERE areas_por_safra ? OLD.id::text;
+            
+            IF usage_count > 0 THEN
+                RAISE EXCEPTION 'Não é possível excluir esta safra pois está sendo usada em % registros de áreas de plantio', usage_count;
+            END IF;
+            
+            -- Check produtividades table too
+            SELECT COUNT(*) INTO usage_count 
+            FROM produtividades 
+            WHERE produtividades_por_safra ? OLD.id::text;
+            
+            IF usage_count > 0 THEN
+                RAISE EXCEPTION 'Não é possível excluir esta safra pois está sendo usada em % registros de produtividade', usage_count;
+            END IF;
+            
+            -- Check custos_producao table
+            SELECT COUNT(*) INTO usage_count 
+            FROM custos_producao 
+            WHERE custos_por_safra ? OLD.id::text;
+            
+            IF usage_count > 0 THEN
+                RAISE EXCEPTION 'Não é possível excluir esta safra pois está sendo usada em % registros de custos de produção', usage_count;
+            END IF;
+            
+            -- Return early since we've already checked
+            RETURN OLD;
         ELSE
             RETURN OLD;
     END CASE;
     
-    -- Check if configuration item is being used
+    -- Check if configuration item is being used (for non-safra tables)
     EXECUTE format(
         'SELECT COUNT(*) FROM %I WHERE %I = $1',
         table_check,

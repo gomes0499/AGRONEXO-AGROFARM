@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PlantingAreaForm } from "./planting-area-form";
+import { MultiSafraPlantingAreaForm } from "./multi-safra-planting-area-form";
 import {
   Drawer,
   DrawerContent,
@@ -96,7 +96,7 @@ export function NewPlantingAreaButton({
               </DrawerDescription>
             </DrawerHeader>
             <div className="px-4 py-2 overflow-y-auto flex-1">
-              <PlantingAreaForm
+              <MultiSafraPlantingAreaForm
                 properties={properties}
                 cultures={cultures}
                 systems={systems}
@@ -126,7 +126,7 @@ export function NewPlantingAreaButton({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
+        <DialogContent className="max-w-[500px] p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-2">
             <div className="flex items-center gap-2">
               <MapIcon className="h-5 w-5 text-primary" />
@@ -140,7 +140,7 @@ export function NewPlantingAreaButton({
             </DialogDescription>
           </DialogHeader>
           <div className="px-6 py-2 max-h-[65vh] overflow-y-auto">
-            <PlantingAreaForm
+            <MultiSafraPlantingAreaForm
               properties={properties}
               cultures={cultures}
               systems={systems}

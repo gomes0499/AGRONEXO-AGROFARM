@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -11,6 +12,7 @@ import { createCaixaDisponibilidades, updateCaixaDisponibilidades } from "@/lib/
 import { CaixaDisponibilidadesListItem, CaixaDisponibilidadesFormValues, caixaDisponibilidadesFormSchema, caixaDisponibilidadesCategoriaEnum } from "@/schemas/financial/caixa_disponibilidades";
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { toast } from "sonner";
+import { getSafras } from "@/lib/actions/production-actions";
 import { 
   Select,
   SelectContent,
@@ -35,6 +37,28 @@ export function CaixaDisponibilidadesForm({
   onSubmit,
 }: CaixaDisponibilidadesFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [safras, setSafras] = useState<any[]>([]);
+  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
+
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      loadSafras();
+    }
+  }, [open, organizationId]);
+  
+  const loadSafras = async () => {
+    try {
+      setIsLoadingSafras(true);
+      const safrasData = await getSafras(organizationId);
+      setSafras(safrasData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingSafras(false);
+    }
+  };
 
   // Modify the schema to remove the safra_id requirement
   const formSchema = caixaDisponibilidadesFormSchema.omit({ safra_id: true });
@@ -110,88 +134,102 @@ export function CaixaDisponibilidadesForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{existingItem ? "Editar" : "Novo"} Item de Caixa e Disponibilidades</DialogTitle>
+      <DialogContent className="max-w-[500px] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-xl font-semibold">
+              {existingItem ? "Editar" : "Novo"} Item de Caixa e Disponibilidades
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-muted-foreground mt-1">
+            {existingItem 
+              ? "Edite os detalhes do item de caixa e disponibilidades."
+              : "Cadastre um novo item de caixa e disponibilidades."
+            }
+          </DialogDescription>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="nome"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nome do item" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="categoria"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
+        <div className="px-6 py-2 max-h-[70vh] overflow-y-auto">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="nome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma categoria" />
-                      </SelectTrigger>
+                      <Input placeholder="Nome do item" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {caixaDisponibilidadesCategoriaEnum.options.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {categoriaLabels[cat] || cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="valores_por_safra"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valores por Safra</FormLabel>
-                  <FormControl>
-                    <SafraValueEditor
-                      organizacaoId={organizationId}
-                      values={typeof field.value === 'string' ? JSON.parse(field.value) : field.value || {}}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Salvando..." : existingItem ? "Atualizar" : "Adicionar"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="categoria"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {caixaDisponibilidadesCategoriaEnum.options.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {categoriaLabels[cat] || cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="valores_por_safra"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valores por Safra</FormLabel>
+                    <FormControl>
+                      <SafraValueEditor
+                        organizacaoId={organizationId}
+                        values={typeof field.value === 'string' ? JSON.parse(field.value) : field.value || {}}
+                        onChange={field.onChange}
+                        safras={safras}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Salvando..." : existingItem ? "Atualizar" : "Adicionar"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

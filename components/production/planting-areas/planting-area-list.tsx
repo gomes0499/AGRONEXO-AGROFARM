@@ -257,25 +257,25 @@ export function PlantingAreaList({
               <Table>
                 <TableHeader className="bg-primary rounded-t-md">
                   <TableRow className="border-b-0 hover:bg-primary">
-                    <TableHead className="text-white font-semibold first:rounded-tl-md uppercase">
+                    <TableHead className="text-white font-medium first:rounded-tl-md">
                       Safra
                     </TableHead>
-                    <TableHead className="text-white font-semibold uppercase">
+                    <TableHead className="text-white font-medium">
                       Propriedade
                     </TableHead>
-                    <TableHead className="text-white font-semibold uppercase">
+                    <TableHead className="text-white font-medium">
                       Cultura
                     </TableHead>
-                    <TableHead className="text-white font-semibold uppercase">
+                    <TableHead className="text-white font-medium">
                       Sistema
                     </TableHead>
-                    <TableHead className="text-white font-semibold uppercase">
+                    <TableHead className="text-white font-medium">
                       Ciclo
                     </TableHead>
-                    <TableHead className="text-white font-semibold uppercase">
+                    <TableHead className="text-white font-medium">
                       Área
                     </TableHead>
-                    <TableHead className="text-white font-semibold text-right last:rounded-tr-md w-[100px] uppercase">
+                    <TableHead className="text-white font-medium text-right last:rounded-tr-md w-[100px]">
                       Ações
                     </TableHead>
                   </TableRow>
@@ -285,14 +285,14 @@ export function PlantingAreaList({
                     const refs = getRefNames(area);
                     return (
                       <TableRow key={area.id}>
-                        <TableCell className="font-medium uppercase">
+                        <TableCell className="font-medium">
                           {refs.harvest}
                         </TableCell>
-                        <TableCell className="uppercase">{refs.property}</TableCell>
-                        <TableCell className="uppercase">{refs.culture}</TableCell>
-                        <TableCell className="uppercase">{refs.system}</TableCell>
-                        <TableCell className="uppercase">{refs.cycle}</TableCell>
-                        <TableCell className="uppercase">
+                        <TableCell>{refs.property}</TableCell>
+                        <TableCell>{refs.culture}</TableCell>
+                        <TableCell>{refs.system}</TableCell>
+                        <TableCell>{refs.cycle}</TableCell>
+                        <TableCell>
                           {Object.entries(area.areas_por_safra || {}).map(([safraId, areaValue], index) => (
                             <span key={safraId}>
                               {index > 0 && ", "}
@@ -303,6 +303,7 @@ export function PlantingAreaList({
                         <TableCell className="text-right">
                           <PlantingAreaRowActions
                             plantingArea={area}
+                            harvests={harvests}
                             onEdit={() => handleEdit(area)}
                             onDelete={() => {
                               setPlantingAreas(plantingAreas.filter((a) => a.id !== area.id));

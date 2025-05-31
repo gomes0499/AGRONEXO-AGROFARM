@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { OutrasDespesasForm } from "./outras-despesas-form";
 import { deleteOutraDespesa } from "@/lib/actions/financial-actions/outras-despesas";
 import { OutrasDespesasRowActions } from "./outras-despesas-row-actions";
+import { OutrasDespesasPopoverEditor } from "./outras-despesas-popover-editor";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
@@ -136,40 +137,25 @@ export function OutrasDespesasListing({
   // Função para traduzir a categoria para um formato mais legível
   const formatCategoria = (categoria: string) => {
     const formatMap: Record<string, string> = {
-      ARRENDAMENTO: "Arrendamento",
       PRO_LABORE: "Pró-Labore",
-      DIVISAO_LUCROS: "Divisão de Lucros",
-      FINANCEIRAS: "Despesas Financeiras",
       TRIBUTARIAS: "Despesas Tributárias",
+      OUTRAS_OPERACIONAIS: "Outras Operacionais",
+      DESPESAS_ADMINISTRATIVAS: "Despesas Administrativas",
+      DESPESAS_COMERCIAIS: "Despesas Comerciais",
+      DESPESAS_FINANCEIRAS: "Despesas Financeiras",
+      MANUTENCAO: "Manutenção",
+      SEGUROS: "Seguros",
+      CONSULTORIAS: "Consultorias",
       OUTROS: "Outros"
     };
     
     return formatMap[categoria] || categoria;
   };
 
-  // Render category badge
+  // Função para renderizar badge de categoria com estilo padrão
   const renderCategoriaBadge = (categoria: string) => {
-    let variant: "default" | "secondary" | "outline" = "default";
-    
-    switch (categoria) {
-      case "PRO_LABORE":
-      case "DIVISAO_LUCROS":
-        variant = "default";
-        break;
-      case "TRIBUTARIAS":
-      case "FINANCEIRAS":
-        variant = "secondary";
-        break;
-      case "ARRENDAMENTO":
-        variant = "outline";
-        break;
-      case "OUTROS":
-      default:
-        variant = "outline";
-    }
-    
     return (
-      <Badge variant={variant} className="font-normal uppercase">
+      <Badge variant="default" className="font-normal">
         {formatCategoria(categoria)}
       </Badge>
     );
@@ -225,11 +211,11 @@ export function OutrasDespesasListing({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="w-10 font-semibold text-primary-foreground rounded-tl-md"></TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Nome</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Categoria</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground w-[180px] uppercase">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
+                    <TableHead className="w-10 font-medium text-primary-foreground rounded-tl-md"></TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Nome</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Categoria</TableHead>
+                    <TableHead className="font-medium text-primary-foreground w-[180px]">Valor Total</TableHead>
+                    <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -250,29 +236,39 @@ export function OutrasDespesasListing({
                             )}
                           </Button>
                         </TableCell>
-                        <TableCell className="font-medium uppercase" onClick={() => toggleExpanded(item.id)}>
+                        <TableCell className="font-medium" onClick={() => toggleExpanded(item.id)}>
                           {item.nome}
                         </TableCell>
-                        <TableCell className="uppercase" onClick={() => toggleExpanded(item.id)}>
+                        <TableCell onClick={() => toggleExpanded(item.id)}>
                           {renderCategoriaBadge(item.categoria)}
                         </TableCell>
-                        <TableCell className="uppercase" onClick={() => toggleExpanded(item.id)}>
+                        <TableCell onClick={() => toggleExpanded(item.id)}>
                           <span className="font-medium text-sm">
                             {formatGenericCurrency(
                               item.total || 0,
                               "BRL"
                             )}
                           </span>
-                          <span className="ml-1 text-xs text-muted-foreground uppercase">
+                          <span className="ml-1 text-xs text-muted-foreground">
                             BRL
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <OutrasDespesasRowActions
-                            item={item}
-                            onEdit={() => setEditingItem(item)}
-                            onDelete={() => handleDeleteItem(item.id)}
-                          />
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Editor de Valores por Safra via Popover */}
+                            <OutrasDespesasPopoverEditor
+                              despesa={item}
+                              organizationId={organization.id}
+                              onUpdate={handleUpdateItem}
+                            />
+                            
+                            {/* Botões de Editar/Excluir */}
+                            <OutrasDespesasRowActions
+                              item={item}
+                              onEdit={() => setEditingItem(item)}
+                              onDelete={() => handleDeleteItem(item.id)}
+                            />
+                          </div>
                         </TableCell>
                       </TableRow>
                       {item.isExpanded && (
@@ -292,7 +288,7 @@ export function OutrasDespesasListing({
                 </TableBody>
               </Table>
               
-              <div className="p-2 bg-muted/10">
+              <div className="mt-8">
                 <FinancialPagination
                   currentPage={currentPage}
                   totalPages={totalPages}

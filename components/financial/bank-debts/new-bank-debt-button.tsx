@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { BankDebtForm } from "./bank-debt-form";
 import { BankDebt } from "@/schemas/financial";
 import { toast } from "sonner";
@@ -26,9 +26,10 @@ export function NewBankDebtButton({ organization }: NewBankDebtButtonProps) {
     <>
       <Button 
         onClick={() => setOpen(true)}
+        size="default"
         className="gap-1"
       >
-        <PlusCircle className="h-4 w-4" />
+        <Plus className="h-4 w-4 mr-2" />
         Nova Dívida Bancária
       </Button>
       

@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CaixaDisponibilidadesForm } from "./caixa-disponibilidades-form";
 import { deleteCaixaDisponibilidades } from "@/lib/actions/financial-actions/caixa-disponibilidades";
 import { CaixaDisponibilidadesRowActions } from "./caixa-disponibilidades-row-actions";
+import { CaixaDisponibilidadesPopoverEditor } from "./caixa-disponibilidades-popover-editor";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
@@ -136,30 +137,10 @@ export function CaixaDisponibilidadesListing({
     return formatMap[categoria] || categoria;
   };
 
-  // Render category badge
+  // Função para renderizar badge de categoria com estilo padrão
   const renderCategoriaBadge = (categoria: CaixaDisponibilidadesCategoriaType) => {
-    let variant: "default" | "secondary" | "outline" = "default";
-    
-    switch (categoria) {
-      case "CAIXA_BANCOS":
-        variant = "default";
-        break;
-      case "ESTOQUE_DEFENSIVOS":
-      case "ESTOQUE_FERTILIZANTES":
-      case "ESTOQUE_ALMOXARIFADO":
-      case "ESTOQUE_COMMODITIES":
-        variant = "secondary";
-        break;
-      case "ATIVO_BIOLOGICO":
-      case "SEMOVENTES":
-        variant = "outline";
-        break;
-      default:
-        variant = "outline";
-    }
-    
     return (
-      <Badge variant={variant} className="font-normal uppercase">
+      <Badge variant="default" className="font-normal">
         {formatCategoria(categoria)}
       </Badge>
     );
@@ -215,11 +196,11 @@ export function CaixaDisponibilidadesListing({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="w-10 font-semibold text-primary-foreground rounded-tl-md"></TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Nome</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Categoria</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground w-[180px] uppercase">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
+                    <TableHead className="w-10 font-medium text-primary-foreground rounded-tl-md"></TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Nome</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Categoria</TableHead>
+                    <TableHead className="font-medium text-primary-foreground w-[180px]">Valor Total</TableHead>
+                    <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -240,29 +221,39 @@ export function CaixaDisponibilidadesListing({
                             )}
                           </Button>
                         </TableCell>
-                        <TableCell className="font-medium uppercase" onClick={() => toggleExpanded(item.id || '')}>
+                        <TableCell className="font-medium" onClick={() => toggleExpanded(item.id || '')}>
                           {item.nome}
                         </TableCell>
-                        <TableCell className="uppercase" onClick={() => toggleExpanded(item.id || '')}>
+                        <TableCell onClick={() => toggleExpanded(item.id || '')}>
                           {renderCategoriaBadge(item.categoria)}
                         </TableCell>
-                        <TableCell className="uppercase" onClick={() => toggleExpanded(item.id || '')}>
+                        <TableCell onClick={() => toggleExpanded(item.id || '')}>
                           <span className="font-medium text-sm">
                             {formatGenericCurrency(
                               calculateTotal(item),
                               "BRL"
                             )}
                           </span>
-                          <span className="ml-1 text-xs text-muted-foreground uppercase">
+                          <span className="ml-1 text-xs text-muted-foreground">
                             BRL
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <CaixaDisponibilidadesRowActions
-                            item={item}
-                            onEdit={() => setEditingItem(item)}
-                            onDelete={() => handleDeleteItem(item.id || '')}
-                          />
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Editor de Valores por Safra via Popover */}
+                            <CaixaDisponibilidadesPopoverEditor
+                              item={item}
+                              organizationId={organization.id}
+                              onUpdate={handleUpdateItem}
+                            />
+                            
+                            {/* Botões de Editar/Excluir */}
+                            <CaixaDisponibilidadesRowActions
+                              item={item}
+                              onEdit={() => setEditingItem(item)}
+                              onDelete={() => handleDeleteItem(item.id || '')}
+                            />
+                          </div>
                         </TableCell>
                       </TableRow>
                       {item.isExpanded && (
@@ -282,7 +273,7 @@ export function CaixaDisponibilidadesListing({
                 </TableBody>
               </Table>
               
-              <div className="p-2 bg-muted/10">
+              <div className="mt-8">
                 <FinancialPagination
                   currentPage={currentPage}
                   totalPages={totalPages}

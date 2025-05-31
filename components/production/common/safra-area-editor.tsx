@@ -7,15 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { TrashIcon, PlusCircleIcon } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatArea } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
 import { Harvest } from "@/schemas/production";
+import { Badge } from "@/components/ui/badge";
 
 interface SafraArea {
   safra_id: string;
   area: number;
-  isFocused?: boolean;
 }
 
 interface SafraAreaEditorProps {
@@ -26,7 +27,6 @@ interface SafraAreaEditorProps {
   safras: Harvest[];
   disabled?: boolean;
 }
-
 
 export function SafraAreaEditor({
   label,
@@ -40,8 +40,7 @@ export function SafraAreaEditor({
   const [safraAreas, setSafraAreas] = useState<SafraArea[]>(() => {
     return Object.entries(values || {}).map(([safraId, area]) => ({
       safra_id: safraId,
-      area: Number(area),
-      isFocused: false
+      area: Number(area)
     }));
   });
 
@@ -50,8 +49,7 @@ export function SafraAreaEditor({
     if (values && typeof values === 'object') {
       const newSafraAreas = Object.entries(values).map(([safraId, area]) => ({
         safra_id: safraId,
-        area: Number(area),
-        isFocused: false
+        area: Number(area)
       }));
       setSafraAreas(newSafraAreas);
     }
@@ -59,23 +57,29 @@ export function SafraAreaEditor({
 
   // Função para converter array de volta para objeto e notificar mudança
   const updateParent = (newSafraAreas: SafraArea[]) => {
-    const newValues = newSafraAreas.reduce((acc, item) => {
-      if (item.safra_id && item.area !== undefined) {
-        acc[item.safra_id] = item.area;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    // Primeiro, limpe o objeto de valores
+    const newValues: Record<string, number> = {};
     
+    // Agora, adicione apenas as entradas válidas
+    newSafraAreas.forEach(item => {
+      if (item.safra_id && item.area !== undefined) {
+        newValues[item.safra_id] = Number(item.area);
+      }
+    });
+    
+    // Notifique o componente pai
     onChange(newValues);
   };
 
   const addSafraArea = () => {
-    const newSafraAreas = [...safraAreas, { safra_id: "", area: 0, isFocused: false }];
+    const newSafraAreas = [...safraAreas, { safra_id: "", area: 0 }];
     setSafraAreas(newSafraAreas);
   };
 
   const removeSafraArea = (index: number) => {
-    const newSafraAreas = safraAreas.filter((_, i) => i !== index);
+    // Remove apenas a área específica clicada
+    const newSafraAreas = [...safraAreas];
+    newSafraAreas.splice(index, 1);
     setSafraAreas(newSafraAreas);
     updateParent(newSafraAreas);
   };
@@ -103,18 +107,6 @@ export function SafraAreaEditor({
     updateParent(newSafraAreas);
   };
 
-  const handleFocus = (index: number) => {
-    const newSafraAreas = [...safraAreas];
-    newSafraAreas[index] = { ...newSafraAreas[index], isFocused: true };
-    setSafraAreas(newSafraAreas);
-  };
-
-  const handleBlur = (index: number) => {
-    const newSafraAreas = [...safraAreas];
-    newSafraAreas[index] = { ...newSafraAreas[index], isFocused: false };
-    setSafraAreas(newSafraAreas);
-  };
-
   // Calcular total de área
   const totalArea = safraAreas.reduce((sum, item) => sum + (item.area || 0), 0);
 
@@ -132,6 +124,11 @@ export function SafraAreaEditor({
     return safra ? safra.nome : "Safra não encontrada";
   };
 
+  const getSafraPeriodo = (safraId: string) => {
+    const safra = safras.find(s => s.id === safraId);
+    if (!safra) return "";
+    return `${safra.ano_inicio}/${safra.ano_fim}`;
+  };
 
   return (
     <Card className="w-full">
@@ -159,73 +156,106 @@ export function SafraAreaEditor({
             <p className="text-sm">Clique em "Adicionar Safra" para começar</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {safraAreas.map((item, index) => {
-              const availableSafras = getAvailableSafras(index);
-              
-              return (
-                <div key={index}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg border bg-card">
-                    <div className="flex-1">
-                      <Label className="text-xs text-muted-foreground">Safra</Label>
-                      <Select
-                        value={item.safra_id}
-                        onValueChange={(value) => updateSafra(index, value)}
-                        disabled={disabled}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Selecione a safra" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {/* Mostrar a safra atualmente selecionada mesmo se não estiver na lista de disponíveis */}
-                          {item.safra_id && !availableSafras.find(s => s.id === item.safra_id) && (
-                            <SelectItem value={item.safra_id}>
-                              {getSafraName(item.safra_id)}
-                            </SelectItem>
-                          )}
-                          {availableSafras.map((safra) => (
-                            <SelectItem key={safra.id} value={safra.id || ""}>
-                              {safra.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <Label className="text-xs text-muted-foreground">Área (hectares)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={
-                          item.isFocused
-                            ? item.area.toString()
-                            : item.area.toFixed(2)
-                        }
-                        onChange={(e) => updateArea(index, e.target.value)}
-                        onFocus={() => handleFocus(index)}
-                        onBlur={() => handleBlur(index)}
-                        disabled={disabled}
-                        className="h-9"
-                        placeholder="0,00"
-                      />
-                    </div>
-                    
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeSafraArea(index)}
-                      disabled={disabled}
-                      className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                </div>
-              );
-            })}
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted hover:bg-muted">
+                  <TableHead className="font-medium w-[40%]">Safra</TableHead>
+                  <TableHead className="font-medium w-[25%]">Período</TableHead>
+                  <TableHead className="font-medium w-[25%]">Área (ha)</TableHead>
+                  <TableHead className="font-medium w-[10%] text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {safraAreas.map((item, index) => {
+                  const availableSafras = getAvailableSafras(index);
+                  const safraName = item.safra_id ? getSafraName(item.safra_id) : "";
+                  const periodo = item.safra_id ? getSafraPeriodo(item.safra_id) : "";
+                  
+                  return (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <Select
+                          value={item.safra_id}
+                          onValueChange={(value) => updateSafra(index, value)}
+                          disabled={disabled}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Selecione a safra" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {/* Mostrar a safra atualmente selecionada mesmo se não estiver na lista de disponíveis */}
+                            {item.safra_id && !availableSafras.find(s => s.id === item.safra_id) && (
+                              <SelectItem value={item.safra_id}>
+                                {safraName}
+                              </SelectItem>
+                            )}
+                            {availableSafras.map((safra) => (
+                              <SelectItem key={safra.id} value={safra.id || ""}>
+                                {safra.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        {periodo ? (
+                          <Badge variant="outline" className="bg-muted/30">
+                            {periodo}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={item.area || ""}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^\d.,]/g, "").replace(/,/g, ".");
+                            updateArea(index, value);
+                          }}
+                          disabled={disabled}
+                          className="h-9"
+                          placeholder="0"
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            // Evitar propagação do evento
+                            e.stopPropagation();
+                            e.preventDefault();
+                            
+                            // Remover apenas esta área específica
+                            removeSafraArea(index);
+                          }}
+                          disabled={disabled}
+                          className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                
+                {/* Total Row */}
+                <TableRow className="bg-muted/30">
+                  <TableCell colSpan={2} className="font-medium">
+                    Total
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {formatArea(totalArea)}
+                  </TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
         )}
         

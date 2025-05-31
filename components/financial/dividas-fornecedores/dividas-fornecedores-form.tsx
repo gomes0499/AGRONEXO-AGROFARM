@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -13,6 +14,7 @@ import { SafraValueEditor } from "../common/safra-value-editor";
 import { CurrencySelector } from "../common/currency-selector";
 import { CategoriaFornecedorType, categoriaFornecedorEnum } from "@/schemas/financial/common";
 import { toast } from "sonner";
+import { getSafras } from "@/lib/actions/production-actions";
 import { 
   Select,
   SelectContent,
@@ -37,12 +39,34 @@ export function DividasFornecedoresForm({
   onSubmit,
 }: DividasFornecedoresFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [safras, setSafras] = useState<any[]>([]);
+  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
+
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      loadSafras();
+    }
+  }, [open, organizationId]);
+  
+  const loadSafras = async () => {
+    try {
+      setIsLoadingSafras(true);
+      const safrasData = await getSafras(organizationId);
+      setSafras(safrasData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingSafras(false);
+    }
+  };
 
   const form = useForm<DividasFornecedoresFormValues>({
     resolver: zodResolver(dividasFornecedoresFormSchema) as any,
     defaultValues: {
       nome: existingDivida?.nome || "",
-      categoria: existingDivida?.categoria || "INSUMOS",
+      categoria: existingDivida?.categoria || "INSUMOS_GERAIS",
       moeda: existingDivida?.moeda || "BRL",
       valores_por_safra: existingDivida?.valores_por_safra || {},
     },
@@ -59,7 +83,7 @@ export function DividasFornecedoresForm({
     } else if (open && !existingDivida) {
       form.reset({
         nome: "",
-        categoria: "INSUMOS",
+        categoria: "INSUMOS_GERAIS",
         moeda: "BRL",
         valores_por_safra: {},
       });
@@ -93,118 +117,121 @@ export function DividasFornecedoresForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{existingDivida ? "Editar" : "Nova"} Dívida de Fornecedor</DialogTitle>
+      <DialogContent className="max-w-[650px] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-xl font-semibold">
+              {existingDivida ? "Editar" : "Nova"} Dívida de Fornecedor
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-muted-foreground mt-1">
+            {existingDivida 
+              ? "Edite os detalhes da dívida de fornecedor."
+              : "Cadastre uma nova dívida de fornecedor."
+            }
+          </DialogDescription>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit as any)} className="space-y-4">
-            <FormField
-              control={form.control as any}
-              name="nome"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome do Fornecedor</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nome do fornecedor" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control as any}
-              name="categoria"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
+        <div className="px-6 py-2 max-h-[70vh] overflow-y-auto">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleFormSubmit as any)} className="space-y-4">
+              <FormField
+                control={form.control as any}
+                name="nome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do Fornecedor</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma categoria" />
-                      </SelectTrigger>
+                      <Input placeholder="Nome do fornecedor" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {categorias.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control as any}
-              name="moeda"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Moeda</FormLabel>
-                  <FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control as any}
+                name="categoria"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
-                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione a moeda" />
+                          <SelectValue placeholder="Selecione uma categoria" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="BRL">Real (R$)</SelectItem>
-                        <SelectItem value="USD">Dólar (US$)</SelectItem>
-                        <SelectItem value="EUR">Euro (€)</SelectItem>
-                        <SelectItem value="SOJA">Soja (sacas)</SelectItem>
+                        {categorias.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control as any}
-              name="valores_por_safra"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valores por Safra</FormLabel>
-                  <FormControl>
-                    <SafraValueEditor
-                      organizacaoId={organizationId}
-                      values={field.value as Record<string, number> || {}}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Salvando..." : existingDivida ? "Atualizar" : "Adicionar"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control as any}
+                name="moeda"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Moeda</FormLabel>
+                    <FormControl>
+                      <CurrencySelector
+                        name="moeda"
+                        control={form.control}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control as any}
+                name="valores_por_safra"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valores por Safra</FormLabel>
+                    <FormControl>
+                      <SafraValueEditor
+                        organizacaoId={organizationId}
+                        values={field.value as Record<string, number> || {}}
+                        onChange={field.onChange}
+                        safras={safras}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Salvando..." : existingDivida ? "Atualizar" : "Adicionar"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

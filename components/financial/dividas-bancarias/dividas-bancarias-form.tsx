@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -11,6 +12,8 @@ import { createDividaBancaria, updateDividaBancaria } from "@/lib/actions/financ
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { CurrencySelector } from "../common/currency-selector";
 import { toast } from "sonner";
+import { getSafras } from "@/lib/actions/production-actions";
+import { parseFormattedNumber } from "@/lib/utils/formatters";
 import { 
   Select,
   SelectContent,
@@ -35,6 +38,28 @@ export function DividasBancariasForm({
   onSubmit,
 }: DividasBancariasFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [safras, setSafras] = useState<any[]>([]);
+  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
+  
+  // Carregar safras quando o modal abrir
+  useEffect(() => {
+    if (open && organizationId) {
+      loadSafras();
+    }
+  }, [open, organizationId]);
+  
+  const loadSafras = async () => {
+    try {
+      setIsLoadingSafras(true);
+      const safrasData = await getSafras(organizationId);
+      setSafras(safrasData);
+    } catch (error) {
+      console.error("Erro ao carregar safras:", error);
+      toast.error("Erro ao carregar safras");
+    } finally {
+      setIsLoadingSafras(false);
+    }
+  };
 
   // Basic form schema for dividas bancarias
   const formSchema = {
@@ -54,6 +79,9 @@ export function DividasBancariasForm({
     defaultValues: {
       nome: existingDivida?.nome || "",
       categoria: existingDivida?.categoria || "CUSTEIO",
+      tipo: existingDivida?.tipo || "BANCO",
+      indexador: existingDivida?.indexador || "CDI",
+      taxa_real: existingDivida?.taxa_real || 6.5,
       moeda: existingDivida?.moeda || "BRL",
       valores_por_safra: existingDivida?.valores_por_safra || {},
     },
@@ -64,6 +92,9 @@ export function DividasBancariasForm({
       form.reset({
         nome: existingDivida.nome,
         categoria: existingDivida.categoria,
+        tipo: existingDivida.tipo || "BANCO",
+        indexador: existingDivida.indexador || "CDI",
+        taxa_real: existingDivida.taxa_real || 6.5,
         moeda: existingDivida.moeda || "BRL",
         valores_por_safra: existingDivida.valores_por_safra || {},
       });
@@ -71,6 +102,9 @@ export function DividasBancariasForm({
       form.reset({
         nome: "",
         categoria: "CUSTEIO",
+        tipo: "BANCO",
+        indexador: "CDI",
+        taxa_real: 6.5,
         moeda: "BRL",
         valores_por_safra: {},
       });
@@ -106,15 +140,43 @@ export function DividasBancariasForm({
     { value: "INVESTIMENTO", label: "Investimento" },
     { value: "OUTROS", label: "Outros" }
   ];
+  
+  // Tipos disponíveis
+  const tipos = [
+    { value: "BANCO", label: "Banco" },
+    { value: "TRADING", label: "Trading" },
+    { value: "OUTROS", label: "Outros" }
+  ];
+  
+  // Indexadores disponíveis
+  const indexadores = [
+    { value: "CDI", label: "CDI" },
+    { value: "SELIC", label: "SELIC" },
+    { value: "IPCA", label: "IPCA" },
+    { value: "PRE_FIXADO", label: "Pré-fixado" },
+    { value: "DOLAR", label: "Dólar" }
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{existingDivida ? "Editar" : "Nova"} Dívida Bancária</DialogTitle>
+      <DialogContent className="max-w-[650px] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-xl font-semibold">
+              {existingDivida ? "Editar" : "Nova"} Dívida Bancária
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-muted-foreground mt-1">
+            {existingDivida 
+              ? "Edite os detalhes da dívida bancária."
+              : "Cadastre uma nova dívida bancária."
+            }
+          </DialogDescription>
         </DialogHeader>
         
-        <Form {...form}>
+        <div className="px-6 py-2 max-h-[70vh] overflow-y-auto">
+          <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
             <FormField
               control={form.control}
@@ -130,33 +192,115 @@ export function DividasBancariasForm({
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="categoria"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="categoria"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Modalidade</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma modalidade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categorias.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="tipo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {tipos.map((tipo) => (
+                          <SelectItem key={tipo.value} value={tipo.value}>
+                            {tipo.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="indexador"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Indexador</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o indexador" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {indexadores.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="taxa_real"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Taxa real (% a.a.)</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma categoria" />
-                      </SelectTrigger>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        min="0" 
+                        max="100"
+                        placeholder="Taxa em % ao ano"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {categorias.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <FormField
               control={form.control}
@@ -167,7 +311,6 @@ export function DividasBancariasForm({
                   <FormControl>
                     <CurrencySelector
                       name="moeda"
-                      label="Moeda"
                       control={form.control}
                       value={field.value}
                       onChange={field.onChange}
@@ -189,6 +332,7 @@ export function DividasBancariasForm({
                       organizacaoId={organizationId}
                       values={field.value || {}}
                       onChange={field.onChange}
+                      safras={safras}
                     />
                   </FormControl>
                   <FormMessage />
@@ -211,6 +355,7 @@ export function DividasBancariasForm({
             </div>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

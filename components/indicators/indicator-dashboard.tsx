@@ -20,11 +20,11 @@ function getIndicatorLevel(value: number, thresholds: any[]): string {
     
     if (max === undefined) {
       if (value >= min) {
-        return threshold.level === "THRESHOLD" ? "LIMITE CRÍTICO" : threshold.level;
+        return threshold.level === "THRESHOLD" ? "Limite Crítico" : threshold.level;
       }
     } else {
       if (value >= min && value <= max) {
-        return threshold.level === "THRESHOLD" ? "LIMITE CRÍTICO" : threshold.level;
+        return threshold.level === "THRESHOLD" ? "Limite Crítico" : threshold.level;
       }
     }
   }

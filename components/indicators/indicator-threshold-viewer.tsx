@@ -177,7 +177,7 @@ export function IndicatorThresholdViewer({
             {Object.entries(indicatorLabels).map(([indicatorType, label]) => (
               <div key={indicatorType} className="space-y-4">
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold mb-2">{label}</h3>
+                  <h3 className="text-lg font-medium mb-2">{label}</h3>
                   <p className="text-sm text-muted-foreground">
                     {indicatorDescriptions[indicatorType as keyof typeof indicatorDescriptions]}
                   </p>
@@ -187,10 +187,10 @@ export function IndicatorThresholdViewer({
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-primary hover:bg-primary">
-                        <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nível</TableHead>
-                        <TableHead className="font-semibold text-primary-foreground">Mínimo</TableHead>
-                        <TableHead className="font-semibold text-primary-foreground">Máximo</TableHead>
-                        <TableHead className="font-semibold text-primary-foreground rounded-tr-md">Cor</TableHead>
+                        <TableHead className="font-medium text-primary-foreground rounded-tl-md">Nível</TableHead>
+                        <TableHead className="font-medium text-primary-foreground">Mínimo</TableHead>
+                        <TableHead className="font-medium text-primary-foreground">Máximo</TableHead>
+                        <TableHead className="font-medium text-primary-foreground rounded-tr-md">Cor</TableHead>
                       </TableRow>
                     </TableHeader>
                   <TableBody>
@@ -203,7 +203,8 @@ export function IndicatorThresholdViewer({
                           <TableRow key={idx}>
                             <TableCell>
                               <Badge
-                                variant="outline"
+                                variant="default"
+                                className="font-normal"
                                 style={{
                                   backgroundColor: `${threshold.color}20`,
                                   color: threshold.color,
@@ -211,7 +212,7 @@ export function IndicatorThresholdViewer({
                                 }}
                               >
                                 {threshold.level === "THRESHOLD"
-                                  ? "LIMITE CRÍTICO"
+                                  ? "Limite Crítico"
                                   : threshold.level}
                               </Badge>
                             </TableCell>

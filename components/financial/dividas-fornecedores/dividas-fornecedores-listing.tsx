@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DividasFornecedoresForm } from "./dividas-fornecedores-form";
 import { deleteDividaFornecedor } from "@/lib/actions/financial-actions/dividas-fornecedores";
 import { DividasFornecedoresRowActions } from "./dividas-fornecedores-row-actions";
+import { DividasFornecedoresPopoverEditor } from "./dividas-fornecedores-popover-editor";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FinancialFilterBar } from "../common/financial-filter-bar";
@@ -120,23 +121,10 @@ export function DividasFornecedoresListing({
     );
   };
 
-  // Render category badge
+  // Função para renderizar badge de categoria com estilo padrão
   const renderCategoriaBadge = (categoria: string) => {
-    let variant: "default" | "secondary" | "outline" = "default";
-    
-    switch (categoria) {
-      case "INSUMOS":
-        variant = "default";
-        break;
-      case "SERVIÇOS":
-        variant = "secondary";
-        break;
-      default:
-        variant = "outline";
-    }
-    
     return (
-      <Badge variant={variant} className="font-normal">
+      <Badge variant="default" className="font-normal">
         {categoria}
       </Badge>
     );
@@ -192,12 +180,12 @@ export function DividasFornecedoresListing({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="w-10 font-semibold text-primary-foreground rounded-tl-md"></TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Fornecedor</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Categoria</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Moeda</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground w-[180px] uppercase">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
+                    <TableHead className="w-10 font-medium text-primary-foreground rounded-tl-md"></TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Fornecedor</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Categoria</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Moeda</TableHead>
+                    <TableHead className="font-medium text-primary-foreground w-[180px]">Valor Total</TableHead>
+                    <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -221,14 +209,14 @@ export function DividasFornecedoresListing({
                               )}
                             </Button>
                           </TableCell>
-                          <TableCell className="font-medium uppercase" onClick={() => toggleExpanded(divida.id || '')}>
+                          <TableCell className="font-medium" onClick={() => toggleExpanded(divida.id || '')}>
                             {divida.nome}
                           </TableCell>
-                          <TableCell className="uppercase" onClick={() => toggleExpanded(divida.id || '')}>
+                          <TableCell onClick={() => toggleExpanded(divida.id || '')}>
                             {renderCategoriaBadge(divida.categoria)}
                           </TableCell>
                           <TableCell onClick={() => toggleExpanded(divida.id || '')}>
-                            <Badge variant="outline" className="font-medium uppercase">
+                            <Badge variant="default" className="font-normal">
                               {divida.moeda === "USD" ? "US$" : 
                                divida.moeda === "EUR" ? "€" : 
                                divida.moeda === "SOJA" ? "Soja" : "R$"}
@@ -241,16 +229,26 @@ export function DividasFornecedoresListing({
                                 divida.moeda || "BRL"
                               )}
                             </span>
-                            <span className="ml-1 text-xs text-muted-foreground uppercase">
+                            <span className="ml-1 text-xs text-muted-foreground">
                               {divida.moeda || "BRL"}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <DividasFornecedoresRowActions
-                              dividaFornecedor={divida}
-                              onEdit={() => setEditingDivida(divida)}
-                              onDelete={() => handleDeleteDivida(divida.id || '')}
-                            />
+                            <div className="flex items-center justify-end gap-1">
+                              {/* Editor de Valores por Safra via Popover */}
+                              <DividasFornecedoresPopoverEditor
+                                divida={divida}
+                                organizationId={organization.id}
+                                onUpdate={handleUpdateDivida}
+                              />
+                              
+                              {/* Botões de Editar/Excluir */}
+                              <DividasFornecedoresRowActions
+                                dividaFornecedor={divida}
+                                onEdit={() => setEditingDivida(divida)}
+                                onDelete={() => handleDeleteDivida(divida.id || '')}
+                              />
+                            </div>
                           </TableCell>
                         </TableRow>
                         {divida.isExpanded && (
@@ -271,7 +269,7 @@ export function DividasFornecedoresListing({
                 </TableBody>
               </Table>
               
-              <div className="p-2 bg-muted/10">
+              <div className="mt-8">
                 <FinancialPagination
                   currentPage={currentPage}
                   totalPages={totalPages}

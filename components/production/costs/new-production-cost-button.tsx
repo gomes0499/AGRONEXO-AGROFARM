@@ -69,7 +69,7 @@ export function NewProductionCostButton({
   const handleSuccess = (cost: ProductionCost) => {
     setIsOpen(false);
 
-    // Forçar uma atualização dos dados por re-renderização da página
+    // Atualizar a UI - a revalidação já é feita pelas funções do servidor
     router.refresh();
 
     // Chamar o callback se fornecido
@@ -135,7 +135,7 @@ export function NewProductionCostButton({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
+        <DialogContent className="!max-w-[700px] p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-2">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-primary" />
@@ -148,7 +148,7 @@ export function NewProductionCostButton({
               safra.
             </DialogDescription>
           </DialogHeader>
-          <div className="px-6 py-2 overflow-y-auto">
+          <div className="px-6 py-2 max-h-[75vh] overflow-y-auto">
             <ProductionCostForm
               cultures={cultures}
               systems={systems}

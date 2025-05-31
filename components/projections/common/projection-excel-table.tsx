@@ -130,7 +130,7 @@ export function ProjectionExcelTable({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto overflow-y-hidden border rounded-md max-w-full">
+        <div className="overflow-x-auto overflow-y-hidden border rounded-md" style={{ maxWidth: '100%' }}>
           <div className="min-w-max">
             <Table>
             <TableHeader>

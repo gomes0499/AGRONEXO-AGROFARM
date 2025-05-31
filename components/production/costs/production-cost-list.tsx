@@ -295,13 +295,13 @@ export function ProductionCostList({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md uppercase">Safra</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Categoria</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Cultura</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Sistema</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Propriedade</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground uppercase">Valor</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px] uppercase">Ações</TableHead>
+                    <TableHead className="font-medium text-primary-foreground rounded-tl-md">Safra</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Categoria</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Cultura</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Sistema</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Propriedade</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">Valor</TableHead>
+                    <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -309,12 +309,12 @@ export function ProductionCostList({
                     const refs = getRefNames(item);
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="font-medium uppercase">{refs.harvest}</TableCell>
-                        <TableCell className="uppercase">{translateCategory(item.categoria)}</TableCell>
-                        <TableCell className="uppercase">{refs.culture}</TableCell>
-                        <TableCell className="uppercase">{refs.system}</TableCell>
-                        <TableCell className="uppercase">{refs.property}</TableCell>
-                        <TableCell className="uppercase">
+                        <TableCell className="font-medium">{refs.harvest}</TableCell>
+                        <TableCell>{translateCategory(item.categoria)}</TableCell>
+                        <TableCell>{refs.culture}</TableCell>
+                        <TableCell>{refs.system}</TableCell>
+                        <TableCell>{refs.property}</TableCell>
+                        <TableCell>
                           {formatCurrency(Object.values(item.custos_por_safra || {}).reduce((sum, val) => sum + val, 0))}
                         </TableCell>
                         <TableCell className="text-right">

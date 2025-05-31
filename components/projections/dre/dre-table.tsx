@@ -86,6 +86,20 @@ interface DRETableProps {
 }
 
 export function DRETable({ data }: DRETableProps) {
+  // Função para formatar texto em normal case
+  const formatText = (text: string) => {
+    if (!text) return '';
+    
+    // Mantém siglas como EBITDA, EBIT, IR, CSLL em maiúsculas
+    const acronyms = ['EBITDA', 'EBIT', 'IR', 'CSLL'];
+    for (const acronym of acronyms) {
+      if (text === acronym) return acronym;
+    }
+    
+    // Converte para normal case (primeira letra maiúscula, resto minúsculo)
+    return text.charAt(0) + text.slice(1).toLowerCase();
+  };
+  
   if (!data || !data.anos || data.anos.length === 0) {
     return (
       <Card className="shadow-sm border-muted/80">
@@ -112,19 +126,19 @@ export function DRETable({ data }: DRETableProps) {
           description="Análise consolidada de receitas, custos e resultados por período"
         />
         <CardContent className="p-6">
-          <div className="overflow-x-auto overflow-y-hidden border rounded-md">
+          <div className="overflow-x-auto overflow-y-hidden border rounded-md" style={{ maxWidth: '100%' }}>
             <div className="min-w-max">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
-                      DEMONSTRAÇÃO DE RESULTADO
+                    <TableHead className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
+                      Demonstração de Resultado
                     </TableHead>
                     {data.anos.map((ano, index) => (
                       <TableHead 
                         key={ano} 
                         className={cn(
-                          "font-semibold text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
+                          "font-medium text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
                           index === data.anos.length - 1 && "rounded-tr-md"
                         )}
                       >
@@ -136,8 +150,8 @@ export function DRETable({ data }: DRETableProps) {
                 <TableBody>
                   {/* === SEÇÃO DE RECEITAS === */}
                   <TableRow className="bg-primary font-semibold border-b-2 border-primary/20">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      RECEITAS
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Receitas
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -152,7 +166,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Receita Operacional Bruta */}
                   <TableRow className="bg-gray-50 font-medium">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      RECEITA OPERACIONAL BRUTA
+                      Receita Operacional Bruta
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -167,7 +181,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Detalhes da Receita Bruta */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      AGRÍCOLA
+                      Agrícola
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -181,7 +195,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      PECUÁRIA
+                      Pecuária
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -195,7 +209,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      OUTRAS RECEITAS
+                      Outras Receitas
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -210,7 +224,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Deduções da Receita */}
                   <TableRow className="bg-destructive/10 font-medium">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-destructive/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      (-) DEDUÇÕES DA RECEITA
+                      (-) Deduções da Receita
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -225,7 +239,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Detalhes das Deduções */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      IMPOSTOS FEDERAIS
+                      Impostos Federais
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -239,7 +253,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      IMPOSTOS ESTADUAIS
+                      Impostos Estaduais
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -253,7 +267,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      FUNRURAL
+                      Funrural
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -267,8 +281,8 @@ export function DRETable({ data }: DRETableProps) {
 
                   {/* Receita Líquida */}
                   <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      (=) RECEITA OPERACIONAL LÍQUIDA
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      (=) Receita Operacional Líquida
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.receita_liquida[ano] || 0;
@@ -287,9 +301,9 @@ export function DRETable({ data }: DRETableProps) {
                   </TableRow>
 
                   {/* === SEÇÃO DE CUSTOS === */}
-                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      CUSTOS E LUCRO BRUTO
+                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Custos e Lucro Bruto
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -304,7 +318,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Custos Operacionais */}
                   <TableRow className="bg-destructive/10 font-medium">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-destructive/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      (-) CUSTOS OPERACIONAIS
+                      (-) Custos Operacionais
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -319,7 +333,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Detalhes dos Custos */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      CUSTOS AGRÍCOLAS
+                      Custos Agrícolas
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -333,7 +347,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      CUSTOS PECUÁRIOS
+                      Custos Pecuários
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -347,8 +361,8 @@ export function DRETable({ data }: DRETableProps) {
 
                   {/* Lucro Bruto */}
                   <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      (=) LUCRO BRUTO
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      (=) Lucro Bruto
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.lucro_bruto[ano] || 0;
@@ -367,9 +381,9 @@ export function DRETable({ data }: DRETableProps) {
                   </TableRow>
 
                   {/* === SEÇÃO DE DESPESAS === */}
-                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      DESPESAS E EBITDA
+                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Despesas e EBITDA
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -384,7 +398,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Despesas Operacionais */}
                   <TableRow className="bg-destructive/10 font-medium">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-destructive/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      (-) DESPESAS OPERACIONAIS
+                      (-) Despesas Operacionais
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -399,7 +413,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Detalhes das Despesas */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      DESPESAS ADMINISTRATIVAS
+                      Despesas Administrativas
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -413,7 +427,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      DESPESAS COMERCIAIS
+                      Despesas Comerciais
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -427,7 +441,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      DESPESAS COM PESSOAL
+                      Despesas com Pessoal
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -441,7 +455,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      ARRENDAMENTOS
+                      Arrendamentos
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -455,7 +469,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   {/* EBITDA */}
                   <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       (=) EBITDA
                     </TableCell>
                     {data.anos.map((ano) => {
@@ -475,9 +489,9 @@ export function DRETable({ data }: DRETableProps) {
                   </TableRow>
 
                   {/* === SEÇÃO DE RESULTADO FINAL === */}
-                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      RESULTADO FINAL
+                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Resultado Final
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -492,7 +506,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Depreciação e Amortização */}
                   <TableRow className="bg-muted/10 font-medium">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-muted/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      (-) DEPRECIAÇÃO E AMORTIZAÇÃO
+                      (-) Depreciação e Amortização
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -506,7 +520,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   {/* EBIT */}
                   <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       (=) EBIT
                     </TableCell>
                     {data.anos.map((ano) => {
@@ -528,7 +542,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Resultado Financeiro */}
                   <TableRow className="bg-gray-50 font-medium">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      RESULTADO FINANCEIRO
+                      Resultado Financeiro
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.resultado_financeiro.total[ano] || 0;
@@ -549,7 +563,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Detalhes do Resultado Financeiro */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      (+) RECEITAS FINANCEIRAS
+                      (+) Receitas Financeiras
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -563,7 +577,7 @@ export function DRETable({ data }: DRETableProps) {
 
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      (-) DESPESAS FINANCEIRAS
+                      (-) Despesas Financeiras
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -577,8 +591,8 @@ export function DRETable({ data }: DRETableProps) {
 
                   {/* Lucro Antes do IR */}
                   <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      (=) LUCRO ANTES DO IR
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      (=) Lucro Antes do IR
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.lucro_antes_ir[ano] || 0;
@@ -599,7 +613,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Impostos sobre Lucro */}
                   <TableRow className="bg-destructive/10 font-medium">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-destructive/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      (-) IMPOSTO DE RENDA E CSLL
+                      (-) Imposto de Renda e CSLL
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -613,8 +627,8 @@ export function DRETable({ data }: DRETableProps) {
 
                   {/* Lucro Líquido */}
                   <TableRow className="bg-gray-50 font-medium border-t-2 border-gray-200">
-                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      (=) LUCRO LÍQUIDO DO EXERCÍCIO
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      (=) Lucro Líquido do Exercício
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.lucro_liquido[ano] || 0;
@@ -635,7 +649,7 @@ export function DRETable({ data }: DRETableProps) {
                   {/* Margem Líquida */}
                   <TableRow className="hover:bg-muted/30">
                     <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      MARGEM LÍQUIDA (%)
+                      Margem Líquida (%)
                     </TableCell>
                     {data.anos.map((ano) => {
                       const valor = data.margem_liquida[ano] || 0;

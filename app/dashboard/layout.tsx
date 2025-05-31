@@ -106,9 +106,11 @@ export default async function DashboardLayout({
           <SidebarProvider>
             <AppSidebar variant="inset" />
             <SidebarInset>
-              <div className="flex flex-col">
+              <div className="flex flex-col overflow-x-hidden">
                 <DashboardTickers commercialPrices={latestPrice} />
-                {children}
+                <div className="overflow-x-hidden">
+                  {children}
+                </div>
               </div>
             </SidebarInset>
           </SidebarProvider>

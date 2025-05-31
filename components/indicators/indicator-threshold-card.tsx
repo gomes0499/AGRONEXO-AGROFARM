@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { IndicatorThreshold } from "@/schemas/indicators";
 import { cn } from "@/lib/utils";
 
@@ -59,15 +60,16 @@ export function IndicatorThresholdCard({
           {description && (
             <p className="text-xs text-muted-foreground mt-1">{description}</p>
           )}
-          <div
-            className="mt-2 px-2 py-1 text-xs inline-flex w-fit rounded-full font-medium"
+          <Badge
+            variant="default"
+            className="mt-2 font-normal"
             style={{
               backgroundColor: `${thresholdColor}20`,
               color: thresholdColor,
             }}
           >
-            {thresholdLevel === "THRESHOLD" ? "LIMITE CRÍTICO" : thresholdLevel}
-          </div>
+            {thresholdLevel === "THRESHOLD" ? "Limite Crítico" : thresholdLevel}
+          </Badge>
         </div>
       </CardContent>
     </Card>

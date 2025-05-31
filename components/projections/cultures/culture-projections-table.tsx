@@ -67,22 +67,22 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
         </div>
       </AccordionTrigger>
       <AccordionContent className="px-6 pb-6">
-        <div className="overflow-x-auto overflow-y-hidden border rounded-md">
+        <div className="overflow-x-auto overflow-y-hidden border rounded-md" style={{ maxWidth: '100%' }}>
           <div className="min-w-max">
             <Table>
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
-                  <TableHead className="font-semibold text-primary-foreground min-w-[200px] w-[200px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
+                  <TableHead className="font-medium text-primary-foreground min-w-[200px] w-[200px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
                     {projection.section_title}
                   </TableHead>
-                  <TableHead className="font-semibold text-primary-foreground text-center min-w-[100px] w-[100px] whitespace-nowrap">
+                  <TableHead className="font-medium text-primary-foreground text-center min-w-[100px] w-[100px] whitespace-nowrap">
                     Unidade
                   </TableHead>
                   {anos.map((ano, anoIndex) => (
                     <TableHead 
                       key={ano} 
                       className={cn(
-                        "font-semibold text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
+                        "font-medium text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
                         anoIndex === anos.length - 1 && "rounded-tr-md"
                       )}
                     >
@@ -110,7 +110,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           {/* Receita */}
           <TableRow className="hover:bg-muted/30 bg-primary/5">
             <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-              RECEITA
+              Receita
             </TableCell>
             <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
               R$
@@ -131,7 +131,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           {/* Custo Total */}
           <TableRow className="hover:bg-muted/30">
             <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-              CUSTO TOTAL
+              Custo Total
             </TableCell>
             <TableCell className="text-center min-w-[100px] w-[100px]">
               R$
@@ -207,7 +207,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           {/* Área Total */}
           <TableRow className="hover:bg-muted/30">
             <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-              ÁREA TOTAL
+              Área Total
             </TableCell>
             <TableCell className="text-center font-mono min-w-[100px] w-[100px]">
               hectares
@@ -228,7 +228,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           {/* (+) Receita Total */}
           <TableRow className="hover:bg-muted/30 bg-primary/5">
             <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-              (+) RECEITA TOTAL
+              (+) Receita Total
             </TableCell>
             <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
               R$
@@ -249,7 +249,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           {/* (-) Custo Total */}
           <TableRow className="hover:bg-muted/30 bg-destructive/5">
             <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-destructive/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-              (-) CUSTO TOTAL
+              (-) Custo Total
             </TableCell>
             <TableCell className="text-center min-w-[100px] w-[100px] bg-destructive/5">
               R$
@@ -324,7 +324,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
         {/* Área plantada */}
         <TableRow className="hover:bg-muted/30">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            ÁREA PLANTADA
+            Área Plantada
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px]">
             hectares
@@ -345,7 +345,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
         {/* Produtividade */}
         <TableRow className="hover:bg-muted/30">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            PRODUTIVIDADE
+            Produtividade
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px]">
             {Object.values(projection.projections_by_year)[0]?.unidade || 'Sc/ha'}
@@ -366,7 +366,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
         {/* Preço */}
         <TableRow className="hover:bg-muted/30">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            PREÇO
+            Preço
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px]">
             R$/Sc
@@ -387,7 +387,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
         {/* Receita */}
         <TableRow className="hover:bg-muted/30 bg-primary/5">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            RECEITA
+            Receita
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
             R$
@@ -408,7 +408,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
         {/* Custo por hectare */}
         <TableRow className="hover:bg-muted/30">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            CUSTO
+            Custo
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px]">
             R$/ha
@@ -429,7 +429,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
         {/* Custo total */}
         <TableRow className="hover:bg-muted/30">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            CUSTO TOTAL
+            Custo Total
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px]">
             R$
@@ -450,7 +450,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
         {/* EBITDA */}
         <TableRow className="hover:bg-muted/30 bg-primary/5">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            EBITDA
+            Ebitda
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
             R$
@@ -474,7 +474,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
         {/* EBITDA % */}
         <TableRow className="hover:bg-muted/30 bg-primary/5">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            EBITDA
+            Ebitda
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
             %

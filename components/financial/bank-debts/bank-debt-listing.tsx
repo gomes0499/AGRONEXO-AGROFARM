@@ -177,12 +177,12 @@ export function BankDebtListing({
         description="Controle das dívidas contraídas junto a instituições bancárias"
         action={
           <Button
-            variant="outline"
+            variant="secondary"
             size="default"
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
+            className="gap-1"
             onClick={() => setIsAddModalOpen(true)}
           >
-            <PlusIcon className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4 mr-2" />
             Nova Dívida
           </Button>
         }
@@ -210,7 +210,9 @@ export function BankDebtListing({
               <div>Nenhuma dívida bancária cadastrada.</div>
               <Button 
                 onClick={() => setIsAddModalOpen(true)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                variant="default"
+                size="default"
+                className="gap-1"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Adicionar Primeira Dívida
@@ -225,15 +227,15 @@ export function BankDebtListing({
               <Table>
                   <TableHeader>
                     <TableRow className="bg-primary hover:bg-primary">
-                      <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Tipo</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Modalidade</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Indexador</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Taxa</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Moeda</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground">Safra</TableHead>
-                      <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                      <TableHead className="font-medium text-primary-foreground rounded-tl-md">Nome</TableHead>
+                      <TableHead className="font-medium text-primary-foreground">Tipo</TableHead>
+                      <TableHead className="font-medium text-primary-foreground">Modalidade</TableHead>
+                      <TableHead className="font-medium text-primary-foreground">Indexador</TableHead>
+                      <TableHead className="font-medium text-primary-foreground">Taxa</TableHead>
+                      <TableHead className="font-medium text-primary-foreground">Moeda</TableHead>
+                      <TableHead className="font-medium text-primary-foreground">Valor</TableHead>
+                      <TableHead className="font-medium text-primary-foreground">Safra</TableHead>
+                      <TableHead className="font-medium text-primary-foreground text-center rounded-tr-md w-[100px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -269,6 +271,7 @@ export function BankDebtListing({
         onOpenChange={setIsAddModalOpen}
         organizationId={organization.id}
         onSubmit={handleAddDebt}
+        harvests={harvests}
       />
 
       {/* Modal para editar dívida existente */}
@@ -279,6 +282,7 @@ export function BankDebtListing({
           organizationId={organization.id}
           existingDebt={editingDebt}
           onSubmit={handleUpdateDebt}
+          harvests={harvests}
         />
       )}
     </Card>

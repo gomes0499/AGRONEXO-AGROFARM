@@ -152,8 +152,13 @@ export function CurrencyField({
                 onChange={(e) => {
                   // Allow continuous typing by preserving the raw input
                   const rawValue = e.target.value.replace(/[^\d.,\-]/g, "");
-                  const numericValue = parseFormattedNumber(rawValue);
-                  field.onChange(numericValue);
+                  if (rawValue === "") {
+                    // Se o campo estiver vazio, defina como null para evitar constraints de "positive"
+                    field.onChange(null);
+                  } else {
+                    const numericValue = parseFormattedNumber(rawValue);
+                    field.onChange(numericValue);
+                  }
                 }}
                 onBlur={(e) => {
                   setIsFocused(false);

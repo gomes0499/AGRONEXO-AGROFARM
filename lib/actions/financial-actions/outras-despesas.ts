@@ -79,6 +79,17 @@ export async function createOutraDespesa(
   
   if (error) {
     console.error("Erro ao criar outra despesa:", error);
+    
+    // Verificar se é erro de violação de restrição de chave única
+    if (error.code === '23505' && error.message.includes('uk_outras_despesas_org_categoria')) {
+      throw new Error(`Já existe uma despesa com a categoria '${values.categoria}'. Por favor, escolha outra categoria ou use a categoria 'OUTROS' para criar múltiplas despesas do mesmo tipo.`);
+    }
+    
+    // Verificar se é erro de valor de enum inválido
+    if (error.code === '22P02' && error.message.includes('invalid input value for enum')) {
+      throw new Error(`A categoria '${values.categoria}' não é válida. Por favor, escolha uma das categorias disponíveis.`);
+    }
+    
     throw new Error("Não foi possível criar a outra despesa");
   }
   
@@ -114,6 +125,17 @@ export async function updateOutraDespesa(
   
   if (error) {
     console.error("Erro ao atualizar outra despesa:", error);
+    
+    // Verificar se é erro de violação de restrição de chave única
+    if (error.code === '23505' && error.message.includes('uk_outras_despesas_org_categoria')) {
+      throw new Error(`Já existe uma despesa com a categoria '${values.categoria}'. Por favor, escolha outra categoria ou use a categoria 'OUTROS' para criar múltiplas despesas do mesmo tipo.`);
+    }
+    
+    // Verificar se é erro de valor de enum inválido
+    if (error.code === '22P02' && error.message.includes('invalid input value for enum')) {
+      throw new Error(`A categoria '${values.categoria}' não é válida. Por favor, escolha uma das categorias disponíveis.`);
+    }
+    
     throw new Error("Não foi possível atualizar a outra despesa");
   }
   

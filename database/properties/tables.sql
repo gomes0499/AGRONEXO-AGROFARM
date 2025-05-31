@@ -35,6 +35,14 @@ CREATE TABLE IF NOT EXISTS propriedades (
     tipo tipo_propriedade NOT NULL DEFAULT 'PROPRIO',
     status status_propriedade NOT NULL DEFAULT 'ATIVA',
     
+    -- Additional fields used in the property form
+    imagem TEXT, -- URL da imagem ou foto da propriedade
+    cartorio_registro TEXT, -- Nome do cartório de registro
+    numero_car TEXT, -- Número do Cadastro Ambiental Rural
+    data_inicio TIMESTAMPTZ, -- Data de início (para propriedades arrendadas)
+    data_termino TIMESTAMPTZ, -- Data de término (para propriedades arrendadas)
+    tipo_anuencia TEXT, -- Tipo de anuência para propriedades arrendadas
+    
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),

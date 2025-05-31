@@ -49,13 +49,8 @@ export function IndicatorValueBadge({
   
   return (
     <Badge
-      variant="outline"
-      className={`font-medium transition-all ${sizeClasses[size]} ${className}`}
-      style={{
-        backgroundColor: `${threshold.color}20`,
-        color: threshold.color,
-        borderColor: threshold.color,
-      }}
+      variant="default"
+      className={`font-normal transition-all ${sizeClasses[size]} ${className}`}
     >
       {showValue && (
         <span className="mr-2">
@@ -64,7 +59,7 @@ export function IndicatorValueBadge({
           {suffix}
         </span>
       )}
-      {threshold.level === "THRESHOLD" ? "LIMITE CRÍTICO" : threshold.level}
+      {threshold.level === "THRESHOLD" ? "Limite Crítico" : threshold.level}
     </Badge>
   );
 }

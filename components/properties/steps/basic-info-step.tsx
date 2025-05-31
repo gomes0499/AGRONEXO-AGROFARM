@@ -8,6 +8,10 @@ import {
   DollarSign,
   Ruler,
   FileText,
+  UserCheck,
+  ClipboardSignature,
+  FileCheck,
+  Clock,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { CurrencyField } from "@/components/shared/currency-field";
+import { DatePicker } from "@/components/shared/datepicker";
 import {
   Select,
   SelectContent,
@@ -28,8 +33,10 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import type { UseFormReturn } from "react-hook-form";
-import type { PropertyFormValues } from "@/schemas/properties";
+import type { PropertyFormValues, anuenciaTypeEnum } from "@/schemas/properties";
 import { PropertyImageUpload } from "../property-image-upload";
+import { useWatch } from "react-hook-form";
+import { useEffect } from "react";
 
 interface BasicInfoStepProps {
   form: UseFormReturn<PropertyFormValues>;
@@ -74,6 +81,29 @@ export function BasicInfoStep({
   onImageSuccess,
   onImageRemove,
 }: BasicInfoStepProps) {
+  // Watch the property type to conditionally render fields
+  const propertyType = useWatch({
+    control: form.control,
+    name: "tipo",
+    defaultValue: "PROPRIO"
+  });
+
+  const isLeased = propertyType === "ARRENDADO";
+  
+  // Quando o tipo mudar para arrendado, limpar o ano de aquisição
+  // e quando mudar para próprio, limpar os campos de arrendamento
+  useEffect(() => {
+    if (isLeased) {
+      // Se for arrendado, limpar o ano de aquisição
+      form.setValue("ano_aquisicao", null, { shouldValidate: false });
+    } else {
+      // Se for próprio, limpar os campos específicos de arrendamento
+      form.setValue("data_inicio", null, { shouldValidate: false });
+      form.setValue("data_termino", null, { shouldValidate: false });
+      form.setValue("tipo_anuencia", "", { shouldValidate: false });
+    }
+  }, [isLeased, form]);
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-start">
@@ -257,7 +287,10 @@ export function BasicInfoStep({
                     placeholder="0.00"
                     {...field}
                     value={field.value ?? ""}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                      field.onChange(value);
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -281,7 +314,10 @@ export function BasicInfoStep({
                     placeholder="0.00"
                     {...field}
                     value={field.value ?? ""}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                      field.onChange(value);
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -291,20 +327,63 @@ export function BasicInfoStep({
 
           <FormField
             control={form.control}
-            name="ano_aquisicao"
+            name={isLeased ? "cartorio_registro" : "ano_aquisicao"}
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  Ano de Aquisição*
+                  {isLeased ? (
+                    <>
+                      <FileCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                      Cartório de Registro
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                      Ano de Aquisição*
+                    </>
+                  )}
+                </FormLabel>
+                <FormControl>
+                  {isLeased ? (
+                    <Input
+                      placeholder="Nome do cartório"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  ) : (
+                    <Input
+                      type="number"
+                      placeholder="2024"
+                      {...field}
+                      value={field.value ?? ""}
+                      onChange={(e) => {
+                        const value = e.target.value === "" ? null : parseInt(e.target.value);
+                        field.onChange(value);
+                      }}
+                    />
+                  )}
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="numero_car"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-1.5">
+                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                  Número do CAR
                 </FormLabel>
                 <FormControl>
                   <Input
-                    type="number"
-                    placeholder="2024"
+                    placeholder="Cadastro Ambiental Rural"
                     {...field}
                     value={field.value ?? ""}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -312,6 +391,79 @@ export function BasicInfoStep({
             )}
           />
         </div>
+        
+        {isLeased && (
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+            <FormField
+              control={form.control}
+              name="data_inicio"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    Data de Início*
+                  </FormLabel>
+                  <DatePicker
+                    date={field.value ? new Date(field.value) : undefined}
+                    onSelect={field.onChange}
+                    disabled={false}
+                    placeholder="Data de início"
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="data_termino"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    Data de Término*
+                  </FormLabel>
+                  <DatePicker
+                    date={field.value ? new Date(field.value) : undefined}
+                    onSelect={field.onChange}
+                    disabled={false}
+                    placeholder="Data de término"
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="tipo_anuencia"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    Tipo de Anuência*
+                  </FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value || ""}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="COM_ANUENCIA">Com Anuência</SelectItem>
+                      <SelectItem value="SEM_ANUENCIA">Sem Anuência</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
+        
 
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <CurrencyField

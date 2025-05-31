@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Beef } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -83,16 +83,23 @@ export function NewLivestockButton({
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)}>
+      <Button 
+        onClick={() => setIsOpen(true)} 
+        size="default" 
+        className="gap-1"
+      >
         <Plus className="h-4 w-4 mr-2" />
         Novo Animal
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Novo Animal</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-w-[500px] p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-2">
+            <div className="flex items-center gap-2">
+              <Beef className="h-5 w-5 text-primary" />
+              <DialogTitle className="text-xl font-semibold">Novo Animal</DialogTitle>
+            </div>
+            <DialogDescription className="text-muted-foreground mt-1">
               Cadastre um novo registro de animal para o rebanho.
             </DialogDescription>
           </DialogHeader>

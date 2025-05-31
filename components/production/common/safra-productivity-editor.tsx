@@ -66,8 +66,9 @@ export function SafraProductivityEditor({
 
   // Função para converter array de volta para objeto e notificar mudança
   const updateParent = (newSafraProductivities: SafraProductivity[]) => {
+    // Só envia para o pai as produtividades que têm uma safra selecionada
     const newValues = newSafraProductivities.reduce((acc, item) => {
-      if (item.safra_id && item.produtividade !== undefined && item.unidade) {
+      if (item.safra_id && item.unidade) {
         acc[item.safra_id] = { 
           produtividade: item.produtividade, 
           unidade: item.unidade 
@@ -108,7 +109,7 @@ export function SafraProductivityEditor({
     if (rawValue === "") {
       newSafraProductivities[index] = { ...newSafraProductivities[index], produtividade: 0 };
     } else {
-      const numericValue = parseFloat(rawValue.replace(",", "."));
+      const numericValue = parseFloat(rawValue);
       if (!isNaN(numericValue)) {
         newSafraProductivities[index] = { ...newSafraProductivities[index], produtividade: numericValue };
       }
@@ -235,17 +236,12 @@ export function SafraProductivityEditor({
                       <Input
                         type="number"
                         step="0.01"
-                        value={
-                          item.isFocused
-                            ? item.produtividade.toString()
-                            : item.produtividade.toFixed(2)
-                        }
+                        min="0"
+                        value={item.produtividade}
                         onChange={(e) => updateProductivity(index, e.target.value)}
-                        onFocus={() => handleFocus(index)}
-                        onBlur={() => handleBlur(index)}
                         disabled={disabled}
                         className="h-9"
-                        placeholder="0,00"
+                        placeholder="0.00"
                       />
                     </div>
                     

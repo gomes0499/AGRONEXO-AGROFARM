@@ -246,21 +246,21 @@ export function CommodityPriceTab({ commodityPrices = [] }: CommodityPriceTabPro
       <Table>
         <TableHeader>
           <TableRow className="bg-primary hover:bg-primary">
-            <TableHead className="font-semibold text-primary-foreground rounded-tl-md w-[200px]">Commodity</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">Unidade</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">Atual</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2020</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2021</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2022</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2023</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2024</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2025</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2026</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2027</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2028</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2029</TableHead>
-            <TableHead className="font-semibold text-primary-foreground">2030</TableHead>
-            <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[60px]">Ações</TableHead>
+            <TableHead className="font-medium text-primary-foreground rounded-tl-md w-[200px]">Commodity</TableHead>
+            <TableHead className="font-medium text-primary-foreground">Unidade</TableHead>
+            <TableHead className="font-medium text-primary-foreground">Atual</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2020</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2021</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2022</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2023</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2024</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2025</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2026</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2027</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2028</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2029</TableHead>
+            <TableHead className="font-medium text-primary-foreground">2030</TableHead>
+            <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[60px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
