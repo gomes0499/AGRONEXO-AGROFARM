@@ -34,8 +34,8 @@ export default async function ManageOrganizationPage({
   params,
   searchParams,
 }: {
-  params: { id: string } | Promise<{ id: string }>;
-  searchParams: { tab?: string } | Promise<{ tab?: string }>;
+  params: any;
+  searchParams: any;
 }) {
   // Verifica autenticação e obtém dados do usuário
   const user = await verifyUserPermission();
