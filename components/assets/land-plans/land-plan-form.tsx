@@ -24,12 +24,15 @@ import {
 } from "@/components/ui/select";
 import { CurrencyField } from "@/components/shared/currency-field";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { 
+import {
   LandAcquisitionFormValues,
   landAcquisitionFormSchema,
-  type LandAcquisition
+  type LandAcquisition,
 } from "@/schemas/patrimonio/land-acquisitions";
-import { createLandPlan, updateLandPlan } from "@/lib/actions/patrimonio-actions";
+import {
+  createLandPlan,
+  updateLandPlan,
+} from "@/lib/actions/patrimonio-actions";
 
 interface LandPlanFormProps {
   organizationId: string;
@@ -38,14 +41,16 @@ interface LandPlanFormProps {
   onCancel?: () => void;
 }
 
-export function LandPlanForm({ 
-  organizationId, 
-  initialData, 
-  onSubmit, 
-  onCancel 
+export function LandPlanForm({
+  organizationId,
+  initialData,
+  onSubmit,
+  onCancel,
 }: LandPlanFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string }>>([]);
+  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string }>>(
+    []
+  );
   const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
   const isEditing = !!initialData?.id;
 
@@ -55,7 +60,7 @@ export function LandPlanForm({
       try {
         setIsLoadingHarvests(true);
         const harvestsData = await getSafras(organizationId);
-        setHarvests(harvestsData.map(h => ({ id: h.id, nome: h.nome })));
+        setHarvests(harvestsData.map((h) => ({ id: h.id, nome: h.nome })));
       } catch (error) {
         console.error("Erro ao carregar safras:", error);
       } finally {
@@ -64,7 +69,6 @@ export function LandPlanForm({
     }
     loadHarvests();
   }, [organizationId]);
-  
 
   const form = useForm<LandAcquisitionFormValues>({
     resolver: zodResolver(landAcquisitionFormSchema),
@@ -74,22 +78,30 @@ export function LandPlanForm({
       sacas: initialData?.sacas || 0,
       valor_total: initialData?.valor_total || 0,
       // Forçar tipo a ser um valor válido para tipo_aquisicao_terra
-      tipo: (initialData?.tipo && ["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(initialData.tipo)) 
-        ? initialData.tipo 
-        : "COMPRA",
+      tipo:
+        initialData?.tipo &&
+        ["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(
+          initialData.tipo
+        )
+          ? initialData.tipo
+          : "COMPRA",
       ano: initialData?.ano || new Date().getFullYear(),
       safra_id: initialData?.safra_id || "",
-    }
+    },
   });
 
   const { watch } = form;
   const hectares = watch("hectares") || 0;
   const sacas = watch("sacas") || 0;
-  
+
   // Garantir que o tipo seja sempre um valor válido após a inicialização do form
   useEffect(() => {
     const currentTipo = form.getValues("tipo");
-    if (!["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(currentTipo)) {
+    if (
+      !["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(
+        currentTipo
+      )
+    ) {
       console.warn(`Normalizando tipo inválido: ${currentTipo} -> "COMPRA"`);
       form.setValue("tipo", "COMPRA");
     }
@@ -102,31 +114,30 @@ export function LandPlanForm({
   const handleSubmit = async (values: LandAcquisitionFormValues) => {
     try {
       setIsSubmitting(true);
-      
+
       // Garantir que o tipo esteja dentro dos valores aceitos e forçar um dos valores válidos
       let tipoValido = values.tipo;
-      
+
       // Verificar explicitamente por "PLANEJADO" e "REALIZADO" e substituí-los
-      if ((tipoValido as string) === "PLANEJADO" || (tipoValido as string) === "REALIZADO") {
-        console.warn(`Detectado valor legado para tipo: "${tipoValido}". Substituindo por "COMPRA"`);
+      if (
+        (tipoValido as string) === "PLANEJADO" ||
+        (tipoValido as string) === "REALIZADO"
+      ) {
+        console.warn(
+          `Detectado valor legado para tipo: "${tipoValido}". Substituindo por "COMPRA"`
+        );
+        tipoValido = "COMPRA";
+      } else if (
+        !["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(
+          tipoValido
+        )
+      ) {
+        console.warn(
+          `Tipo de aquisição inválido: ${tipoValido}. Usando valor padrão "COMPRA"`
+        );
         tipoValido = "COMPRA";
       }
-      else if (!["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(tipoValido)) {
-        console.warn(`Tipo de aquisição inválido: ${tipoValido}. Usando valor padrão "COMPRA"`);
-        tipoValido = "COMPRA";
-      }
-      
-      console.log("Valores originais do formulário:", JSON.stringify(values, null, 2));
-      console.log("Valores do watch:", {
-        nome_fazenda: form.watch("nome_fazenda"),
-        hectares: form.watch("hectares"),
-        sacas: form.watch("sacas"),
-        valor_total: form.watch("valor_total"),
-        tipo: form.watch("tipo"), // Verificar valor do tipo
-        ano: form.watch("ano"),
-        safra_id: form.watch("safra_id"),
-      });
-      
+
       // Explicitamente atribuir um valor válido para o tipo
       const dataWithTotal = {
         nome_fazenda: values.nome_fazenda,
@@ -136,10 +147,8 @@ export function LandPlanForm({
         tipo: tipoValido, // Força um dos valores aceitos
         ano: values.ano,
         safra_id: values.safra_id,
-        total_sacas: totalSacasCalculated
+        total_sacas: totalSacasCalculated,
       };
-      
-      console.log("Dados finais para envio:", JSON.stringify(dataWithTotal, null, 2));
 
       let result;
       if (isEditing && initialData?.id) {
@@ -148,17 +157,17 @@ export function LandPlanForm({
         result = await createLandPlan(organizationId, dataWithTotal);
       }
 
-      if ('error' in result) {
+      if ("error" in result) {
         toast.error(result.error);
         return;
       }
 
       toast.success(
-        isEditing 
-          ? "Aquisição de terra atualizada com sucesso!" 
+        isEditing
+          ? "Aquisição de terra atualizada com sucesso!"
           : "Aquisição de terra criada com sucesso!"
       );
-      
+
       onSubmit?.(result.data);
     } catch (error) {
       toast.error("Erro ao salvar aquisição de terra");
@@ -184,7 +193,9 @@ export function LandPlanForm({
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="COMPRA">Compra</SelectItem>
-                  <SelectItem value="ARRENDAMENTO_LONGO_PRAZO">Arrendamento de Longo Prazo</SelectItem>
+                  <SelectItem value="ARRENDAMENTO_LONGO_PRAZO">
+                    Arrendamento de Longo Prazo
+                  </SelectItem>
                   <SelectItem value="PARCERIA">Parceria</SelectItem>
                   <SelectItem value="OUTROS">Outros</SelectItem>
                 </SelectContent>
@@ -208,97 +219,108 @@ export function LandPlanForm({
           )}
         />
 
-      <FormField
-        control={form.control}
-        name="safra_id"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Safra</FormLabel>
-            <Select onValueChange={(value) => field.onChange(value === "none" ? "" : value)} defaultValue={field.value || "none"}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder={isLoadingHarvests ? "Carregando safras..." : "Selecione uma safra (opcional)"} />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma safra</SelectItem>
-                {harvests.map((harvest) => (
-                  <SelectItem key={harvest.id} value={harvest.id}>
-                    {harvest.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
-          name="hectares"
+          name="safra_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Hectares</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="Ex: 100.5"
-                  {...field}
-                  onChange={(e) =>
-                    field.onChange(parseFloat(e.target.value) || 0)
-                  }
-                />
-              </FormControl>
+              <FormLabel>Safra</FormLabel>
+              <Select
+                onValueChange={(value) =>
+                  field.onChange(value === "none" ? "" : value)
+                }
+                defaultValue={field.value || "none"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        isLoadingHarvests
+                          ? "Carregando safras..."
+                          : "Selecione uma safra (opcional)"
+                      }
+                    />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma safra</SelectItem>
+                  {harvests.map((harvest) => (
+                    <SelectItem key={harvest.id} value={harvest.id}>
+                      {harvest.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="hectares"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Hectares</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 100.5"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseFloat(e.target.value) || 0)
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="sacas"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sacas por Hectare</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 60"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseFloat(e.target.value) || 0)
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Total de Sacas</label>
+          <Input
+            type="number"
+            step="0.01"
+            readOnly
+            className="bg-muted"
+            value={totalSacasCalculated}
+          />
+        </div>
+
+        <CurrencyField
+          name="valor_total"
+          label="Valor Total"
           control={form.control}
-          name="sacas"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sacas por Hectare</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="Ex: 60"
-                  {...field}
-                  onChange={(e) =>
-                    field.onChange(parseFloat(e.target.value) || 0)
-                  }
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          placeholder="R$ 0,00"
         />
-      </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Total de Sacas</label>
-        <Input
-          type="number"
-          step="0.01"
-          readOnly
-          className="bg-muted"
-          value={totalSacasCalculated}
-        />
-      </div>
-
-      <CurrencyField
-        name="valor_total"
-        label="Valor Total"
-        control={form.control}
-        placeholder="R$ 0,00"
-      />
-
-      {totalSacasCalculated > 0 && (
+        {totalSacasCalculated > 0 && (
           <div className="p-3 bg-muted rounded-lg space-y-2">
             <div className="flex justify-between text-sm">
               <span>Total de Sacas:</span>

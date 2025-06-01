@@ -27,19 +27,21 @@ export function FluxoCaixaTab({ organizationId }: FluxoCaixaTabProps) {
       try {
         setLoading(true);
         setError(null);
-        
-        console.log("🔄 Carregando fluxo de caixa para organização:", organization.id);
-        
+
         // Importação dinâmica para evitar problemas
-        const { getFluxoCaixaSimplificado } = await import("@/lib/actions/projections-actions/fluxo-caixa-simplificado");
-        
+        const { getFluxoCaixaSimplificado } = await import(
+          "@/lib/actions/projections-actions/fluxo-caixa-simplificado"
+        );
+
         const data = await getFluxoCaixaSimplificado(organization.id);
-        
-        console.log("✅ Fluxo de caixa carregado:", data);
+
         setFluxoCaixa(data);
       } catch (err) {
         console.error("❌ Erro ao carregar fluxo de caixa:", err);
-        const errorMessage = err instanceof Error ? err.message : "Erro desconhecido ao carregar dados";
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Erro desconhecido ao carregar dados";
         console.error("❌ Detalhes do erro:", err);
         setError(`Erro ao buscar dados do fluxo de caixa: ${errorMessage}`);
       } finally {

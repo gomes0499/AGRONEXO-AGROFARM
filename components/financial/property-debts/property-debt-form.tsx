@@ -127,14 +127,10 @@ export function PropertyDebtForm({
     },
   });
 
-  // Verificar o valor de organizationId
-  console.log("Property debt form - organizationId recebido:", organizationId);
-
   // Atualizar organizacao_id no formulário quando organizationId mudar
   useEffect(() => {
     if (organizationId) {
       form.setValue("organizacao_id", organizationId);
-      console.log("Atualizando organizacao_id no formulário:", organizationId);
     }
   }, [organizationId, form]);
 
@@ -162,10 +158,6 @@ export function PropertyDebtForm({
         ).reduce((acc, val) => acc + (typeof val === "number" ? val : 0), 0);
       }
 
-      // Converter fluxo de pagamento para string JSON
-      console.log("Property debt form - valores do formulário:", values);
-      console.log("Property debt form - organizationId:", organizationId);
-
       if (!organizationId && !values.organizacao_id) {
         throw new Error("ID da organização não fornecido");
       }
@@ -179,8 +171,6 @@ export function PropertyDebtForm({
             ? JSON.stringify(values.fluxo_pagamento_anual)
             : values.fluxo_pagamento_anual,
       };
-
-      console.log("Property debt form - dados a serem enviados:", dataToSubmit);
 
       let result;
 
@@ -414,7 +404,10 @@ export function PropertyDebtForm({
                           : field.value || {}
                       }
                       onChange={field.onChange}
-                      safras={harvests.map(h => ({ id: h.id || "", nome: h.nome }))}
+                      safras={harvests.map((h) => ({
+                        id: h.id || "",
+                        nome: h.nome,
+                      }))}
                       currency={form.watch("moeda")}
                       disabled={isSubmitting || isLoadingHarvests}
                     />

@@ -2,7 +2,10 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ProjecaoConfigFormValues, projecaoConfigFormSchema } from "@/schemas/projections";
+import {
+  ProjecaoConfigFormValues,
+  projecaoConfigFormSchema,
+} from "@/schemas/projections";
 import {
   Dialog,
   DialogContent,
@@ -105,9 +108,6 @@ export function ProjectionConfigForm({
   const onSubmit = async (data: any) => {
     setIsLoading(true);
     try {
-      console.log("Dados do formulário:", data);
-      console.log("Organization ID:", organizationId);
-      
       let result;
       if (isEditing && initialData) {
         result = await updateProjecaoConfig(initialData.id, data);
@@ -115,14 +115,14 @@ export function ProjectionConfigForm({
         result = await createProjecaoConfig(organizationId, data);
       }
 
-      console.log("Resultado da action:", result);
-
-      if ('error' in result) {
+      if ("error" in result) {
         console.error("Erro da action:", result.error);
         toast.error(result.error);
       } else {
         toast.success(
-          isEditing ? "Configuração atualizada com sucesso" : "Configuração criada com sucesso"
+          isEditing
+            ? "Configuração atualizada com sucesso"
+            : "Configuração criada com sucesso"
         );
         onSuccess(result.data);
       }
@@ -152,7 +152,10 @@ export function ProjectionConfigForm({
                 <FormItem>
                   <FormLabel>Nome da Configuração</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Projeção Safra 2024/25" {...field} />
+                    <Input
+                      placeholder="Ex: Projeção Safra 2024/25"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -166,11 +169,11 @@ export function ProjectionConfigForm({
                 <FormItem>
                   <FormLabel>Descrição (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Descreva o objetivo desta configuração..."
                       className="resize-none"
                       rows={3}
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -186,12 +189,14 @@ export function ProjectionConfigForm({
                   <FormItem>
                     <FormLabel>Período Início</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
+                      <Input
+                        type="number"
                         min={2020}
                         max={2050}
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value))
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -206,12 +211,14 @@ export function ProjectionConfigForm({
                   <FormItem>
                     <FormLabel>Período Fim</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
+                      <Input
+                        type="number"
                         min={2020}
                         max={2050}
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value))
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -227,15 +234,22 @@ export function ProjectionConfigForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Formato de Safra</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o formato" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="SAFRA_COMPLETA">Safra Completa (Ex: 2023/24)</SelectItem>
-                        <SelectItem value="ANO_CIVIL">Ano Civil (Ex: 2024)</SelectItem>
+                        <SelectItem value="SAFRA_COMPLETA">
+                          Safra Completa (Ex: 2023/24)
+                        </SelectItem>
+                        <SelectItem value="ANO_CIVIL">
+                          Ano Civil (Ex: 2024)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -249,7 +263,10 @@ export function ProjectionConfigForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o status" />
@@ -279,9 +296,7 @@ export function ProjectionConfigForm({
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Definir como configuração padrão
-                    </FormLabel>
+                    <FormLabel>Definir como configuração padrão</FormLabel>
                     <p className="text-xs text-muted-foreground">
                       Esta configuração será usada por padrão em novas projeções
                     </p>

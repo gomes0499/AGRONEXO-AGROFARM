@@ -45,29 +45,31 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-async function getBankDistributionAllSafrasData(organizationId: string): Promise<{ data: BankData[] }> {
+async function getBankDistributionAllSafrasData(
+  organizationId: string
+): Promise<{ data: BankData[] }> {
   const supabase = createClient();
-  
+
   // Busca todas as dívidas bancárias
   const { data: dividasBancarias } = await supabase
-    .from('dividas_bancarias')
-    .select('*')
-    .eq('organizacao_id', organizationId);
+    .from("dividas_bancarias")
+    .select("*")
+    .eq("organizacao_id", organizationId);
 
   if (!dividasBancarias || dividasBancarias.length === 0) {
     return { data: [] };
   }
-  
+
   // Agrupar por banco
   const bankTotals: Record<string, number> = {};
-  
+
   // Processar cada dívida bancária
-  dividasBancarias.forEach(divida => {
+  dividasBancarias.forEach((divida) => {
     const banco = divida.instituicao_bancaria || "BANCO NÃO INFORMADO";
-    
+
     // Verifica se valores_por_ano existe e processa
     let valores = divida.valores_por_ano;
-    if (typeof valores === 'string') {
+    if (typeof valores === "string") {
       try {
         valores = JSON.parse(valores);
       } catch (e) {
@@ -75,24 +77,24 @@ async function getBankDistributionAllSafrasData(organizationId: string): Promise
         valores = {};
       }
     }
-    
+
     // Soma todos os valores de todas as safras para este banco
     let valorTotal = 0;
-    
-    if (valores && typeof valores === 'object') {
+
+    if (valores && typeof valores === "object") {
       // Somar todos os valores de todas as safras
-      Object.values(valores).forEach(valor => {
-        if (typeof valor === 'number' && valor > 0) {
+      Object.values(valores).forEach((valor) => {
+        if (typeof valor === "number" && valor > 0) {
           valorTotal += valor;
         }
       });
     }
-    
+
     // Se não encontrou nenhum valor mas tem valor_total, usa ele
     if (valorTotal === 0 && divida.valor_total) {
       valorTotal = divida.valor_total;
     }
-    
+
     // Acumula o valor no banco correspondente se for maior que zero
     if (valorTotal > 0) {
       bankTotals[banco] = (bankTotals[banco] || 0) + valorTotal;
@@ -100,8 +102,11 @@ async function getBankDistributionAllSafrasData(organizationId: string): Promise
   });
 
   // Calcular total geral
-  const totalGeral = Object.values(bankTotals).reduce((sum, valor) => sum + valor, 0);
-  
+  const totalGeral = Object.values(bankTotals).reduce(
+    (sum, valor) => sum + valor,
+    0
+  );
+
   if (totalGeral === 0) {
     return { data: [] };
   }
@@ -121,19 +126,19 @@ async function getBankDistributionAllSafrasData(organizationId: string): Promise
   // Pegar os top 8 e agrupar o resto em "OUTROS"
   const top8 = allBanks.slice(0, 8);
   const outros = allBanks.slice(8);
-  
+
   const banks: BankData[] = [...top8];
-  
+
   // Se há mais de 8 bancos, criar categoria "OUTROS"
   if (outros.length > 0) {
     const valorOutros = outros.reduce((sum, bank) => sum + bank.valor, 0);
     const percentualOutros = (valorOutros / totalGeral) * 100;
-    
+
     banks.push({
       banco: `OUTROS (${outros.length})`,
       valor: valorOutros,
       percentual: percentualOutros,
-      rank: 9
+      rank: 9,
     });
   }
 
@@ -143,23 +148,35 @@ async function getBankDistributionAllSafrasData(organizationId: string): Promise
 function CustomTooltip({ active, payload, label }: any) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    
+
     return (
       <div className="bg-background border border-border dark:border-gray-700 rounded-lg shadow-lg p-3">
         <p className="font-semibold text-sm dark:text-white">{label}</p>
         <div className="my-1 h-px bg-border dark:bg-gray-600" />
         <div className="space-y-1 mt-2">
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground dark:text-gray-400">Valor:</span> 
-            <span className="font-medium dark:text-white">{formatCurrency(data.valor)}</span>
+            <span className="text-muted-foreground dark:text-gray-400">
+              Valor:
+            </span>
+            <span className="font-medium dark:text-white">
+              {formatCurrency(data.valor)}
+            </span>
           </p>
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground dark:text-gray-400">Participação:</span> 
-            <span className="font-medium dark:text-white">{data.percentual.toFixed(1)}%</span>
+            <span className="text-muted-foreground dark:text-gray-400">
+              Participação:
+            </span>
+            <span className="font-medium dark:text-white">
+              {data.percentual.toFixed(1)}%
+            </span>
           </p>
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground dark:text-gray-400">Ranking:</span> 
-            <span className="font-medium dark:text-white">{data.rank}º posição</span>
+            <span className="text-muted-foreground dark:text-gray-400">
+              Ranking:
+            </span>
+            <span className="font-medium dark:text-white">
+              {data.rank}º posição
+            </span>
           </p>
         </div>
       </div>
@@ -168,7 +185,9 @@ function CustomTooltip({ active, payload, label }: any) {
   return null;
 }
 
-export function FinancialBankDistributionAllSafrasChart({ organizationId }: FinancialBankDistributionAllSafrasChartProps) {
+export function FinancialBankDistributionAllSafrasChart({
+  organizationId,
+}: FinancialBankDistributionAllSafrasChartProps) {
   const [data, setData] = useState<BankData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -179,14 +198,11 @@ export function FinancialBankDistributionAllSafrasChart({ organizationId }: Fina
       try {
         setLoading(true);
         setError(null);
-        
-        console.log(`Carregando dados bancários consolidados de todas as safras`);
-        
+
         const result = await getBankDistributionAllSafrasData(organizationId);
-        
+
         const { data: bankData } = result;
-        console.log(`Dados carregados: ${bankData.length} bancos encontrados (todas as safras)`);
-        
+
         setData(bankData);
       } catch (err) {
         console.error("Erro ao carregar dados de distribuição bancária:", err);
@@ -288,7 +304,8 @@ export function FinancialBankDistributionAllSafrasChart({ organizationId }: Fina
               Nenhuma dívida bancária encontrada
             </div>
             <div className="text-center text-sm text-muted-foreground max-w-md">
-              Para visualizar este gráfico, cadastre dívidas bancárias no módulo financeiro.
+              Para visualizar este gráfico, cadastre dívidas bancárias no módulo
+              financeiro.
             </div>
           </div>
         </CardContent>
@@ -299,7 +316,9 @@ export function FinancialBankDistributionAllSafrasChart({ organizationId }: Fina
   // Calcular estatísticas para o footer
   const total = data.reduce((sum, item) => sum + item.valor, 0);
   const topBank = data[0];
-  const concentracaoTop3 = data.slice(0, 3).reduce((sum, bank) => sum + bank.percentual, 0);
+  const concentracaoTop3 = data
+    .slice(0, 3)
+    .reduce((sum, bank) => sum + bank.percentual, 0);
 
   return (
     <Card>
@@ -329,8 +348,8 @@ export function FinancialBankDistributionAllSafrasChart({ organizationId }: Fina
                 margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
               >
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="banco" 
+                <XAxis
+                  dataKey="banco"
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
@@ -340,9 +359,11 @@ export function FinancialBankDistributionAllSafrasChart({ organizationId }: Fina
                   height={80}
                   interval={0}
                   tick={{ fontSize: 10, fill: "var(--foreground)" }}
-                  tickFormatter={(value) => value.length > 12 ? `${value.slice(0, 12)}...` : value}
+                  tickFormatter={(value) =>
+                    value.length > 12 ? `${value.slice(0, 12)}...` : value
+                  }
                 />
-                <YAxis 
+                <YAxis
                   tickLine={false}
                   axisLine={false}
                   tickMargin={10}
@@ -371,11 +392,13 @@ export function FinancialBankDistributionAllSafrasChart({ organizationId }: Fina
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4 bg-muted/30">
         <div className="flex gap-2 font-medium leading-none dark:text-white">
-          🏆 <span className="font-semibold">{topBank.banco}</span> lidera com {topBank.percentual.toFixed(1)}% do endividamento
+          🏆 <span className="font-semibold">{topBank.banco}</span> lidera com{" "}
+          {topBank.percentual.toFixed(1)}% do endividamento
           <TrendingUp className="h-4 w-4" />
         </div>
         <div className="leading-none text-muted-foreground dark:text-gray-400 text-xs">
-          Top 3 bancos concentram {concentracaoTop3.toFixed(1)}% do endividamento total ({formatCurrency(total)})
+          Top 3 bancos concentram {concentracaoTop3.toFixed(1)}% do
+          endividamento total ({formatCurrency(total)})
         </div>
       </CardFooter>
     </Card>

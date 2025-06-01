@@ -81,7 +81,6 @@ const novasLinhasCreditoPorUuid: Record<string, number> = {
 
 // Função para obter dados de fluxo de caixa simplificado
 export async function getFluxoCaixaSimplificado(organizacaoId: string): Promise<FluxoCaixaData> {
-  console.log("Obtendo dados de fluxo de caixa simplificado para organização:", organizacaoId);
   
   try {
     // Criar cliente Supabase
@@ -100,13 +99,11 @@ export async function getFluxoCaixaSimplificado(organizacaoId: string): Promise<
     }
     
     if (!safras || safras.length === 0) {
-      console.log("Nenhuma safra encontrada, usando dados demo");
       return criarDadosDemoFluxoCaixa();
     }
     
     // Array de anos para usar no fluxo de caixa
     const anos = safras.map(safra => `${safra.ano_inicio}/${safra.ano_fim.toString().slice(2)}`);
-    console.log("Anos para fluxo de caixa:", anos);
     
     // Inicializar estrutura de dados
     const fluxoCaixaData: FluxoCaixaData = {
@@ -211,7 +208,6 @@ export async function getFluxoCaixaSimplificado(organizacaoId: string): Promise<
       fluxoCaixaData.fluxo_acumulado[ano] = acumulado;
     });
     
-    console.log("Dados de fluxo de caixa calculados com sucesso");
     return fluxoCaixaData;
     
   } catch (error) {
@@ -240,7 +236,6 @@ async function calcularDadosAgricolas(
     }
     
     if (!culturas || culturas.length === 0) {
-      console.log("Nenhuma cultura encontrada");
       return;
     }
     
@@ -358,7 +353,6 @@ async function calcularDadosAgricolas(
       }
     }
     
-    console.log("Dados agrícolas calculados com sucesso");
   } catch (error) {
     console.error("Erro ao calcular dados agrícolas:", error);
   }
@@ -384,7 +378,6 @@ async function calcularDadosArrendamento(
     }
     
     if (!arrendamentos || arrendamentos.length === 0) {
-      console.log("Nenhum arrendamento encontrado");
       return;
     }
     
@@ -411,7 +404,6 @@ async function calcularDadosArrendamento(
       fluxoCaixaData.outras_despesas.total_por_ano[safraFormatada] += custoTotalArrendamento;
     });
     
-    console.log("Dados de arrendamento calculados com sucesso");
   } catch (error) {
     console.error("Erro ao calcular dados de arrendamento:", error);
   }
@@ -465,9 +457,6 @@ async function calcularOutrasDespesas(
     }
     
     if (!outrasDespesas || outrasDespesas.length === 0) {
-      console.log("Nenhuma outra despesa encontrada, usando dados demo");
-      
-      // Usar valores demo para outras despesas
       safras.forEach((safra, index) => {
         const safraFormatada = `${safra.ano_inicio}/${safra.ano_fim.toString().slice(2)}`;
         const baseProLabore = 1200000; // R$ 1.2M/ano
@@ -530,7 +519,6 @@ async function calcularOutrasDespesas(
       fluxoCaixaData.outras_despesas.total_por_ano[safraFormatada] += valor;
     });
     
-    console.log("Outras despesas calculadas com sucesso");
   } catch (error) {
     console.error("Erro ao calcular outras despesas:", error);
   }
@@ -628,7 +616,6 @@ async function calcularDadosInvestimentos(
       fluxoCaixaData.investimentos.total[safraFormatada] += valor;
     });
     
-    console.log("Dados de investimentos calculados com sucesso");
   } catch (error) {
     console.error("Erro ao calcular dados de investimentos:", error);
   }
@@ -671,7 +658,6 @@ async function calcularDadosFinanceiras(
         novasLinhasCredito - servicoDivida - pagamentosBancos;
     });
     
-    console.log("Dados financeiros calculados com sucesso");
   } catch (error) {
     console.error("Erro ao calcular dados financeiros:", error);
   }
@@ -679,7 +665,6 @@ async function calcularDadosFinanceiras(
 
 // Função para criar dados demo de fluxo de caixa
 function criarDadosDemoFluxoCaixa(): FluxoCaixaData {
-  console.log("Criando dados demo de fluxo de caixa");
   
   // Anos/safras demo
   const anos = [

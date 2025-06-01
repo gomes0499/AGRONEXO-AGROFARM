@@ -237,14 +237,12 @@ async function getDividaTotal(
       .eq("organizacao_id", organizationId);
     
     if (!safras || safras.length === 0) {
-      console.log('Nenhuma safra encontrada');
       return 0;
     }
     
     // Encontrar o nome da safra pelo ID
     const safraAtual = safras.find((s: any) => s.id === safraId);
     if (!safraAtual) {
-      console.log(`Safra com ID ${safraId} não encontrada`);
       return 0;
     }
     
@@ -357,14 +355,12 @@ async function getDividaLiquida(
       .eq("organizacao_id", organizationId);
     
     if (!safras || safras.length === 0) {
-      console.log('Nenhuma safra encontrada');
       return 0;
     }
     
     // Encontrar o nome da safra pelo ID
     const safraAtual = safras.find((s: any) => s.id === safraId);
     if (!safraAtual) {
-      console.log(`Safra com ID ${safraId} não encontrada`);
       return 0;
     }
     
@@ -431,14 +427,12 @@ async function getReceita(
       .eq("organizacao_id", organizationId);
     
     if (!safras || safras.length === 0) {
-      console.log('Nenhuma safra encontrada');
       return 0;
     }
     
     // Encontrar o nome da safra pelo ID
     const safraAtual = safras.find((s: any) => s.id === safraId);
     if (!safraAtual) {
-      console.log(`Safra com ID ${safraId} não encontrada`);
       return 0;
     }
     
@@ -553,14 +547,12 @@ async function getEbitda(
       .eq("organizacao_id", organizationId);
     
     if (!safras || safras.length === 0) {
-      console.log('Nenhuma safra encontrada');
       return 0;
     }
     
     // Encontrar o nome da safra pelo ID
     const safraAtual = safras.find((s: any) => s.id === safraId);
     if (!safraAtual) {
-      console.log(`Safra com ID ${safraId} não encontrada`);
       return 0;
     }
     

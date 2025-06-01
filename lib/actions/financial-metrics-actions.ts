@@ -90,18 +90,8 @@ export interface DREData {
 
 export async function getFinancialMetrics(organizationId: string, selectedYear?: number): Promise<FinancialMetrics> {
   try {
-    console.log("🔄 Buscando métricas financeiras para organização", organizationId);
-    
-    // Usar o ano atual ou o selecionado
     const anoAtual = selectedYear || new Date().getFullYear();
-    const anoAnterior = anoAtual - 1;
-    
-    // Buscar posição de dívida
-    console.log("📊 Buscando posição de dívida");
     const debtPosition = await getDebtPosition(organizationId);
-    
-    // Buscar projeções de cultura para obter receita e EBITDA
-    console.log("🌱 Buscando projeções de cultura");
     const cultureProjections = await getCultureProjections(organizationId);
     
     // Safra atual baseada no ano selecionado
@@ -127,13 +117,10 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
       safraAtual = anosOrdenados[0];
     }
     
-    console.log(`🗓️ Usando safra: ${safraAtual}`);
-    
     // Safra anterior
     const indexSafraAtual = debtPosition.anos.indexOf(safraAtual);
     const safraAnterior = indexSafraAtual > 0 ? debtPosition.anos[indexSafraAtual - 1] : "";
     
-    console.log(`🗓️ Safra anterior: ${safraAnterior}`);
     
     // Extrair valores de dívidas da posição de dívida
     const dividaBancariaAtual = debtPosition.indicadores.endividamento_total[safraAtual] || 0;
@@ -188,8 +175,6 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
       receita = consolidado.projections_by_year[safraAtual].receita || 0;
       ebitda = consolidado.projections_by_year[safraAtual].ebitda || 0;
     } else {
-      // Valores padrão caso não encontre projeções
-      console.log("⚠️ Projeções consolidadas não encontradas, usando valores padrão");
       receita = 350000000; // Exemplo: R$ 350 milhões
       ebitda = 135000000;  // Exemplo: R$ 135 milhões
     }

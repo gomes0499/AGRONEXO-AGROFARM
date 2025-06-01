@@ -20,12 +20,14 @@ export function CashFlowProjectionListing({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Fluxo de Caixa Projetado</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Fluxo de Caixa Projetado
+          </h2>
           <p className="text-muted-foreground">
             Gerencie projeções de fluxo de caixa operacional
           </p>
         </div>
-        <Button onClick={() => console.log("Nova projeção")}>
+        <Button>
           <PlusIcon className="mr-2 h-4 w-4" />
           Nova Projeção
         </Button>
@@ -36,7 +38,7 @@ export function CashFlowProjectionListing({
         title="Nenhuma projeção encontrada"
         description="Crie sua primeira projeção de fluxo de caixa para começar"
         action={
-          <Button onClick={() => console.log("Nova projeção")}>
+          <Button>
             <PlusIcon className="mr-2 h-4 w-4" />
             Nova Projeção
           </Button>

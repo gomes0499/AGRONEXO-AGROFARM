@@ -87,7 +87,6 @@ export async function getAgriculturalRevenueProjections(organizationId: string):
       .limit(1)
       .then(result => {
         if (result.error && result.error.code === '42P01') {
-          console.log("Tabela precos não existe ainda, retornando valor padrão");
           return { data: null, error: null };
         }
         return result;

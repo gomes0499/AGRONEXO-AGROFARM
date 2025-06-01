@@ -77,7 +77,6 @@ export async function getSimpleAgriculturalRevenueProjections(organizationId: st
       .eq("organizacao_id", organizationId);
     precosCommodities = commodityData;
   } catch (error) {
-    console.log("Tabela commodity_price_projections não existe ainda");
   }
 
   try {
@@ -88,7 +87,6 @@ export async function getSimpleAgriculturalRevenueProjections(organizationId: st
       .eq("ativo", true);
     precosComerciais = comercialData;
   } catch (error) {
-    console.log("Tabela precos_comerciais não existe ainda");
   }
 
   if (!areas || !produtividades) {
@@ -178,7 +176,6 @@ export async function getSimpleAgriculturalRevenueProjections(organizationId: st
       
       // 3. Fallback: usar preços padrão apenas se não encontrou NENHUM dado no banco
       if (preco === 0) {
-        console.log(`Usando preço padrão para ${culturaNome} - não encontrado no banco`);
         if (culturaLower.includes('soja')) {
           preco = 140; // R$/saca
         } else if (culturaLower.includes('milho')) {

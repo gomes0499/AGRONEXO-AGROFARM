@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
   SelectContent,
-  SelectItem
+  SelectItem,
 } from "@/components/ui/select";
 import {
   createReceivableContract,
@@ -70,7 +70,6 @@ export function ReceivableForm({
   existingReceivable,
   onSubmit,
 }: ReceivableFormProps) {
-  console.log("Receivable form - organizationId recebido:", organizationId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [harvests, setHarvests] = useState<Harvest[]>([]);
   const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
@@ -114,16 +113,18 @@ export function ReceivableForm({
     defaultValues: {
       commodity: existingReceivable?.commodity || "SOJA",
       valor: existingReceivable?.valor || 0,
-      valores_por_safra: parseValoresPorSafra(existingReceivable?.valores_por_safra),
-      organizacao_id: organizationId || existingReceivable?.organizacao_id || "",
+      valores_por_safra: parseValoresPorSafra(
+        existingReceivable?.valores_por_safra
+      ),
+      organizacao_id:
+        organizationId || existingReceivable?.organizacao_id || "",
     },
   });
-  
+
   // Garantir que o organization_id seja definido no formulário
   useEffect(() => {
     if (organizationId) {
       form.setValue("organizacao_id", organizationId);
-      console.log("Atualizando organizacao_id no formulário:", organizationId);
     }
   }, [organizationId, form]);
 
@@ -137,25 +138,19 @@ export function ReceivableForm({
         toast.error("Erro: ID da organização não definido");
         return;
       }
-      
-      console.log("Enviando contrato recebível com organizacao_id:", values.organizacao_id);
 
       // Calculate total from safra values
       const valoresPorSafra = values.valores_por_safra || {};
-      const valorTotal = Object.values(valoresPorSafra as Record<string, number>).reduce(
-        (acc, val) => acc + (typeof val === "number" ? val : 0),
-        0
-      );
-      
+      const valorTotal = Object.values(
+        valoresPorSafra as Record<string, number>
+      ).reduce((acc, val) => acc + (typeof val === "number" ? val : 0), 0);
+
       // Preparar valores simplificados para envio
       const dataToSubmit = {
         ...values,
         valor: valorTotal,
         valores_por_safra: JSON.stringify(valoresPorSafra),
       };
-      
-      // Adicionar logs para depuração
-      console.log("Dados do formulário para envio:", dataToSubmit);
 
       let result;
 
@@ -192,7 +187,9 @@ export function ReceivableForm({
       <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>
-            {existingReceivable ? "Editar Contrato Recebível" : "Novo Contrato Recebível"}
+            {existingReceivable
+              ? "Editar Contrato Recebível"
+              : "Novo Contrato Recebível"}
           </DialogTitle>
           <DialogDescription>
             Preencha os dados do contrato recebível.
@@ -222,8 +219,12 @@ export function ReceivableForm({
                       <SelectItem value="MILHO">Milho</SelectItem>
                       <SelectItem value="MILHETO">Milheto</SelectItem>
                       <SelectItem value="SORGO">Sorgo</SelectItem>
-                      <SelectItem value="FEIJAO_GURUTUBA">Feijão Gurutuba</SelectItem>
-                      <SelectItem value="FEIJAO_CARIOCA">Feijão Carioca</SelectItem>
+                      <SelectItem value="FEIJAO_GURUTUBA">
+                        Feijão Gurutuba
+                      </SelectItem>
+                      <SelectItem value="FEIJAO_CARIOCA">
+                        Feijão Carioca
+                      </SelectItem>
                       <SelectItem value="MAMONA">Mamona</SelectItem>
                       <SelectItem value="SEM_PASTAGEM">Sem Pastagem</SelectItem>
                       <SelectItem value="CAFE">Café</SelectItem>
@@ -249,7 +250,7 @@ export function ReceivableForm({
                       description="Defina o valor do contrato recebível para cada safra"
                       values={field.value || {}}
                       onChange={field.onChange}
-                      safras={harvests.map(h => ({ id: h.id, nome: h.nome }))}
+                      safras={harvests.map((h) => ({ id: h.id, nome: h.nome }))}
                       currency="BRL"
                       disabled={isSubmitting || isLoadingHarvests}
                     />

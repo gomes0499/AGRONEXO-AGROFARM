@@ -42,7 +42,6 @@ export async function updateOnboardingPersonalInfo(formData: Partial<FullProfile
   const supabase = await createClient();
   
   try {
-    console.log("updateOnboardingPersonalInfo - Recebendo dados:", JSON.stringify(formData));
     
     // Obter usuário atual
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -51,8 +50,6 @@ export async function updateOnboardingPersonalInfo(formData: Partial<FullProfile
       console.error("Erro ao obter usuário:", userError);
       throw new Error(userError?.message || 'Usuário não autenticado');
     }
-    
-    console.log("Usuário autenticado:", user.id);
     
     // Dados do cônjuge
     const conjugeData = formData.estadoCivil === 'CASADO' || formData.estadoCivil === 'UNIAO_ESTAVEL'
@@ -84,7 +81,6 @@ export async function updateOnboardingPersonalInfo(formData: Partial<FullProfile
       ...conjugeData
     };
     
-    console.log("Atualizando metadados do usuário:", metadataUpdate);
     
     // Atualizar metadados do usuário
     const { error: authUpdateError } = await supabase.auth.updateUser({
@@ -96,7 +92,6 @@ export async function updateOnboardingPersonalInfo(formData: Partial<FullProfile
       throw new Error(authUpdateError.message);
     }
     
-    console.log("Metadados atualizados com sucesso");
     
     revalidatePath('/onboarding');
     return { success: true };

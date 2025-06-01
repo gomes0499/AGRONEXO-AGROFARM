@@ -17,7 +17,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Pencil, Save, Droplets, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -44,17 +50,10 @@ type UnifiedLiquidityListingProps = {
   safras: Array<{ id: string; nome: string; ano_inicio: number }>;
 };
 
-export function UnifiedLiquidityListing({ 
+export function UnifiedLiquidityListing({
   liquidityFactors = [],
-  safras = []
+  safras = [],
 }: UnifiedLiquidityListingProps) {
-  
-  // Debug: mostrar dados recebidos
-  console.log("UnifiedLiquidityListing - liquidityFactors:", liquidityFactors?.length || 0);
-  console.log("UnifiedLiquidityListing - safras:", safras?.length || 0);
-  console.log("UnifiedLiquidityListing - primeiro fator:", liquidityFactors?.[0]);
-
-  // Se não há fatores de liquidez, mostrar estado vazio
   if (!liquidityFactors || liquidityFactors.length === 0) {
     return (
       <Card className="w-full shadow-sm border-muted/80">
@@ -71,13 +70,15 @@ export function UnifiedLiquidityListing({
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="mt-4">
           <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4">
             <p className="text-amber-700 mb-4">
-              Não encontramos fatores de liquidez configurados. Se você acabou de criar as tabelas, tente recarregar a página para inicializar os valores padrão.
+              Não encontramos fatores de liquidez configurados. Se você acabou
+              de criar as tabelas, tente recarregar a página para inicializar os
+              valores padrão.
             </p>
-            <Button 
+            <Button
               onClick={() => window.location.reload()}
               variant="outline"
               size="sm"
@@ -97,7 +98,7 @@ export function UnifiedLiquidityListing({
 
   // Criar mapeamento de safra_id para ano
   const safraMap: Record<string, { nome: string; ano: number }> = {};
-  safras.forEach(safra => {
+  safras.forEach((safra) => {
     safraMap[safra.id] = { nome: safra.nome, ano: safra.ano_inicio };
   });
 
@@ -108,26 +109,27 @@ export function UnifiedLiquidityListing({
   const initEditState = (factor: LiquidityFactorType) => {
     if (!editingState[factor.id]) {
       const editValues: Record<string, string> = {};
-      
+
       // Inicializar valores para cada ano baseado nos dados do fator
-      yearsToShow.forEach(year => {
+      yearsToShow.forEach((year) => {
         // Encontrar a safra correspondente ao ano
-        const safra = safras.find(s => s.ano_inicio === year);
+        const safra = safras.find((s) => s.ano_inicio === year);
         if (safra && factor.valores_por_ano[safra.id]) {
-          editValues[`value${year}`] = factor.valores_por_ano[safra.id].toString();
+          editValues[`value${year}`] =
+            factor.valores_por_ano[safra.id].toString();
         } else {
           editValues[`value${year}`] = "0";
         }
       });
 
-      setEditingState(prev => ({
+      setEditingState((prev) => ({
         ...prev,
         [factor.id]: editValues,
       }));
     }
 
     if (isLoading[factor.id] === undefined) {
-      setIsLoading(prev => ({
+      setIsLoading((prev) => ({
         ...prev,
         [factor.id]: false,
       }));
@@ -136,7 +138,7 @@ export function UnifiedLiquidityListing({
 
   // Manipular mudança de input
   const handleInputChange = (id: string, field: string, value: string) => {
-    setEditingState(prev => ({
+    setEditingState((prev) => ({
       ...prev,
       [id]: {
         ...(prev[id] || {}),
@@ -148,7 +150,7 @@ export function UnifiedLiquidityListing({
   // Salvar mudanças
   const handleSave = async (factor: LiquidityFactorType) => {
     try {
-      setIsLoading(prev => ({
+      setIsLoading((prev) => ({
         ...prev,
         [factor.id]: true,
       }));
@@ -158,9 +160,9 @@ export function UnifiedLiquidityListing({
 
       // Preparar novos valores por ano
       const newValoresPorAno: Record<string, number> = {};
-      
-      yearsToShow.forEach(year => {
-        const safra = safras.find(s => s.ano_inicio === year);
+
+      yearsToShow.forEach((year) => {
+        const safra = safras.find((s) => s.ano_inicio === year);
         if (safra) {
           const value = parseFloat(editValues[`value${year}`] || "0");
           if (!isNaN(value) && value > 0) {
@@ -177,7 +179,7 @@ export function UnifiedLiquidityListing({
     } catch (error: any) {
       toast.error(`Erro ao salvar: ${error.message}`);
     } finally {
-      setIsLoading(prev => ({
+      setIsLoading((prev) => ({
         ...prev,
         [factor.id]: false,
       }));
@@ -190,8 +192,11 @@ export function UnifiedLiquidityListing({
   };
 
   // Obter valor para um ano específico
-  const getValueForYear = (factor: LiquidityFactorType, year: number): number => {
-    const safra = safras.find(s => s.ano_inicio === year);
+  const getValueForYear = (
+    factor: LiquidityFactorType,
+    year: number
+  ): number => {
+    const safra = safras.find((s) => s.ano_inicio === year);
     if (safra && factor.valores_por_ano[safra.id]) {
       return factor.valores_por_ano[safra.id];
     }
@@ -201,10 +206,10 @@ export function UnifiedLiquidityListing({
   // Obter badge do tipo
   const getTypeBadge = (tipo: string) => {
     const typeLabels: Record<string, string> = {
-      "CAIXA": "Caixa",
-      "BANCO": "Banco", 
-      "INVESTIMENTO": "Investimento",
-      "APLICACAO": "Aplicação",
+      CAIXA: "Caixa",
+      BANCO: "Banco",
+      INVESTIMENTO: "Investimento",
+      APLICACAO: "Aplicação",
     };
 
     return (
@@ -269,11 +274,9 @@ export function UnifiedLiquidityListing({
                 <TableCell className="font-medium">
                   {factor.descricao}
                 </TableCell>
-                <TableCell>
-                  {getTypeBadge(factor.tipo)}
-                </TableCell>
+                <TableCell>{getTypeBadge(factor.tipo)}</TableCell>
                 <TableCell>{factor.banco || "-"}</TableCell>
-                {yearsToShow.map(year => (
+                {yearsToShow.map((year) => (
                   <TableCell key={year}>
                     {formatNumber(getValueForYear(factor, year))}
                   </TableCell>
@@ -364,13 +367,11 @@ export function UnifiedLiquidityListing({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="mt-4">
         <div className="rounded-md border overflow-hidden">
           <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
-            <div className="min-w-[1200px]">
-              {renderTable()}
-            </div>
+            <div className="min-w-[1200px]">{renderTable()}</div>
           </div>
         </div>
       </CardContent>

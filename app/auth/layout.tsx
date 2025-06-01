@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { ReactNode } from "react";
+import { ThemeAwareLogo } from "@/components/dashboard/theme-aware-logo";
 
 export const metadata: Metadata = {
   title: "Autenticação | SR-Consultoria",
@@ -8,19 +9,18 @@ export const metadata: Metadata = {
 };
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
+  // Theme provider is handled by the root layout, so we don't need to add it here
   return (
     <div className="flex min-h-screen w-full">
       {/* Lado esquerdo - Formulário */}
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="mb-8 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="relative w-80 h-20">
-              <Image
-                src="/logo.svg"
-                alt="SR-Consultoria Logo"
-                fill
-                priority
-                className="object-contain"
+            <div className="relative w-80 h-20 flex items-center justify-center">
+              <ThemeAwareLogo 
+                width={240}
+                height={80}
+                priority={true}
                 quality={100}
               />
             </div>

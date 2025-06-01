@@ -20,12 +20,14 @@ export function CashProjectionListing({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Caixa e Disponibilidades</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Caixa e Disponibilidades
+          </h2>
           <p className="text-muted-foreground">
             Gerencie projeções de caixa e disponibilidades
           </p>
         </div>
-        <Button onClick={() => console.log("Nova projeção")}>
+        <Button>
           <PlusIcon className="mr-2 h-4 w-4" />
           Nova Projeção
         </Button>
@@ -36,7 +38,7 @@ export function CashProjectionListing({
         title="Nenhuma projeção encontrada"
         description="Crie sua primeira projeção de caixa para começar"
         action={
-          <Button onClick={() => console.log("Nova projeção")}>
+          <Button>
             <PlusIcon className="mr-2 h-4 w-4" />
             Nova Projeção
           </Button>

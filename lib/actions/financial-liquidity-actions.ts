@@ -52,9 +52,6 @@ export async function getLiquidityFactorsUnified(organizationId: string): Promis
       return { liquidityFactors: [], safras: [] };
     }
     
-    console.log("Dados de caixa e disponibilidades encontrados:", data?.length || 0);
-    
-    // Processar dados para compatibilidade com a interface antiga
     const processedData = data?.map(item => {
       let valoresPorSafra = {};
       

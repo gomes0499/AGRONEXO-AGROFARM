@@ -51,20 +51,13 @@ export function LeaseFormContainer({
   // Determine mode based on lease presence if not explicitly set
   const actualMode = mode === "create" && lease ? "edit" : mode;
 
-  const {
-    form,
-    isLoading,
-    onSubmit,
-    resetForm,
-  } = useLeaseForm({
+  const { form, isLoading, onSubmit, resetForm } = useLeaseForm({
     organizationId,
     propertyId,
     lease,
     mode: actualMode,
     onSuccess,
   });
-
-  // Removed console.log for cleaner production code
 
   const handleClose = (newOpen: boolean) => {
     if (!newOpen) {
@@ -85,7 +78,9 @@ export function LeaseFormContainer({
             <SheetHeader className="space-y-3">
               <SheetTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                {actualMode === "edit" ? "Editar Arrendamento" : "Novo Arrendamento"}
+                {actualMode === "edit"
+                  ? "Editar Arrendamento"
+                  : "Novo Arrendamento"}
               </SheetTitle>
               <SheetDescription>
                 {actualMode === "edit"
@@ -111,28 +106,21 @@ export function LeaseFormContainer({
                 disabled={isLoading}
                 className="min-w-32"
                 onClick={() => {
-                  console.log("Submit button clicked manually");
-                  const formValues = form.getValues();
-                  console.log("Form values:", formValues);
-                  
-                  // Validar manualmente
-                  form.trigger().then(isValid => {
-                    console.log("Form is valid:", isValid);
-                    
+                  form.getValues();
+                  form.trigger().then((isValid) => {
                     if (isValid) {
                       const values = form.getValues();
-                      // Ensure required fields have default values
                       const validatedValues = {
                         ...values,
                         tipo_pagamento: values.tipo_pagamento || "SACAS",
                         custos_por_ano: values.custos_por_ano || {},
-                        ativo: values.ativo !== undefined ? values.ativo : true
+                        ativo: values.ativo !== undefined ? values.ativo : true,
                       };
                       onSubmit(validatedValues);
                     } else {
                       const errors = form.formState.errors;
                       console.error("Form validation errors:", errors);
-                      
+
                       if (Object.keys(errors).length > 0) {
                         const errorFields = Object.keys(errors).join(", ");
                         toast.error(`Corrija os campos: ${errorFields}`);
@@ -141,7 +129,11 @@ export function LeaseFormContainer({
                   });
                 }}
               >
-                {isLoading ? "Salvando..." : actualMode === "edit" ? "Atualizar" : "Salvar Arrendamento"}
+                {isLoading
+                  ? "Salvando..."
+                  : actualMode === "edit"
+                  ? "Atualizar"
+                  : "Salvar Arrendamento"}
               </Button>
             </div>
           </div>

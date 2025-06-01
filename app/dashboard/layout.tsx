@@ -99,23 +99,18 @@ export default async function DashboardLayout({
       : null;
   }
 
+  // Usar o componente wrapper do lado do cliente para evitar problemas com os Providers
+  const DashboardProvidersWrapper = React.lazy(() => import('@/components/dashboard/dashboard-providers-wrapper'));
+
   return (
-    <UserProvider user={userWithProfile}>
-      <OrganizationProvider organization={userData?.organizacao || null}>
-        <DashboardProvider commercialPrices={latestPrice}>
-          <SidebarProvider>
-            <AppSidebar variant="inset" />
-            <SidebarInset>
-              <div className="flex flex-col overflow-x-hidden">
-                <DashboardTickers commercialPrices={latestPrice} />
-                <div className="overflow-x-hidden">
-                  {children}
-                </div>
-              </div>
-            </SidebarInset>
-          </SidebarProvider>
-        </DashboardProvider>
-      </OrganizationProvider>
-    </UserProvider>
+    <React.Suspense fallback={<div>Carregando...</div>}>
+      <DashboardProvidersWrapper
+        user={userWithProfile}
+        organization={userData?.organizacao || null}
+        commercialPrices={latestPrice}
+      >
+        {children}
+      </DashboardProvidersWrapper>
+    </React.Suspense>
   );
 }

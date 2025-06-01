@@ -45,11 +45,6 @@ export async function ensurePropertyTableColumns(forceCheck = false) {
       }
     }
     
-    // Só exibir log se estiver forçando a verificação ou se ainda não verificamos
-    if (forceCheck || !columnsChecked) {
-      console.log("Adicionando colunas necessárias à tabela 'propriedades'...");
-    }
-    
     // Simplificando o SQL para usar apenas ALTER TABLE com IF NOT EXISTS
     const sql = `
       ALTER TABLE propriedades ADD COLUMN IF NOT EXISTS imagem TEXT;
@@ -84,11 +79,7 @@ export async function ensurePropertyTableColumns(forceCheck = false) {
       columnsChecked = true;
       return true;
     }
-    
-    // Só exibir log se estiver forçando a verificação ou se ainda não verificamos
-    if (forceCheck || !columnsChecked) {
-      console.log("Colunas adicionadas com sucesso!");
-    }
+
     
     columnsChecked = true;
     return true;
@@ -205,7 +196,7 @@ export async function createProperty(
           throw new Error("Erro ao adicionar colunas necessárias na tabela");
         }
         
-        console.log("Colunas adicionadas após falha na criação da propriedade");
+     
         
         // Tente a inserção novamente
         const { data, error: retryError } = await supabase
@@ -304,8 +295,7 @@ export async function updateProperty(
           console.error("Não foi possível garantir todas as colunas necessárias");
           throw new Error("Erro ao adicionar colunas necessárias na tabela");
         }
-        
-        console.log("Colunas adicionadas após falha na atualização da propriedade");
+     
         
         // Tente a atualização novamente
         const { data, error: retryError } = await supabase

@@ -20,12 +20,7 @@ export async function registerUser(formData: RegisterFormValues, inviteToken?: s
   const supabase = await createClient();
   
   try {
-    console.log('Iniciando verificação para email:', formData.email);
     
-    // Não precisamos mais verificar na tabela users, pois a verificação de unicidade
-    // de email já é feita automaticamente pelo Supabase auth
-    
-    // Preparar os metadados do usuário
     const userMetadata: Record<string, any> = {
       name: formData.name,
       onboarding_complete: false,
@@ -82,21 +77,7 @@ export async function registerUser(formData: RegisterFormValues, inviteToken?: s
       options: signUpOptions,
     });
 
-    // Log detalhado da resposta
-    console.log('Resposta do Supabase auth.signUp:', JSON.stringify({
-      success: !authError,
-      user: authData?.user ? {
-        id: authData.user.id,
-        email: authData.user.email,
-        identitiesLength: authData.user.identities?.length,
-        hasIdentities: Boolean(authData.user.identities && authData.user.identities.length > 0),
-        createdAt: authData.user.created_at
-      } : null,
-      error: authError ? {
-        message: authError.message,
-        status: authError.status
-      } : null
-    }, null, 2));
+
 
     // Verificar erros explícitos de autenticação
     if (authError) {
@@ -271,11 +252,6 @@ export async function loginUser(formData: LoginFormValues) {
     // Verificamos apenas nos metadados de autenticação, pois a coluna não existe na tabela users
     const needsOnboarding = data.user?.user_metadata?.onboarding_complete === false;
     
-    console.log('Status onboarding:', { 
-      userId: data.user.id, 
-      needsOnboarding,
-      userMetadata: data.user?.user_metadata
-    });
     
     return { 
       success: true, 
@@ -681,15 +657,10 @@ export async function createInvite(email: string, organizacaoId: string, funcao:
       const roleName = getRoleName(funcao);
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       const acceptUrl = `${baseUrl}/auth/invite?token=${token}`;
-      
-      console.log('Enviando email de convite:', {
-        to: email,
-        subject: `Convite para participar da ${organizacao.nome}`,
-        acceptUrl: acceptUrl
-      });
+ 
       
       
-      const emailResult = await sendEmail({
+      await sendEmail({
         to: email,
         subject: `Convite para participar da ${organizacao.nome}`,
         react: InvitationEmail({
@@ -701,7 +672,6 @@ export async function createInvite(email: string, organizacaoId: string, funcao:
         }),
       });
       
-      console.log('Resultado do envio de email:', emailResult);
     } catch (emailError) {
       console.error('Erro ao enviar email de convite:', emailError);
       // Não queremos falhar a ação se apenas o email falhar

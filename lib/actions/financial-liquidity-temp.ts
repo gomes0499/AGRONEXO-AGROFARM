@@ -43,7 +43,6 @@ export async function getLiquidityFactorsTemp(organizationId: string): Promise<{
     throw new Error(safrasError.message);
   }
   
-  console.log("Safras encontradas:", safrasData?.length || 0);
   
   // Buscar fatores de liquidez da tabela antiga
   const { data, error } = await supabase
@@ -56,9 +55,7 @@ export async function getLiquidityFactorsTemp(organizationId: string): Promise<{
     console.error("Erro ao buscar fatores de liquidez:", error);
     throw new Error(error.message);
   }
-  
-  console.log("Fatores de liquidez encontrados:", data?.length || 0);
-  console.log("Primeiro fator:", data?.[0]);
+
   
   // Se não há dados, retornar arrays vazios
   if (!data || data.length === 0) {
@@ -112,9 +109,7 @@ export async function getLiquidityFactorsTemp(organizationId: string): Promise<{
     } as LiquidityFactorUnified;
   });
   
-  console.log("Dados convertidos:", convertedData.length);
-  console.log("Primeiro convertido:", convertedData[0]);
-  
+
   return {
     liquidityFactors: convertedData,
     safras: (safrasData || []) as SafraInfo[]

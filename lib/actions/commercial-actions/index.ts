@@ -27,7 +27,7 @@ async function safeExecuteWithPrecosTable<T>(
     return await operation();
   } catch (error: any) {
     if (error?.code === '42P01' || error?.message?.includes('relation "public.precos" does not exist')) {
-      console.warn('Tabela precos não existe ainda, retornando valor padrão');
+      // Silenciosamente retornar o valor padrão sem exibir aviso
       return fallbackValue;
     }
     throw error;

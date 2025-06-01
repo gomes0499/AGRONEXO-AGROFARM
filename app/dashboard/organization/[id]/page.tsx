@@ -34,8 +34,8 @@ export default async function ManageOrganizationPage({
   params,
   searchParams,
 }: {
-  params: any;
-  searchParams: any;
+  params: { id: string } | Promise<{ id: string }>;
+  searchParams: { tab?: string } | Promise<{ tab?: string }>;
 }) {
   // Verifica autenticação e obtém dados do usuário
   const user = await verifyUserPermission();
@@ -43,9 +43,13 @@ export default async function ManageOrganizationPage({
   // Verifica se o usuário é super admin
   const isSuperAdmin = user.app_metadata?.is_super_admin === true;
 
+  // Await params e searchParams antes de acessar suas propriedades
+  const resolvedParams = await Promise.resolve(params);
+  const resolvedSearchParams = await Promise.resolve(searchParams);
+  
   // Salvar em constantes para uso no componente
-  const organizationId = params.id;
-  const activeTab = searchParams.tab || "info";
+  const organizationId = resolvedParams.id;
+  const activeTab = resolvedSearchParams.tab || "info";
 
   // Obtém dados da organização específica
   const supabase = await createClient();

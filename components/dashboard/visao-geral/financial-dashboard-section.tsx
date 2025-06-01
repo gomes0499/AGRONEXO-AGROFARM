@@ -12,58 +12,51 @@ interface FinancialDashboardSectionProps {
   organizationId: string;
 }
 
-export function FinancialDashboardSection({ organizationId }: FinancialDashboardSectionProps) {
+export function FinancialDashboardSection({
+  organizationId,
+}: FinancialDashboardSectionProps) {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedSafraId, setSelectedSafraId] = useState<string>("");
 
   const handleSafraChange = (safraId: string) => {
-    console.log(`FinancialDashboardSection: Safra alterada para ${safraId}`);
     setSelectedSafraId(safraId);
-    
-    // Quando a safra muda, precisamos garantir que todos os componentes 
-    // usem o mesmo ID de safra para seus filtros
   };
-  
-  // Log quando selectedYear mudar
-  useEffect(() => {
-    console.log(`FinancialDashboardSection: Ano selecionado alterado para ${selectedYear}`);
-  }, [selectedYear]);
 
   return (
     <div className="space-y-6">
       {/* KPI Cards com seletor de safra */}
-      <FinancialKpiCardsProductionStyle 
+      <FinancialKpiCardsProductionStyle
         organizationId={organizationId}
         onYearChange={setSelectedYear}
         safraId={selectedSafraId}
         onSafraChange={handleSafraChange}
       />
-      
+
       {/* Charts grid - primeira linha (filtrado por safra) */}
       <div className="grid gap-4 lg:grid-cols-2 mt-6">
-        <FinancialBankDistributionChart 
+        <FinancialBankDistributionChart
           organizationId={organizationId}
           selectedYear={selectedSafraId || undefined}
         />
-        <FinancialDebtTypeDistributionChart 
+        <FinancialDebtTypeDistributionChart
           organizationId={organizationId}
           selectedYear={selectedSafraId || undefined}
         />
       </div>
-      
+
       {/* Charts grid - segunda linha (consolidado de todas as safras) */}
       <div className="grid gap-4 lg:grid-cols-2 mt-6">
-        <FinancialBankDistributionAllSafrasChart 
+        <FinancialBankDistributionAllSafrasChart
           organizationId={organizationId}
         />
-        <FinancialDebtTypeDistributionAllSafrasChart 
+        <FinancialDebtTypeDistributionAllSafrasChart
           organizationId={organizationId}
         />
       </div>
-      
+
       {/* Gráfico de Passivos Totais */}
       <div className="mt-6">
-        <FinancialTotalLiabilitiesChart 
+        <FinancialTotalLiabilitiesChart
           organizationId={organizationId}
           selectedYear={selectedSafraId || undefined}
         />

@@ -126,7 +126,6 @@ export function PersonalDataForm({
   const handleSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
-      console.log("PersonalDataForm - Formulário submetido:", data);
       await onSubmit(data);
     } catch (error) {
       console.error("Erro ao submeter formulário:", error);

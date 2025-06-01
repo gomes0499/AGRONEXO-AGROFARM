@@ -16,7 +16,6 @@ export type Adiantamento = {
 export async function getAdiantamentos(organizationId: string) {
   const supabase = await createClient();
   
-  console.log("Buscando adiantamentos para organizacaoId:", organizationId);
   
   try {
     const { data, error } = await supabase
@@ -30,7 +29,6 @@ export async function getAdiantamentos(organizationId: string) {
       throw new Error(`Erro ao buscar adiantamentos: ${error.message}`);
     }
     
-    console.log(`Encontrados ${data?.length || 0} adiantamentos`);
     return data as Adiantamento[];
   } catch (error: any) {
     console.error("Exceção ao buscar adiantamentos:", error);
@@ -41,9 +39,6 @@ export async function getAdiantamentos(organizationId: string) {
 // Criar um novo adiantamento
 export async function createAdiantamento(data: Omit<Adiantamento, "id" | "created_at" | "updated_at">) {
   const supabase = await createClient();
-  
-  console.log("createAdiantamento - data recebida:", data);
-  console.log("createAdiantamento - organizacao_id:", data.organizacao_id);
   
   // Verificar se organizacao_id está presente
   if (!data.organizacao_id) {
@@ -70,7 +65,6 @@ export async function createAdiantamento(data: Omit<Adiantamento, "id" | "create
     valores_por_safra: data.valores_por_safra
   };
   
-  console.log("Dados preparados para inserção:", dataToSend);
   
   try {
     const { data: result, error } = await supabase
@@ -83,7 +77,6 @@ export async function createAdiantamento(data: Omit<Adiantamento, "id" | "create
       throw new Error(`Erro ao criar adiantamento: ${error.message}`);
     }
     
-    console.log("Adiantamento criado com sucesso:", result[0]);
     return result[0] as Adiantamento;
   } catch (error: any) {
     console.error("Exceção ao criar adiantamento:", error);
@@ -94,9 +87,7 @@ export async function createAdiantamento(data: Omit<Adiantamento, "id" | "create
 // Atualizar um adiantamento existente
 export async function updateAdiantamento(id: string, data: Partial<Omit<Adiantamento, "id" | "organizacao_id" | "created_at" | "updated_at">>) {
   const supabase = await createClient();
-  
-  console.log("updateAdiantamento - id:", id);
-  console.log("updateAdiantamento - data:", data);
+
   
   // Verificar dados obrigatórios se fornecidos
   if (data.nome !== undefined && !data.nome) {
@@ -119,7 +110,6 @@ export async function updateAdiantamento(id: string, data: Partial<Omit<Adiantam
       throw new Error(`Erro ao atualizar adiantamento: ${error.message}`);
     }
     
-    console.log("Adiantamento atualizado com sucesso:", result[0]);
     return result[0] as Adiantamento;
   } catch (error: any) {
     console.error("Exceção ao atualizar adiantamento:", error);
@@ -131,7 +121,6 @@ export async function updateAdiantamento(id: string, data: Partial<Omit<Adiantam
 export async function deleteAdiantamento(id: string) {
   const supabase = await createClient();
   
-  console.log("deleteAdiantamento - id:", id);
   
   try {
     const { error } = await supabase
@@ -144,7 +133,6 @@ export async function deleteAdiantamento(id: string) {
       throw new Error(`Erro ao excluir adiantamento: ${error.message}`);
     }
     
-    console.log("Adiantamento excluído com sucesso");
     return true;
   } catch (error: any) {
     console.error("Exceção ao excluir adiantamento:", error);

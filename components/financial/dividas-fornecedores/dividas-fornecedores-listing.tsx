@@ -38,9 +38,10 @@ export function DividasFornecedoresListing({
 }: DividasFornecedoresListingProps) {
   const [dividasFornecedores, setDividasFornecedores] = useState<
     (DividasFornecedoresListItem & { isExpanded?: boolean })[]
-  >(initialDividasFornecedores.map(d => ({ ...d, isExpanded: false })));
+  >(initialDividasFornecedores.map((d) => ({ ...d, isExpanded: false })));
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingDivida, setEditingDivida] = useState<DividasFornecedoresListItem | null>(null);
+  const [editingDivida, setEditingDivida] =
+    useState<DividasFornecedoresListItem | null>(null);
 
   const {
     filteredItems: filteredDividas,
@@ -56,16 +57,19 @@ export function DividasFornecedoresListing({
     handlePageChange,
     handleItemsPerPageChange,
     totalItems: totalDividas,
-    filteredCount
+    filteredCount,
   } = useFinancialFilters(dividasFornecedores, {
-    searchFields: ['nome'],
-    categoriaField: 'categoria',
-    moedaField: 'moeda'
+    searchFields: ["nome"],
+    categoriaField: "categoria",
+    moedaField: "moeda",
   });
 
   // Adicionar nova dívida
   const handleAddDivida = (newDivida: DividasFornecedoresListItem) => {
-    setDividasFornecedores([{ ...newDivida, isExpanded: false }, ...dividasFornecedores]);
+    setDividasFornecedores([
+      { ...newDivida, isExpanded: false },
+      ...dividasFornecedores,
+    ]);
     setIsAddModalOpen(false);
     toast.success("Dívida de fornecedor adicionada com sucesso.");
   };
@@ -74,7 +78,9 @@ export function DividasFornecedoresListing({
   const handleUpdateDivida = (updatedDivida: DividasFornecedoresListItem) => {
     setDividasFornecedores(
       dividasFornecedores.map((divida) =>
-        divida.id === updatedDivida.id ? { ...updatedDivida, isExpanded: divida.isExpanded } : divida
+        divida.id === updatedDivida.id
+          ? { ...updatedDivida, isExpanded: divida.isExpanded }
+          : divida
       )
     );
     setEditingDivida(null);
@@ -85,30 +91,38 @@ export function DividasFornecedoresListing({
   const handleDeleteDivida = async (id: string) => {
     try {
       await deleteDividaFornecedor(id, organization.id);
-      setDividasFornecedores(dividasFornecedores.filter((divida) => divida.id !== id));
+      setDividasFornecedores(
+        dividasFornecedores.filter((divida) => divida.id !== id)
+      );
       toast.success("Dívida de fornecedor excluída com sucesso.");
     } catch (error) {
       toast.error("Erro ao excluir dívida de fornecedor");
     }
   };
-  
+
   // Function to calculate total from valores_por_safra
   const calculateTotal = (divida: DividasFornecedoresListItem) => {
     let total = 0;
-    
+
     if (divida.valores_por_safra) {
-      if (typeof divida.valores_por_safra === 'string') {
+      if (typeof divida.valores_por_safra === "string") {
         try {
           const parsedValues = JSON.parse(divida.valores_por_safra);
-          total = Object.values(parsedValues).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
+          total = Object.values(parsedValues).reduce(
+            (acc: number, val) => acc + (Number(val) || 0),
+            0
+          );
         } catch (e) {
           console.error("Erro ao processar valores_por_safra:", e);
         }
       } else {
-        total = Object.values(divida.valores_por_safra).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
+        total = Object.values(divida.valores_por_safra).reduce(
+          (acc: number, val) => acc + (Number(val) || 0),
+          0
+        );
       }
     }
-    
+
     return total;
   };
 
@@ -116,7 +130,9 @@ export function DividasFornecedoresListing({
   const toggleExpanded = (id: string) => {
     setDividasFornecedores(
       dividasFornecedores.map((divida) =>
-        divida.id === id ? { ...divida, isExpanded: !divida.isExpanded } : divida
+        divida.id === id
+          ? { ...divida, isExpanded: !divida.isExpanded }
+          : divida
       )
     );
   };
@@ -163,7 +179,7 @@ export function DividasFornecedoresListing({
           {dividasFornecedores.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground space-y-4">
               <div>Nenhuma dívida de fornecedor cadastrada.</div>
-              <Button 
+              <Button
                 onClick={() => setIsAddModalOpen(true)}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
@@ -181,17 +197,25 @@ export function DividasFornecedoresListing({
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
                     <TableHead className="w-10 font-medium text-primary-foreground rounded-tl-md"></TableHead>
-                    <TableHead className="font-medium text-primary-foreground">Fornecedor</TableHead>
-                    <TableHead className="font-medium text-primary-foreground">Categoria</TableHead>
-                    <TableHead className="font-medium text-primary-foreground">Moeda</TableHead>
-                    <TableHead className="font-medium text-primary-foreground w-[180px]">Valor Total</TableHead>
-                    <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                    <TableHead className="font-medium text-primary-foreground">
+                      Fornecedor
+                    </TableHead>
+                    <TableHead className="font-medium text-primary-foreground">
+                      Categoria
+                    </TableHead>
+                    <TableHead className="font-medium text-primary-foreground">
+                      Moeda
+                    </TableHead>
+                    <TableHead className="font-medium text-primary-foreground w-[180px]">
+                      Valor Total
+                    </TableHead>
+                    <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">
+                      Ações
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedData.map((divida) => {
-                    // Log para debug
-                    console.log("Dados da dívida:", divida);
                     return (
                       <React.Fragment key={divida.id}>
                         <TableRow className="cursor-pointer hover:bg-muted/50">
@@ -200,7 +224,7 @@ export function DividasFornecedoresListing({
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => toggleExpanded(divida.id || '')}
+                              onClick={() => toggleExpanded(divida.id || "")}
                             >
                               {divida.isExpanded ? (
                                 <ChevronUp className="h-4 w-4" />
@@ -209,20 +233,33 @@ export function DividasFornecedoresListing({
                               )}
                             </Button>
                           </TableCell>
-                          <TableCell className="font-medium" onClick={() => toggleExpanded(divida.id || '')}>
+                          <TableCell
+                            className="font-medium"
+                            onClick={() => toggleExpanded(divida.id || "")}
+                          >
                             {divida.nome}
                           </TableCell>
-                          <TableCell onClick={() => toggleExpanded(divida.id || '')}>
+                          <TableCell
+                            onClick={() => toggleExpanded(divida.id || "")}
+                          >
                             {renderCategoriaBadge(divida.categoria)}
                           </TableCell>
-                          <TableCell onClick={() => toggleExpanded(divida.id || '')}>
+                          <TableCell
+                            onClick={() => toggleExpanded(divida.id || "")}
+                          >
                             <Badge variant="default" className="font-normal">
-                              {divida.moeda === "USD" ? "US$" : 
-                               divida.moeda === "EUR" ? "€" : 
-                               divida.moeda === "SOJA" ? "Soja" : "R$"}
+                              {divida.moeda === "USD"
+                                ? "US$"
+                                : divida.moeda === "EUR"
+                                ? "€"
+                                : divida.moeda === "SOJA"
+                                ? "Soja"
+                                : "R$"}
                             </Badge>
                           </TableCell>
-                          <TableCell onClick={() => toggleExpanded(divida.id || '')}>
+                          <TableCell
+                            onClick={() => toggleExpanded(divida.id || "")}
+                          >
                             <span className="font-medium text-sm">
                               {formatGenericCurrency(
                                 calculateTotal(divida),
@@ -241,12 +278,14 @@ export function DividasFornecedoresListing({
                                 organizationId={organization.id}
                                 onUpdate={handleUpdateDivida}
                               />
-                              
+
                               {/* Botões de Editar/Excluir */}
                               <DividasFornecedoresRowActions
                                 dividaFornecedor={divida}
                                 onEdit={() => setEditingDivida(divida)}
-                                onDelete={() => handleDeleteDivida(divida.id || '')}
+                                onDelete={() =>
+                                  handleDeleteDivida(divida.id || "")
+                                }
                               />
                             </div>
                           </TableCell>
@@ -268,7 +307,7 @@ export function DividasFornecedoresListing({
                   })}
                 </TableBody>
               </Table>
-              
+
               <div className="mt-8">
                 <FinancialPagination
                   currentPage={currentPage}

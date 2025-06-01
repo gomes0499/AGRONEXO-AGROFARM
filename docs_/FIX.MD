@@ -1,4 +1,3 @@
-
 - [ ] CUD de Arrendamento
 - [ ] CUD de Precos e cotações
 

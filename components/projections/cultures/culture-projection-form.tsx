@@ -150,14 +150,11 @@ export function CultureProjectionForm({
       if ("data" in result && result.data) {
         const { data } = result;
 
-        console.log("Dados recebidos no formulário:", data);
-
         // Verificar se não há custos e oferecer copiar de outra cultura
         if (data.custo_por_hectare === 0) {
-          console.log("⚠️ Nenhum custo encontrado para esta combinação");
           toast.error(
             `Nenhum custo de produção encontrado para ${combination.cultura_nome}. ` +
-            `Vá no módulo Produção > Custos para adicionar os custos desta cultura.`,
+              `Vá no módulo Produção > Custos para adicionar os custos desta cultura.`,
             { duration: 8000 }
           );
         }
@@ -172,18 +169,9 @@ export function CultureProjectionForm({
         form.setValue("unidade_produtividade", data.unidade_produtividade);
         form.setValue("custo_por_hectare", data.custo_por_hectare);
 
-        console.log("Valores do formulário após setValue:", {
-          area_plantada: form.getValues("area_plantada"),
-          produtividade: form.getValues("produtividade"),
-          custo_por_hectare: form.getValues("custo_por_hectare"),
-        });
-
         // Auto-preencher preço baseado em commodities
         const culturaNome = combination.cultura_nome.toUpperCase();
         let price = 0;
-
-        console.log("Commodity prices available:", commodityPrices);
-        console.log("Looking for culture:", culturaNome);
 
         if (culturaNome.includes("SOJA")) {
           const sojaPrice = commodityPrices.find((p) =>
@@ -204,8 +192,6 @@ export function CultureProjectionForm({
           );
           price = algodaoPrice?.current_price || algodaoPrice?.price_2025 || 0;
         }
-
-        console.log("Price found:", price);
 
         if (price > 0) {
           form.setValue("preco_unitario", price);
@@ -335,28 +321,52 @@ export function CultureProjectionForm({
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-8 gap-6 text-sm">
                     <div className="bg-white p-3 rounded-md border">
-                      <div className="text-xs text-muted-foreground mb-1">Propriedade</div>
-                      <div className="font-medium">{selectedCombination.propriedade_nome}</div>
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Propriedade
+                      </div>
+                      <div className="font-medium">
+                        {selectedCombination.propriedade_nome}
+                      </div>
                     </div>
                     <div className="bg-white p-3 rounded-md border">
-                      <div className="text-xs text-muted-foreground mb-1">Cultura</div>
-                      <div className="font-medium">{selectedCombination.cultura_nome}</div>
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Cultura
+                      </div>
+                      <div className="font-medium">
+                        {selectedCombination.cultura_nome}
+                      </div>
                     </div>
                     <div className="bg-white p-3 rounded-md border">
-                      <div className="text-xs text-muted-foreground mb-1">Sistema</div>
-                      <div className="font-medium">{selectedCombination.sistema_nome}</div>
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Sistema
+                      </div>
+                      <div className="font-medium">
+                        {selectedCombination.sistema_nome}
+                      </div>
                     </div>
                     <div className="bg-white p-3 rounded-md border">
-                      <div className="text-xs text-muted-foreground mb-1">Ciclo</div>
-                      <div className="font-medium">{selectedCombination.ciclo_nome}</div>
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Ciclo
+                      </div>
+                      <div className="font-medium">
+                        {selectedCombination.ciclo_nome}
+                      </div>
                     </div>
                     <div className="bg-white p-3 rounded-md border">
-                      <div className="text-xs text-muted-foreground mb-1">Safra</div>
-                      <div className="font-medium">{selectedCombination.safra_nome}</div>
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Safra
+                      </div>
+                      <div className="font-medium">
+                        {selectedCombination.safra_nome}
+                      </div>
                     </div>
                     <div className="bg-white p-3 rounded-md border">
-                      <div className="text-xs text-muted-foreground mb-1">Área Total</div>
-                      <div className="font-medium">{selectedCombination.area.toLocaleString("pt-BR")} ha</div>
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Área Total
+                      </div>
+                      <div className="font-medium">
+                        {selectedCombination.area.toLocaleString("pt-BR")} ha
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -441,43 +451,42 @@ export function CultureProjectionForm({
               />
             </div>
 
-              <FormField
-                control={form.control}
-                name="unidade_produtividade"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unidade de Produtividade</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Sc/ha">Sc/ha</SelectItem>
-                        <SelectItem value="@/ha">@/ha</SelectItem>
-                        <SelectItem value="kg/ha">kg/ha</SelectItem>
-                        <SelectItem value="ton/ha">ton/ha</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="unidade_produtividade"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unidade de Produtividade</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Sc/ha">Sc/ha</SelectItem>
+                      <SelectItem value="@/ha">@/ha</SelectItem>
+                      <SelectItem value="kg/ha">kg/ha</SelectItem>
+                      <SelectItem value="ton/ha">ton/ha</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <CurrencyField
-                name="preco_unitario"
-                label="Preço Unitário"
-                control={form.control}
-                placeholder="R$ 0,00"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+            <CurrencyField
+              name="preco_unitario"
+              label="Preço Unitário"
+              control={form.control}
+              placeholder="R$ 0,00"
+            />
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-6"></div>
 
           <Separator />
 
@@ -541,7 +550,8 @@ export function CultureProjectionForm({
             {
               label: "Produção Total",
               value: calculations.producao_total,
-              unit: watchedValues.unidade_produtividade?.replace('/ha', '') || "Sc",
+              unit:
+                watchedValues.unidade_produtividade?.replace("/ha", "") || "Sc",
               description: "Área × Produtividade",
             },
             {

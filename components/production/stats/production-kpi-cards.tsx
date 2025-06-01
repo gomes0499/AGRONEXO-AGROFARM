@@ -1,8 +1,32 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getProductionStats } from "@/lib/actions/production-stats-actions";
-import { formatArea, formatCurrency, formatPercentage } from "@/lib/utils/property-formatters";
-import { Sprout, TrendingUp, TrendingDown, DollarSign, BarChart3, Target, Wheat, ArrowUpIcon, ArrowDownIcon, Loader2, Info, TrendingUpIcon, Check } from "lucide-react";
+import {
+  formatArea,
+  formatCurrency,
+  formatPercentage,
+} from "@/lib/utils/property-formatters";
+import {
+  Sprout,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  BarChart3,
+  Target,
+  Wheat,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  Loader2,
+  Info,
+  TrendingUpIcon,
+  Check,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import React, { useState, useEffect } from "react";
 import {
@@ -20,17 +44,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
+import {
   Popover,
   PopoverContent,
-  PopoverTrigger
+  PopoverTrigger,
 } from "@/components/ui/popover";
-import { 
+import {
   Command,
   CommandGroup,
   CommandItem,
   CommandList,
-  CommandSeparator
+  CommandSeparator,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -59,7 +83,7 @@ function KpiItem({
   clickable = false,
 }: KpiItemProps) {
   return (
-    <div 
+    <div
       className={cn(
         "flex items-start p-5 transition-colors",
         clickable && "cursor-pointer hover:bg-muted/50 active:bg-muted"
@@ -150,20 +174,20 @@ interface ProductionKpiCardsProps {
 
 interface ProductionKpiCardsContentProps extends ProductionKpiCardsProps {}
 
-function ProductionKpiCardsContent({ 
-  organizationId, 
+function ProductionKpiCardsContent({
+  organizationId,
   propertyIds,
   safraId,
   onSafraChange,
   cultures = [],
   selectedCultureIds = [],
-  onCultureChange
+  onCultureChange,
 }: ProductionKpiCardsContentProps) {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedMetric, setSelectedMetric] = useState<MetricType>('area');
+  const [selectedMetric, setSelectedMetric] = useState<MetricType>("area");
   const [safras, setSafras] = useState<SafraOption[]>([]);
   const [selectedSafraId, setSelectedSafraId] = useState<string>(safraId || "");
   const [loadingSafras, setLoadingSafras] = useState(true);
@@ -180,48 +204,51 @@ function ProductionKpiCardsContent({
       onSafraChange(value);
     }
   };
-  
+
   const handleCultureToggle = (cultureId: string) => {
     if (!onCultureChange) return;
-    
+
     // Safety check - validate cultureId
     if (!cultureId) {
       console.warn("Attempted to toggle a culture with invalid ID");
       return;
     }
-    
+
     let newSelectedCultureIds: string[];
-    
+
     // Se já está selecionado, remove
     if (selectedCultureIds.includes(cultureId)) {
       // Não permitir deselecionar a última cultura
       if (selectedCultureIds.length === 1) {
-        console.log("Cannot deselect the last culture");
         return;
       }
-      newSelectedCultureIds = selectedCultureIds.filter(id => id !== cultureId);
+      newSelectedCultureIds = selectedCultureIds.filter(
+        (id) => id !== cultureId
+      );
     } else {
       // Adicionar à seleção
       newSelectedCultureIds = [...selectedCultureIds, cultureId];
     }
-    
+
     // Safety check - validate we always have at least one culture selected
     if (newSelectedCultureIds.length === 0 && cultures.length > 0) {
-      console.warn("Attempting to have zero cultures selected, forcing one selection");
+      console.warn(
+        "Attempting to have zero cultures selected, forcing one selection"
+      );
       newSelectedCultureIds = [cultures[0].id];
     }
-    
+
     onCultureChange(newSelectedCultureIds);
   };
-  
+
   const handleSelectAllCultures = () => {
     if (!onCultureChange || !cultures) return;
-    onCultureChange(cultures.map(c => c.id));
+    onCultureChange(cultures.map((c) => c.id));
   };
-  
+
   const handleDeselectAllCultures = () => {
     if (!onCultureChange || !cultures || cultures.length === 0) return;
-    
+
     // Safety check - ensure we have at least one culture
     if (cultures.length > 0) {
       // Mantenha ao menos uma cultura selecionada (a primeira)
@@ -235,7 +262,6 @@ function ProductionKpiCardsContent({
   // Carregar as safras disponíveis
   useEffect(() => {
     async function fetchSafras() {
-      console.log("Fetching safras...");
       try {
         setLoadingSafras(true);
         const supabase = createClient();
@@ -250,7 +276,6 @@ function ProductionKpiCardsContent({
           return;
         }
 
-        console.log("Safras fetched successfully:", data);
         setSafras(data || []);
 
         // Definir safra atual como padrão se não estiver definida
@@ -259,14 +284,12 @@ function ProductionKpiCardsContent({
           const currentSafra =
             data?.find((s) => s.ano_inicio === currentYear) || data?.[0];
           if (currentSafra) {
-            console.log("Setting default safra:", currentSafra);
             setSelectedSafraId(currentSafra.id);
             if (onSafraChange) {
               onSafraChange(currentSafra.id);
             }
           }
         } else {
-          console.log("Not setting default safra - selectedSafraId:", selectedSafraId);
         }
       } catch (error) {
         console.error("Erro ao buscar safras:", error);
@@ -282,23 +305,15 @@ function ProductionKpiCardsContent({
 
   const loadStats = async () => {
     try {
-      console.log("Loading stats with parameters:", {
-        organizationId,
-        propertyIds,
-        safraId: selectedSafraId || safraId,
-        selectedCultureIds
-      });
-      
       setLoading(true);
       setError(null);
       // Usar selectedSafraId em vez de safraId para garantir que estamos usando o valor mais atualizado
       const result = await getProductionStats(
-        organizationId, 
-        propertyIds, 
+        organizationId,
+        propertyIds,
         selectedSafraId || safraId,
         selectedCultureIds.length > 0 ? selectedCultureIds : undefined
       );
-      console.log("Stats loaded successfully:", result);
       setStats(result);
     } catch (err) {
       console.error("Erro ao carregar KPIs de produção:", err);
@@ -310,30 +325,16 @@ function ProductionKpiCardsContent({
 
   React.useEffect(() => {
     if (organizationId && (selectedSafraId || safraId)) {
-      console.log("Triggering loadStats due to dependency change");
       loadStats();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId, 
-      // Use JSON.stringify for array dependencies to avoid unnecessary rerenders
-      propertyIds ? JSON.stringify(propertyIds) : null, 
-      selectedSafraId, 
-      safraId, 
-      selectedCultureIds ? JSON.stringify(selectedCultureIds) : null]);
-  
-  // Debug
-  React.useEffect(() => {
-    console.log("ProductionKpiCardsContent - Cultures:", cultures);
-    console.log("ProductionKpiCardsContent - Selected Culture IDs:", selectedCultureIds);
-  }, [cultures, selectedCultureIds]);
-  
-  // Debug Safras
-  React.useEffect(() => {
-    console.log("ProductionKpiCardsContent - Safras:", safras);
-    console.log("ProductionKpiCardsContent - Selected Safra ID:", selectedSafraId);
-    console.log("ProductionKpiCardsContent - Safra ID from props:", safraId);
-    console.log("ProductionKpiCardsContent - Loading Safras:", loadingSafras);
-  }, [safras, selectedSafraId, safraId, loadingSafras]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    organizationId,
+    propertyIds ? JSON.stringify(propertyIds) : null,
+    selectedSafraId,
+    safraId,
+    selectedCultureIds ? JSON.stringify(selectedCultureIds) : null,
+  ]);
 
   if (loading || error || !stats) {
     return (
@@ -350,16 +351,24 @@ function ProductionKpiCardsContent({
                     Resumo da Produção
                   </CardTitle>
                   <CardDescription className="text-white/80">
-                    {loading ? "Carregando..." : error ? "Erro ao carregar" : "Indicadores consolidados de produção agrícola"}
+                    {loading
+                      ? "Carregando..."
+                      : error
+                      ? "Erro ao carregar"
+                      : "Indicadores consolidados de produção agrícola"}
                   </CardDescription>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 {loadingSafras ? (
                   <div className="h-9 w-48 bg-white/10 rounded animate-pulse" />
                 ) : (
-                  <Select disabled={loading || loadingSafras} value="" onValueChange={() => {}}>
+                  <Select
+                    disabled={loading || loadingSafras}
+                    value=""
+                    onValueChange={() => {}}
+                  >
                     <SelectTrigger className="w-48 h-9 bg-white/10 border-white/20 text-white focus:ring-white/30 placeholder:text-white/60">
                       <SelectValue placeholder="Carregando safras..." />
                     </SelectTrigger>
@@ -376,8 +385,9 @@ function ProductionKpiCardsContent({
                   </TooltipTrigger>
                   <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                     <p>
-                      Indicadores consolidados da produção agrícola incluindo área plantada, 
-                      produtividade média, receita operacional e margem EBITDA.
+                      Indicadores consolidados da produção agrícola incluindo
+                      área plantada, produtividade média, receita operacional e
+                      margem EBITDA.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -417,7 +427,9 @@ function ProductionKpiCardsContent({
                 change="0% YoY"
                 isPositive={true}
                 loading={loading}
-                icon={<DollarSign className="h-5 w-5 text-white dark:text-white" />}
+                icon={
+                  <DollarSign className="h-5 w-5 text-white dark:text-white" />
+                }
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
             </div>
@@ -429,7 +441,9 @@ function ProductionKpiCardsContent({
                 change="0% margem"
                 isPositive={true}
                 loading={loading}
-                icon={<BarChart3 className="h-5 w-5 text-white dark:text-white" />}
+                icon={
+                  <BarChart3 className="h-5 w-5 text-white dark:text-white" />
+                }
               />
             </div>
           </div>
@@ -457,14 +471,17 @@ function ProductionKpiCardsContent({
                   </CardDescription>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 {loadingSafras ? (
                   <div className="h-9 w-48 bg-white/10 rounded animate-pulse" />
                 ) : (
                   <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     {safras.length > 0 ? (
-                      <Select value={selectedSafraId} onValueChange={handleSafraChange}>
+                      <Select
+                        value={selectedSafraId}
+                        onValueChange={handleSafraChange}
+                      >
                         <SelectTrigger className="w-full sm:w-48 h-9 bg-white/10 border-white/20 text-white focus:ring-white/30 placeholder:text-white/60">
                           <SelectValue placeholder="Selecionar safra" />
                         </SelectTrigger>
@@ -481,12 +498,15 @@ function ProductionKpiCardsContent({
                         Sem safras
                       </div>
                     )}
-                    
+
                     {cultures.length > 0 ? (
-                      <Popover open={isCultureDropdownOpen} onOpenChange={setIsCultureDropdownOpen}>
+                      <Popover
+                        open={isCultureDropdownOpen}
+                        onOpenChange={setIsCultureDropdownOpen}
+                      >
                         <PopoverTrigger asChild>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             className="h-9 w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
                           >
@@ -496,25 +516,29 @@ function ProductionKpiCardsContent({
                             </span>
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-56 p-0 bg-background dark:bg-gray-800 border dark:border-gray-700" align="end">
+                        <PopoverContent
+                          className="w-56 p-0 bg-background dark:bg-gray-800 border dark:border-gray-700"
+                          align="end"
+                        >
                           <Command className="bg-transparent">
                             <CommandList>
                               <CommandGroup>
-                                <CommandItem 
+                                <CommandItem
                                   onSelect={handleSelectAllCultures}
                                   className="cursor-pointer hover:bg-muted/50 dark:hover:bg-gray-700/50"
                                 >
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      selectedCultureIds.length === cultures.length
+                                      selectedCultureIds.length ===
+                                        cultures.length
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}
                                   />
                                   <span>Selecionar todas</span>
                                 </CommandItem>
-                                <CommandItem 
+                                <CommandItem
                                   onSelect={handleDeselectAllCultures}
                                   className="cursor-pointer hover:bg-muted/50 dark:hover:bg-gray-700/50"
                                 >
@@ -534,7 +558,9 @@ function ProductionKpiCardsContent({
                                 {cultures.map((culture) => (
                                   <CommandItem
                                     key={culture.id}
-                                    onSelect={() => handleCultureToggle(culture.id)}
+                                    onSelect={() =>
+                                      handleCultureToggle(culture.id)
+                                    }
                                     className="cursor-pointer hover:bg-muted/50 dark:hover:bg-gray-700/50"
                                   >
                                     <Check
@@ -566,8 +592,9 @@ function ProductionKpiCardsContent({
                   </TooltipTrigger>
                   <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                     <p>
-                      Indicadores consolidados da produção agrícola incluindo área plantada, 
-                      produtividade média, receita operacional e margem EBITDA.
+                      Indicadores consolidados da produção agrícola incluindo
+                      área plantada, produtividade média, receita operacional e
+                      margem EBITDA.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -581,15 +608,23 @@ function ProductionKpiCardsContent({
                 title="Área Plantada"
                 value={formatArea(stats.areaPlantada)}
                 change={
-                  !stats.temComparacao 
-                    ? "Sem comparação" 
-                    : `${stats.crescimentoArea >= 0 ? '+' : ''}${formatPercentage(stats.crescimentoArea)} YoY${stats.safraComparada ? ` vs ${stats.safraComparada}` : ''}`
+                  !stats.temComparacao
+                    ? "Sem comparação"
+                    : `${
+                        stats.crescimentoArea >= 0 ? "+" : ""
+                      }${formatPercentage(stats.crescimentoArea)} YoY${
+                        stats.safraComparada
+                          ? ` vs ${stats.safraComparada}`
+                          : ""
+                      }`
                 }
-                isPositive={stats.temComparacao ? stats.crescimentoArea >= 0 : true}
+                isPositive={
+                  stats.temComparacao ? stats.crescimentoArea >= 0 : true
+                }
                 icon={<Sprout className="h-5 w-5 text-white dark:text-white" />}
                 tooltip="Área total destinada ao plantio de culturas agrícolas em hectares."
                 clickable={true}
-                onClick={() => handleMetricClick('area')}
+                onClick={() => handleMetricClick("area")}
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
             </div>
@@ -600,15 +635,25 @@ function ProductionKpiCardsContent({
                 title="Produtividade"
                 value={`${stats.produtividadeMedia.toFixed(1)} sc/ha`}
                 change={
-                  !stats.temComparacao 
-                    ? "Sem comparação" 
-                    : `${stats.crescimentoProdutividade >= 0 ? '+' : ''}${formatPercentage(stats.crescimentoProdutividade)} YoY${stats.safraComparada ? ` vs ${stats.safraComparada}` : ''}`
+                  !stats.temComparacao
+                    ? "Sem comparação"
+                    : `${
+                        stats.crescimentoProdutividade >= 0 ? "+" : ""
+                      }${formatPercentage(stats.crescimentoProdutividade)} YoY${
+                        stats.safraComparada
+                          ? ` vs ${stats.safraComparada}`
+                          : ""
+                      }`
                 }
-                isPositive={stats.temComparacao ? stats.crescimentoProdutividade >= 0 : true}
+                isPositive={
+                  stats.temComparacao
+                    ? stats.crescimentoProdutividade >= 0
+                    : true
+                }
                 icon={<Target className="h-5 w-5 text-white dark:text-white" />}
                 tooltip="Produtividade média das culturas em sacas por hectare."
                 clickable={true}
-                onClick={() => handleMetricClick('produtividade')}
+                onClick={() => handleMetricClick("produtividade")}
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
             </div>
@@ -619,15 +664,25 @@ function ProductionKpiCardsContent({
                 title="Receita"
                 value={formatCurrency(stats.receita)}
                 change={
-                  !stats.temComparacao 
-                    ? "Sem comparação" 
-                    : `${stats.crescimentoReceita >= 0 ? '+' : ''}${formatPercentage(stats.crescimentoReceita)} YoY${stats.safraComparada ? ` vs ${stats.safraComparada}` : ''}`
+                  !stats.temComparacao
+                    ? "Sem comparação"
+                    : `${
+                        stats.crescimentoReceita >= 0 ? "+" : ""
+                      }${formatPercentage(stats.crescimentoReceita)} YoY${
+                        stats.safraComparada
+                          ? ` vs ${stats.safraComparada}`
+                          : ""
+                      }`
                 }
-                isPositive={stats.temComparacao ? stats.crescimentoReceita >= 0 : true}
-                icon={<DollarSign className="h-5 w-5 text-white dark:text-white" />}
+                isPositive={
+                  stats.temComparacao ? stats.crescimentoReceita >= 0 : true
+                }
+                icon={
+                  <DollarSign className="h-5 w-5 text-white dark:text-white" />
+                }
                 tooltip="Receita operacional bruta estimada com base na produção e preços de mercado."
                 clickable={true}
-                onClick={() => handleMetricClick('receita')}
+                onClick={() => handleMetricClick("receita")}
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
             </div>
@@ -639,10 +694,12 @@ function ProductionKpiCardsContent({
                 value={formatCurrency(stats.ebitda)}
                 change={`${stats.margemEbitda.toFixed(1)}% margem`}
                 isPositive={stats.margemEbitda > 30}
-                icon={<BarChart3 className="h-5 w-5 text-white dark:text-white" />}
+                icon={
+                  <BarChart3 className="h-5 w-5 text-white dark:text-white" />
+                }
                 tooltip="Resultado operacional antes de juros, impostos, depreciação e amortização."
                 clickable={true}
-                onClick={() => handleMetricClick('ebitda')}
+                onClick={() => handleMetricClick("ebitda")}
               />
             </div>
           </div>
@@ -662,21 +719,21 @@ function ProductionKpiCardsContent({
   );
 }
 
-export function ProductionKpiCards({ 
-  organizationId, 
+export function ProductionKpiCards({
+  organizationId,
   propertyIds,
   safraId,
   onSafraChange,
   cultures,
   selectedCultureIds,
-  onCultureChange
+  onCultureChange,
 }: ProductionKpiCardsProps) {
   return (
-    <ProductionKpiCardsContent 
-      organizationId={organizationId} 
-      propertyIds={propertyIds} 
-      safraId={safraId} 
-      onSafraChange={onSafraChange} 
+    <ProductionKpiCardsContent
+      organizationId={organizationId}
+      propertyIds={propertyIds}
+      safraId={safraId}
+      onSafraChange={onSafraChange}
       cultures={cultures}
       selectedCultureIds={selectedCultureIds}
       onCultureChange={onCultureChange}

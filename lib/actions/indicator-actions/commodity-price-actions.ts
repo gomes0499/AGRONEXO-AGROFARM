@@ -186,9 +186,7 @@ export async function getCommodityPriceById(
 export async function updateCommodityPrice(
   data: CommodityPriceUpdateType
 ): Promise<CommodityPriceActionResponse<CommodityPriceType>> {
-  try {
-    console.log("Dados recebidos para atualização:", JSON.stringify(data, null, 2));
-    
+  try {    
     // Validate the input data
     const validatedData = commodityPriceUpdateSchema.parse(data);
     
@@ -301,7 +299,6 @@ export async function updateCommodityPrice(
     // Add the updated timestamp
     dbUpdateData.updated_at = new Date().toISOString();
     
-    console.log("Dados para atualizar no banco:", JSON.stringify(dbUpdateData, null, 2));
     
     // Update the commodity price in the database
     const { data: updatedCommodityPrice, error } = await supabase
@@ -321,8 +318,6 @@ export async function updateCommodityPrice(
         },
       };
     }
-    
-    console.log("Resposta do banco após atualização:", JSON.stringify(updatedCommodityPrice, null, 2));
     
     // Transform the database response using JSONB structure
     const precosPorAno = updatedCommodityPrice.precos_por_ano || {};
@@ -446,15 +441,11 @@ export async function getCommodityPricesByOrganizationId(
     };
   }
   
-  console.log("getCommodityPricesByOrganizationId - ID recebido:", organizacaoIdWithParams);
-  console.log("getCommodityPricesByOrganizationId - ID processado:", organizacaoId);
+
   try {
-    console.log("Buscando preços de commodities para organização:", organizacaoId);
     const supabase = await createClient();
     
-    // Adicionar mais logs para depuração
-    console.log(`Executando query no supabase para organizacao_id=${organizacaoId}`);
-    
+
     // Primeiro, vamos verificar se a tabela existe e quantos registros tem
     const { count, error: countError } = await supabase
       .from("commodity_price_projections")
@@ -463,7 +454,6 @@ export async function getCommodityPricesByOrganizationId(
     if (countError) {
       console.error("Erro ao contar registros:", countError);
     } else {
-      console.log(`Total de registros na tabela: ${count}`);
     }
     
     // Vamos verificar todas as organizações na tabela para debug
@@ -475,18 +465,14 @@ export async function getCommodityPricesByOrganizationId(
     if (orgsError) {
       console.error("Erro ao buscar organizações:", orgsError);
     } else if (allOrgs && allOrgs.length > 0) {
-      console.log("IDs de organizações presentes na tabela:");
       allOrgs.forEach((org, index) => {
         // Verificar diferentes tipos de match para diagnóstico
         const exactMatch = org.organizacao_id === organizacaoId;
         const lowerMatch = org.organizacao_id?.toLowerCase() === organizacaoId?.toLowerCase();
         const upperMatch = org.organizacao_id?.toUpperCase() === organizacaoId?.toUpperCase();
         
-        console.log(`[${index}] ${org.organizacao_id} | Match exato: ${exactMatch} | Match case-insensitive: ${lowerMatch || upperMatch}`);
       });
       
-      // Tentativa adicional: listar todos os tenants da aplicação para verificação
-      console.log("Verificando todos os tenants disponíveis...");
       try {
         const { data: tenants, error: tenantError } = await supabase
           .from("organizacoes")
@@ -496,29 +482,22 @@ export async function getCommodityPricesByOrganizationId(
         if (tenantError) {
           console.error("Erro ao buscar tenants:", tenantError);
         } else if (tenants && tenants.length > 0) {
-          console.log(`${tenants.length} tenants encontrados:`);
           tenants.forEach((tenant, i) => {
-            console.log(`Tenant [${i}]: ID=${tenant.id}, Nome=${tenant.nome}`);
           });
         } else {
-          console.log("Nenhum tenant encontrado");
         }
       } catch (err) {
         console.error("Erro ao verificar tenants:", err);
       }
     }
     
-    // Adicionar uma verificação para buscar também pela propriedade associada
-    // Esta é uma solução temporária para o problema de correspondência de IDs
-    console.log("Tentando buscar pela organização dono da propriedade...");
-    let buscaAlternativa = false;
+   
     
     if (organizacaoIdWithParams.includes('properties/')) {
       // Extrair ID da propriedade da URL se estiver presente
       const propertyMatch = organizacaoIdWithParams.match(/properties\/([0-9a-f-]+)/i);
       if (propertyMatch && propertyMatch[1]) {
         const propertyId = propertyMatch[1];
-        console.log(`Extraído ID de propriedade da URL: ${propertyId}`);
         
         // Buscar a organização dessa propriedade
         try {
@@ -531,18 +510,11 @@ export async function getCommodityPricesByOrganizationId(
           if (propertyError) {
             console.error("Erro ao buscar propriedade:", propertyError);
           } else if (propertyData) {
-            console.log(`Propriedade encontrada com organizacaoId: ${propertyData.organizacao_id}`);
-            console.log(`IMPORTANTE: Verificando se o ID de organização da propriedade (${propertyData.organizacao_id}) corresponde ao ID fornecido (${organizacaoId})`);
             
-            // CORREÇÃO: Não vamos mais usar o ID da propriedade para substituir o ID original
-            // Apenas verificamos e registramos para diagnóstico
             if (propertyData.organizacao_id !== organizacaoId) {
               console.warn(`ATENÇÃO: Inconsistência encontrada - ID da organização na propriedade diferente do fornecido!`);
-              // NÃO vamos mais substituir o ID fornecido!
-              // organizacaoId = propertyData.organizacao_id;
-              // buscaAlternativa = true;
             } else {
-              console.log(`OK: ID da organização na propriedade corresponde ao ID fornecido.`);
+              
             }
           }
         } catch (propError) {
@@ -551,13 +523,8 @@ export async function getCommodityPricesByOrganizationId(
       }
     }
     
-    // Consulta com log adicional para mostrar a SQL
-    console.log(`Executando query: SELECT * FROM commodity_price_projections WHERE organizacao_id = '${organizacaoId}' ORDER BY commodity_type ASC`);
-    
-    // Agora a consulta original com o ID potencialmente corrigido
-    // Verificar se estamos consultando para o GRUPO SAFRA BOA
+
     if (organizacaoId === "131db844-18ab-4164-8d79-2c8eed2b12f1") {
-      console.log("OVERRIDE: Detectada consulta para GRUPO SAFRA BOA. Verificando se existem registros...");
       
       // Primeiro, verificar se já existem registros para este tenant
       const { count, error: countError } = await supabase
@@ -568,18 +535,10 @@ export async function getCommodityPricesByOrganizationId(
       if (countError) {
         console.error("Erro ao verificar se existem registros para o tenant correto:", countError);
       } else if (count && count > 0) {
-        console.log(`Encontrados ${count} registros para o tenant GRUPO SAFRA BOA`);
       } else {
-        console.log("Não foram encontrados registros para o tenant GRUPO SAFRA BOA. Forçando inicialização automática...");
-        
         try {
-          // Tenta criar registros diretamente para evitar dependência circular
-          console.log("Criando registros diretamente para o tenant GRUPO SAFRA BOA...");
-          
-          // Data atual para timestamps
           const now = new Date().toISOString();
           
-          // Preparar dados para Soja Sequeiro como exemplo (valor mais usado)
           const sojaRecord = {
             organizacao_id: organizacaoId,
             commodity_type: "SOJA_SEQUEIRO",
@@ -601,8 +560,6 @@ export async function getCommodityPricesByOrganizationId(
             
           if (insertError) {
             console.error("Erro ao criar registro de Soja:", insertError);
-          } else {
-            console.log("Registro de Soja Sequeiro criado com sucesso para GRUPO SAFRA BOA!");
           }
         } catch (initError) {
           console.error("Erro ao tentar inicialização automática:", initError);
@@ -618,11 +575,7 @@ export async function getCommodityPricesByOrganizationId(
       .eq("organizacao_id", organizacaoId)
       .order("commodity_type", { ascending: true });
       
-    // Se usamos ID alternativo, registrar resultado
-    if (buscaAlternativa) {
-      console.log(`Resultado da busca com ID alternativo: ${data ? data.length : 0} registros encontrados`);
-    }
-      
+
     if (error) {
       console.error("Erro ao buscar preços de commodity:", error);
       return {
@@ -633,8 +586,6 @@ export async function getCommodityPricesByOrganizationId(
         },
       };
     }
-    
-    console.log(`Encontrados ${data.length} preços de commodities`);
     
     // Transform the snake_case database response to camelCase
     const transformedData: CommodityPriceType[] = data.map((item) => ({
@@ -758,8 +709,6 @@ export async function initializeDefaultCommodityPrices(
       };
     }
 
-    // Verificar se este é um ID válido de organização
-    console.log(`[${new Date().toISOString()}] Verificando e inicializando preços para organizacao:`, organizacaoId);
     
     const supabase = await createClient();
     
@@ -780,33 +729,20 @@ export async function initializeDefaultCommodityPrices(
         },
       };
     }
-    
-    console.log(`Organização encontrada: ID=${orgData.id}, Nome=${orgData.nome}`);
-    // Usar o ID confirmado da organização
+  
     organizacaoId = orgData.id;
     
-    // Executar todas as operações em uma única transação para garantir consistência
-    // Primeiro, vamos usar uma transaction implícita do supabase
-    
-    // 1. Remover registros duplicados usando SQL diretamente
-    // Esta abordagem é mais segura e eficiente que buscar e processar em JS
+
     const { error: dedupError } = await supabase.rpc('deduplicate_commodity_prices', {
       org_id: organizacaoId
     });
     
     if (dedupError) {
       console.error("Erro ao remover registros duplicados:", dedupError);
-      // Se a função RPC não existir, vamos usar a abordagem anterior
-      if (dedupError.code === '42883') { // Função inexistente
-        console.log("Função de deduplicação não encontrada, usando método alternativo");
-        await deduplicate_fallback(supabase, organizacaoId);
-      } else {
-        // Para outros erros, continuar mesmo assim
-        console.log("Continuando apesar do erro de deduplicação");
-      }
+      await deduplicate_fallback(supabase, organizacaoId);
     }
     
-    // 2. Obter todos os tipos de commodity já registrados para esta organização
+
     const { data: existingTypes, error: typesError } = await supabase
       .from("commodity_price_projections")
       .select("commodity_type")
@@ -837,7 +773,6 @@ export async function initializeDefaultCommodityPrices(
     // Criar um Set com os tipos existentes para verificação rápida
     const existingTypeSet = new Set(existingTypes.map(t => t.commodity_type));
     
-    console.log(`Encontrados ${existingTypeSet.size} tipos de commodity já cadastrados`);
     
     // Data atual para timestamps
     const now = new Date().toISOString();
@@ -846,10 +781,8 @@ export async function initializeDefaultCommodityPrices(
     const missingTypes = Object.values(CommodityType.enum)
       .filter(type => !existingTypeSet.has(type));
     
-    console.log(`${missingTypes.length} tipos de commodity faltando`);
-    
+
     if (missingTypes.length === 0) {
-      console.log("Todos os tipos de commodity já existem para esta organização");
       return { data: { success: true } };
     }
     
@@ -872,12 +805,8 @@ export async function initializeDefaultCommodityPrices(
       };
     });
     
-    // 4. Inserir registros faltantes
+
     if (commoditiesToCreate.length > 0) {
-      // Usar insertMany para melhor performance, com retry para casos especiais
-      console.log(`Inserindo ${commoditiesToCreate.length} novos tipos de commodity`);
-      
-      // Tentar inserir tudo de uma vez primeiro
       const { error: batchInsertError } = await supabase
         .from("commodity_price_projections")
         .insert(commoditiesToCreate)
@@ -888,8 +817,7 @@ export async function initializeDefaultCommodityPrices(
         
         // Se o erro foi de chave duplicada, tentar inserir um por um
         if (batchInsertError.code === '23505') { // Chave duplicada
-          console.log("Detectada violação de restrição, tentando inserção individual");
-          
+        
           // Inserir um por um, ignorando erros de duplicação
           for (const commodity of commoditiesToCreate) {
             const { error: singleInsertError } = await supabase
@@ -907,9 +835,6 @@ export async function initializeDefaultCommodityPrices(
       }
     }
     
-    console.log("Preços de commodity inicializados com sucesso");
-    
-    // Revalidar caminhos para garantir que as mudanças sejam refletidas na UI
     revalidatePath("/dashboard/indicators");
     revalidatePath("/dashboard/properties");
     
@@ -934,17 +859,11 @@ async function deduplicate_fallback(supabase: any, organizacaoId: string) {
   }).select('commodity_type, count');
   
   if (!duplicates || duplicates.length === 0) {
-    console.log("Não foram encontrados registros duplicados");
-    return; // Não há duplicatas, nada a fazer
+    return; 
   }
   
-  console.log(`Encontrados ${duplicates.length} tipos com duplicatas`);
-  
-  // 2. Para cada tipo duplicado, manter apenas o registro mais recente
+
   for (const dup of duplicates) {
-    console.log(`Processando duplicatas para ${dup.commodity_type}`);
-    
-    // Buscar todos os registros desse tipo
     const { data: records } = await supabase
       .from("commodity_price_projections")
       .select("*")
@@ -952,13 +871,11 @@ async function deduplicate_fallback(supabase: any, organizacaoId: string) {
       .eq("commodity_type", dup.commodity_type)
       .order("updated_at", { ascending: false });
     
-    if (!records || records.length <= 1) continue; // Se não houver duplicatas, pular
+    if (!records || records.length <= 1) continue; 
     
-    // Manter o primeiro (mais recente) e excluir os demais
     const idsToDelete = records.slice(1).map((r: any) => r.id);
     
     if (idsToDelete.length > 0) {
-      console.log(`Removendo ${idsToDelete.length} registros duplicados para ${dup.commodity_type}`);
       
       const { error: deleteError } = await supabase
         .from("commodity_price_projections")
@@ -1124,9 +1041,6 @@ export async function updateCommodityPricesBatch(
 export async function ensureCommodityPricesExist(
   organizacaoId: string
 ): Promise<CommodityPriceActionResponse<{ success: true }>> {
-  // Registrar quando a função foi chamada e de onde
-  console.log(`ensureCommodityPricesExist chamada para org: ${organizacaoId} em ${new Date().toISOString()}`);
-  console.trace("Stack trace da chamada:");
   
   try {
     const supabase = await createClient();
@@ -1145,7 +1059,6 @@ export async function ensureCommodityPricesExist(
       console.error("Erro ao tentar obter lock consultivo:", lockError);
       // Continuar mesmo sem lock, mas registrar o problema
     } else if (!lockResult) {
-      console.log(`Outra transação já está inicializando preços para org: ${organizacaoId}, operação ignorada`);
       return { data: { success: true } }; // Retornar sucesso sem fazer nada
     }
     

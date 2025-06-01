@@ -74,8 +74,6 @@ export function InviteForm({ organizationId, onSuccess }: InviteFormProps) {
         values.funcao
       );
 
-      console.log("Resultado do convite:", result);
-
       if (result.success) {
         toast.success(
           "Convite enviado com sucesso! Um email foi enviado para o usuário."

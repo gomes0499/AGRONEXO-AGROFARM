@@ -7,7 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { TrashIcon, PlusCircleIcon } from "lucide-react";
-import { formatGenericCurrency, parseFormattedNumber, isNegativeValue } from "@/lib/utils/formatters";
+import {
+  formatGenericCurrency,
+  parseFormattedNumber,
+  isNegativeValue,
+} from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
 
 interface YearValue {
@@ -42,23 +46,21 @@ export function YearValueEditor({
     return Object.entries(values || {}).map(([year, value]) => ({
       year,
       value: Number(value),
-      isFocused: false
+      isFocused: false,
     }));
   });
 
   // Atualiza o array quando o objeto de valores mudar de fora
   useEffect(() => {
-    console.log("YearValueEditor useEffect - values mudou:", values);
-    // Só atualiza se a referência do objeto values mudou
     if (values) {
       const newYearValues = Object.entries(values).map(([year, value]) => {
         // Preserva o estado de foco se o item existir, mas sem criar dependência circular
         const existingValues = [...yearValues];
-        const existingItem = existingValues.find(item => item.year === year);
+        const existingItem = existingValues.find((item) => item.year === year);
         return {
           year,
           value: Number(value),
-          isFocused: existingItem?.isFocused || false
+          isFocused: existingItem?.isFocused || false,
         };
       });
       setYearValues(newYearValues);
@@ -66,95 +68,75 @@ export function YearValueEditor({
     // Remover yearValues das dependências para evitar loop infinito
   }, [values]);
 
-  // Chama o onChange apenas quando o usuário efetivamente faz uma mudança
-  const handleChange = () => {
-    console.log("handleChange chamado com yearValues:", yearValues);
-    const newValues: Record<string, number> = {};
-    yearValues.forEach((item) => {
-      newValues[item.year] = item.value;
-    });
-    console.log("handleChange - newValues antes do onChange:", newValues);
-    onChange(newValues);
-  };
-
   // Adiciona um novo ano
   const addYear = () => {
-    console.log("addYear chamado");
-    
-    // Decide qual ano adicionar
     let nextYear: number;
-    
+
     if (yearValues.length === 0) {
       // Se não houver anos, usar o ano inicial fornecido ou o ano atual
       nextYear = startYear || new Date().getFullYear();
     } else {
       // Se já existem anos, adicionar o próximo ano após o maior existente
-      const existingYears = yearValues.map(y => Number(y.year));
+      const existingYears = yearValues.map((y) => Number(y.year));
       nextYear = Math.max(...existingYears) + 1;
     }
-    
-    console.log("Adicionando ano:", nextYear);
-    
+
     // Adiciona o novo ano
-    const updatedYearValues = [...yearValues, { year: String(nextYear), value: 0, isFocused: false }];
+    const updatedYearValues = [
+      ...yearValues,
+      { year: String(nextYear), value: 0, isFocused: false },
+    ];
     setYearValues(updatedYearValues);
-    
+
     // Atualiza o objeto de valores imediatamente
     const newValues: Record<string, number> = {};
-    updatedYearValues.forEach(item => {
+    updatedYearValues.forEach((item) => {
       newValues[item.year] = item.value;
     });
-    
+
     // Chama o callback com os novos valores
-    console.log("Chamando onChange com:", newValues);
     onChange(newValues);
   };
 
   // Remove um ano
   const removeYear = (index: number) => {
-    console.log("removeYear chamado para índice:", index);
     const newYearValues = [...yearValues];
     newYearValues.splice(index, 1);
     setYearValues(newYearValues);
-    
+
     // Criar valores para o onChange imediatamente
     const newValues: Record<string, number> = {};
     newYearValues.forEach((item) => {
       newValues[item.year] = item.value;
     });
-    console.log("newValues após remoção:", newValues);
     onChange(newValues);
   };
 
   // Atualiza o valor de um ano
   const updateValue = (index: number, value: number) => {
-    console.log("updateValue chamado para índice:", index, "valor:", value);
     const newYearValues = [...yearValues];
     newYearValues[index].value = value;
     setYearValues(newYearValues);
-    
+
     // Criar valores para o onChange imediatamente
     const newValues: Record<string, number> = {};
     newYearValues.forEach((item) => {
       newValues[item.year] = item.value;
     });
-    console.log("newValues após atualização de valor:", newValues);
     onChange(newValues);
   };
 
   // Atualiza o ano
   const updateYear = (index: number, year: string) => {
-    console.log("updateYear chamado para índice:", index, "ano:", year);
     const newYearValues = [...yearValues];
     newYearValues[index].year = year;
     setYearValues(newYearValues);
-    
+
     // Criar valores para o onChange imediatamente
     const newValues: Record<string, number> = {};
     newYearValues.forEach((item) => {
       newValues[item.year] = item.value;
     });
-    console.log("newValues após atualização de ano:", newValues);
     onChange(newValues);
   };
 
@@ -166,18 +148,24 @@ export function YearValueEditor({
   };
 
   // Ordena os anos
-  const sortedYearValues = [...yearValues].sort((a, b) => Number(a.year) - Number(b.year));
+  const sortedYearValues = [...yearValues].sort(
+    (a, b) => Number(a.year) - Number(b.year)
+  );
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">{label}</CardTitle>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {sortedYearValues.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6">
-            <p className="text-sm text-muted-foreground mb-4">Nenhum valor anual definido</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Nenhum valor anual definido
+            </p>
             <Button
               type="button"
               variant="outline"

@@ -13,7 +13,9 @@ interface CultureProjectionTabProps {
   organizationId?: string;
 }
 
-export function CultureProjectionTab({ organizationId: propOrgId }: CultureProjectionTabProps) {
+export function CultureProjectionTab({
+  organizationId: propOrgId,
+}: CultureProjectionTabProps) {
   const { organization } = useOrganization();
   const [data, setData] = useState<{
     projections: CultureProjectionData[];
@@ -29,17 +31,14 @@ export function CultureProjectionTab({ organizationId: propOrgId }: CultureProje
   useEffect(() => {
     async function loadData() {
       if (!organizationId) {
-        console.log("❌ Sem organizationId, aguardando...");
         setIsLoading(false);
         return;
       }
 
       try {
-        console.log("🔄 Carregando projeções para org:", organizationId);
         setIsLoading(true);
         setError(null);
         const result = await getCultureProjections(organizationId);
-        console.log("✅ Resultado recebido:", result);
         setData(result);
       } catch (err) {
         console.error("❌ Erro ao carregar projeções:", err);
@@ -83,11 +82,11 @@ export function CultureProjectionTab({ organizationId: propOrgId }: CultureProje
   }
 
   return (
-    <CultureProjectionsTable 
-      projections={data.projections} 
+    <CultureProjectionsTable
+      projections={data.projections}
       sementes={data.sementes}
       consolidado={data.consolidado}
-      anos={data.anos} 
+      anos={data.anos}
     />
   );
 }

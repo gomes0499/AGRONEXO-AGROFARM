@@ -34,8 +34,6 @@ export async function getBankDebts(organizationId: string) {
   
   // Parse fluxo_pagamento_anual back to object
   const parsedData = data?.map(item => {
-    console.log(`Processando item ${item.id}, fluxo_pagamento_anual:`, item.fluxo_pagamento_anual);
-    console.log("Tipo:", typeof item.fluxo_pagamento_anual);
     
     let parsedFlow = {};
     
@@ -45,12 +43,10 @@ export async function getBankDebts(organizationId: string) {
         // Se for string, fazer parse para objeto
         if (typeof item.fluxo_pagamento_anual === 'string') {
           parsedFlow = JSON.parse(item.fluxo_pagamento_anual);
-          console.log("Convertido de string para objeto:", parsedFlow);
         } 
         // Se já for objeto, usar diretamente
         else if (typeof item.fluxo_pagamento_anual === 'object') {
           parsedFlow = item.fluxo_pagamento_anual;
-          console.log("Já é objeto:", parsedFlow);
         }
       } catch (e) {
         console.error(`Erro ao parsear fluxo_pagamento_anual para item ${item.id}:`, e);
@@ -68,11 +64,7 @@ export async function getBankDebts(organizationId: string) {
 
 export async function createBankDebt(data: Omit<BankDebt, "id" | "created_at" | "updated_at">) {
   const supabase = await createClient();
-  
-  console.log("createBankDebt - data recebida:", data);
-  console.log("createBankDebt - fluxo_pagamento_anual recebido:", data.fluxo_pagamento_anual);
-  
-  // Sempre converter fluxo_pagamento_anual para string JSON
+
   const formattedData = {
     ...data,
     fluxo_pagamento_anual: JSON.stringify(
@@ -83,9 +75,7 @@ export async function createBankDebt(data: Omit<BankDebt, "id" | "created_at" | 
            : {})
     )
   };
-  
-  console.log("createBankDebt - formattedData após conversão:", formattedData);
-  console.log("createBankDebt - fluxo_pagamento_anual após conversão:", formattedData.fluxo_pagamento_anual);
+
   
   const { data: result, error } = await supabase
     .from("dividas_bancarias")
@@ -97,17 +87,12 @@ export async function createBankDebt(data: Omit<BankDebt, "id" | "created_at" | 
     throw new Error(error.message);
   }
   
-  console.log("createBankDebt - resultado:", result);
   return result[0] as BankDebt;
 }
 
 export async function updateBankDebt(id: string, data: Partial<Omit<BankDebt, "id" | "organizacao_id" | "created_at" | "updated_at">>) {
   const supabase = await createClient();
-  
-  console.log("updateBankDebt - data recebida:", data);
-  console.log("updateBankDebt - fluxo_pagamento_anual recebido:", data.fluxo_pagamento_anual);
-  
-  // Sempre converter fluxo_pagamento_anual para string JSON
+
   const formattedData = {
     ...data,
     fluxo_pagamento_anual: data.fluxo_pagamento_anual ? JSON.stringify(
@@ -166,8 +151,7 @@ export async function getTradingDebts(organizationId: string) {
   
   // Parse fluxo_pagamento_anual back to object
   const parsedData = data?.map(item => {
-    console.log(`Processando item ${item.id}, fluxo_pagamento_anual:`, item.fluxo_pagamento_anual);
-    console.log("Tipo:", typeof item.fluxo_pagamento_anual);
+
     
     let parsedFlow = {};
     
@@ -177,12 +161,10 @@ export async function getTradingDebts(organizationId: string) {
         // Se for string, fazer parse para objeto
         if (typeof item.fluxo_pagamento_anual === 'string') {
           parsedFlow = JSON.parse(item.fluxo_pagamento_anual);
-          console.log("Convertido de string para objeto:", parsedFlow);
         } 
         // Se já for objeto, usar diretamente
         else if (typeof item.fluxo_pagamento_anual === 'object') {
           parsedFlow = item.fluxo_pagamento_anual;
-          console.log("Já é objeto:", parsedFlow);
         }
       } catch (e) {
         console.error(`Erro ao parsear fluxo_pagamento_anual para item ${item.id}:`, e);
@@ -201,9 +183,7 @@ export async function getTradingDebts(organizationId: string) {
 export async function createTradingDebt(data: Omit<TradingDebt, "id" | "created_at" | "updated_at">) {
   const supabase = await createClient();
   
-  console.log("createTradingDebt - data recebida:", data);
-  console.log("createTradingDebt - organizacao_id:", data.organizacao_id);
-  console.log("createTradingDebt - fluxo_pagamento_anual recebido:", data.fluxo_pagamento_anual);
+  
   
   // Verificar se organizacao_id está presente
   if (!data.organizacao_id) {
@@ -222,7 +202,6 @@ export async function createTradingDebt(data: Omit<TradingDebt, "id" | "created_
     )
   };
   
-  console.log("createTradingDebt - formattedData após conversão:", formattedData);
   
   const { data: result, error } = await supabase
     .from("dividas_trading")
@@ -234,7 +213,6 @@ export async function createTradingDebt(data: Omit<TradingDebt, "id" | "created_
     throw new Error(error.message);
   }
   
-  console.log("createTradingDebt - resultado:", result);
   return result[0] as TradingDebt;
 }
 
@@ -310,7 +288,6 @@ export async function getPropertyDebts(organizationId: string) {
               propriedade: propData || null
             };
           } catch (e) {
-            console.log(`Erro ao buscar propriedade ${debt.propriedade_id}:`, e);
             return {
               ...debt,
               propriedade: null
@@ -334,25 +311,20 @@ export async function getPropertyDebts(organizationId: string) {
 export async function createPropertyDebt(data: Omit<PropertyDebt, "id" | "created_at" | "updated_at">) {
   const supabase = await createClient();
   
-  console.log("createPropertyDebt - data recebida:", data);
-  console.log("createPropertyDebt - organizacao_id:", data.organizacao_id);
-  
+
   // Verificar se organizacao_id está presente
   if (!data.organizacao_id) {
     console.error("organizacao_id é obrigatório - dados recebidos:", data);
     throw new Error("organizacao_id é obrigatório para criar uma dívida de imóvel");
   }
   
-  // Verificação se o banco já tem a coluna denominacao_imovel
-  // Durante a migração, pode ser necessário adequar os dados
+
   const dataToInsert = { 
     ...data,
-    // Garantir que estamos enviando os dados corretos
     organizacao_id: data.organizacao_id,
     denominacao_imovel: data.denominacao_imovel || "Imóvel sem nome"
   };
   
-  console.log("createPropertyDebt - dados formatados para inserção:", dataToInsert);
   
   const { data: result, error } = await supabase
     .from("dividas_imoveis")
@@ -421,8 +393,7 @@ export async function getSuppliers(organizationId: string) {
 export async function createSupplier(data: Omit<Supplier, "id" | "created_at" | "updated_at">) {
   const supabase = await createClient();
   
-  console.log("createSupplier - data recebida:", data);
-  console.log("createSupplier - organizacao_id:", data.organizacao_id);
+
   
   // Verificar se organizacao_id está presente
   if (!data.organizacao_id) {
@@ -439,7 +410,6 @@ export async function createSupplier(data: Omit<Supplier, "id" | "created_at" | 
         : data.valores_por_ano
   };
   
-  console.log("createSupplier - dados formatados para inserção:", formattedData);
   
   const { data: result, error } = await supabase
     .from("fornecedores")
@@ -457,8 +427,6 @@ export async function createSupplier(data: Omit<Supplier, "id" | "created_at" | 
 export async function updateSupplier(id: string, data: Partial<Omit<Supplier, "id" | "organizacao_id" | "created_at" | "updated_at">>) {
   const supabase = await createClient();
   
-  console.log("updateSupplier - data recebida:", data);
-  
   // Garantir que valores_por_ano está como string JSON
   const formattedData = {
     ...data,
@@ -469,8 +437,7 @@ export async function updateSupplier(id: string, data: Partial<Omit<Supplier, "i
     ) : undefined
   };
   
-  console.log("updateSupplier - dados formatados para atualização:", formattedData);
-  
+
   const { data: result, error } = await supabase
     .from("fornecedores")
     .update(formattedData)
@@ -511,8 +478,6 @@ export async function createLiquidityFactor(data: {
   valores_por_safra?: Record<string, number> | string;
 }) {
   const supabase = await createClient();
-  
-  console.log("createLiquidityFactor - data recebida:", data);
   
   // Garantir que valores_por_safra está como string JSON
   let valoresPorSafraStr = '{}';
@@ -562,8 +527,6 @@ export async function updateLiquidityFactor(id: string, data: {
 }) {
   const supabase = await createClient();
   
-  console.log("updateLiquidityFactor - data recebida:", data);
-  
   // Garantir que valores_por_safra está como string JSON
   let valoresPorSafraStr = undefined;
   if (data.valores_por_safra) {
@@ -611,8 +574,6 @@ export async function updateLiquidityFactor(id: string, data: {
 export async function deleteLiquidityFactor(id: string) {
   const supabase = await createClient();
   
-  console.log("deleteLiquidityFactor - id:", id);
-  
   const { error } = await supabase
     .from("caixa_disponibilidades")
     .delete()
@@ -627,8 +588,7 @@ export async function deleteLiquidityFactor(id: string) {
   return true;
 }
 
-// Estoques e Estoques de Commodities agora são tratados por financial-liquidity-actions.ts
-// Os dados agora são acessados através da tabela caixa_disponibilidades com diferentes categorias
+
 
 // Commodity Inventory Functions (compatibility layer)
 export async function createCommodityInventory(data: {
@@ -639,7 +599,6 @@ export async function createCommodityInventory(data: {
 }) {
   const supabase = await createClient();
   
-  console.log("createCommodityInventory - data recebida:", data);
   
   // Garantir que valores_por_safra está como string JSON
   let valoresPorSafraStr = '{}';
@@ -688,8 +647,7 @@ export async function updateCommodityInventory(id: string, data: {
   valores_por_safra?: Record<string, number> | string;
 }) {
   const supabase = await createClient();
-  
-  console.log("updateCommodityInventory - data recebida:", data);
+
   
   // Garantir que valores_por_safra está como string JSON
   let valoresPorSafraStr = undefined;
@@ -739,8 +697,6 @@ export async function updateCommodityInventory(id: string, data: {
 export async function deleteCommodityInventory(id: string) {
   const supabase = await createClient();
   
-  console.log("deleteCommodityInventory - id:", id);
-  
   const { error } = await supabase
     .from("caixa_disponibilidades")
     .delete()
@@ -764,7 +720,6 @@ export async function createInventory(data: {
 }) {
   const supabase = await createClient();
   
-  console.log("createInventory - data recebida:", data);
   
   // Garantir que valores_por_safra está como string JSON
   let valoresPorSafraStr = '{}';
@@ -814,7 +769,6 @@ export async function updateInventory(id: string, data: {
 }) {
   const supabase = await createClient();
   
-  console.log("updateInventory - data recebida:", data);
   
   // Garantir que valores_por_safra está como string JSON
   let valoresPorSafraStr = undefined;
@@ -864,7 +818,6 @@ export async function updateInventory(id: string, data: {
 export async function deleteInventory(id: string) {
   const supabase = await createClient();
   
-  console.log("deleteInventory - id:", id);
   
   const { error } = await supabase
     .from("caixa_disponibilidades")
@@ -900,9 +853,6 @@ export async function getReceivableContracts(organizationId: string) {
 export async function createReceivableContract(data: Omit<ReceivableContract, "id" | "created_at" | "updated_at">) {
   const supabase = await createClient();
   
-  console.log("createReceivableContract - data recebida:", data);
-  console.log("createReceivableContract - organizacao_id:", data.organizacao_id);
-  
   // Verificar se organizacao_id está presente
   if (!data.organizacao_id) {
     console.error("organizacao_id é obrigatório - dados recebidos:", data);
@@ -921,8 +871,7 @@ export async function createReceivableContract(data: Omit<ReceivableContract, "i
     commodity: data.commodity,
     valor: data.valor
   };
-  
-  console.log("Dados simplificados para inserção:", dataToSend);
+
   
   try {
     const { data: result, error } = await supabase
@@ -935,7 +884,6 @@ export async function createReceivableContract(data: Omit<ReceivableContract, "i
       
       // Verifica se o erro é relacionado à coluna inexistente
       if (error.message.includes("could not find the") && error.message.includes("column")) {
-        console.log("Erro relacionado a coluna que não existe no banco. Uma migração é necessária.");
         throw new Error("O banco de dados precisa ser atualizado com a migração 'alter_contratos_recebiveis_commodity.sql'");
       }
       
@@ -952,15 +900,11 @@ export async function createReceivableContract(data: Omit<ReceivableContract, "i
 export async function updateReceivableContract(id: string, data: Partial<Omit<ReceivableContract, "id" | "organizacao_id" | "created_at" | "updated_at">>) {
   const supabase = await createClient();
   
-  console.log("updateReceivableContract - data recebida:", data);
-  
   // Preparar os dados mínimos necessários para envio
   const dataToSend = {
     commodity: data.commodity,
     valor: data.valor
   };
-  
-  console.log("Dados simplificados para atualização:", dataToSend);
   
   try {
     const { data: result, error } = await supabase
@@ -974,7 +918,6 @@ export async function updateReceivableContract(id: string, data: Partial<Omit<Re
       
       // Verifica se o erro é relacionado à coluna inexistente
       if (error.message.includes("could not find the") && error.message.includes("column")) {
-        console.log("Erro relacionado a coluna que não existe no banco. Uma migração é necessária.");
         throw new Error("O banco de dados precisa ser atualizado com a migração 'alter_contratos_recebiveis_commodity.sql'");
       }
       
@@ -1007,8 +950,6 @@ export async function deleteReceivableContract(id: string) {
 export async function getSuppliersByOrganization(organizationId: string) {
   const supabase = await createClient();
   
-  console.log("Buscando fornecedores para organizacao:", organizationId);
-  
   const { data, error } = await supabase
     .from("fornecedores")
     .select("id, nome")
@@ -1020,15 +961,12 @@ export async function getSuppliersByOrganization(organizationId: string) {
     throw new Error(error.message);
   }
   
-  console.log(`Encontrados ${data?.length || 0} fornecedores`);
   return data || [];
 }
 
 // Supplier Advances
 export async function getSupplierAdvances(organizationId: string) {
   const supabase = await createClient();
-  
-  console.log("Buscando adiantamentos para organizacaoId:", organizationId);
   
   try {
     // Buscar adiantamentos sem join
@@ -1044,11 +982,9 @@ export async function getSupplierAdvances(organizationId: string) {
     }
     
     if (!advances || advances.length === 0) {
-      console.log("Nenhum adiantamento encontrado para a organização");
       return [];
     }
-    
-    console.log(`Encontrados ${advances.length} adiantamentos`);
+
     
     // Extrair todos os IDs de fornecedores únicos
     const fornecedorIds = [...new Set(advances
@@ -1056,7 +992,6 @@ export async function getSupplierAdvances(organizationId: string) {
       .map(adv => adv.fornecedor_id))];
       
     if (fornecedorIds.length === 0) {
-      console.log("Nenhum ID de fornecedor encontrado nos adiantamentos");
       return advances.map(adv => ({
         ...adv,
         fornecedor: null
@@ -1095,20 +1030,16 @@ export async function getSupplierAdvances(organizationId: string) {
       });
     }
     
-    console.log(`Mapa de fornecedores criado com ${Object.keys(fornecedoresMap).length} entradas`);
-    
     // Adicionar fornecedor a cada adiantamento
     const advancesWithSuppliers = advances.map(advance => {
       // Verificar se temos fornecedor_id e se ele existe no mapa
       const fornecedorId = advance.fornecedor_id;
       if (fornecedorId && fornecedoresMap[fornecedorId]) {
-        console.log(`Encontrado fornecedor para adiantamento ${advance.id}: ${fornecedoresMap[fornecedorId].nome}`);
         return {
           ...advance,
           fornecedor: fornecedoresMap[fornecedorId]
         };
       } else {
-        console.log(`Fornecedor não encontrado para adiantamento ${advance.id}, ID: ${advance.fornecedor_id || 'não definido'}`);
         return {
           ...advance,
           fornecedor: null
@@ -1126,11 +1057,6 @@ export async function getSupplierAdvances(organizationId: string) {
 export async function createSupplierAdvance(data: Omit<SupplierAdvance, "id" | "created_at" | "updated_at">) {
   const supabase = await createClient();
   
-  console.log("createSupplierAdvance - data recebida:", JSON.stringify(data, null, 2));
-  console.log("createSupplierAdvance - organizacao_id:", data.organizacao_id);
-  console.log("createSupplierAdvance - fornecedor_id:", data.fornecedor_id);
-  
-  // Verificar se organizacao_id está presente
   if (!data.organizacao_id) {
     console.error("organizacao_id é obrigatório - dados recebidos:", data);
     throw new Error("organizacao_id é obrigatório para criar um adiantamento");
@@ -1149,8 +1075,7 @@ export async function createSupplierAdvance(data: Omit<SupplierAdvance, "id" | "
     valor: data.valor
   };
   
-  console.log("Dados formatados para inserção:", JSON.stringify(dataToSend, null, 2));
-  
+
   try {
     const { data: result, error } = await supabase
       .from("adiantamentos_fornecedores")
@@ -1162,15 +1087,12 @@ export async function createSupplierAdvance(data: Omit<SupplierAdvance, "id" | "
       
     if (error) {
       console.error("Erro ao criar adiantamento:", error);
-      console.log("Erro detalhado:", JSON.stringify(error, null, 2));
       throw new Error(error.message);
     }
     
-    console.log("Adiantamento criado com sucesso:", JSON.stringify(result[0], null, 2));
     
     // Se não temos dados do fornecedor no resultado, adicionar manualmente
     if (result[0] && !result[0].fornecedor && result[0].fornecedor_id) {
-      console.log("Buscando fornecedor separadamente...");
       
       const { data: fornecedor } = await supabase
         .from("fornecedores")
@@ -1179,7 +1101,7 @@ export async function createSupplierAdvance(data: Omit<SupplierAdvance, "id" | "
         .single();
         
       if (fornecedor) {
-        console.log("Fornecedor encontrado:", fornecedor);
+        
         return {
           ...result[0],
           fornecedor
@@ -1197,17 +1119,12 @@ export async function createSupplierAdvance(data: Omit<SupplierAdvance, "id" | "
 export async function updateSupplierAdvance(id: string, data: Partial<Omit<SupplierAdvance, "id" | "organizacao_id" | "created_at" | "updated_at">>) {
   const supabase = await createClient();
   
-  console.log("updateSupplierAdvance - data recebida:", JSON.stringify(data, null, 2));
-  console.log("updateSupplierAdvance - id:", id);
-  
-  // Extrair apenas os campos que existem na tabela do banco de dados
   const dataToSend = {
     fornecedor_id: data.fornecedor_id,
     valor: data.valor
   };
   
-  console.log("Dados formatados para atualização:", JSON.stringify(dataToSend, null, 2));
-  
+
   try {
     const { data: result, error } = await supabase
       .from("adiantamentos_fornecedores")
@@ -1220,15 +1137,12 @@ export async function updateSupplierAdvance(id: string, data: Partial<Omit<Suppl
       
     if (error) {
       console.error("Erro ao atualizar adiantamento:", error);
-      console.log("Erro detalhado:", JSON.stringify(error, null, 2));
       throw new Error(error.message);
     }
     
-    console.log("Adiantamento atualizado com sucesso:", JSON.stringify(result[0], null, 2));
     
     // Se não temos dados do fornecedor no resultado, adicionar manualmente
     if (result[0] && !result[0].fornecedor && result[0].fornecedor_id) {
-      console.log("Buscando fornecedor separadamente...");
       
       const { data: fornecedor } = await supabase
         .from("fornecedores")
@@ -1237,7 +1151,7 @@ export async function updateSupplierAdvance(id: string, data: Partial<Omit<Suppl
         .single();
         
       if (fornecedor) {
-        console.log("Fornecedor encontrado:", fornecedor);
+
         return {
           ...result[0],
           fornecedor
@@ -1270,8 +1184,7 @@ export async function deleteSupplierAdvance(id: string) {
 // Third Party Loans
 export async function getThirdPartyLoans(organizationId: string) {
   const supabase = await createClient();
-  
-  console.log("Buscando empréstimos a terceiros para organizacaoId:", organizationId);
+
   
   try {
     const { data, error } = await supabase
@@ -1285,7 +1198,7 @@ export async function getThirdPartyLoans(organizationId: string) {
       throw new Error(error.message);
     }
     
-    console.log(`Encontrados ${data?.length || 0} empréstimos a terceiros`);
+
     
     // Processa os dados antes de retornar para garantir formatação correta
     const processedLoans = data?.map(loan => {
@@ -1309,9 +1222,6 @@ export async function getThirdPartyLoans(organizationId: string) {
 
 export async function createThirdPartyLoan(data: Omit<ThirdPartyLoan, "id" | "created_at" | "updated_at">) {
   const supabase = await createClient();
-  
-  console.log("createThirdPartyLoan - data recebida:", JSON.stringify(data, null, 2));
-  console.log("createThirdPartyLoan - organizacao_id:", data.organizacao_id);
   
   // Verificação muito explícita de organizacao_id
   if (!data.organizacao_id) {
@@ -1344,8 +1254,6 @@ export async function createThirdPartyLoan(data: Omit<ThirdPartyLoan, "id" | "cr
     valor: data.valor
   };
   
-  console.log("Dados formatados para inserção:", JSON.stringify(dataToSend, null, 2));
-  
   try {
     const { data: result, error } = await supabase
       .from("emprestimos_terceiros")
@@ -1354,11 +1262,9 @@ export async function createThirdPartyLoan(data: Omit<ThirdPartyLoan, "id" | "cr
       
     if (error) {
       console.error("Erro ao criar empréstimo:", error);
-      console.log("Erro detalhado:", JSON.stringify(error, null, 2));
       throw new Error(error.message);
     }
     
-    console.log("Empréstimo criado com sucesso:", JSON.stringify(result[0], null, 2));
     
     // Processar resultado para garantir formatação correta
     const processedLoan = {
@@ -1378,9 +1284,6 @@ export async function createThirdPartyLoan(data: Omit<ThirdPartyLoan, "id" | "cr
 export async function updateThirdPartyLoan(id: string, data: Partial<Omit<ThirdPartyLoan, "id" | "created_at" | "updated_at">>) {
   const supabase = await createClient();
   
-  console.log("updateThirdPartyLoan - data recebida:", JSON.stringify(data, null, 2));
-  console.log("updateThirdPartyLoan - id:", id);
-  
   // Verificar se beneficiário está presente se fornecido
   if (data.beneficiario !== undefined && !data.beneficiario) {
     console.error("beneficiário é obrigatório se fornecido - dados recebidos:", data);
@@ -1398,8 +1301,7 @@ export async function updateThirdPartyLoan(id: string, data: Partial<Omit<ThirdP
     beneficiario: data.beneficiario,
     valor: data.valor
   };
-  
-  console.log("Dados formatados para atualização:", JSON.stringify(dataToSend, null, 2));
+
   
   try {
     const { data: result, error } = await supabase
@@ -1410,16 +1312,11 @@ export async function updateThirdPartyLoan(id: string, data: Partial<Omit<ThirdP
       
     if (error) {
       console.error("Erro ao atualizar empréstimo:", error);
-      console.log("Erro detalhado:", JSON.stringify(error, null, 2));
       throw new Error(error.message);
     }
     
-    console.log("Empréstimo atualizado com sucesso:", JSON.stringify(result[0], null, 2));
-    
-    // Processar resultado para garantir formatação correta
     const processedLoan = {
       ...result[0],
-      // Se estiver recebendo como string, converter para Date
       data_inicio: result[0].data_inicio ? new Date(result[0].data_inicio) : undefined,
       data_vencimento: result[0].data_vencimento ? new Date(result[0].data_vencimento) : undefined
     };
@@ -1434,8 +1331,6 @@ export async function updateThirdPartyLoan(id: string, data: Partial<Omit<ThirdP
 export async function deleteThirdPartyLoan(id: string) {
   const supabase = await createClient();
   
-  console.log("deleteThirdPartyLoan - id:", id);
-  
   try {
     const { error } = await supabase
       .from("emprestimos_terceiros")
@@ -1446,8 +1341,7 @@ export async function deleteThirdPartyLoan(id: string) {
       console.error("Erro ao excluir empréstimo:", error);
       throw new Error(error.message);
     }
-    
-    console.log("Empréstimo excluído com sucesso");
+  
     return true;
   } catch (error) {
     console.error("Exceção ao excluir empréstimo:", error);

@@ -82,7 +82,6 @@ export async function getEquipment(id: string) {
 
 export async function createEquipment(data: any) {
   try {
-    console.log("createEquipment - data:", data);
     
     if (!data.organizacao_id || data.organizacao_id === "undefined" || data.organizacao_id === "null") {
       console.error("ID da organização inválido:", data.organizacao_id);
@@ -115,18 +114,13 @@ export async function createEquipment(data: any) {
       reposicao_sr: data.reposicao_sr || 0
     };
     
-    console.log("Campos mapeados para inserção:", dbFields);
     
-    // Vamos simplificar e adicionar um campo virtual para a trigger
     let equipamentoData = {
       ...dbFields,
-      // Também inserimos o campo "ano" como uma propriedade virtual para a trigger
-      // Como o campo não existe na tabela, o PostgREST irá ignorá-lo 
-      // mas estará disponível para a trigger durante a execução
+  
       ano: dbFields.ano_fabricacao
     };
 
-    console.log("Tentando inserir com ano virtual:", equipamentoData);
     
     try {
       const { data: result, error } = await supabase
@@ -201,8 +195,6 @@ export async function updateEquipment(
         : 0
     };
     
-    console.log("Campos mapeados para atualização:", dbFields);
-    
     // Vamos adicionar o campo virtual ano para a trigger
     let equipamentoData = {
       ...dbFields,
@@ -210,7 +202,6 @@ export async function updateEquipment(
       ano: dbFields.ano_fabricacao
     };
     
-    console.log("Tentando atualizar com ano virtual:", equipamentoData);
     
     try {
       const { data: result, error } = await supabase
@@ -323,7 +314,6 @@ export async function getInvestment(id: string) {
 
 export async function createInvestment(data: any) {
   try {
-    console.log("createInvestment - data:", data);
     
     if (!data.organizacao_id || data.organizacao_id === "undefined" || data.organizacao_id === "null") {
       console.error("ID da organização inválido:", data.organizacao_id);
@@ -583,7 +573,6 @@ export async function createAssetSale(data: any) {
       valor_total: cleanData.quantidade * cleanData.valor_unitario
     };
     
-    console.log("Dados para inserção de venda de ativo:", dataWithTotal);
     
     const { data: result, error } = await supabase
       .from("vendas_ativos")
@@ -619,7 +608,6 @@ export async function updateAssetSale(data: any) {
       valor_total: updateData.quantidade * updateData.valor_unitario
     };
     
-    console.log("Dados para atualização de venda de ativo:", dataWithTotal);
     
     const { data: result, error } = await supabase
       .from("vendas_ativos")
@@ -882,7 +870,6 @@ export async function createLandPlan(
       console.warn(`Valor inválido para tipo: ${tipo}. Substituindo por "COMPRA".`);
       tipo = "COMPRA";
     }
-    console.log("Criando aquisição de terras com tipo:", tipo);
 
     // Calcular total de sacas
     const totalSacas = values.hectares * values.sacas;
@@ -898,8 +885,6 @@ export async function createLandPlan(
       safra_id: values.safra_id || null,
       total_sacas: totalSacas
     };
-    
-    console.log("Dados para inserção de aquisição de terras:", dbData);
     
     const { data, error } = await supabase
       .from("aquisicao_terras")
@@ -938,7 +923,6 @@ export async function updateLandPlan(
       console.warn(`Valor inválido para tipo: ${tipo}. Substituindo por "COMPRA".`);
       tipo = "COMPRA";
     }
-    console.log("Atualizando aquisição de terras com tipo:", tipo);
     
     // Calcular total de sacas
     const totalSacas = values.hectares * values.sacas;
@@ -954,7 +938,6 @@ export async function updateLandPlan(
       total_sacas: totalSacas
     };
     
-    console.log("Dados para atualização de aquisição de terras:", dbData);
     
     const { data, error } = await supabase
       .from("aquisicao_terras")

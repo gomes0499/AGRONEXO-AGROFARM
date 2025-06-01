@@ -32,8 +32,6 @@ export interface ConsolidatedCultureProjections {
 export async function getCultureProjections(organizationId: string): Promise<ConsolidatedCultureProjections> {
   const supabase = await createClient();
 
-  console.log("🌱 Calculando projeções de cultura seguindo o schema correto");
-  console.log("🏢 Organization ID:", organizationId);
 
   // Buscar todas as safras para mapear anos
   const { data: safras } = await supabase
@@ -43,7 +41,6 @@ export async function getCultureProjections(organizationId: string): Promise<Con
     .order("ano_inicio");
 
   if (!safras) {
-    console.log("❌ Nenhuma safra encontrada");
     return { 
       projections: [], 
       anos: [],
@@ -59,8 +56,6 @@ export async function getCultureProjections(organizationId: string): Promise<Con
       }
     };
   }
-
-  console.log(`📅 Encontradas ${safras.length} safras`);
 
   // Buscar áreas de plantio com JSONB multi-safra conforme schema
   const { data: areas, error: areasError } = await supabase
@@ -116,10 +111,9 @@ export async function getCultureProjections(organizationId: string): Promise<Con
     
     if (!precosError) {
       precosCommodities = precosData;
-      console.log("🏷️ Commodities encontradas:", precosData?.map(p => p.commodity_type) || []);
     }
   } catch (error) {
-    console.log("Tabela commodity_price_projections não existe ainda, usando preços padrão");
+    console.error("Erro ao buscar preços de commodities:", error);
   }
 
   // Buscar vendas de sementes
@@ -137,14 +131,7 @@ export async function getCultureProjections(organizationId: string): Promise<Con
 
   if (vendasError) throw vendasError;
 
-  console.log(`📊 Dados encontrados:`, {
-    safras: safras.length,
-    areas: areas?.length || 0,
-    produtividades: produtividades?.length || 0,
-    custos: custos?.length || 0,
-    precosCommodities: precosCommodities?.length || 0,
-    vendasSementes: vendasSementes?.length || 0
-  });
+
 
   // Criar mapeamento de preços por commodity - usar precos_por_ano que contém os preços reais
   const precosMap = new Map<string, Record<string, number>>();
@@ -152,18 +139,13 @@ export async function getCultureProjections(organizationId: string): Promise<Con
     // Usar precos_por_ano que contém os preços reais por safra ID
     if (preco.precos_por_ano) {
       precosMap.set(preco.commodity_type, preco.precos_por_ano);
-      console.log(`💰 Usando precos_por_ano para ${preco.commodity_type}:`, preco.precos_por_ano);
     }
     // premissas_precos contém apenas metadados, não preços
     else if (preco.premissas_precos && typeof preco.premissas_precos === 'object' && 'precos' in preco.premissas_precos) {
       precosMap.set(preco.commodity_type, preco.premissas_precos.precos);
-      console.log(`💰 Usando premissas_precos.precos para ${preco.commodity_type}:`, preco.premissas_precos.precos);
     }
   });
 
-  console.log(`🗺️ Mapa de preços final:`, Array.from(precosMap.entries()));
-
-  // Processar projeções consolidadas por cultura/sistema/ciclo
   const consolidated = new Map<string, CultureProjectionData>();
   const anosSet = new Set<string>();
 
@@ -185,8 +167,6 @@ export async function getCultureProjections(organizationId: string): Promise<Con
     const sistemaNome = sistemas.nome;
     const cicloNome = ciclos.nome;
 
-    console.log(`🌾 Processando: ${culturaNome} ${sistemaNome} ${cicloNome}`);
-
     // Encontrar produtividade correspondente (produtividades não têm ciclo_id)
     const produtividade = produtividades?.find(p => 
       p.cultura_id === culturaId &&
@@ -200,13 +180,9 @@ export async function getCultureProjections(organizationId: string): Promise<Con
     );
 
     if (!produtividade || !custo) {
-      console.log(`❌ Dados incompletos para ${culturaNome} ${sistemaNome} ${cicloNome}`);
-      console.log(`- Produtividade: ${produtividade ? '✅' : '❌'}`);
-      console.log(`- Custo: ${custo ? '✅' : '❌'}`);
+   
       return;
     }
-
-    console.log(`✅ Processando ${culturaNome} ${sistemaNome} ${cicloNome}`);
 
     // Determinar o tipo de commodity para buscar preços
     let commodityType = "";
@@ -239,8 +215,6 @@ export async function getCultureProjections(organizationId: string): Promise<Con
 
     const precosCommidity = precosMap.get(commodityType) || {};
     
-    console.log(`📊 Para ${culturaNome} ${cicloNome}: commodityType=${commodityType}, preços encontrados:`, precosCommidity);
-    
     // Criar títulos formatados
     const culturaNomeUpper = culturaNome.toUpperCase();
     const cicloNomeUpper = cicloNome.toUpperCase();
@@ -267,11 +241,9 @@ export async function getCultureProjections(organizationId: string): Promise<Con
       const produtividadeSafra = produtividade.produtividades_por_safra?.[safraId] || 0;
       const custoSafra = custo.custos_por_safra?.[safraId] || 0;
       
-      // Buscar preço da tabela ou usar padrão
-      // A tabela de preços usa safra ID, não nome
+   
       let precoSafra = precosCommidity[safraId] || 0;
       
-      console.log(`🏷️ Buscando preço para ${commodityType} ${anoNome} (ID: ${safraId}): ${precoSafra}`);
       
       // Se não encontrou preço na tabela, usar valores padrão
       if (precoSafra === 0) {
@@ -302,9 +274,7 @@ export async function getCultureProjections(organizationId: string): Promise<Con
         } else {
           precoSafra = 100; // preço genérico
         }
-        console.log(`📋 Usando preço padrão para ${commodityType} ${anoNome}: ${precoSafra}`);
       } else {
-        console.log(`💾 Usando preço da tabela para ${commodityType} ${anoNome}: ${precoSafra}`);
       }
 
       const receita = areaSafra * produtividadeSafra * precoSafra;
@@ -444,9 +414,6 @@ export async function getCultureProjections(organizationId: string): Promise<Con
     projections_by_year: consolidadoProjections,
   };
 
-  console.log(`📈 Projeções criadas: ${consolidated.size}`);
-  console.log(`🌱 Sementes criadas: ${sementesProjections.length}`);
-  console.log(`📅 Anos disponíveis: ${anos.join(', ')}`);
 
   return {
     projections: Array.from(consolidated.values()),

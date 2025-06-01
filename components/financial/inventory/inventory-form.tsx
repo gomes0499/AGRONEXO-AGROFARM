@@ -7,7 +7,14 @@ import { z } from "zod";
 import { Inventory } from "@/schemas/financial/inventory";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -17,7 +24,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FinancialFormModal } from "../common/financial-form-modal";
-import { createInventory, updateInventory } from "@/lib/actions/financial-actions";
+import {
+  createInventory,
+  updateInventory,
+} from "@/lib/actions/financial-actions";
 import { CurrencyField } from "@/components/shared/currency-field";
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { Harvest } from "@/schemas/production";
@@ -27,9 +37,16 @@ import { getSafras } from "@/lib/actions/production-actions";
 const formSchema = z.object({
   organizacao_id: z.string().uuid(),
   tipo: z.enum([
-    "FERTILIZANTES", "DEFENSIVOS", "ALMOXARIFADO", "OUTROS", "SEMENTES",
-    "MAQUINAS_E_EQUIPAMENTOS", "COMBUSTIVEIS", "PECAS_E_ACESSORIOS",
-    "MEDICAMENTOS_VETERINARIOS", "RACAO_ANIMAL"
+    "FERTILIZANTES",
+    "DEFENSIVOS",
+    "ALMOXARIFADO",
+    "OUTROS",
+    "SEMENTES",
+    "MAQUINAS_E_EQUIPAMENTOS",
+    "COMBUSTIVEIS",
+    "PECAS_E_ACESSORIOS",
+    "MEDICAMENTOS_VETERINARIOS",
+    "RACAO_ANIMAL",
   ]),
   valor: z.coerce.number().min(0, "Valor deve ser positivo").optional(),
   valores_por_safra: z.record(z.string(), z.number()).optional(),
@@ -76,7 +93,7 @@ export function InventoryForm({
       setIsLoadingHarvests(false);
     }
   };
-  
+
   // Parse existing valores_por_safra
   const parseValoresPorSafra = (valores: any) => {
     if (!valores) return {};
@@ -97,40 +114,39 @@ export function InventoryForm({
       organizacao_id: organizationId,
       tipo: existingInventory?.tipo || "FERTILIZANTES",
       valor: existingInventory?.valor || 0,
-      valores_por_safra: parseValoresPorSafra(existingInventory?.valores_por_safra),
+      valores_por_safra: parseValoresPorSafra(
+        existingInventory?.valores_por_safra
+      ),
     },
   });
-  
+
   // Garantir que o organization_id seja definido no formulário
   useEffect(() => {
     if (organizationId) {
       form.setValue("organizacao_id", organizationId);
-      console.log("ID da organização definido:", organizationId);
     }
   }, [organizationId, form]);
-  
+
   // Função para lidar com o envio do formulário
   const onSubmitHandler = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
-      
+
       // Garante que organizacao_id está definido, usando organizationId como fallback
       if (!values.organizacao_id && !organizationId) {
         console.error("Erro: organizacao_id não definido");
         toast.error("Erro: ID da organização não definido");
         return;
       }
-      
+
       const orgId = values.organizacao_id || organizationId;
-      console.log("Enviando estoque com organizacao_id:", orgId);
-      
+
       // Calculate total from safra values
       const valoresPorSafra = values.valores_por_safra || {};
-      const valorTotal = Object.values(valoresPorSafra as Record<string, number>).reduce(
-        (acc, val) => acc + (typeof val === "number" ? val : 0),
-        0
-      );
-      
+      const valorTotal = Object.values(
+        valoresPorSafra as Record<string, number>
+      ).reduce((acc, val) => acc + (typeof val === "number" ? val : 0), 0);
+
       const dataToSubmit = {
         ...values,
         organizacao_id: orgId,
@@ -139,7 +155,7 @@ export function InventoryForm({
       };
 
       let result;
-      
+
       if (existingInventory?.id) {
         // Atualizar estoque existente
         result = await updateInventory(existingInventory.id, dataToSubmit);
@@ -149,12 +165,12 @@ export function InventoryForm({
         result = await createInventory(dataToSubmit);
         toast.success("Estoque criado com sucesso");
       }
-      
+
       // Notificar componente pai
       if (onSubmit) {
         onSubmit(result);
       }
-      
+
       // Fechar modal
       onOpenChange(false);
     } catch (error) {
@@ -175,7 +191,10 @@ export function InventoryForm({
       showFooter={false}
     >
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmitHandler)} className="space-y-6">
+        <form
+          onSubmit={form.handleSubmit(onSubmitHandler)}
+          className="space-y-6"
+        >
           <FormField
             control={form.control as any}
             name="tipo"
@@ -198,10 +217,16 @@ export function InventoryForm({
                     <SelectItem value="DEFENSIVOS">Defensivos</SelectItem>
                     <SelectItem value="ALMOXARIFADO">Almoxarifado</SelectItem>
                     <SelectItem value="SEMENTES">Sementes</SelectItem>
-                    <SelectItem value="MAQUINAS_E_EQUIPAMENTOS">Máquinas e Equipamentos</SelectItem>
+                    <SelectItem value="MAQUINAS_E_EQUIPAMENTOS">
+                      Máquinas e Equipamentos
+                    </SelectItem>
                     <SelectItem value="COMBUSTIVEIS">Combustíveis</SelectItem>
-                    <SelectItem value="PECAS_E_ACESSORIOS">Peças e Acessórios</SelectItem>
-                    <SelectItem value="MEDICAMENTOS_VETERINARIOS">Medicamentos Veterinários</SelectItem>
+                    <SelectItem value="PECAS_E_ACESSORIOS">
+                      Peças e Acessórios
+                    </SelectItem>
+                    <SelectItem value="MEDICAMENTOS_VETERINARIOS">
+                      Medicamentos Veterinários
+                    </SelectItem>
                     <SelectItem value="RACAO_ANIMAL">Ração Animal</SelectItem>
                     <SelectItem value="OUTROS">Outros</SelectItem>
                   </SelectContent>
@@ -210,7 +235,7 @@ export function InventoryForm({
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control as any}
             name="valores_por_safra"
@@ -230,7 +255,7 @@ export function InventoryForm({
               </FormItem>
             )}
           />
-          
+
           <div className="flex justify-end gap-2">
             <Button
               type="button"
@@ -241,7 +266,11 @@ export function InventoryForm({
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : existingInventory ? "Atualizar" : "Salvar"}
+              {isSubmitting
+                ? "Salvando..."
+                : existingInventory
+                ? "Atualizar"
+                : "Salvar"}
             </Button>
           </div>
         </form>

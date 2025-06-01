@@ -6,20 +6,32 @@ export const metadata: Metadata = {
   description: "Acesse sua conta na plataforma SR-Consultoria",
 };
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: any;
+  searchParams: { 
+    email?: string;
+    invite_token?: string;
+    token?: string;
+    redirectAfterLogin?: string;
+  };
 }) {
+  // Aguardar o searchParams ser resolvido
+  const resolvedParams = await Promise.resolve(searchParams);
+  
+  // Extrair os valores do objeto searchParams
+  const email = resolvedParams.email;
+  const inviteToken = resolvedParams.invite_token || resolvedParams.token;
+  const shouldRedirect = 
+    resolvedParams.redirectAfterLogin === "true" ||
+    !!resolvedParams.token ||
+    !!resolvedParams.invite_token;
+  
   return (
     <LoginForm
-      email={searchParams.email}
-      inviteToken={searchParams.invite_token || searchParams.token}
-      redirectAfterLogin={
-        searchParams.redirectAfterLogin === "true" ||
-        !!searchParams.token ||
-        !!searchParams.invite_token
-      }
+      email={email}
+      inviteToken={inviteToken}
+      redirectAfterLogin={shouldRedirect}
     />
   );
 }

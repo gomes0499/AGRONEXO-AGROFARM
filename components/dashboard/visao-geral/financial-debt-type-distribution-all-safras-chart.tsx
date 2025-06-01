@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
 import { PercentIcon } from "lucide-react";
 import {
   Card,
@@ -10,10 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  type ChartConfig,
-  ChartContainer,
-} from "@/components/ui/chart";
+import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
 import { Loader2 } from "lucide-react";
@@ -38,14 +42,16 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-async function getDebtTypeDistributionAllSafrasData(organizationId: string): Promise<{ data: DebtTypeData[] }> {
+async function getDebtTypeDistributionAllSafrasData(
+  organizationId: string
+): Promise<{ data: DebtTypeData[] }> {
   const supabase = createClient();
-  
+
   // Busca todas as dívidas bancárias
   const { data: dividasBancarias } = await supabase
-    .from('dividas_bancarias')
-    .select('*')
-    .eq('organizacao_id', organizationId);
+    .from("dividas_bancarias")
+    .select("*")
+    .eq("organizacao_id", organizationId);
 
   if (!dividasBancarias || dividasBancarias.length === 0) {
     return { data: [] };
@@ -54,16 +60,16 @@ async function getDebtTypeDistributionAllSafrasData(organizationId: string): Pro
   // Inicializar totais por modalidade
   const totalPorModalidade: Record<string, number> = {
     CUSTEIO: 0,
-    INVESTIMENTOS: 0
+    INVESTIMENTOS: 0,
   };
-  
+
   // Processar cada dívida bancária
-  dividasBancarias.forEach(divida => {
+  dividasBancarias.forEach((divida) => {
     const modalidade = divida.modalidade || "OUTROS";
-    
+
     // Verifica se valores_por_ano existe e processa
     let valores = divida.valores_por_ano;
-    if (typeof valores === 'string') {
+    if (typeof valores === "string") {
       try {
         valores = JSON.parse(valores);
       } catch (e) {
@@ -71,24 +77,24 @@ async function getDebtTypeDistributionAllSafrasData(organizationId: string): Pro
         valores = {};
       }
     }
-    
+
     // Soma todos os valores de todas as safras para esta modalidade
     let valorTotal = 0;
-    
-    if (valores && typeof valores === 'object') {
+
+    if (valores && typeof valores === "object") {
       // Somar todos os valores de todas as safras
-      Object.values(valores).forEach(valor => {
-        if (typeof valor === 'number' && valor > 0) {
+      Object.values(valores).forEach((valor) => {
+        if (typeof valor === "number" && valor > 0) {
           valorTotal += valor;
         }
       });
     }
-    
+
     // Se não encontrou nenhum valor mas tem valor_total, usa ele
     if (valorTotal === 0 && divida.valor_total) {
       valorTotal = divida.valor_total;
     }
-    
+
     // Acumula o valor na modalidade correspondente se for maior que zero
     if (valorTotal > 0) {
       if (modalidade === "CUSTEIO" || modalidade === "INVESTIMENTOS") {
@@ -101,8 +107,11 @@ async function getDebtTypeDistributionAllSafrasData(organizationId: string): Pro
   });
 
   // Calcular total geral
-  const totalGeral = Object.values(totalPorModalidade).reduce((sum, valor) => sum + valor, 0);
-  
+  const totalGeral = Object.values(totalPorModalidade).reduce(
+    (sum, valor) => sum + valor,
+    0
+  );
+
   if (totalGeral === 0) {
     return { data: [] };
   }
@@ -113,15 +122,15 @@ async function getDebtTypeDistributionAllSafrasData(organizationId: string): Pro
       name: "Custeio",
       value: totalPorModalidade.CUSTEIO,
       percentual: totalPorModalidade.CUSTEIO / totalGeral,
-      color: COLORS[0]
+      color: COLORS[0],
     },
     {
       name: "Investimentos",
       value: totalPorModalidade.INVESTIMENTOS,
       percentual: totalPorModalidade.INVESTIMENTOS / totalGeral,
-      color: COLORS[1]
-    }
-  ].filter(item => item.value > 0);
+      color: COLORS[1],
+    },
+  ].filter((item) => item.value > 0);
 
   return { data };
 }
@@ -129,19 +138,27 @@ async function getDebtTypeDistributionAllSafrasData(organizationId: string): Pro
 function CustomTooltip({ active, payload }: any) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    
+
     return (
       <div className="bg-background dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg shadow-lg p-3">
         <p className="font-semibold text-sm dark:text-white">{data.name}</p>
         <div className="my-1 h-px bg-border dark:bg-gray-600" />
         <div className="space-y-1 mt-2">
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground dark:text-gray-400">Valor:</span> 
-            <span className="font-medium dark:text-white">{formatCurrency(data.value)}</span>
+            <span className="text-muted-foreground dark:text-gray-400">
+              Valor:
+            </span>
+            <span className="font-medium dark:text-white">
+              {formatCurrency(data.value)}
+            </span>
           </p>
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground dark:text-gray-400">Participação:</span> 
-            <span className="font-medium dark:text-white">{formatPercent(data.percentual)}</span>
+            <span className="text-muted-foreground dark:text-gray-400">
+              Participação:
+            </span>
+            <span className="font-medium dark:text-white">
+              {formatPercent(data.percentual)}
+            </span>
           </p>
         </div>
       </div>
@@ -150,7 +167,9 @@ function CustomTooltip({ active, payload }: any) {
   return null;
 }
 
-export function FinancialDebtTypeDistributionAllSafrasChart({ organizationId }: FinancialDebtTypeDistributionAllSafrasProps) {
+export function FinancialDebtTypeDistributionAllSafrasChart({
+  organizationId,
+}: FinancialDebtTypeDistributionAllSafrasProps) {
   const [data, setData] = useState<DebtTypeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,17 +180,19 @@ export function FinancialDebtTypeDistributionAllSafrasChart({ organizationId }: 
       try {
         setLoading(true);
         setError(null);
-        
-        console.log(`Carregando dados de distribuição de modalidades para todas as safras`);
-        
-        const result = await getDebtTypeDistributionAllSafrasData(organizationId);
-        
+
+        const result = await getDebtTypeDistributionAllSafrasData(
+          organizationId
+        );
+
         const { data: typeData } = result;
-        console.log(`Dados carregados: ${typeData.length} modalidades encontradas (todas as safras)`);
-        
+
         setData(typeData);
       } catch (err) {
-        console.error("Erro ao carregar dados de distribuição por modalidade:", err);
+        console.error(
+          "Erro ao carregar dados de distribuição por modalidade:",
+          err
+        );
         setError("Erro ao carregar gráfico de distribuição por modalidade");
       } finally {
         setLoading(false);
@@ -270,7 +291,8 @@ export function FinancialDebtTypeDistributionAllSafrasChart({ organizationId }: 
               Nenhuma dívida bancária encontrada
             </div>
             <div className="text-center text-sm text-muted-foreground max-w-md">
-              Para visualizar este gráfico, cadastre dívidas bancárias no módulo financeiro.
+              Para visualizar este gráfico, cadastre dívidas bancárias no módulo
+              financeiro.
             </div>
           </div>
         </CardContent>
@@ -313,23 +335,29 @@ export function FinancialDebtTypeDistributionAllSafrasChart({ organizationId }: 
                   outerRadius={120}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) => `${name}: ${formatPercent(percent)}`}
+                  label={({ name, percent }) =>
+                    `${name}: ${formatPercent(percent)}`
+                  }
                 >
                   {data.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.color || COLORS[index % COLORS.length]} 
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.color || COLORS[index % COLORS.length]}
                     />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  verticalAlign="bottom" 
-                  height={36} 
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
                   formatter={(value, entry, index) => {
                     if (entry && entry.payload) {
                       const payload = entry.payload as unknown as DebtTypeData;
-                      return <span className="text-sm dark:text-white">{payload.name} ({formatPercent(payload.percentual)})</span>;
+                      return (
+                        <span className="text-sm dark:text-white">
+                          {payload.name} ({formatPercent(payload.percentual)})
+                        </span>
+                      );
                     }
                     return null;
                   }}
@@ -345,9 +373,15 @@ export function FinancialDebtTypeDistributionAllSafrasChart({ organizationId }: 
           Total de dívidas: {formatCurrency(total)}
           <span className="mx-2">•</span>
           <span>
-            Custeio: {formatPercent(data.find(d => d.name === "Custeio")?.percentual || 0)}
+            Custeio:{" "}
+            {formatPercent(
+              data.find((d) => d.name === "Custeio")?.percentual || 0
+            )}
             <span className="mx-1">-</span>
-            Investimentos: {formatPercent(data.find(d => d.name === "Investimentos")?.percentual || 0)}
+            Investimentos:{" "}
+            {formatPercent(
+              data.find((d) => d.name === "Investimentos")?.percentual || 0
+            )}
           </span>
         </p>
       </div>

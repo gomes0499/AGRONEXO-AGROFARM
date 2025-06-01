@@ -1150,14 +1150,7 @@ export async function copyCostsFromCulture(
 ) {
   try {
     const supabase = await createClient()
-    
-    console.log('📋 Copiando custos:', {
-      from: fromCulturaId,
-      to: toCulturaId,
-      sistema: sistemaId,
-      safra: safraId
-    })
-    
+     
     // Buscar custos da cultura de origem
     let query = supabase
       .from('custos_producao')
@@ -1194,7 +1187,6 @@ export async function copyCostsFromCulture(
     
     if (insertError) throw insertError
     
-    console.log('✅ Custos copiados com sucesso:', insertedCosts)
     
     return { success: true, data: insertedCosts }
   } catch (error) {

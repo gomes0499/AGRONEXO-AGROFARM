@@ -33,8 +33,7 @@ export async function getFluxoCaixaCompleto(
   organizationId: string
 ): Promise<FluxoCaixaCompletoData> {
   try {
-    console.log("🔄 Calculando fluxo de caixa completo");
-    const supabase = await createClient();
+
 
     // 1. Buscar projeções de culturas (incluindo receitas e custos)
     const cultureProjections = await getCultureProjections(organizationId);

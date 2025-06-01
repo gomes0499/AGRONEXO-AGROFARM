@@ -20,12 +20,14 @@ export function ScenarioListing({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Cenários de Projeção</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Cenários de Projeção
+          </h2>
           <p className="text-muted-foreground">
             Gerencie cenários para análise de sensibilidade
           </p>
         </div>
-        <Button onClick={() => console.log("Novo cenário")}>
+        <Button>
           <PlusIcon className="mr-2 h-4 w-4" />
           Novo Cenário
         </Button>
@@ -36,7 +38,7 @@ export function ScenarioListing({
         title="Nenhum cenário encontrado"
         description="Crie seu primeiro cenário de projeção para começar"
         action={
-          <Button onClick={() => console.log("Novo cenário")}>
+          <Button>
             <PlusIcon className="mr-2 h-4 w-4" />
             Novo Cenário
           </Button>

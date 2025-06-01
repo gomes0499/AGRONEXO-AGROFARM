@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import {
-  DollarSign,
-  TrendingUp,
-  Wheat,
-  BarChart3,
-} from "lucide-react";
+import { DollarSign, TrendingUp, Wheat, BarChart3 } from "lucide-react";
 import Script from "next/script";
 
 // Definição dos tipos para os dados financeiros
@@ -45,7 +40,7 @@ interface MarketTickerProps {
     preco_caroco_algodao?: number | null;
     preco_unitario_caroco_algodao?: number | null;
     dolar_algodao?: number | null;
-    dolar_milho?: number | null; 
+    dolar_milho?: number | null;
     dolar_soja?: number | null;
     dolar_fechamento?: number | null;
     outros_precos?: Record<string, number> | null;
@@ -92,7 +87,9 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
         // Processar dados de moedas
         const dolarData: TickerItem = {
           name: "Dólar",
-          value: commercialPrices?.dolar_fechamento || parseFloat(currencyData["USD"]["bid"]),
+          value:
+            commercialPrices?.dolar_fechamento ||
+            parseFloat(currencyData["USD"]["bid"]),
           previousValue:
             parseFloat(currencyData["USD"]["bid"]) -
             parseFloat(currencyData["USD"]["varBid"]),
@@ -140,17 +137,27 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
         ];
 
         // Adicionar dados do CEPEA, mas filtrar para evitar duplicação com preços comerciais
-        const cepeaFiltered = commercialPrices 
-          ? cepeaTickerItems.filter(item => {
+        const cepeaFiltered = commercialPrices
+          ? cepeaTickerItems.filter((item) => {
               // Filtrar itens que já temos no commercial prices
-              if (item.name.includes("Soja") && commercialPrices.preco_soja_brl) return false;
-              if (item.name.includes("Milho") && commercialPrices.preco_milho) return false;
-              if ((item.name.includes("Boi") || item.name.includes("Bovino")) && commercialPrices.outros_precos?.["boi_gordo"]) return false;
-              if (item.name.includes("Algodão") && commercialPrices.preco_algodao_bruto) return false;
+              if (item.name.includes("Soja") && commercialPrices.preco_soja_brl)
+                return false;
+              if (item.name.includes("Milho") && commercialPrices.preco_milho)
+                return false;
+              if (
+                (item.name.includes("Boi") || item.name.includes("Bovino")) &&
+                commercialPrices.outros_precos?.["boi_gordo"]
+              )
+                return false;
+              if (
+                item.name.includes("Algodão") &&
+                commercialPrices.preco_algodao_bruto
+              )
+                return false;
               return true;
             })
           : cepeaTickerItems;
-        
+
         allTickerItems.push(...cepeaFiltered);
 
         // Adicionar preços comerciais se disponíveis
@@ -202,7 +209,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
               code: "ALGODAO_USD",
             });
           }
-          
+
           if (commercialPrices.preco_caroco_algodao) {
             allTickerItems.push({
               name: "Caroço (R$/Ton)",
@@ -213,18 +220,19 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
               code: "CAROCO_ALGODAO",
             });
           }
-          
+
           if (commercialPrices.preco_unitario_caroco_algodao) {
             allTickerItems.push({
               name: "Caroço (R$/@)",
               value: commercialPrices.preco_unitario_caroco_algodao,
-              previousValue: commercialPrices.preco_unitario_caroco_algodao * 0.995, // Estimativa
+              previousValue:
+                commercialPrices.preco_unitario_caroco_algodao * 0.995, // Estimativa
               unit: "R$/@",
               category: "commodity",
               code: "CAROCO_ALGODAO_ARROBA",
             });
           }
-          
+
           // Dólares específicos para commodities
           if (commercialPrices.dolar_algodao) {
             allTickerItems.push({
@@ -236,7 +244,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
               code: "USD_ALGODAO",
             });
           }
-          
+
           if (commercialPrices.dolar_milho) {
             allTickerItems.push({
               name: "Dólar Milho",
@@ -247,7 +255,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
               code: "USD_MILHO",
             });
           }
-          
+
           if (commercialPrices.dolar_soja) {
             allTickerItems.push({
               name: "Dólar Soja",
@@ -272,7 +280,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
               { key: "coffee", name: "Café", unit: "R$/sc" },
               { key: "wheat", name: "Trigo", unit: "R$/sc" },
             ];
-            
+
             // Verificar e adicionar cada commodity específica
             specificCommodities.forEach(({ key, name, unit }) => {
               // Primeiro verificamos usando a key exata
@@ -286,11 +294,15 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
                   category: "commodity",
                   code: key.toUpperCase(),
                 });
-              } 
+              }
               // Depois verificamos usando underscore para compatibilidade
               else {
-                const underscoreKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-                if (commercialPrices.outros_precos?.[underscoreKey] !== undefined) {
+                const underscoreKey = key
+                  .replace(/([A-Z])/g, "_$1")
+                  .toLowerCase();
+                if (
+                  commercialPrices.outros_precos?.[underscoreKey] !== undefined
+                ) {
                   const value = commercialPrices.outros_precos[underscoreKey];
                   allTickerItems.push({
                     name,
@@ -303,42 +315,54 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
                 }
               }
             });
-            
+
             // Processa outras commodities não especificadas acima
-            Object.entries(commercialPrices.outros_precos).forEach(([key, value]) => {
-              // Verificar se a key já está em specificCommodities (para não duplicar)
-              const isSpecificCommodity = specificCommodities.some(
-                c => c.key === key || c.key.replace(/([A-Z])/g, '_$1').toLowerCase() === key
-              );
-              
-              if (value && !isSpecificCommodity) {
-                // Formatar nome da commodity
-                const name = key
-                  .replace(/_/g, ' ')
-                  .split(' ')
-                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(' ');
-                
-                // Determinar unidade apropriada
-                let unit = "R$";
-                if (key.includes("soja") || key.includes("milho")) unit = "R$/sc";
-                if (key.includes("boi") || key.includes("bovino")) unit = "R$/@";
-                if (key.includes("algodao")) unit = "R$/@";
-                if (key.includes("cafe")) unit = "R$/sc";
-                if (key.includes("trigo") || key.includes("sorgo") || key.includes("milheto")) unit = "R$/sc";
-                if (key.includes("feijao")) unit = "R$/sc";
-                if (key.includes("mamona") || key.includes("pastagem")) unit = "R$/kg";
-                
-                allTickerItems.push({
-                  name,
-                  value,
-                  previousValue: value * 0.995, // Estimativa
-                  unit,
-                  category: "commodity",
-                  code: key.toUpperCase(),
-                });
+            Object.entries(commercialPrices.outros_precos).forEach(
+              ([key, value]) => {
+                // Verificar se a key já está em specificCommodities (para não duplicar)
+                const isSpecificCommodity = specificCommodities.some(
+                  (c) =>
+                    c.key === key ||
+                    c.key.replace(/([A-Z])/g, "_$1").toLowerCase() === key
+                );
+
+                if (value && !isSpecificCommodity) {
+                  // Formatar nome da commodity
+                  const name = key
+                    .replace(/_/g, " ")
+                    .split(" ")
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ");
+
+                  // Determinar unidade apropriada
+                  let unit = "R$";
+                  if (key.includes("soja") || key.includes("milho"))
+                    unit = "R$/sc";
+                  if (key.includes("boi") || key.includes("bovino"))
+                    unit = "R$/@";
+                  if (key.includes("algodao")) unit = "R$/@";
+                  if (key.includes("cafe")) unit = "R$/sc";
+                  if (
+                    key.includes("trigo") ||
+                    key.includes("sorgo") ||
+                    key.includes("milheto")
+                  )
+                    unit = "R$/sc";
+                  if (key.includes("feijao")) unit = "R$/sc";
+                  if (key.includes("mamona") || key.includes("pastagem"))
+                    unit = "R$/kg";
+
+                  allTickerItems.push({
+                    name,
+                    value,
+                    previousValue: value * 0.995, // Estimativa
+                    unit,
+                    category: "commodity",
+                    code: key.toUpperCase(),
+                  });
+                }
               }
-            });
+            );
           }
         }
 
@@ -499,9 +523,6 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
             (indicator) => `&id_indicador%5B%5D=${indicator.id}`
           ).join("")}`}
           strategy="lazyOnload"
-          onLoad={() => {
-            console.log("Script do CEPEA carregado");
-          }}
         />
       </div>
 
@@ -568,7 +589,11 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           top: 0;
           bottom: 0;
           width: 50px;
-          background: linear-gradient(to right, transparent, hsl(var(--background)));
+          background: linear-gradient(
+            to right,
+            transparent,
+            hsl(var(--background))
+          );
           z-index: 5;
         }
 

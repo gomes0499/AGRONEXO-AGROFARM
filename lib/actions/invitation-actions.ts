@@ -195,7 +195,6 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
     // Remover espaços e caracteres especiais para evitar problemas de formatação
     password = password.replace(/\s+/g, '');
     
-    console.log("Senha gerada para admin:", password);
     
     // Cria o usuário com a API admin do Supabase
     const adminUrl = process.env.SUPABASE_SERVICE_ROLE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -255,7 +254,6 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
     // Vamos implementar uma abordagem mais simples e direta para o envio de email
     setTimeout(async () => {
       try {
-        console.log("Enviando email para o novo admin (após delay):", email);
         
         // Importamos os módulos necessários
         const { Resend } = await import('resend');
@@ -281,7 +279,6 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
           }),
         });
         
-        console.log("Email enviado com sucesso:", data);
       } catch (emailError) {
         console.error("Erro ao enviar email de admin:", emailError);
         // Não lançamos erro aqui para não impedir a criação do usuário
@@ -375,8 +372,7 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
     // Remover espaços e caracteres especiais para evitar problemas de formatação
     password = password.replace(/\s+/g, '');
     
-    console.log("Senha gerada para membro:", password);
-    
+
     // Prepara os metadados do usuário - transformar camelCase para snake_case
     const userMetadata: any = {
       name: nome,
@@ -448,7 +444,6 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
     // Vamos implementar uma abordagem mais simples e direta para o envio de email
     setTimeout(async () => {
       try {
-        console.log("Enviando email para o novo membro (após delay):", email);
         
         // Importamos os módulos necessários
         const { Resend } = await import('resend');
@@ -475,7 +470,6 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
           }),
         });
         
-        console.log("Email enviado com sucesso:", data);
       } catch (emailError) {
         console.error("Erro ao enviar email de boas-vindas:", emailError);
         // Não lançamos erro aqui para não impedir a criação do usuário

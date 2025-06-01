@@ -114,15 +114,10 @@ export function OnboardingStepper({
             <PersonalDataForm
               profile={profile}
               onSubmit={async (data) => {
-                console.log("Enviando dados pessoais para o servidor:", data);
                 try {
                   const result = await updateOnboardingPersonalInfo(data);
-                  console.log(
-                    "Resultado do updateOnboardingPersonalInfo:",
-                    result
-                  );
+
                   if (result.success) {
-                    console.log("Avançando para o próximo passo");
                     nextStep();
                   } else {
                     console.error(
@@ -148,15 +143,9 @@ export function OnboardingStepper({
             <DocumentsForm
               profile={profile}
               onSubmit={async (data) => {
-                console.log("Enviando documentos para o servidor:", data);
                 try {
                   const result = await updateOnboardingDocuments(data);
-                  console.log(
-                    "Resultado do updateOnboardingDocuments:",
-                    result
-                  );
                   if (result.success) {
-                    console.log("Avançando para o próximo passo");
                     nextStep();
                   } else {
                     console.error(
@@ -183,12 +172,9 @@ export function OnboardingStepper({
             <AddressForm
               profile={profile}
               onSubmit={async (data) => {
-                console.log("Enviando endereço para o servidor:", data);
                 try {
                   const result = await updateOnboardingAddress(data);
-                  console.log("Resultado do updateOnboardingAddress:", result);
                   if (result.success) {
-                    console.log("Avançando para o próximo passo");
                     nextStep();
                   } else {
                     console.error("Erro ao atualizar endereço:", result.error);
@@ -211,7 +197,6 @@ export function OnboardingStepper({
           <Card className="p-6">
             <OnboardingComplete
               onComplete={async () => {
-                console.log("Finalizando onboarding");
                 try {
                   const result = await completeOnboarding();
                   if (result && !result.success) {

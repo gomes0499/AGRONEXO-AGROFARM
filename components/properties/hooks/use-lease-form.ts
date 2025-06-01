@@ -76,14 +76,10 @@ export function useLeaseForm({
   }, [propertyId, mode, lease, form]);
 
   const onSubmit = async (values: LeaseFormValues) => {
-    // Log de depuração inicial
-    console.log("onSubmit iniciado com valores:", values);
-    
     try {
       setIsLoading(true);
       toast.info("Processando formulário...");
-      
-      // Verificar se temos todos os campos obrigatórios
+
       if (!values.safra_id) {
         toast.error("Selecione uma safra");
         return { success: false };
@@ -111,23 +107,15 @@ export function useLeaseForm({
         const calculatedCost = values.area_arrendada * (values.custo_hectare || 0);
         values.custos_por_ano = { [currentYear]: calculatedCost };
       }
-      
-      // Processar o envio de acordo com o modo
-      console.log("Enviando dados para o servidor...");
-      
+ 
       if (mode === "edit" && lease?.id) {
-        console.log("Atualizando arrendamento:", lease.id);
         await updateLease(lease.id, values);
         toast.success("Arrendamento atualizado com sucesso!");
       } else {
-        console.log("Criando novo arrendamento");
         const createdLease = await createLease(organizationId, propertyId, values);
-        console.log("Arrendamento criado:", createdLease);
         toast.success("Arrendamento criado com sucesso!");
       }
 
-      // Redirecionar ou executar callback de sucesso
-      console.log("Redirecionando após sucesso...");
       if (onSuccess) {
         onSuccess();
       } else {

@@ -11,16 +11,15 @@ interface NewCultureProjectionButtonProps {
   size?: "sm" | "default" | "lg";
 }
 
-export function NewCultureProjectionButton({ 
+export function NewCultureProjectionButton({
   organizationId,
   projecaoConfigId,
-  onProjectionCreated, 
+  onProjectionCreated,
   className,
-  size = "default" 
+  size = "default",
 }: NewCultureProjectionButtonProps) {
   const handleClick = () => {
     // TODO: Implementar modal/drawer de criação de projeção
-    console.log("Creating new projection with config:", projecaoConfigId);
     onProjectionCreated();
   };
 

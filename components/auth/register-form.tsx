@@ -53,11 +53,8 @@ export function RegisterForm({ email, inviteToken }: RegisterFormProps = {}) {
     setSuccess(false);
 
     try {
-      console.log("Enviando dados de registro:", data.email, inviteToken ? "com token" : "sem token");
       const result = await registerUser(data, inviteToken);
-      console.log("Resultado do registro:", result);
 
-      // Verificação robusta da resposta
       if (!result) {
         setError("Erro de comunicação com o servidor. Tente novamente.");
         return;
@@ -113,12 +110,12 @@ export function RegisterForm({ email, inviteToken }: RegisterFormProps = {}) {
         <div className="flex flex-col items-center justify-center space-y-3 text-center">
           <CheckCircle2 className="h-12 w-12 text-green-500" />
           <h2 className="text-2xl font-semibold">Registro concluído!</h2>
-          
+
           {inviteToken ? (
             <>
               <p className="text-muted-foreground">
-                Sua conta foi criada com sucesso! Agora você será redirecionado para
-                fazer login e aceitar o convite.
+                Sua conta foi criada com sucesso! Agora você será redirecionado
+                para fazer login e aceitar o convite.
               </p>
               <p className="text-sm font-medium text-primary">
                 Aguarde enquanto redirecionamos você...
@@ -126,10 +123,11 @@ export function RegisterForm({ email, inviteToken }: RegisterFormProps = {}) {
             </>
           ) : (
             <p className="text-muted-foreground">
-              Sua conta foi criada com sucesso! Agora você pode fazer login no sistema.
+              Sua conta foi criada com sucesso! Agora você pode fazer login no
+              sistema.
             </p>
           )}
-          
+
           <Button asChild className="mt-4">
             <Link href="/auth/login">Ir para Login</Link>
           </Button>
@@ -197,7 +195,8 @@ export function RegisterForm({ email, inviteToken }: RegisterFormProps = {}) {
                 </FormControl>
                 {inviteToken && email && (
                   <p className="text-xs text-muted-foreground">
-                    Este é o email associado ao seu convite. Não pode ser alterado.
+                    Este é o email associado ao seu convite. Não pode ser
+                    alterado.
                   </p>
                 )}
                 <FormMessage />

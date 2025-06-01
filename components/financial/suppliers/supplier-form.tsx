@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { Harvest } from "@/schemas/production";
 import { getSafras } from "@/lib/actions/production-actions";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
   SelectContent,
-  SelectItem
+  SelectItem,
 } from "@/components/ui/select";
 import {
   createSupplier,
@@ -65,7 +65,6 @@ export function SupplierForm({
   existingSupplier,
   onSubmit,
 }: SupplierFormProps) {
-  console.log("Supplier form - organizationId recebido:", organizationId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [harvests, setHarvests] = useState<Harvest[]>([]);
   const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
@@ -96,19 +95,18 @@ export function SupplierForm({
     defaultValues: {
       nome: existingSupplier?.nome || "",
       moeda: existingSupplier?.moeda || "BRL",
-      valores_por_ano: 
+      valores_por_ano:
         typeof existingSupplier?.valores_por_ano === "string"
           ? JSON.parse(existingSupplier.valores_por_ano)
           : existingSupplier?.valores_por_ano || {},
       organizacao_id: organizationId || existingSupplier?.organizacao_id || "",
     },
   });
-  
+
   // Garantir que o organization_id seja definido no formulário
   useEffect(() => {
     if (organizationId) {
       form.setValue("organizacao_id", organizationId);
-      console.log("Atualizando organizacao_id no formulário:", organizationId);
     }
   }, [organizationId, form]);
 
@@ -122,8 +120,6 @@ export function SupplierForm({
         toast.error("Erro: ID da organização não definido");
         return;
       }
-      
-      console.log("Enviando fornecedor com organizacao_id:", values.organizacao_id);
 
       // Converter valores por ano para string JSON
       const dataToSubmit = {
@@ -236,7 +232,10 @@ export function SupplierForm({
                           : field.value || {}
                       }
                       onChange={field.onChange}
-                      safras={harvests.map(h => ({ id: h.id || "", nome: h.nome }))}
+                      safras={harvests.map((h) => ({
+                        id: h.id || "",
+                        nome: h.nome,
+                      }))}
                       currency={form.watch("moeda")}
                       disabled={isSubmitting || isLoadingHarvests}
                     />

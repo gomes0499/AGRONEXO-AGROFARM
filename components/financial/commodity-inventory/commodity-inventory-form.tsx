@@ -36,16 +36,32 @@ import { getSafras } from "@/lib/actions/production-actions";
 // Define commodity type enum values
 // Using the schema's values to ensure consistency
 const commodityOptions = [
-  "SOJA", "ALGODAO", "MILHO", "ARROZ", "SORGO", "CAFE", "CACAU", 
-  "SOJA_CANA", "TRIGO", "FEIJAO", "GIRASSOL", "AMENDOIM", 
-  "BOI_GORDO", "BEZERRO", "VACA_GORDA", "OUTROS"
+  "SOJA",
+  "ALGODAO",
+  "MILHO",
+  "ARROZ",
+  "SORGO",
+  "CAFE",
+  "CACAU",
+  "SOJA_CANA",
+  "TRIGO",
+  "FEIJAO",
+  "GIRASSOL",
+  "AMENDOIM",
+  "BOI_GORDO",
+  "BEZERRO",
+  "VACA_GORDA",
+  "OUTROS",
 ] as const;
 
 // Define local schema for better type safety with React Hook Form
 const formSchema = z.object({
   organizacao_id: z.string().uuid(),
   commodity: z.enum(commodityOptions),
-  valor_total: z.coerce.number().min(0, "Valor total deve ser positivo").optional(),
+  valor_total: z.coerce
+    .number()
+    .min(0, "Valor total deve ser positivo")
+    .optional(),
   valores_por_safra: z.record(z.string(), z.number()).optional(),
 });
 
@@ -110,23 +126,24 @@ export function CommodityInventoryForm({
       organizacao_id: organizationId,
       commodity: existingInventory?.commodity || "SOJA",
       valor_total: existingInventory?.valor_total || 0,
-      valores_por_safra: parseValoresPorSafra(existingInventory?.valores_por_safra),
+      valores_por_safra: parseValoresPorSafra(
+        existingInventory?.valores_por_safra
+      ),
     },
   });
-  
+
   // Garantir que o organization_id seja definido no formulário
   useEffect(() => {
     if (organizationId) {
       form.setValue("organizacao_id", organizationId);
-      console.log("ID da organização definido:", organizationId);
     }
   }, [organizationId, form]);
-  
+
   // Função para lidar com o envio do formulário
   const handleSubmit = form.handleSubmit(async (values) => {
     try {
       setIsSubmitting(true);
-      
+
       // Garante que organizacao_id está definido, usando organizationId como fallback
       if (!values.organizacao_id && !organizationId) {
         console.error("Erro: organizacao_id não definido");
@@ -135,15 +152,13 @@ export function CommodityInventoryForm({
       }
 
       const orgId = values.organizacao_id || organizationId;
-      console.log("Enviando estoque com organizacao_id:", orgId);
 
       // Calculate total from safra values
       const valoresPorSafra = values.valores_por_safra || {};
-      const valorTotal = Object.values(valoresPorSafra as Record<string, number>).reduce(
-        (acc, val) => acc + (typeof val === "number" ? val : 0),
-        0
-      );
-      
+      const valorTotal = Object.values(
+        valoresPorSafra as Record<string, number>
+      ).reduce((acc, val) => acc + (typeof val === "number" ? val : 0), 0);
+
       // Adicionar apenas os dados essenciais
       const dataToSubmit = {
         commodity: values.commodity,
@@ -220,10 +235,16 @@ export function CommodityInventoryForm({
                     <SelectItem value="MILHO">Milho</SelectItem>
                     <SelectItem value="MILHETO">Milheto</SelectItem>
                     <SelectItem value="SORGO">Sorgo</SelectItem>
-                    <SelectItem value="FEIJAO_GURUTUBA">Feijão Gurutuba</SelectItem>
-                    <SelectItem value="FEIJAO_CARIOCA">Feijão Carioca</SelectItem>
+                    <SelectItem value="FEIJAO_GURUTUBA">
+                      Feijão Gurutuba
+                    </SelectItem>
+                    <SelectItem value="FEIJAO_CARIOCA">
+                      Feijão Carioca
+                    </SelectItem>
                     <SelectItem value="MAMONA">Mamona</SelectItem>
-                    <SelectItem value="SEM_PASTAGEM">Sementes para Pastagem</SelectItem>
+                    <SelectItem value="SEM_PASTAGEM">
+                      Sementes para Pastagem
+                    </SelectItem>
                     <SelectItem value="CAFE">Café</SelectItem>
                     <SelectItem value="TRIGO">Trigo</SelectItem>
                     <SelectItem value="PECUARIA">Pecuária</SelectItem>

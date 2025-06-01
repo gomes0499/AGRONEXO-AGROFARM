@@ -63,7 +63,6 @@ export function LoanForm({
   existingLoan,
   onSubmit,
 }: LoanFormProps) {
-  console.log("Loan form - organizationId recebido:", organizationId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [harvests, setHarvests] = useState<Harvest[]>([]);
   const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
@@ -116,7 +115,6 @@ export function LoanForm({
   useEffect(() => {
     if (organizationId) {
       form.setValue("organizacao_id", organizationId);
-      console.log("Atualizando organizacao_id no formulário:", organizationId);
     }
   }, [organizationId, form]);
 
@@ -131,22 +129,16 @@ export function LoanForm({
         toast.error("Erro: ID da organização não definido");
         return;
       }
-      
+
       // Usa o valor do formulário ou o organizationId diretamente
       const orgId = data.organizacao_id || organizationId;
 
-      console.log(
-        "Enviando empréstimo com organizacao_id:",
-        orgId
-      );
-
       // Calculate total from safra values
       const valoresPorSafra = data.valores_por_safra || {};
-      const valorTotal = Object.values(valoresPorSafra as Record<string, number>).reduce(
-        (acc, val) => acc + (typeof val === "number" ? val : 0),
-        0
-      );
-      
+      const valorTotal = Object.values(
+        valoresPorSafra as Record<string, number>
+      ).reduce((acc, val) => acc + (typeof val === "number" ? val : 0), 0);
+
       // Preparar dados para envio
       const dataToSubmit = {
         ...data,
@@ -198,23 +190,15 @@ export function LoanForm({
         <Form {...form}>
           <form
             onSubmit={(e) => {
-              console.log("Form submission attempt");
-              console.log("Form validation state:", form.formState.isValid);
-              console.log("Form errors:", form.formState.errors);
               const values = form.getValues();
-              console.log("Form values:", values);
-              
-              // Verificar os dados críticos
-              console.log("beneficiario:", values.beneficiario, "tipo:", typeof values.beneficiario);
-              console.log("valor:", values.valor, "tipo:", typeof values.valor);
-              console.log("organizacao_id:", values.organizacao_id, "tipo:", typeof values.organizacao_id);
-              
+
               if (!values.organizacao_id) {
-                console.error("ERRO: organizacao_id não definido no formulário");
+                console.error(
+                  "ERRO: organizacao_id não definido no formulário"
+                );
                 form.setValue("organizacao_id", organizationId);
-                console.log("Definindo organizacao_id para:", organizationId);
               }
-              
+
               form.handleSubmit(onFormSubmit)(e);
             }}
             className="space-y-6"
@@ -249,7 +233,7 @@ export function LoanForm({
                       description="Defina o valor do empréstimo para cada safra"
                       values={field.value || {}}
                       onChange={field.onChange}
-                      safras={harvests.map(h => ({ id: h.id, nome: h.nome }))}
+                      safras={harvests.map((h) => ({ id: h.id, nome: h.nome }))}
                       currency="BRL"
                       disabled={isSubmitting || isLoadingHarvests}
                     />

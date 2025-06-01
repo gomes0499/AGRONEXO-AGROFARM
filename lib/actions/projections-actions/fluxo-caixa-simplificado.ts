@@ -44,8 +44,6 @@ export interface FluxoCaixaData {
 export async function getFluxoCaixaSimplificado(
   organizationId: string
 ): Promise<FluxoCaixaData> {
-  console.log("🔄 Calculando fluxo de caixa simplificado");
-  
   const supabase = await createClient();
   
   // 1. Buscar projeções de culturas
@@ -54,7 +52,6 @@ export async function getFluxoCaixaSimplificado(
   
   // Filtrar anos para remover 2030/31 e 2031/32
   const anosFiltrados = anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
-  console.log(`✅ Anos filtrados: removidos 2030/31 e 2031/32, restam ${anosFiltrados.length} anos`);
   
   // 2. Inicializar estruturas de dados
   const receitasAgricolas: Record<string, Record<string, number>> = {};
@@ -162,7 +159,6 @@ export async function getFluxoCaixaSimplificado(
   
   // 8. Processar valores de arrendamentos
   if (arrendamentos && arrendamentos.length > 0) {
-    console.log(`✅ Encontrados ${arrendamentos.length} arrendamentos`);
     
     arrendamentos.forEach(arrendamento => {
       const custosField = arrendamento.custos_por_ano || arrendamento.valores_por_ano;
@@ -178,7 +174,6 @@ export async function getFluxoCaixaSimplificado(
       });
     });
   } else {
-    console.log("⚠️ Nenhum arrendamento encontrado, usando valores demonstrativos");
     // Valores demonstrativos para arrendamentos
     anosFiltrados.forEach(ano => {
       outrasDespesas.arrendamento[ano] = 1200000; // R$ 1.2M
@@ -187,7 +182,7 @@ export async function getFluxoCaixaSimplificado(
   
   // 9. Processar valores de outras despesas
   if (outrasDespesasData && outrasDespesasData.length > 0) {
-    console.log(`✅ Encontrados ${outrasDespesasData.length} registros de outras despesas`);
+    
     
     outrasDespesasData.forEach(despesa => {
       const categoria = despesa.categoria?.toUpperCase() || '';
@@ -215,8 +210,6 @@ export async function getFluxoCaixaSimplificado(
       });
     });
   } else {
-    console.log("⚠️ Nenhum registro de outras despesas encontrado, usando valores demonstrativos");
-    // Valores demonstrativos para outras despesas
     anosFiltrados.forEach(ano => {
       outrasDespesas.pro_labore[ano] = 600000;    // R$ 600K
       outrasDespesas.divisao_lucros[ano] = 0;     // Zerado por enquanto
@@ -261,9 +254,6 @@ export async function getFluxoCaixaSimplificado(
   });
   
   if (investimentosData && investimentosData.length > 0) {
-    console.log(`✅ Encontrados ${investimentosData.length} investimentos`);
-    
-    // Mapeamento de safra_id para ano
     const safraIdToAno: Record<string, string> = {};
     safras.forEach(safra => {
       safraIdToAno[safra.id] = safra.nome;
@@ -307,9 +297,6 @@ export async function getFluxoCaixaSimplificado(
       }
     });
   } else {
-    console.log("⚠️ Nenhum investimento encontrado, usando valores demonstrativos");
-    
-    // Valores demonstrativos baseados nos dados solicitados (deslocados 1 safra para trás)
     const valoresDemo: Record<string, { total: number; terras: number; maquinarios: number; outros: number }> = {
       "2021/22": { total: 52800000, terras: 0, maquinarios: 11800000, outros: 41000000 },
       "2022/23": { total: 90376000, terras: 0, maquinarios: 48376000, outros: 42000000 },
@@ -370,7 +357,6 @@ export async function getFluxoCaixaSimplificado(
     // Zerar fluxo líquido para 2021/22 e 2022/23
     if (ano === "2021/22" || ano === "2022/23") {
       fluxoLiquidoComFinanceiras[ano] = 0;
-      console.log(`Fluxo líquido zerado para ${ano}`);
     } else {
       fluxoLiquidoComFinanceiras[ano] = fluxoLiquido[ano] + financeirasData.total_por_ano[ano];
     }
@@ -383,7 +369,6 @@ export async function getFluxoCaixaSimplificado(
     // Zerar fluxo acumulado para 2021/22 e 2022/23
     if (ano === "2021/22" || ano === "2022/23") {
       fluxoAcumuladoComFinanceiras[ano] = 0;
-      console.log(`Fluxo acumulado zerado para ${ano}`);
     } else {
       acumuladoAtualizado += fluxoLiquidoComFinanceiras[ano];
       fluxoAcumuladoComFinanceiras[ano] = acumuladoAtualizado;
@@ -471,8 +456,7 @@ async function calcularDadosFinanceiras(
   
   try {
     // Valor fixo para dívidas bancárias conforme tabela POSIÇÃO DE DÍVIDA
-    const valorFixoDividasBancarias = 359179564; // R$ 359.179.564
-    console.log(`✅ Usando valor fixo de dívidas bancárias: ${formatCurrency(valorFixoDividasBancarias)}`);
+    const valorFixoDividasBancarias = 359179564; 
     
     // Criar cliente Supabase para buscar dados
     const supabase = await createClient();
@@ -498,7 +482,6 @@ async function calcularDadosFinanceiras(
     
     // Extrair valores de novas linhas de crédito do banco de dados
     const valoresPorAno = financeirasData?.valores_por_ano || {} as Record<string, number>;
-    console.log("Valores de novas linhas de crédito:", valoresPorAno);
     
     // Para cada ano, calcular valores financeiros conforme a tabela
     for (const ano of anos) {
@@ -509,7 +492,6 @@ async function calcularDadosFinanceiras(
       // Zerar para 2021/22, 2022/23 e 2023/24 conforme solicitado
       if (ano === "2021/22" || ano === "2022/23" || ano === "2023/24") {
         servicoDivida[ano] = 0;
-        console.log(`Serviço da dívida zerado para ${ano} conforme especificação`);
       } else if (anoBase >= 2023) {
         servicoDivida[ano] = valorFixoDividasBancarias * 0.0992; // 9.92% do valor fixo
       } else {
@@ -520,7 +502,6 @@ async function calcularDadosFinanceiras(
       // Zerar para 2021/22, 2022/23 e 2023/24 conforme solicitado
       if (ano === "2021/22" || ano === "2022/23" || ano === "2023/24") {
         pagamentosBancos[ano] = 0;
-        console.log(`Pagamentos bancários zerados para ${ano} conforme especificação`);
       } else {
         pagamentosBancos[ano] = 179000000; // R$ 179M fixo para os demais anos
       }
@@ -529,7 +510,6 @@ async function calcularDadosFinanceiras(
       // Zerar explicitamente para os anos 2021/22, 2022/23 e 2023/24
       if (ano === "2021/22" || ano === "2022/23" || ano === "2023/24") {
         novasLinhasCredito[ano] = 0;
-        console.log(`Ano ${ano} zerado conforme especificação`);
       } else {
         // Para os demais anos, buscar no banco de dados
         // Encontrar ID da safra correspondente a este ano
@@ -538,11 +518,9 @@ async function calcularDadosFinanceiras(
         if (safraId && valoresPorAno && valoresPorAno[safraId] !== undefined) {
           // Usar valor do banco de dados
           novasLinhasCredito[ano] = valoresPorAno[safraId];
-          console.log(`Encontrado valor para ${ano} (${safraId}): ${formatCurrency(novasLinhasCredito[ano])}`);
         } else {
           // Se não encontrar, usar zero
           novasLinhasCredito[ano] = 0;
-          console.log(`Sem valor para ${ano}, usando zero`);
         }
       }
       
@@ -551,15 +529,8 @@ async function calcularDadosFinanceiras(
       totalPorAno[ano] = novasLinhasCredito[ano] - servicoDivida[ano] - pagamentosBancos[ano];
     }
     
-    console.log(`✅ Dados financeiros calculados com sucesso`);
   } catch (error) {
-    console.error("Erro ao calcular dados financeiros:", error);
     
-    // Em caso de erro, usar valores demonstrativos
-    console.log("⚠️ Usando valores demonstrativos para dados financeiros");
-    
-    // Valores demonstrativos para novas linhas de crédito
-    // Removidos 2030/31 e 2031/32 conforme solicitação
     const novasLinhasCreditoDemo: Record<string, number> = {
       "2021/22": 0, // Zerado conforme especificação
       "2022/23": 0, // Zerado conforme especificação

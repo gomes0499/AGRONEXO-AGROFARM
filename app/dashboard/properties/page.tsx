@@ -15,15 +15,19 @@ export const metadata: Metadata = {
 export default async function PropertiesPage({
   searchParams,
 }: {
-  searchParams?: any;
+  searchParams?: { init_prices?: string };
 }) {
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
 
+  // Await searchParams antes de acessar suas propriedades
+  const resolvedParams = await Promise.resolve(searchParams);
+  const shouldInitPrices = resolvedParams?.init_prices === "true";
+
   const session = await getSession();
 
   // Verificar se há parâmetro para inicializar preços
-  if (searchParams?.init_prices === "true" && session?.organizationId) {
+  if (shouldInitPrices && session?.organizationId) {
     // Importar a função para inicializar preços e chamá-la
     const { initializeDefaultCommodityPrices } = await import(
       "@/lib/actions/indicator-actions/commodity-price-actions"
@@ -43,7 +47,7 @@ export default async function PropertiesPage({
       <SiteHeader title="Bens Imóveis" />
       <div className="flex flex-col gap-6 p-6">
         {/* Exibir alerta se os preços foram inicializados */}
-        {searchParams?.init_prices === "true" && (
+        {shouldInitPrices && (
           <div className="bg-green-50 dark:bg-green-950/30 border-l-4 border-green-500 p-4 mb-2">
             <div className="flex">
               <div className="flex-shrink-0">

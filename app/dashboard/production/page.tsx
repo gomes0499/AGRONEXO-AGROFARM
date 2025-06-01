@@ -93,9 +93,7 @@ export default async function ProductionPage() {
       try {
         const data = await getLivestockDataUnified(organizationId);
         livestockData = data;
-      } catch (e) {
-        console.log("Erro ao buscar dados completos de rebanho:", e);
-      }
+      } catch (e) {}
     }
   } catch (error) {
     console.error("Erro ao verificar tabela de rebanho:", error);

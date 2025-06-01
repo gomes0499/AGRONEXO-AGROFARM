@@ -27,20 +27,20 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
-// Formatar valor monetário 
+// Formatar valor monetário
 function formatCurrency(value: number, digits = 2) {
-  let formatted = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    notation: value >= 1000000 ? 'compact' : 'standard',
+  let formatted = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    notation: value >= 1000000 ? "compact" : "standard",
     maximumFractionDigits: digits,
   }).format(value);
-  
+
   // Adicionar espaço entre o número e a unidade (mi, bi)
-  formatted = formatted.replace(/mi$/, ' mi').replace(/bi$/, ' bi');
-  
+  formatted = formatted.replace(/mi$/, " mi").replace(/bi$/, " bi");
+
   return formatted;
-};
+}
 
 interface FinancialTotalLiabilitiesChartProps {
   organizationId: string;
@@ -58,93 +58,103 @@ interface LiabilityData {
 const chartConfig = {
   total: {
     label: "Dívida Total",
-    color: "#1B124E",  // Tom primário mais escuro
+    color: "#1B124E", // Tom primário mais escuro
   },
   liquido: {
     label: "Dívida Líquida",
-    color: "#4338CA",  // Tom secundário
+    color: "#4338CA", // Tom secundário
   },
   bancos_tradings: {
     label: "Dívida Bancária",
-    color: "#6366F1",  // Tom terciário
+    color: "#6366F1", // Tom terciário
   },
   outros: {
     label: "Outros Passivos",
-    color: "#818CF8",  // Tom quaternário
+    color: "#818CF8", // Tom quaternário
   },
 } satisfies ChartConfig;
 
-async function getTotalLiabilitiesData(organizationId: string, yearOrSafraId?: number | string): Promise<{ data: LiabilityData[], safraName?: string }> {
+async function getTotalLiabilitiesData(
+  organizationId: string,
+  yearOrSafraId?: number | string
+): Promise<{ data: LiabilityData[]; safraName?: string }> {
   const supabase = createClient();
-  
-  console.log(`Buscando dados consolidados de passivos para comparativo entre safras`);
-  
-  // Buscar todas as safras
+
   const { data: safras } = await supabase
-    .from('safras')
-    .select('id, nome, ano_inicio, ano_fim')
-    .eq('organizacao_id', organizationId)
-    .order('ano_inicio'); // Ordenar por ano de início em ordem crescente
-  
+    .from("safras")
+    .select("id, nome, ano_inicio, ano_fim")
+    .eq("organizacao_id", organizationId)
+    .order("ano_inicio"); // Ordenar por ano de início em ordem crescente
+
   if (!safras || safras.length === 0) {
-    console.log('Nenhuma safra encontrada');
     return { data: [] };
   }
 
   // Filtramos safras a partir de 2020/2021 até o presente
   // Queremos mostrar a evolução histórica completa dos passivos
-  const safrasFiltradas = safras.filter(safra => {
+  const safrasFiltradas = safras.filter((safra) => {
     // Pegar o ano de início da safra (primeiro número da string nome)
-    const anoInicio = parseInt(safra.nome.split('/')[0]);
+    const anoInicio = parseInt(safra.nome.split("/")[0]);
     return anoInicio >= 2020; // Incluir safras de 2020 em diante
   });
-  
+
   // Usar todas as safras filtradas para o gráfico
-  const safrasParaAnalisar = safrasFiltradas.map(s => s.id);
-  
+  const safrasParaAnalisar = safrasFiltradas.map((s) => s.id);
+
   // Também identificamos a safra atualmente selecionada para destacar, se houver
   let safraAtualNome: string | undefined;
-  
-  if (typeof yearOrSafraId === 'string' && yearOrSafraId.length >= 30) {
-    const safraEncontrada = safras.find(s => s.id === yearOrSafraId);
+
+  if (typeof yearOrSafraId === "string" && yearOrSafraId.length >= 30) {
+    const safraEncontrada = safras.find((s) => s.id === yearOrSafraId);
     if (safraEncontrada) {
       safraAtualNome = safraEncontrada.nome;
     }
-  } else if (typeof yearOrSafraId === 'number' && yearOrSafraId >= 2000 && yearOrSafraId <= 2100) {
-    const safraEncontrada = safras.find(s => s.ano_inicio === yearOrSafraId);
+  } else if (
+    typeof yearOrSafraId === "number" &&
+    yearOrSafraId >= 2000 &&
+    yearOrSafraId <= 2100
+  ) {
+    const safraEncontrada = safras.find((s) => s.ano_inicio === yearOrSafraId);
     if (safraEncontrada) {
       safraAtualNome = safraEncontrada.nome;
     }
   }
 
-  console.log(`Analisando ${safrasParaAnalisar.length} safras`);
-
-  // Buscar apenas os dados necessários para o cálculo das dívidas bancárias e caixa
-  const [dividasBancariasResult, caixaDisponibilidadesResult] = await Promise.all([
-    // Dívidas bancárias (inclui bancos, tradings e outros)
-    supabase.from('dividas_bancarias').select('*').eq('organizacao_id', organizationId),
-    // Caixa e disponibilidades
-    supabase.from('caixa_disponibilidades').select('*').eq('organizacao_id', organizationId)
-  ]);
+  const [dividasBancariasResult, caixaDisponibilidadesResult] =
+    await Promise.all([
+      // Dívidas bancárias (inclui bancos, tradings e outros)
+      supabase
+        .from("dividas_bancarias")
+        .select("*")
+        .eq("organizacao_id", organizationId),
+      // Caixa e disponibilidades
+      supabase
+        .from("caixa_disponibilidades")
+        .select("*")
+        .eq("organizacao_id", organizationId),
+    ]);
 
   const dividasBancarias = dividasBancariasResult.data || [];
   const caixaDisponibilidades = caixaDisponibilidadesResult.data || [];
 
   // Inicializar resultado
   const resultado: LiabilityData[] = [];
-  
+
   // Inicializar estrutura para armazenar os valores por safra
-  const valoresPorSafra: Record<string, {
-    bancos: number;
-    outros: number;
-    caixa: number;
-    arrendamento: number;
-    fornecedores: number;
-    tradings: number;
-    estoqueCommodity: number;
-    estoqueInsumos: number;
-    ativoBiologico: number;
-  }> = {};
+  const valoresPorSafra: Record<
+    string,
+    {
+      bancos: number;
+      outros: number;
+      caixa: number;
+      arrendamento: number;
+      fornecedores: number;
+      tradings: number;
+      estoqueCommodity: number;
+      estoqueInsumos: number;
+      ativoBiologico: number;
+    }
+  > = {};
 
   // Inicializar o objeto para cada safra
   for (const safraId of safrasParaAnalisar) {
@@ -157,24 +167,28 @@ async function getTotalLiabilitiesData(organizationId: string, yearOrSafraId?: n
       tradings: 0,
       estoqueCommodity: 0,
       estoqueInsumos: 0,
-      ativoBiologico: 0
+      ativoBiologico: 0,
     };
   }
 
   // Função auxiliar para extrair valores de um campo JSON
-  const extrairValorSafra = (objeto: any, safraId: string, campoValores = 'valores_por_safra'): number => {
+  const extrairValorSafra = (
+    objeto: any,
+    safraId: string,
+    campoValores = "valores_por_safra"
+  ): number => {
     try {
       let valores = objeto[campoValores] || objeto.valores_por_ano || {};
-      
-      if (typeof valores === 'string') {
+
+      if (typeof valores === "string") {
         valores = JSON.parse(valores);
       }
-      
-      if (valores && typeof valores === 'object') {
+
+      if (valores && typeof valores === "object") {
         return parseFloat(valores[safraId]) || 0;
       }
     } catch (e) {
-      console.warn('Erro ao extrair valor:', e);
+      console.warn("Erro ao extrair valor:", e);
     }
     return 0;
   };
@@ -187,63 +201,62 @@ async function getTotalLiabilitiesData(organizationId: string, yearOrSafraId?: n
   for (const divida of dividasBancarias) {
     // Para cada dívida, somar todos os valores de todas as safras
     let valorTotal = 0;
-    
+
     // Verificar se é um objeto ou JSON
-    let valoresSafras = divida.valores_por_safra || divida.valores_por_ano || {};
-    if (typeof valoresSafras === 'string') {
+    let valoresSafras =
+      divida.valores_por_safra || divida.valores_por_ano || {};
+    if (typeof valoresSafras === "string") {
       try {
         valoresSafras = JSON.parse(valoresSafras);
       } catch (e) {
         valoresSafras = {};
       }
     }
-    
+
     // Somar o valor total de todas as safras para esta dívida
-    if (valoresSafras && typeof valoresSafras === 'object') {
+    if (valoresSafras && typeof valoresSafras === "object") {
       for (const safraId in valoresSafras) {
         const valor = parseFloat(valoresSafras[safraId]) || 0;
         valorTotal += valor;
       }
     }
-    
+
     // Categorizar o valor total
     if (valorTotal > 0) {
-      if (divida.tipo === 'BANCO' || divida.tipo === 'TRADING') {
+      if (divida.tipo === "BANCO" || divida.tipo === "TRADING") {
         totalBancosTodos += valorTotal;
-      } else if (divida.tipo === 'OUTROS') {
+      } else if (divida.tipo === "OUTROS") {
         totalOutrosTodos += valorTotal;
       }
     }
   }
-  
+
   // Calcular o total global de passivos
   const totalPassivosTodos = totalBancosTodos + totalOutrosTodos;
-  
-  console.log(`Totais globais encontrados: Bancos=${totalBancosTodos}, Outros=${totalOutrosTodos}, Total=${totalPassivosTodos}`);
-  
+
   // Vamos agora calcular o total de caixas e disponibilidades por safra
   // Isso é necessário para calcular a dívida líquida específica de cada safra
   const caixasPorSafra: Record<string, number> = {};
-  
+
   // Inicializar o objeto para cada safra
   for (const safraId of safrasParaAnalisar) {
     caixasPorSafra[safraId] = 0;
   }
-  
+
   // Calcular os totais de caixa para cada safra específica
   for (const caixa of caixaDisponibilidades) {
     // Verificar se é um objeto ou JSON
     let valoresSafras = caixa.valores_por_safra || caixa.valores_por_ano || {};
-    if (typeof valoresSafras === 'string') {
+    if (typeof valoresSafras === "string") {
       try {
         valoresSafras = JSON.parse(valoresSafras);
       } catch (e) {
         valoresSafras = {};
       }
     }
-    
+
     // Adicionar valor de caixa para cada safra específica
-    if (valoresSafras && typeof valoresSafras === 'object') {
+    if (valoresSafras && typeof valoresSafras === "object") {
       for (const safraId in valoresSafras) {
         if (safrasParaAnalisar.includes(safraId)) {
           const valor = parseFloat(valoresSafras[safraId]) || 0;
@@ -254,45 +267,43 @@ async function getTotalLiabilitiesData(organizationId: string, yearOrSafraId?: n
       }
     }
   }
-  
+
   // Agora vamos criar uma entrada para cada safra
   for (const safraId of safrasParaAnalisar) {
-    const safra = safras.find(s => s.id === safraId);
+    const safra = safras.find((s) => s.id === safraId);
     if (!safra) continue;
-    
+
     // Obter o total de caixas desta safra específica
     const totalCaixaSafra = caixasPorSafra[safraId] || 0;
-    
+
     // Calcular a dívida líquida específica desta safra:
     // Dívida Líquida = Dívida Total - Caixas e Disponibilidades desta safra
     const liquidoSafra = Math.max(0, totalPassivosTodos - totalCaixaSafra);
-    
-    console.log(`Safra ${safra.nome}: Total Caixas=${totalCaixaSafra}, Dívida Líquida=${liquidoSafra}`);
-    
+
     // Adicionar ao resultado: bancos/outros/total são globais, líquida é específica da safra
     resultado.push({
       safra: safra.nome,
       bancos_tradings: totalBancosTodos,
       outros: totalOutrosTodos,
       total: totalPassivosTodos,
-      liquido: liquidoSafra
+      liquido: liquidoSafra,
     });
   }
 
-  console.log(`Dados processados: ${resultado.length} safras com informações de passivos`);
-  
   // Como já buscamos em ordem crescente, as safras mais antigas já estarão à esquerda
   return { data: resultado, safraName: safraAtualNome };
 }
 
-export function FinancialTotalLiabilitiesChart({ 
-  organizationId, 
-  selectedYear 
+export function FinancialTotalLiabilitiesChart({
+  organizationId,
+  selectedYear,
 }: FinancialTotalLiabilitiesChartProps) {
   const [data, setData] = useState<LiabilityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [displaySafra, setDisplaySafra] = useState<string | undefined>(undefined);
+  const [displaySafra, setDisplaySafra] = useState<string | undefined>(
+    undefined
+  );
 
   // Efeito para carregar dados quando o valor solicitado ou organização mudar
   useEffect(() => {
@@ -300,14 +311,14 @@ export function FinancialTotalLiabilitiesChart({
       try {
         setLoading(true);
         setError(null);
-        
-        console.log(`Carregando dados de passivos totais para safra: ${selectedYear}`);
-        
-        const result = await getTotalLiabilitiesData(organizationId, selectedYear);
-        
+
+        const result = await getTotalLiabilitiesData(
+          organizationId,
+          selectedYear
+        );
+
         const { data: liabilitiesData, safraName } = result;
-        console.log(`Dados carregados: ${liabilitiesData.length} safras com dados de passivos`);
-        
+
         setData(liabilitiesData);
         setDisplaySafra(safraName);
       } catch (err) {
@@ -331,9 +342,7 @@ export function FinancialTotalLiabilitiesChart({
                 <LayoutList className="h-4 w-4 text-white" />
               </div>
               <div>
-                <CardTitle className="text-white">
-                  Passivos Totais
-                </CardTitle>
+                <CardTitle className="text-white">Passivos Totais</CardTitle>
                 <CardDescription className="text-white/80">
                   Carregando dados...
                 </CardDescription>
@@ -365,9 +374,7 @@ export function FinancialTotalLiabilitiesChart({
                 <LayoutList className="h-4 w-4 text-white" />
               </div>
               <div>
-                <CardTitle className="text-white">
-                  Passivos Totais
-                </CardTitle>
+                <CardTitle className="text-white">Passivos Totais</CardTitle>
                 <CardDescription className="text-white/80">
                   {error}
                 </CardDescription>
@@ -377,7 +384,9 @@ export function FinancialTotalLiabilitiesChart({
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           <div className="h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground dark:text-gray-400">{error}</div>
+            <div className="text-muted-foreground dark:text-gray-400">
+              {error}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -410,7 +419,8 @@ export function FinancialTotalLiabilitiesChart({
               Nenhum dado de passivos encontrado
             </div>
             <div className="text-center text-sm text-muted-foreground dark:text-gray-400 max-w-md">
-              Para visualizar este gráfico, cadastre dívidas bancárias, de fornecedores e outras dívidas no módulo financeiro.
+              Para visualizar este gráfico, cadastre dívidas bancárias, de
+              fornecedores e outras dívidas no módulo financeiro.
             </div>
           </div>
         </CardContent>
@@ -421,7 +431,8 @@ export function FinancialTotalLiabilitiesChart({
   // Calcular estatísticas para o footer
   const ultimaSafra = data[data.length - 1];
   const totalPassivos = ultimaSafra.total;
-  const percentualBancosTradings = (ultimaSafra.bancos_tradings / totalPassivos) * 100;
+  const percentualBancosTradings =
+    (ultimaSafra.bancos_tradings / totalPassivos) * 100;
   const percentualOutros = (ultimaSafra.outros / totalPassivos) * 100;
   const percentualLiquido = (ultimaSafra.liquido / totalPassivos) * 100;
 
@@ -438,8 +449,10 @@ export function FinancialTotalLiabilitiesChart({
                 Posição da Dívida por Safra
               </CardTitle>
               <CardDescription className="text-white/80">
-                {data && data.length > 0 
-                  ? `Valores totais das dívidas em todas as safras (${data[0]?.safra} - ${data[data.length - 1]?.safra})` 
+                {data && data.length > 0
+                  ? `Valores totais das dívidas em todas as safras (${
+                      data[0]?.safra
+                    } - ${data[data.length - 1]?.safra})`
                   : "Valores totais das dívidas em todas as safras"}
               </CardDescription>
             </div>
@@ -458,8 +471,8 @@ export function FinancialTotalLiabilitiesChart({
                 barSize={30}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis 
-                  dataKey="safra" 
+                <XAxis
+                  dataKey="safra"
                   tickLine={false}
                   axisLine={false}
                   angle={-45}
@@ -469,7 +482,7 @@ export function FinancialTotalLiabilitiesChart({
                   tick={{ fontSize: 11, fill: "var(--foreground)" }}
                   interval={0}
                 />
-                <YAxis 
+                <YAxis
                   tickFormatter={(value) => formatCurrency(value, 0)}
                   tickLine={false}
                   axisLine={false}
@@ -477,29 +490,53 @@ export function FinancialTotalLiabilitiesChart({
                   tick={{ fill: "var(--foreground)" }}
                 />
                 <ChartTooltip
-                  content={<ChartTooltipContent className="dark:border-gray-700" />}
+                  content={
+                    <ChartTooltipContent className="dark:border-gray-700" />
+                  }
                   formatter={(value: any, name: any) => {
                     // Formatar o valor com espaço entre o número e a unidade
-                    const formattedValue = formatCurrency(Number(value)).replace(/mi$/, ' mi');
+                    const formattedValue = formatCurrency(
+                      Number(value)
+                    ).replace(/mi$/, " mi");
                     return [
                       formattedValue,
-                      chartConfig[name as keyof typeof chartConfig]?.label || name,
+                      chartConfig[name as keyof typeof chartConfig]?.label ||
+                        name,
                     ];
                   }}
                   labelFormatter={(label) => `Safra: ${label}`}
                 />
-                <Legend 
+                <Legend
                   verticalAlign="top"
-                  wrapperStyle={{ paddingTop: '10px' }}
+                  wrapperStyle={{ paddingTop: "10px" }}
                   formatter={(value, entry) => (
-                    <span className="text-foreground dark:text-white">{value}</span>
+                    <span className="text-foreground dark:text-white">
+                      {value}
+                    </span>
                   )}
                 />
                 {/* Ordem das barras ajustada para a visualização correta: total, líquida, bancos, outros */}
-                <Bar dataKey="outros" name="Outros Passivos" fill={chartConfig.outros.color} />
-                <Bar dataKey="bancos_tradings" name="Dívida Bancária" fill={chartConfig.bancos_tradings.color} />
-                <Bar dataKey="liquido" name="Dívida Líquida" fill={chartConfig.liquido.color} />
-                <Bar dataKey="total" name="Dívida Total" fill={chartConfig.total.color} radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="outros"
+                  name="Outros Passivos"
+                  fill={chartConfig.outros.color}
+                />
+                <Bar
+                  dataKey="bancos_tradings"
+                  name="Dívida Bancária"
+                  fill={chartConfig.bancos_tradings.color}
+                />
+                <Bar
+                  dataKey="liquido"
+                  name="Dívida Líquida"
+                  fill={chartConfig.liquido.color}
+                />
+                <Bar
+                  dataKey="total"
+                  name="Dívida Total"
+                  fill={chartConfig.total.color}
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </ChartContainer>

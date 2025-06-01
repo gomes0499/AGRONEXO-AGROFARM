@@ -1,7 +1,9 @@
 "use client";
 
 import { User } from "@supabase/supabase-js";
-import { createContext, useContext, useState, ReactNode } from "react";
+import * as React from "react";
+import { ReactNode } from "react";
+const { createContext, useContext, useState } = React;
 
 // Tipo que inclui os dados estendidos do usuário
 export type UserMetadata = {
@@ -33,7 +35,7 @@ export type UserMetadata = {
   rgConjuge?: string;
   orgaoEmissorConjuge?: string;
   dataNascimentoConjuge?: string;
-  
+
   // Dados de onboarding
   onboarding_step?: number;
   onboarding_complete?: boolean;
@@ -69,26 +71,30 @@ const UserContext = createContext<UserContextType>(defaultContext);
 // Hook para usar o contexto de usuário
 export const useUser = () => {
   const context = useContext(UserContext);
-  
+
   // Métodos auxiliares para acessar metadados do usuário
   return {
     ...context,
-    
+
     // Função para obter nome do usuário
-    getUserName: () => context.user?.user_metadata?.name || context.user?.email?.split('@')[0] || "Usuário",
-    
+    getUserName: () =>
+      context.user?.user_metadata?.name ||
+      context.user?.email?.split("@")[0] ||
+      "Usuário",
+
     // Função para obter avatar do usuário
     getUserAvatar: () => context.user?.user_metadata?.avatar_url || null,
-    
+
     // Função para verificar se o onboarding está completo
-    isOnboardingComplete: () => context.user?.user_metadata?.onboarding_complete === true,
-    
+    isOnboardingComplete: () =>
+      context.user?.user_metadata?.onboarding_complete === true,
+
     // Função para obter etapa atual do onboarding
     getOnboardingStep: () => context.user?.user_metadata?.onboarding_step || 0,
-    
+
     // Função para verificar se o usuário é super admin
     isSuperAdmin: () => context.user?.app_metadata?.is_super_admin === true,
-    
+
     // Função para obter dados de endereço
     getAddress: () => ({
       cep: context.user?.user_metadata?.cep,
@@ -99,7 +105,7 @@ export const useUser = () => {
       cidade: context.user?.user_metadata?.cidade,
       estado: context.user?.user_metadata?.estado,
     }),
-    
+
     // Função para obter dados pessoais
     getPersonalInfo: () => ({
       cpf: context.user?.user_metadata?.cpf,

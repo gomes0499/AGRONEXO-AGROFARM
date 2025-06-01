@@ -124,9 +124,6 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
 
           // Verificar se o usuário existe
           if (exists === false) {
-            console.log("Usuário não existe, redirecionando para registro...");
-            // Redirecionar para a página de registro com parâmetros
-            // Use window.location.href para garantir um redirecionamento completo
             window.location.href = `/auth/register?email=${encodeURIComponent(
               inviteDetails.email
             )}&invite_token=${token}`;
@@ -160,10 +157,9 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
 
       // Verificar se o usuário existe primeiro
       const { exists } = await checkUserExists(data.email);
-      
+
       // Se o usuário não existir, redirecionar para o registro
       if (exists === false) {
-        console.log("Usuário não encontrado, redirecionando para registro");
         window.location.href = `/auth/register?email=${encodeURIComponent(
           data.email
         )}&invite_token=${token}`;
@@ -175,8 +171,10 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
 
       if (!loginResult.success) {
         // Se for erro de credenciais, tornar a mensagem mais clara
-        if (loginResult.error?.includes("Credenciais") || 
-            loginResult.error?.includes("senha")) {
+        if (
+          loginResult.error?.includes("Credenciais") ||
+          loginResult.error?.includes("senha")
+        ) {
           throw new Error("Senha incorreta. Por favor, tente novamente.");
         } else if (loginResult.userNotFound) {
           // Redirecionar para registro se o usuário não for encontrado
@@ -185,7 +183,7 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
           )}&invite_token=${token}`;
           return;
         }
-        
+
         throw new Error(loginResult.error || "Credenciais inválidas");
       }
 
@@ -399,16 +397,12 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
       </Form>
 
       <div className="text-center space-y-3">
-        <p className="text-sm">
-          Não tem uma conta?
-        </p>
-        <Button 
-          variant="outline" 
-          asChild 
-          className="w-full"
-        >
+        <p className="text-sm">Não tem uma conta?</p>
+        <Button variant="outline" asChild className="w-full">
           <Link
-            href={`/auth/register?email=${encodeURIComponent(inviteData?.email || "")}&invite_token=${token}`}
+            href={`/auth/register?email=${encodeURIComponent(
+              inviteData?.email || ""
+            )}&invite_token=${token}`}
           >
             Criar uma nova conta
           </Link>

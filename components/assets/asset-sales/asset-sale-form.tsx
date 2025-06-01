@@ -29,7 +29,10 @@ import {
 } from "@/lib/actions/asset-sales-actions";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { assetSaleFormSchema, type AssetSaleFormValues } from "@/schemas/patrimonio/asset-sales";
+import {
+  assetSaleFormSchema,
+  type AssetSaleFormValues,
+} from "@/schemas/patrimonio/asset-sales";
 
 interface AssetSaleFormProps {
   organizationId: string;
@@ -58,7 +61,9 @@ export function AssetSaleForm({
   onCancel,
 }: AssetSaleFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string }>>([]);
+  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string }>>(
+    []
+  );
   const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
   const isEditing = !!initialData?.id;
 
@@ -68,7 +73,7 @@ export function AssetSaleForm({
       try {
         setIsLoadingHarvests(true);
         const harvestsData = await getSafras(organizationId);
-        setHarvests(harvestsData.map(h => ({ id: h.id, nome: h.nome })));
+        setHarvests(harvestsData.map((h) => ({ id: h.id, nome: h.nome })));
       } catch (error) {
         console.error("Erro ao carregar safras:", error);
       } finally {
@@ -100,7 +105,6 @@ export function AssetSaleForm({
 
   const onSubmit = async (values: AssetSaleFormValues) => {
     try {
-      console.log("Form submitted with values:", values);
       setIsSubmitting(true);
 
       const dataToSubmit = {
@@ -117,12 +121,16 @@ export function AssetSaleForm({
         result = await createAssetSale(dataToSubmit);
       }
 
-      if ('error' in result) {
+      if ("error" in result) {
         toast.error(result.error);
         return;
       }
 
-      toast.success(isEditing ? "Venda de ativo atualizada com sucesso!" : "Venda de ativo criada com sucesso!");
+      toast.success(
+        isEditing
+          ? "Venda de ativo atualizada com sucesso!"
+          : "Venda de ativo criada com sucesso!"
+      );
       onSuccess?.(result.data);
     } catch (error) {
       console.error("Erro ao salvar venda de ativo:", error);
@@ -134,12 +142,12 @@ export function AssetSaleForm({
 
   return (
     <Form {...form}>
-      <form 
+      <form
         onSubmit={(e) => {
-          console.log("Form submitted, calling handleSubmit");
           form.handleSubmit(onSubmit)(e);
-        }} 
-        className="space-y-4">
+        }}
+        className="space-y-4"
+      >
         <FormField
           control={form.control}
           name="tipo"
@@ -203,10 +211,21 @@ export function AssetSaleForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Safra</FormLabel>
-              <Select onValueChange={(value) => field.onChange(value === "none" ? "" : value)} defaultValue={field.value || "none"}>
+              <Select
+                onValueChange={(value) =>
+                  field.onChange(value === "none" ? "" : value)
+                }
+                defaultValue={field.value || "none"}
+              >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder={isLoadingHarvests ? "Carregando safras..." : "Selecione uma safra (opcional)"} />
+                    <SelectValue
+                      placeholder={
+                        isLoadingHarvests
+                          ? "Carregando safras..."
+                          : "Selecione uma safra (opcional)"
+                      }
+                    />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -269,21 +288,22 @@ export function AssetSaleForm({
           >
             Cancelar
           </Button>
-          <Button 
-            type="button" 
+          <Button
+            type="button"
             disabled={isSubmitting}
             onClick={() => {
-              console.log("Submit button clicked, triggering validation");
-              console.log("Form state:", form.getValues());
-              // Validar o formulário manualmente
               form.trigger().then((isValid) => {
-                console.log("Form validation result:", isValid);
                 if (isValid) {
                   const values = form.getValues();
                   onSubmit(values);
                 } else {
-                  console.error("Form validation failed:", form.formState.errors);
-                  toast.error("Por favor, preencha corretamente todos os campos obrigatórios.");
+                  console.error(
+                    "Form validation failed:",
+                    form.formState.errors
+                  );
+                  toast.error(
+                    "Por favor, preencha corretamente todos os campos obrigatórios."
+                  );
                 }
               });
             }}

@@ -119,7 +119,6 @@ export async function getCashFlowData(
         .eq("organizacao_id", organizationId);
       arrendamentos = data;
     } catch (error) {
-      console.log("Tabela arrendamentos não existe ainda");
       arrendamentos = [];
     }
 
@@ -134,7 +133,6 @@ export async function getCashFlowData(
         .eq("organizacao_id", organizationId);
       projecoesFluxo = data;
     } catch (error) {
-      console.log("Tabela projecoes_fluxo_caixa não existe ainda");
       projecoesFluxo = [];
     }
 
@@ -246,7 +244,6 @@ async function calculateReceitasPorCultura(
       .order('created_at', { ascending: false });
     commodityPrices = data;
   } catch (error) {
-    console.log("Tabela commodity_price_projections não existe ainda, usando preços padrão");
     commodityPrices = null;
   }
 
@@ -497,7 +494,6 @@ async function calculateInvestimentos(
       .eq("tipo", "REALIZADO");
     investimentosPatrimonial = data;
   } catch (error) {
-    console.log("Tabela investimentos não existe ainda");
     investimentosPatrimonial = [];
   }
   
@@ -521,7 +517,6 @@ async function calculateInvestimentos(
       .eq("tipo", "REALIZADO");
     aquisicoesTerras = data;
   } catch (error) {
-    console.log("Tabela aquisicao_terras não existe ainda");
     aquisicoesTerras = [];
   }
   

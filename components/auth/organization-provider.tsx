@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import * as React from "react";
+import { ReactNode } from "react";
+const { createContext, useContext, useState, useEffect } = React;
 
 // Interface para organização
 export interface Organization {

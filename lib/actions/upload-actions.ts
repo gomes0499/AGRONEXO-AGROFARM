@@ -282,8 +282,7 @@ export async function uploadPropertyImage(
     
     // Remove qualquer parâmetro de token da URL para garantir que seja uma URL pública estável
     const cleanUrl = publicUrl.split('?')[0];
-    console.log("URL original:", publicUrl);
-    console.log("URL limpa:", cleanUrl);
+
 
     // Atualizar o campo imagem da propriedade no banco de dados
     const supabase = await createClient();

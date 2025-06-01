@@ -44,15 +44,11 @@ export async function createAssetSale(data: AssetSaleFormValues & { organizacao_
     // Remove o campo tipo que não existe na tabela
     const { tipo, ...cleanData } = data;
     
-    console.log("Criando venda de ativo, removendo campo tipo virtual:", { tipo });
-    
-    // Calculate valor_total
+
     const dataWithTotal = {
       ...cleanData,
       valor_total: cleanData.quantidade * cleanData.valor_unitario,
     };
-    
-    console.log("Dados para inserção de venda de ativo:", dataWithTotal);
     
     const { data: result, error } = await supabase
       .from("vendas_ativos")
@@ -89,15 +85,10 @@ export async function updateAssetSale(id: string, data: AssetSaleFormValues & { 
     // Remove o campo tipo que não existe na tabela
     const { tipo, ...cleanData } = data;
     
-    console.log("Atualizando venda de ativo, removendo campo tipo virtual:", { tipo });
-    
-    // Calculate valor_total
     const dataWithTotal = {
       ...cleanData,
       valor_total: cleanData.quantidade * cleanData.valor_unitario,
     };
-    
-    console.log("Dados para atualização de venda de ativo:", dataWithTotal);
     
     const { data: result, error } = await supabase
       .from("vendas_ativos")

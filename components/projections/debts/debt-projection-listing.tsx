@@ -40,7 +40,8 @@ export function DebtProjectionListing({
   organization,
   initialProjections,
 }: DebtProjectionListingProps) {
-  const [projections, setProjections] = useState<ProjecaoDivida[]>(initialProjections);
+  const [projections, setProjections] =
+    useState<ProjecaoDivida[]>(initialProjections);
 
   const handleEdit = (projection: ProjecaoDivida) => {
     console.log("Editar projeção:", projection);
@@ -49,10 +50,10 @@ export function DebtProjectionListing({
   const handleDelete = async (id: string) => {
     try {
       const result = await deleteProjecaoDivida(id);
-      if ('error' in result) {
+      if ("error" in result) {
         toast.error(result.error);
       } else {
-        setProjections(projections.filter(p => p.id !== id));
+        setProjections(projections.filter((p) => p.id !== id));
         toast.success("Projeção removida com sucesso");
       }
     } catch (error) {
@@ -65,12 +66,14 @@ export function DebtProjectionListing({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Posição de Dívida Projetada</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Posição de Dívida Projetada
+          </h2>
           <p className="text-muted-foreground">
             Gerencie projeções de dívidas por categoria e período
           </p>
         </div>
-        <Button onClick={() => console.log("Nova projeção")}>
+        <Button>
           <PlusIcon className="mr-2 h-4 w-4" />
           Nova Projeção
         </Button>
@@ -83,7 +86,7 @@ export function DebtProjectionListing({
           title="Nenhuma projeção encontrada"
           description="Crie sua primeira projeção de dívida para começar"
           action={
-            <Button onClick={() => console.log("Nova projeção")}>
+            <Button>
               <PlusIcon className="mr-2 h-4 w-4" />
               Nova Projeção
             </Button>
@@ -111,15 +114,23 @@ export function DebtProjectionListing({
                     </TableCell>
                     <TableCell>
                       {projection.subcategoria && (
-                        <Badge variant="outline">{projection.subcategoria}</Badge>
+                        <Badge variant="outline">
+                          {projection.subcategoria}
+                        </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">{projection.ano}</TableCell>
+                    <TableCell className="text-right">
+                      {projection.ano}
+                    </TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(projection.valor)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={projection.moeda === "BRL" ? "default" : "secondary"}>
+                      <Badge
+                        variant={
+                          projection.moeda === "BRL" ? "default" : "secondary"
+                        }
+                      >
                         {projection.moeda}
                       </Badge>
                     </TableCell>
@@ -134,7 +145,9 @@ export function DebtProjectionListing({
                         }}
                         onEdit={(debtProjection) => {
                           // Convert DebtProjection back to ProjecaoDivida for the handler
-                          const fullProjection = projections.find(p => p.id === debtProjection.id);
+                          const fullProjection = projections.find(
+                            (p) => p.id === debtProjection.id
+                          );
                           if (fullProjection) {
                             handleEdit(fullProjection);
                           }
