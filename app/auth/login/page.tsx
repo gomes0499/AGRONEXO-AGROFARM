@@ -9,24 +9,19 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { 
-    email?: string;
-    invite_token?: string;
-    token?: string;
-    redirectAfterLogin?: string;
-  };
+  searchParams: any;
 }) {
   // Aguardar o searchParams ser resolvido
   const resolvedParams = await Promise.resolve(searchParams);
-  
+
   // Extrair os valores do objeto searchParams
   const email = resolvedParams.email;
   const inviteToken = resolvedParams.invite_token || resolvedParams.token;
-  const shouldRedirect = 
+  const shouldRedirect =
     resolvedParams.redirectAfterLogin === "true" ||
     !!resolvedParams.token ||
     !!resolvedParams.invite_token;
-  
+
   return (
     <LoginForm
       email={email}
