@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function PropertiesPage({
   searchParams,
 }: {
-  searchParams?: { init_prices?: string };
+  searchParams?: any;
 }) {
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
