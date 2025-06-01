@@ -29,20 +29,14 @@ import { Badge } from "@/components/ui/badge";
 import {
   type ProductionCost,
   productionCostFormSchema,
+  type ProductionCostFormValues,
   type Culture,
   type System,
   type Harvest,
+  type ProductionCostCategory,
 } from "@/schemas/production";
 
-// Ajustando para omitir os campos que removemos do formulário
-import { z } from "zod";
-type ProductionCostFormValues = {
-  propriedade_id: string;
-  cultura_id: string;
-  sistema_id: string;
-  categoria: string;
-  custos_por_safra: Record<string, number>;
-};
+// Use the existing type from the schema
 import {
   createProductionCost,
   updateProductionCost,
@@ -165,7 +159,7 @@ export function ProductionCostForm({
   onCancel,
 }: ProductionCostFormProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<ProductionCostCategory | string>("");
   const isEditing = !!cost?.id;
 
   // Initialize form with correct defaultValues based on the updated schema
@@ -175,7 +169,7 @@ export function ProductionCostForm({
       cultura_id: cost?.cultura_id || "",
       sistema_id: cost?.sistema_id || "",
       propriedade_id: cost?.propriedade_id || "",
-      categoria: (cost?.categoria as any) || "OUTROS",
+      categoria: cost?.categoria || "OUTROS",
       custos_por_safra: cost?.custos_por_safra || {},
     },
   });
@@ -184,7 +178,7 @@ export function ProductionCostForm({
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === "categoria") {
-        setSelectedCategory(value.categoria as string);
+        setSelectedCategory(value.categoria as ProductionCostCategory);
       }
     });
     return () => subscription.unsubscribe();
@@ -209,7 +203,7 @@ export function ProductionCostForm({
     (p) => p.id === form.watch("propriedade_id")
   );
 
-  const onSubmit = async (values: ProductionCostFormValues) => {
+  const onSubmit = async (values: any) => {
     try {
       setIsSubmitting(true);
 
@@ -223,8 +217,10 @@ export function ProductionCostForm({
       // Filtrar apenas valores maiores que zero
       const validCosts: Record<string, number> = {};
       Object.entries(values.custos_por_safra).forEach(([safraId, value]) => {
-        if (value > 0) {
-          validCosts[safraId] = value;
+        // Add type check and conversion
+        const numValue = typeof value === 'number' ? value : parseFloat(String(value));
+        if (!isNaN(numValue) && numValue > 0) {
+          validCosts[safraId] = numValue;
         }
       });
 
@@ -274,13 +270,13 @@ export function ProductionCostForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
         <div className="space-y-5">
           {/* Primeira seção: Propriedade e Categoria */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-5">
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="propriedade_id"
                 render={({ field }) => (
                   <FormItem>
@@ -317,7 +313,7 @@ export function ProductionCostForm({
               />
 
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="cultura_id"
                 render={({ field }) => (
                   <FormItem>
@@ -351,7 +347,7 @@ export function ProductionCostForm({
 
             <div className="space-y-5">
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="categoria"
                 render={({ field }) => (
                   <FormItem>
@@ -404,7 +400,7 @@ export function ProductionCostForm({
               />
 
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="sistema_id"
                 render={({ field }) => (
                   <FormItem>
@@ -497,7 +493,7 @@ export function ProductionCostForm({
           <Separator className="my-4" />
 
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="custos_por_safra"
             render={({ field }) => (
               <FormItem>

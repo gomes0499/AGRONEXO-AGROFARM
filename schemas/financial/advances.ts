@@ -2,11 +2,15 @@ import { z } from "zod";
 
 // Schema para adiantamentos_fornecedores baseado na estrutura atual do banco
 export const supplierAdvanceSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
-  fornecedor_id: z.string().uuid().optional(),
-  valor: z.coerce.number().positive("Valor deve ser positivo"),
-  safra_id: z.string().uuid().optional(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
+  fornecedor_id: z.string().uuid("Selecione um fornecedor válido").optional().refine(val => val !== "", {
+    message: "Selecione um fornecedor"
+  }),
+  valor: z.coerce.number().positive("Valor deve ser positivo").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido"
+  }),
+  safra_id: z.string().uuid("Selecione uma safra válida").optional(),
   valores_por_safra: z.union([
     z.record(z.string(), z.number()),
     z.string(),
@@ -16,8 +20,8 @@ export const supplierAdvanceSchema = z.object({
   
   // Campo para a relação com fornecedor
   fornecedor: z.object({
-    id: z.string().uuid(),
-    nome: z.string()
+    id: z.string().uuid("ID do fornecedor inválido"),
+    nome: z.string().min(1, "Nome do fornecedor é obrigatório")
   }).optional(),
 });
 

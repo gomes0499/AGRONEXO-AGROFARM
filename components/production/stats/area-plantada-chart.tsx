@@ -296,8 +296,8 @@ export function AreaPlantadaChart({
                     const total = payload?.payload?.total || 0;
                     const percentage = total > 0 ? ((Number(value) / total) * 100).toFixed(1) : "0.0";
                     return [
-                      <span className="font-medium">{Number(value).toLocaleString()} ha <span className="text-muted-foreground">({percentage}%)</span></span>,
-                      <span>{chartConfig[name as string]?.label || name}</span>,
+                      <span key="value" className="font-medium">{Number(value).toLocaleString()} ha <span className="text-muted-foreground">({percentage}%)</span></span>,
+                      <span key="name">{chartConfig[name as string]?.label || name}</span>,
                     ];
                   }}
                   labelFormatter={(label) => `Safra: ${label}`}

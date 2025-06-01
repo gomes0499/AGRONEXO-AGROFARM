@@ -78,7 +78,7 @@ function KpiItem({
                 <TooltipTrigger asChild>
                   <TrendingUpIcon className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                   <p>Clique para ver evolução histórica</p>
                 </TooltipContent>
               </Tooltip>
@@ -88,7 +88,7 @@ function KpiItem({
                 <TooltipTrigger asChild>
                   <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                   <p>{tooltip}</p>
                 </TooltipContent>
               </Tooltip>
@@ -374,7 +374,7 @@ function ProductionKpiCardsContent({
                   <TooltipTrigger asChild>
                     <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                     <p>
                       Indicadores consolidados da produção agrícola incluindo área plantada, 
                       produtividade média, receita operacional e margem EBITDA.
@@ -393,7 +393,7 @@ function ProductionKpiCardsContent({
                 change="0% YoY"
                 isPositive={true}
                 loading={loading}
-                icon={<Sprout className="h-5 w-5 text-white dark:text-gray-700" />}
+                icon={<Sprout className="h-5 w-5 text-white dark:text-white" />}
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
             </div>
@@ -405,7 +405,7 @@ function ProductionKpiCardsContent({
                 change="0% YoY"
                 isPositive={true}
                 loading={loading}
-                icon={<Target className="h-5 w-5 text-white dark:text-gray-700" />}
+                icon={<Target className="h-5 w-5 text-white dark:text-white" />}
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
             </div>
@@ -417,7 +417,7 @@ function ProductionKpiCardsContent({
                 change="0% YoY"
                 isPositive={true}
                 loading={loading}
-                icon={<DollarSign className="h-5 w-5 text-white dark:text-gray-700" />}
+                icon={<DollarSign className="h-5 w-5 text-white dark:text-white" />}
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
             </div>
@@ -429,7 +429,7 @@ function ProductionKpiCardsContent({
                 change="0% margem"
                 isPositive={true}
                 loading={loading}
-                icon={<BarChart3 className="h-5 w-5 text-white dark:text-gray-700" />}
+                icon={<BarChart3 className="h-5 w-5 text-white dark:text-white" />}
               />
             </div>
           </div>
@@ -462,13 +462,13 @@ function ProductionKpiCardsContent({
                 {loadingSafras ? (
                   <div className="h-9 w-48 bg-white/10 rounded animate-pulse" />
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     {safras.length > 0 ? (
                       <Select value={selectedSafraId} onValueChange={handleSafraChange}>
-                        <SelectTrigger className="w-48 h-9 bg-white/10 border-white/20 text-white focus:ring-white/30 placeholder:text-white/60">
+                        <SelectTrigger className="w-full sm:w-48 h-9 bg-white/10 border-white/20 text-white focus:ring-white/30 placeholder:text-white/60">
                           <SelectValue placeholder="Selecionar safra" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background dark:bg-gray-800 border dark:border-gray-700">
                           {safras.map((safra) => (
                             <SelectItem key={safra.id} value={safra.id}>
                               {safra.nome} ({safra.ano_inicio}/{safra.ano_fim})
@@ -477,7 +477,7 @@ function ProductionKpiCardsContent({
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="w-48 h-9 flex items-center justify-center bg-white/10 border border-white/20 rounded-md text-white/60 text-sm">
+                      <div className="w-full sm:w-48 h-9 flex items-center justify-center bg-white/10 border border-white/20 rounded-md text-white/60 text-sm">
                         Sem safras
                       </div>
                     )}
@@ -488,7 +488,7 @@ function ProductionKpiCardsContent({
                           <Button 
                             variant="outline" 
                             size="sm"
-                            className="h-9 bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+                            className="h-9 w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
                           >
                             <span className="mr-1">Culturas</span>
                             <span className="bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -496,13 +496,13 @@ function ProductionKpiCardsContent({
                             </span>
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-56 p-0" align="end">
-                          <Command>
+                        <PopoverContent className="w-56 p-0 bg-background dark:bg-gray-800 border dark:border-gray-700" align="end">
+                          <Command className="bg-transparent">
                             <CommandList>
                               <CommandGroup>
                                 <CommandItem 
                                   onSelect={handleSelectAllCultures}
-                                  className="cursor-pointer"
+                                  className="cursor-pointer hover:bg-muted/50 dark:hover:bg-gray-700/50"
                                 >
                                   <Check
                                     className={cn(
@@ -516,7 +516,7 @@ function ProductionKpiCardsContent({
                                 </CommandItem>
                                 <CommandItem 
                                   onSelect={handleDeselectAllCultures}
-                                  className="cursor-pointer"
+                                  className="cursor-pointer hover:bg-muted/50 dark:hover:bg-gray-700/50"
                                 >
                                   <Check
                                     className={cn(
@@ -529,13 +529,13 @@ function ProductionKpiCardsContent({
                                   <span>Desmarcar todas</span>
                                 </CommandItem>
                               </CommandGroup>
-                              <CommandSeparator />
+                              <CommandSeparator className="dark:bg-gray-700" />
                               <CommandGroup>
                                 {cultures.map((culture) => (
                                   <CommandItem
                                     key={culture.id}
                                     onSelect={() => handleCultureToggle(culture.id)}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer hover:bg-muted/50 dark:hover:bg-gray-700/50"
                                   >
                                     <Check
                                       className={cn(
@@ -554,7 +554,7 @@ function ProductionKpiCardsContent({
                         </PopoverContent>
                       </Popover>
                     ) : (
-                      <div className="h-9 px-3 flex items-center justify-center bg-white/10 border border-white/20 rounded-md text-white/60 text-sm">
+                      <div className="h-9 w-full sm:w-auto px-3 flex items-center justify-center bg-white/10 border border-white/20 rounded-md text-white/60 text-sm">
                         Sem culturas
                       </div>
                     )}
@@ -564,7 +564,7 @@ function ProductionKpiCardsContent({
                   <TooltipTrigger asChild>
                     <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                     <p>
                       Indicadores consolidados da produção agrícola incluindo área plantada, 
                       produtividade média, receita operacional e margem EBITDA.
@@ -586,7 +586,7 @@ function ProductionKpiCardsContent({
                     : `${stats.crescimentoArea >= 0 ? '+' : ''}${formatPercentage(stats.crescimentoArea)} YoY${stats.safraComparada ? ` vs ${stats.safraComparada}` : ''}`
                 }
                 isPositive={stats.temComparacao ? stats.crescimentoArea >= 0 : true}
-                icon={<Sprout className="h-5 w-5 text-white dark:text-gray-700" />}
+                icon={<Sprout className="h-5 w-5 text-white dark:text-white" />}
                 tooltip="Área total destinada ao plantio de culturas agrícolas em hectares."
                 clickable={true}
                 onClick={() => handleMetricClick('area')}
@@ -605,7 +605,7 @@ function ProductionKpiCardsContent({
                     : `${stats.crescimentoProdutividade >= 0 ? '+' : ''}${formatPercentage(stats.crescimentoProdutividade)} YoY${stats.safraComparada ? ` vs ${stats.safraComparada}` : ''}`
                 }
                 isPositive={stats.temComparacao ? stats.crescimentoProdutividade >= 0 : true}
-                icon={<Target className="h-5 w-5 text-white dark:text-gray-700" />}
+                icon={<Target className="h-5 w-5 text-white dark:text-white" />}
                 tooltip="Produtividade média das culturas em sacas por hectare."
                 clickable={true}
                 onClick={() => handleMetricClick('produtividade')}
@@ -624,7 +624,7 @@ function ProductionKpiCardsContent({
                     : `${stats.crescimentoReceita >= 0 ? '+' : ''}${formatPercentage(stats.crescimentoReceita)} YoY${stats.safraComparada ? ` vs ${stats.safraComparada}` : ''}`
                 }
                 isPositive={stats.temComparacao ? stats.crescimentoReceita >= 0 : true}
-                icon={<DollarSign className="h-5 w-5 text-white dark:text-gray-700" />}
+                icon={<DollarSign className="h-5 w-5 text-white dark:text-white" />}
                 tooltip="Receita operacional bruta estimada com base na produção e preços de mercado."
                 clickable={true}
                 onClick={() => handleMetricClick('receita')}
@@ -639,7 +639,7 @@ function ProductionKpiCardsContent({
                 value={formatCurrency(stats.ebitda)}
                 change={`${stats.margemEbitda.toFixed(1)}% margem`}
                 isPositive={stats.margemEbitda > 30}
-                icon={<BarChart3 className="h-5 w-5 text-white dark:text-gray-700" />}
+                icon={<BarChart3 className="h-5 w-5 text-white dark:text-white" />}
                 tooltip="Resultado operacional antes de juros, impostos, depreciação e amortização."
                 clickable={true}
                 onClick={() => handleMetricClick('ebitda')}

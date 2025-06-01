@@ -14,9 +14,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, Save, Pencil, Map } from "lucide-react";
 import { toast } from "sonner";
 import { updatePlantingArea } from "@/lib/actions/production-actions";
-import { type PlantingArea, type Harvest } from "@/schemas/production";
+import { type PlantingArea as BasePlantingArea, type Harvest, type Culture, type System, type Cycle } from "@/schemas/production";
 import { formatArea } from "@/lib/utils/formatters";
 import { Badge } from "@/components/ui/badge";
+
+// Extended PlantingArea type with related entities
+interface PlantingArea extends BasePlantingArea {
+  propriedades?: {
+    nome: string;
+  };
+  culturas?: {
+    nome: string;
+  };
+  sistemas?: {
+    nome: string;
+  };
+  ciclos?: {
+    nome: string;
+  };
+}
 
 interface PlantingAreaEditorProps {
   plantingArea: PlantingArea;
@@ -82,7 +98,7 @@ export function PlantingAreaEditor({ plantingArea, harvests, onSuccess }: Planti
       const updatedArea = await updatePlantingArea(plantingArea.id!, {
         areas_por_safra: updatedAreas,
         observacoes: plantingArea.observacoes,
-      });
+      }) as PlantingArea;
 
       // Update the local state with the server response
       plantingArea.areas_por_safra = updatedArea.areas_por_safra;

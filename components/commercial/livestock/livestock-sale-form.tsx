@@ -108,7 +108,7 @@ export function LivestockSaleForm({
 
   return (
     <Form {...(form as unknown as UseFormReturn<Record<string, any>>)}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 overflow-y-auto">
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Propriedade */}
@@ -235,7 +235,7 @@ export function LivestockSaleForm({
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-4 sticky bottom-0 bg-background pb-2 border-t mt-4 shadow-sm">
             <Button
               type="button"
               variant="outline"

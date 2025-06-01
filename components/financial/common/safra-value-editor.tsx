@@ -230,16 +230,19 @@ export function SafraValueEditor({
                   
                   <div className="flex-1">
                     <Label className="text-xs text-muted-foreground">Valor</Label>
-                    <CurrencyField
-                      defaultValue={item.valor}
-                      onChange={(value) => updateValue(index, value.toString())}
+                    <div 
                       onFocus={() => handleFocus(index)}
                       onBlur={() => handleBlur(index)}
-                      placeholder="0,00"
-                      disabled={disabled}
-                      className="h-9"
-                      currency={currency}
-                    />
+                    >
+                      <CurrencyField
+                        defaultValue={item.valor}
+                        onChange={(value) => updateValue(index, value.toString())}
+                        placeholder="0,00"
+                        disabled={disabled}
+                        className="h-9"
+                        currency={currency}
+                      />
+                    </div>
                   </div>
                   
                   <Button

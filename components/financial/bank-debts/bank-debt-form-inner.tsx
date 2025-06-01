@@ -517,7 +517,7 @@ export function BankDebtFormInner({
                       }
                       onChange={field.onChange}
                       organizacaoId={organizationId}
-                      safras={harvests}
+                      safras={harvests.map(harvest => ({ id: harvest.id, nome: harvest.nome }))}
                       currency={form.watch("moeda") as CurrencyType}
                     />
                   </FormControl>

@@ -83,7 +83,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                 {/* Linhas de receitas por cultura */}
                 {Object.keys(data.receitas_agricolas.culturas).map((cultura, index) => (
                   <TableRow key={`receita-${cultura}`} className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                    <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       {cultura}
                     </TableCell>
                     {data.anos.map((ano) => (
@@ -159,7 +159,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                 {/* Linhas de despesas por cultura */}
                 {Object.keys(data.despesas_agricolas.culturas).map((cultura, index) => (
                   <TableRow key={`despesa-${cultura}`} className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                    <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       {cultura}
                     </TableCell>
                     {data.anos.map((ano) => (
@@ -234,7 +234,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
               <TableBody>
                 {/* Linhas de outras despesas por categoria */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Financeiras
                   </TableCell>
                   {data.anos.map((ano) => (
@@ -248,7 +248,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                 </TableRow>
 
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Tributárias
                   </TableCell>
                   {data.anos.map((ano) => (
@@ -262,7 +262,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                 </TableRow>
 
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Arrendamento
                   </TableCell>
                   {data.anos.map((ano) => (
@@ -276,7 +276,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                 </TableRow>
 
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Pró-Labore
                   </TableCell>
                   {data.anos.map((ano) => (
@@ -290,7 +290,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                 </TableRow>
 
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Divisão de Lucros
                   </TableCell>
                   {data.anos.map((ano) => (
@@ -304,7 +304,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                 </TableRow>
 
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Outras
                   </TableCell>
                   {data.anos.map((ano) => (
@@ -399,7 +399,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
               <TableBody>
                 {/* Serviço da dívida */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Serviço da dívida
                   </TableCell>
                   {data.anos.map((ano) => (
@@ -414,7 +414,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
 
                 {/* Pagamentos - Bancos/Adto. Clientes */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Pagamentos - Bancos/Adto. Clientes
                   </TableCell>
                   {data.anos.map((ano) => (
@@ -429,7 +429,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
 
                 {/* Novas Linhas Crédito-Bancos/Adto. Clientes */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Novas Linhas Crédito-Bancos/Adto. Clientes
                   </TableCell>
                   {data.anos.map((ano) => (

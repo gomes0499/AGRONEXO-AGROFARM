@@ -271,8 +271,8 @@ export function FinancialChart({
                 <ChartTooltip
                   content={<ChartTooltipContent />}
                   formatter={(value, name) => [
-                    <span className="font-medium">{formatCurrency(Number(value))}</span>,
-                    <span>{chartConfig[name as string]?.label || name}</span>,
+                    <span key="value" className="font-medium">{formatCurrency(Number(value))}</span>,
+                    <span key="name">{chartConfig[name as string]?.label || name}</span>,
                   ]}
                   labelFormatter={(label) => `Safra: ${label}`}
                 />

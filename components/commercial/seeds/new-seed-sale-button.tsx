@@ -62,7 +62,7 @@ export function NewSeedSaleButton({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[650px]">
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Registrar Nova Venda de Sementes</DialogTitle>
             <DialogDescription>

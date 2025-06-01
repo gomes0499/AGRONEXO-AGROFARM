@@ -38,7 +38,7 @@ export function NewInvestmentButton({
         title="Novo Investimento"
         description="Cadastre um novo investimento realizado."
         showFooter={false}
-        className="sm:max-w-[600px]"
+        className="sm:max-w-[800px]"
       >
         <InvestmentForm
           organizationId={organizationId}

@@ -264,7 +264,7 @@ export function CultureProjectionListing({
                         {formatCurrency(projection.custo_total)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <span className={projection.ebitda >= 0 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                        <span className={projection.ebitda >= 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-red-600 dark:text-red-400 font-medium"}>
                           {formatCurrency(projection.ebitda)}
                         </span>
                       </TableCell>

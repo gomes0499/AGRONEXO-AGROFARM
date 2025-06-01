@@ -45,12 +45,21 @@ export default async function ProductionPage() {
   await requireSuperAdmin();
 
   const organizationId = await getOrganizationId();
-  
+
   // Try-catch for robust error handling with fallbacks
-  let productionConfig, plantingAreasData, productivitiesData, productionCostsData;
-  let livestockData: { livestock: any[]; properties?: any[] } = { livestock: [] };
-  let livestockOperationsData: { operations: any[]; properties?: any[]; safras?: any[] } = { operations: [] };
-  
+  let productionConfig,
+    plantingAreasData,
+    productivitiesData,
+    productionCostsData;
+  let livestockData: { livestock: any[]; properties?: any[] } = {
+    livestock: [],
+  };
+  let livestockOperationsData: {
+    operations: any[];
+    properties?: any[];
+    safras?: any[];
+  } = { operations: [] };
+
   try {
     // Get main production data (required)
     [
@@ -68,51 +77,51 @@ export default async function ProductionPage() {
     console.error("Erro ao carregar dados de produção:", error);
     throw error;
   }
-  
+
   // Try to get livestock data separately - using a more permissive approach
   try {
     const supabase = await createClient();
-    
+
     // Check if rebanhos table exists
     const { data: livestockItems, error: livestockError } = await supabase
       .from("rebanhos")
       .select("*")
       .eq("organizacao_id", organizationId)
       .limit(10);
-    
+
     if (!livestockError && livestockItems) {
-      // If no error, the table exists, so get the data properly
       try {
         const data = await getLivestockDataUnified(organizationId);
         livestockData = data;
       } catch (e) {
         console.log("Erro ao buscar dados completos de rebanho:", e);
       }
-    } else {
-      console.log("Tabela rebanhos não existe ou não está acessível");
     }
   } catch (error) {
     console.error("Erro ao verificar tabela de rebanho:", error);
   }
-  
+
   // Try to get livestock operations data separately - using a more permissive approach
   try {
     const supabase = await createClient();
-    
+
     // Check if vendas_pecuaria table exists
     const { data: operationsItems, error: operationsError } = await supabase
       .from("vendas_pecuaria")
       .select("*")
       .eq("organizacao_id", organizationId)
       .limit(10);
-    
+
     if (!operationsError && operationsItems) {
       // If no error, the table exists, so get the data properly
       try {
         const data = await getLivestockOperationsDataUnified(organizationId);
         livestockOperationsData = data;
       } catch (e) {
-        console.log("Erro ao buscar dados completos de operações pecuárias:", e);
+        console.log(
+          "Erro ao buscar dados completos de operações pecuárias:",
+          e
+        );
       }
     } else {
       console.log("Tabela vendas_pecuaria não existe ou não está acessível");

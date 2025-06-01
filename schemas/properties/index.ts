@@ -1,39 +1,61 @@
 import { z } from "zod";
 
 // Enum para tipos de propriedades (must match database types.sql)
-export const propertyTypeEnum = z.enum(["PROPRIO", "ARRENDADO", "PARCERIA", "COMODATO"]);
+export const propertyTypeEnum = z.enum(["PROPRIO", "ARRENDADO", "PARCERIA", "COMODATO"], {
+  errorMap: (issue, ctx) => ({ message: "Selecione um tipo de propriedade válido" })
+});
 export type PropertyType = z.infer<typeof propertyTypeEnum>;
 
 // Enum para status de propriedades
-export const propertyStatusEnum = z.enum(["ATIVA", "INATIVA", "EM_NEGOCIACAO", "VENDIDA"]);
+export const propertyStatusEnum = z.enum(["ATIVA", "INATIVA", "EM_NEGOCIACAO", "VENDIDA"], {
+  errorMap: (issue, ctx) => ({ message: "Selecione um status válido" })
+});
 export type PropertyStatus = z.infer<typeof propertyStatusEnum>;
 
 // Enum para tipos de anuência
-export const anuenciaTypeEnum = z.enum(["COM_ANUENCIA", "SEM_ANUENCIA"]);
+export const anuenciaTypeEnum = z.enum(["COM_ANUENCIA", "SEM_ANUENCIA"], {
+  errorMap: (issue, ctx) => ({ message: "Selecione um tipo de anuência válido" })
+});
 export type AnuenciaType = z.infer<typeof anuenciaTypeEnum>;
 
 // Enum para tipos de pagamento de arrendamento
-export const leasePaymentTypeEnum = z.enum(["SACAS", "DINHEIRO", "MISTO", "PERCENTUAL_PRODUCAO"]);
+export const leasePaymentTypeEnum = z.enum(["SACAS", "DINHEIRO", "MISTO", "PERCENTUAL_PRODUCAO"], {
+  errorMap: (issue, ctx) => ({ message: "Selecione um tipo de pagamento válido" })
+});
 export type LeasePaymentType = z.infer<typeof leasePaymentTypeEnum>;
 
 // Schema para Propriedade (matches database table exactly)
 export const propertySchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
   nome: z.string().min(1, "Nome da propriedade é obrigatório"),
   // Ano de aquisição só é obrigatório para propriedades próprias
-  ano_aquisicao: z.coerce.number().int().min(1900).nullable().optional(),
+  ano_aquisicao: z.coerce.number().int("Ano de aquisição deve ser um número inteiro").min(1900, "Ano de aquisição deve ser após 1900").nullable().optional().refine(val => val === null || val === undefined || !isNaN(val), {
+    message: "Insira um ano válido"
+  }),
   proprietario: z.string().nullable(),
   cidade: z.string().nullable(),
   estado: z.string().nullable(),
   numero_matricula: z.string().nullable(),
-  area_total: z.coerce.number().min(0, "Área total deve ser positiva").nullable(),
-  area_cultivada: z.coerce.number().min(0, "Área cultivada deve ser positiva").nullable(),
-  valor_atual: z.coerce.number().min(0, "Valor atual deve ser positivo").nullable().transform(val => val === 0 ? null : val),
+  area_total: z.coerce.number().min(0, "Área total deve ser positiva ou zero").nullable().refine(val => val === null || !isNaN(val), {
+    message: "Insira um valor numérico válido para a área total"
+  }),
+  area_cultivada: z.coerce.number().min(0, "Área cultivada deve ser positiva ou zero").nullable().refine(val => val === null || !isNaN(val), {
+    message: "Insira um valor numérico válido para a área cultivada"
+  }),
+  valor_atual: z.coerce.number().min(0, "Valor atual deve ser positivo ou zero").nullable().transform(val => val === 0 ? null : val).refine(val => val === null || !isNaN(val), {
+    message: "Insira um valor numérico válido para o valor atual"
+  }),
   onus: z.string().nullable(),
-  avaliacao_banco: z.coerce.number().nullable().transform(val => val === 0 ? null : val),
-  tipo: propertyTypeEnum.default("PROPRIO"),
-  status: propertyStatusEnum.default("ATIVA"),
+  avaliacao_banco: z.coerce.number().nullable().transform(val => val === 0 ? null : val).refine(val => val === null || !isNaN(val), {
+    message: "Insira um valor numérico válido para a avaliação do banco"
+  }),
+  tipo: propertyTypeEnum.default("PROPRIO").refine(val => !!val, {
+    message: "Selecione um tipo de propriedade"
+  }),
+  status: propertyStatusEnum.default("ATIVA").refine(val => !!val, {
+    message: "Selecione um status"
+  }),
   // Campos adicionais
   imagem: z.string().nullable().optional(),
   cartorio_registro: z.string().nullable().optional(),
@@ -103,19 +125,31 @@ export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 
 // Schema para Arrendamento (matches database table exactly)
 export const leaseSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
-  propriedade_id: z.string().uuid(),
-  safra_id: z.string().uuid(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
+  propriedade_id: z.string().uuid("Selecione uma propriedade válida"),
+  safra_id: z.string().uuid("Selecione uma safra válida"),
   numero_arrendamento: z.string().min(1, "Número do arrendamento é obrigatório"),
   nome_fazenda: z.string().min(1, "Nome da fazenda é obrigatório"),
   arrendantes: z.string().min(1, "Nome dos arrendantes é obrigatório"),
-  data_inicio: z.coerce.date(),
-  data_termino: z.coerce.date(),
-  area_fazenda: z.coerce.number().min(0.01, "Área da fazenda deve ser positiva"),
-  area_arrendada: z.coerce.number().min(0.01, "Área arrendada deve ser positiva"),
-  custo_hectare: z.coerce.number().min(0, "Custo por hectare deve ser positivo").nullable(),
-  tipo_pagamento: leasePaymentTypeEnum.default("SACAS"),
+  data_inicio: z.coerce.date({
+    errorMap: () => ({ message: "Data de início inválida" })
+  }),
+  data_termino: z.coerce.date({
+    errorMap: () => ({ message: "Data de término inválida" })
+  }),
+  area_fazenda: z.coerce.number().min(0.01, "Área da fazenda deve ser positiva").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para a área da fazenda"
+  }),
+  area_arrendada: z.coerce.number().min(0.01, "Área arrendada deve ser positiva").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para a área arrendada"
+  }),
+  custo_hectare: z.coerce.number().min(0, "Custo por hectare deve ser positivo ou zero").nullable().refine(val => val === null || !isNaN(val), {
+    message: "Insira um valor numérico válido para o custo por hectare"
+  }),
+  tipo_pagamento: leasePaymentTypeEnum.default("SACAS").refine(val => !!val, {
+    message: "Selecione um tipo de pagamento"
+  }),
   // Garantir que custos_por_ano tenha pelo menos uma entrada
   custos_por_ano: z.record(z.string(), z.any())
     .refine(data => Object.keys(data).length > 0, {
@@ -171,12 +205,14 @@ export type LeaseFormValues = z.infer<typeof leaseFormSchema>;
 
 // Schema para Benfeitoria
 export const improvementSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
-  propriedade_id: z.string().uuid(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
+  propriedade_id: z.string().uuid("Selecione uma propriedade válida"),
   descricao: z.string().min(1, "Descrição é obrigatória"),
   dimensoes: z.string().nullable().optional(),
-  valor: z.coerce.number().min(0, "Valor deve ser positivo"),
+  valor: z.coerce.number().min(0, "Valor deve ser positivo ou zero").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido"
+  }),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

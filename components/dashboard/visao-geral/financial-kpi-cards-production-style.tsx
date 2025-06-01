@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { FinancialMetricHistoryChartModal } from "./financial-metric-history-chart-modal";
 import type { FinancialMetricType } from "@/lib/actions/financial-historical-metrics-actions";
+import { getFinancialHistoricalMetricData } from "@/lib/actions/financial-historical-metrics-actions";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -71,10 +72,12 @@ interface KpiItemProps {
   changeIcon?: React.ReactNode;
   tooltip?: string;
   onClick?: () => void;
+  onMouseEnter?: () => void;
   clickable?: boolean;
 }
 
-function KpiItem({
+// Memoizar o componente KpiItem para evitar re-renderizações desnecessárias
+const KpiItem = React.memo(function KpiItem({
   title,
   value,
   change,
@@ -84,6 +87,7 @@ function KpiItem({
   changeIcon,
   tooltip,
   onClick,
+  onMouseEnter,
   clickable = false,
 }: KpiItemProps) {
   if (loading) {
@@ -274,6 +278,7 @@ function KpiItem({
         clickable && "cursor-pointer hover:bg-muted/50 active:bg-muted"
       )}
       onClick={clickable ? onClick : undefined}
+      onMouseEnter={onMouseEnter}
     >
       <div className="rounded-full p-2 mr-3 bg-primary">{icon}</div>
       <div className="flex-1">
@@ -327,7 +332,7 @@ function KpiItem({
       </div>
     </div>
   );
-}
+});
 
 export function FinancialKpiCardsProductionStyle({
   organizationId,
@@ -348,10 +353,32 @@ export function FinancialKpiCardsProductionStyle({
 
   const currentYear = new Date().getFullYear();
   
-  const handleMetricClick = (metricType: FinancialMetricType) => {
+  // Cache de métricas para prefetching
+  const [prefetchedMetrics, setPrefetchedMetrics] = useState<Record<string, boolean>>({});
+  
+  // Usar useCallback para memoizar as funções e evitar re-renderizações desnecessárias
+  const handleMetricClick = useCallback((metricType: FinancialMetricType) => {
     setSelectedMetric(metricType);
     setModalOpen(true);
-  };
+  }, []);
+  
+  // Função para prefetching dos dados quando o usuário passar o mouse sobre o KPI
+  const handleMetricHover = useCallback(async (metricType: FinancialMetricType) => {
+    // Verificar se já foi feito prefetch desta métrica
+    if (prefetchedMetrics[metricType]) {
+      return;
+    }
+    
+    try {
+      // Marcar como prefetched para não repetir
+      setPrefetchedMetrics(prev => ({ ...prev, [metricType]: true }));
+      
+      // Fazer prefetch dos dados silenciosamente
+      await getFinancialHistoricalMetricData(organizationId, metricType);
+    } catch (err) {
+      // Erro no prefetch não é crítico, ignoramos silenciosamente
+    }
+  }, [organizationId, prefetchedMetrics]);
 
   // Carregar as safras disponíveis
   useEffect(() => {
@@ -668,6 +695,7 @@ export function FinancialKpiCardsProductionStyle({
                 loading={loading}
                 clickable={!loading}
                 onClick={() => handleMetricClick('dividaReceita')}
+                onMouseEnter={() => handleMetricHover('dividaReceita')}
                 tooltip="Relação entre a dívida total e a receita operacional. Quanto menor, melhor."
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
@@ -686,6 +714,7 @@ export function FinancialKpiCardsProductionStyle({
                 loading={loading}
                 clickable={!loading}
                 onClick={() => handleMetricClick('dividaEbitda')}
+                onMouseEnter={() => handleMetricHover('dividaEbitda')}
                 tooltip="Relação entre a dívida total e o EBITDA (lucro operacional). Quanto menor, melhor."
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
@@ -704,6 +733,7 @@ export function FinancialKpiCardsProductionStyle({
                 loading={loading}
                 clickable={!loading}
                 onClick={() => handleMetricClick('dividaLiquidaReceita')}
+                onMouseEnter={() => handleMetricHover('dividaLiquidaReceita')}
                 tooltip="Relação entre a dívida líquida (descontando caixa) e a receita. Quanto menor, melhor."
               />
               <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
@@ -722,6 +752,7 @@ export function FinancialKpiCardsProductionStyle({
                 loading={loading}
                 clickable={!loading}
                 onClick={() => handleMetricClick('dividaLiquidaEbitda')}
+                onMouseEnter={() => handleMetricHover('dividaLiquidaEbitda')}
                 tooltip="Relação entre a dívida líquida e o EBITDA. É o principal indicador de capacidade de pagamento. Quanto menor, melhor."
               />
             </div>

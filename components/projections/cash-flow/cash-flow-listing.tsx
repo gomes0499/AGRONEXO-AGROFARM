@@ -170,7 +170,7 @@ export function CashFlowListing({
 
                 {/* Soja Sequeiro */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Soja Sequeiro
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -185,7 +185,7 @@ export function CashFlowListing({
 
                 {/* Soja Irrigado */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Soja Irrigado
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -200,7 +200,7 @@ export function CashFlowListing({
 
                 {/* Algodão */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Algodão - 2ª Safra
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -215,7 +215,7 @@ export function CashFlowListing({
 
                 {/* Outras culturas resumidas */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Outras Culturas
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -282,7 +282,7 @@ export function CashFlowListing({
 
                 {/* Arrendamento */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Arrendamento
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -297,7 +297,7 @@ export function CashFlowListing({
 
                 {/* Pró-labore */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Pró-labore
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -312,7 +312,7 @@ export function CashFlowListing({
 
                 {/* Outras */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Outras
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -352,7 +352,7 @@ export function CashFlowListing({
 
                 {/* Maquinários */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Maquinários
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -367,7 +367,7 @@ export function CashFlowListing({
 
                 {/* Terras */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Terras
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -382,7 +382,7 @@ export function CashFlowListing({
 
                 {/* Outros Investimentos */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Outros
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -404,7 +404,7 @@ export function CashFlowListing({
 
                 {/* Serviço da Dívida */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Serviço da Dívida
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -419,7 +419,7 @@ export function CashFlowListing({
 
                 {/* Pagamentos Bancos */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Pagamentos - Bancos/Adto. Clientes
                   </TableCell>
                   {cashFlowData.years.map((year) => (
@@ -434,7 +434,7 @@ export function CashFlowListing({
 
                 {/* Novas Linhas de Crédito */}
                 <TableRow className="hover:bg-muted/30">
-                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                     Novas Linhas de Crédito
                   </TableCell>
                   {cashFlowData.years.map((year) => (

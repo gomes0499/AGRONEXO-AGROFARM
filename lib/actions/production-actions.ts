@@ -729,10 +729,20 @@ export async function updateProductivity(id: string, data: {
         }
       });
       
-      // Substituímos o objeto complexo pelo objeto de números simples
+      // Convertemos para o formato esperado pelo banco de dados
+      // Cada safra precisa ter um objeto com produtividade e unidade
+      const formattedProductivities: Record<string, { produtividade: number; unidade: string }> = {};
+      
+      Object.entries(numericProductivities).forEach(([safraId, produtividade]) => {
+        // Use a unidade original se disponível, ou use "sc/ha" como padrão
+        const unidade = data.produtividades_por_safra?.[safraId]?.unidade || "sc/ha";
+        formattedProductivities[safraId] = { produtividade, unidade };
+      });
+      
+      // Substituímos o objeto original pelo objeto formatado
       updateData = {
         ...data,
-        produtividades_por_safra: numericProductivities
+        produtividades_por_safra: formattedProductivities
       };
     }
     

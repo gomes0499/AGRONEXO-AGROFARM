@@ -38,14 +38,20 @@ export function EditPropertyDrawer({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   
   // Form setup
-  const form = useForm({
+  const form = useForm<any>({
     resolver: zodResolver(propertyFormSchema) as any,
     defaultValues: {
       nome: "",
       proprietario: "",
       cidade: "",
       estado: "",
+      status: "ATIVA" as const,
       tipo: "PROPRIO" as const,
+      area_total: null,
+      area_cultivada: null,
+      numero_matricula: null,
+      valor_atual: null,
+      avaliacao_banco: null,
       // Other default values
     }
   });
@@ -61,13 +67,17 @@ export function EditPropertyDrawer({
         // Carregar dados diretamente sem verificações desnecessárias
         const data = await getPropertyById(propertyId);
         setProperty(data);
-        setImageUrl(data.imagem);
+        setImageUrl(data.imagem || null);
+        
+        // Extract data_inicio and data_termino to handle separately
+        const { data_inicio, data_termino, ...restData } = data;
         
         // Reset form with property data
         form.reset({
-          ...data,
-          data_inicio: data.data_inicio ? new Date(data.data_inicio) : null,
-          data_termino: data.data_termino ? new Date(data.data_termino) : null,
+          ...restData,
+          // Convert dates if they exist
+          ...(data_inicio ? { data_inicio: new Date(data_inicio) } : {}),
+          ...(data_termino ? { data_termino: new Date(data_termino) } : {}),
         });
       } catch (error) {
         console.error("Erro ao carregar dados da propriedade:", error);

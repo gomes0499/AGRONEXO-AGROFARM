@@ -62,7 +62,7 @@ export function FinancialPagination({
 
   if (totalPages <= 1) {
     return (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 px-2 bg-gray-50 rounded-md">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 px-2 bg-gray-50 dark:bg-gray-800 rounded-md">
         <div className="text-sm text-muted-foreground">
           {totalItems === 0 ? (
             "Nenhum item encontrado"
@@ -93,19 +93,19 @@ export function FinancialPagination({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-4 px-4 bg-gray-50 rounded-md">
-      <div className="text-sm font-medium text-gray-700">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-4 px-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+      <div className="text-sm font-medium text-gray-700 dark:text-gray-200">
         Mostrando {startItem} a {endItem} de {totalItems} {totalItems === 1 ? "item" : "itens"}
       </div>
 
       <div className="flex flex-col md:flex-row items-center gap-6">
         <div className="flex items-center gap-3">
-          <p className="text-sm font-medium text-gray-700">Itens por página</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Itens por página</p>
           <Select
             value={itemsPerPage.toString()}
             onValueChange={(value) => onItemsPerPageChange(Number(value))}
           >
-            <SelectTrigger className="h-8 w-[70px] bg-white">
+            <SelectTrigger className="h-8 w-[70px] bg-white dark:bg-gray-700">
               <SelectValue />
             </SelectTrigger>
             <SelectContent side="top">
@@ -119,7 +119,7 @@ export function FinancialPagination({
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="text-sm font-medium text-gray-700">
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-200">
             Página {currentPage} de {totalPages}
           </div>
           <div className="flex items-center gap-2">
@@ -148,7 +148,7 @@ export function FinancialPagination({
                 page === "..." ? (
                   <span
                     key={`ellipsis-${index}`}
-                    className="flex h-8 w-8 items-center justify-center text-sm"
+                    className="flex h-8 w-8 items-center justify-center text-sm dark:text-gray-300"
                   >
                     ...
                   </span>

@@ -94,7 +94,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                       Ativo Circulante
                     </TableCell>
                     {data.anos.map((ano) => {
-                      const valor = data.ativo.circulante.total?.[ano] || 0;
+                      const valor = data.ativo.circulante.total[ano] || 0;
                       return (
                         <TableCell 
                           key={ano} 
@@ -119,7 +119,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px]"
                       >
-                        {formatCurrency(data.ativo.circulante.caixa_bancos?.[ano] || 0)}
+                        {formatCurrency(data.ativo.circulante.caixa_bancos[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -133,7 +133,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px]"
                       >
-                        {formatCurrency(data.ativo.circulante.clientes?.[ano] || 0)}
+                        {formatCurrency(data.ativo.circulante.clientes[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -147,7 +147,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px]"
                       >
-                        {formatCurrency(data.ativo.circulante.adiantamentos_fornecedores?.[ano] || 0)}
+                        {formatCurrency(data.ativo.circulante.adiantamentos_fornecedores[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -161,7 +161,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px]"
                       >
-                        {formatCurrency(data.ativo.circulante.emprestimos_terceiros?.[ano] || 0)}
+                        {formatCurrency(data.ativo.circulante.emprestimos_terceiros[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -257,7 +257,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                       Ativo Não Circulante
                     </TableCell>
                     {data.anos.map((ano) => {
-                      const valor = data.ativo.nao_circulante.total?.[ano] || 0;
+                      const valor = data.ativo.nao_circulante.total[ano] || 0;
                       return (
                         <TableCell 
                           key={ano} 
@@ -307,8 +307,8 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                       TOTAL DO ATIVO
                     </TableCell>
                     {data.anos.map((ano) => {
-                      const circulante = data.ativo.circulante.total?.[ano] || 0;
-                      const naoCirculante = data.ativo.nao_circulante.total?.[ano] || 0;
+                      const circulante = data.ativo.circulante.total[ano] || 0;
+                      const naoCirculante = data.ativo.nao_circulante.total[ano] || 0;
                       const total = circulante + naoCirculante;
                       
                       return (
@@ -346,7 +346,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                       Passivo Circulante
                     </TableCell>
                     {data.anos.map((ano) => {
-                      const valor = data.passivo.circulante.total?.[ano] || 0;
+                      const valor = data.passivo.circulante.total[ano] || 0;
                       return (
                         <TableCell 
                           key={ano} 
@@ -371,7 +371,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px] text-destructive"
                       >
-                        {formatCurrency(data.passivo.circulante.fornecedores?.[ano] || 0)}
+                        {formatCurrency(data.passivo.circulante.fornecedores[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -452,7 +452,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                       Passivo Não Circulante
                     </TableCell>
                     {data.anos.map((ano) => {
-                      const valor = data.passivo.nao_circulante.total?.[ano] || 0;
+                      const valor = data.passivo.nao_circulante.total[ano] || 0;
                       return (
                         <TableCell 
                           key={ano} 
@@ -491,7 +491,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px] text-destructive"
                       >
-                        {formatCurrency(data.passivo.nao_circulante.financiamentos_terras?.[ano] || 0)}
+                        {formatCurrency(data.passivo.nao_circulante.financiamento_terras[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -505,7 +505,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px] text-destructive"
                       >
-                        {formatCurrency(data.passivo.nao_circulante.arrendamentos?.[ano] || 0)}
+                        {formatCurrency(data.passivo.nao_circulante.arrendamentos[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -603,8 +603,8 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                       TOTAL DO PASSIVO + PL
                     </TableCell>
                     {data.anos.map((ano) => {
-                      const passivoCirculante = data.passivo.circulante.total?.[ano] || 0;
-                      const passivoNaoCirculante = data.passivo.nao_circulante.total?.[ano] || 0;
+                      const passivoCirculante = data.passivo.circulante.total[ano] || 0;
+                      const passivoNaoCirculante = data.passivo.nao_circulante.total[ano] || 0;
                       const patrimonioLiquido = data.passivo.patrimonio_liquido?.total?.[ano] || 0;
                       const total = passivoCirculante + passivoNaoCirculante + patrimonioLiquido;
                       

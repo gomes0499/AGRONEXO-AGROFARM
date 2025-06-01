@@ -62,7 +62,7 @@ export function AssetPagination({
 
   if (totalPages <= 1) {
     return (
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
         <div className="text-sm text-muted-foreground">
           {totalItems === 0 ? (
             "Nenhum item encontrado"
@@ -93,7 +93,7 @@ export function AssetPagination({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
       <div className="text-sm text-muted-foreground">
         Mostrando {startItem} a {endItem} de {totalItems} {totalItems === 1 ? "item" : "itens"}
       </div>
@@ -105,7 +105,7 @@ export function AssetPagination({
             value={itemsPerPage.toString()}
             onValueChange={(value) => onItemsPerPageChange(Number(value))}
           >
-            <SelectTrigger className="h-8 w-[70px]">
+            <SelectTrigger className="h-8 w-[70px] dark:bg-gray-700">
               <SelectValue />
             </SelectTrigger>
             <SelectContent side="top">
@@ -119,7 +119,7 @@ export function AssetPagination({
         </div>
 
         <div className="flex items-center space-x-2">
-          <div className="text-sm font-medium">
+          <div className="text-sm font-medium dark:text-gray-200">
             Página {currentPage} de {totalPages}
           </div>
           <div className="flex items-center space-x-1">
@@ -148,7 +148,7 @@ export function AssetPagination({
                 page === "..." ? (
                   <span
                     key={`ellipsis-${index}`}
-                    className="flex h-8 w-8 items-center justify-center text-sm"
+                    className="flex h-8 w-8 items-center justify-center text-sm dark:text-gray-300"
                   >
                     ...
                   </span>

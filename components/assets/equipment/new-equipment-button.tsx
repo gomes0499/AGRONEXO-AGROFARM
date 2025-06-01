@@ -38,7 +38,7 @@ export function NewEquipmentButton({
         title="Novo Equipamento"
         description="Cadastre uma nova máquina ou equipamento."
         showFooter={false}
-        className="sm:max-w-[700px]"
+        className="sm:max-w-[800px]"
       >
         <EquipmentForm
           organizationId={organizationId}

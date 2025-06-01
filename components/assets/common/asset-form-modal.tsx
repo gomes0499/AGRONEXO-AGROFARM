@@ -40,7 +40,7 @@ export function AssetFormModal({
 }: AssetFormModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`p-0 overflow-hidden ${className}`}>
+      <DialogContent className={`p-0 overflow-hidden sm:max-w-[800px] ${className}`} style={{ width: "90vw", maxWidth: "800px" }}>
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

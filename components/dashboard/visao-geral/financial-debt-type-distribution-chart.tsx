@@ -257,17 +257,17 @@ function CustomTooltip({ active, payload }: any) {
     const data = payload[0].payload;
     
     return (
-      <div className="bg-background border border-border rounded-lg shadow-lg p-3">
-        <p className="font-semibold text-sm">{data.name}</p>
-        <div className="my-1 h-px bg-border" />
+      <div className="bg-background dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg shadow-lg p-3">
+        <p className="font-semibold text-sm dark:text-white">{data.name}</p>
+        <div className="my-1 h-px bg-border dark:bg-gray-600" />
         <div className="space-y-1 mt-2">
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground">Valor:</span> 
-            <span className="font-medium">{formatCurrency(data.value)}</span>
+            <span className="text-muted-foreground dark:text-gray-400">Valor:</span> 
+            <span className="font-medium dark:text-white">{formatCurrency(data.value)}</span>
           </p>
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground">Participação:</span> 
-            <span className="font-medium">{formatPercent(data.percentual)}</span>
+            <span className="text-muted-foreground dark:text-gray-400">Participação:</span> 
+            <span className="font-medium dark:text-white">{formatPercent(data.percentual)}</span>
           </p>
         </div>
       </div>
@@ -483,10 +483,10 @@ export function FinancialDebtTypeDistributionChart({
                       // Convert to unknown first, then to our expected type
                       const payload = entry.payload as unknown as DebtTypeData;
                       if (payload.name && typeof payload.percentual === 'number') {
-                        return <span className="text-sm">{payload.name} ({formatPercent(payload.percentual)})</span>;
+                        return <span className="text-sm dark:text-white">{payload.name} ({formatPercent(payload.percentual)})</span>;
                       }
                     }
-                    return <span className="text-sm">{value}</span>;
+                    return <span className="text-sm dark:text-white">{value}</span>;
                   }}
                 />
               </PieChart>
@@ -496,7 +496,7 @@ export function FinancialDebtTypeDistributionChart({
       </CardContent>
       {/* Footer com estatísticas */}
       <div className="p-4 bg-muted/30 rounded-b-lg text-sm">
-        <p className="text-center font-medium">
+        <p className="text-center font-medium dark:text-white">
           Total de dívidas: {formatCurrency(total)}
           <span className="mx-2">•</span>
           <span>

@@ -118,9 +118,9 @@ export function CaixaDisponibilidadesPopoverEditor({
         {
           nome: item.nome,
           categoria: item.categoria,
+          safra_id: item.safra_id || Object.keys(validValues)[0] || "", // Adding missing safra_id
           valores_por_safra: validValues,
-        },
-        organizationId
+        }
       );
       
       onUpdate(updatedItem);

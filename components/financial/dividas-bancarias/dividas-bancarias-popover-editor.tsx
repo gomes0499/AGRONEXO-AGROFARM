@@ -117,8 +117,11 @@ export function DividasBancariasPopoverEditor({
         divida.id,
         {
           nome: divida.nome,
+          tipo: "BANCO", // Adding missing required field
           categoria: divida.categoria,
           moeda: divida.moeda,
+          indexador: "CDI", // Adding missing required field 
+          taxa_real: 0, // Adding missing required field
           valores_por_safra: validValues,
         },
         organizationId

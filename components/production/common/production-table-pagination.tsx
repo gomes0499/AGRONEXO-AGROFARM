@@ -70,7 +70,7 @@ export function ProductionTablePagination({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
       {/* Informações de paginação */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>
@@ -86,7 +86,7 @@ export function ProductionTablePagination({
             value={pageSize.toString()}
             onValueChange={(value) => onPageSizeChange(Number(value))}
           >
-            <SelectTrigger className="w-20 h-8">
+            <SelectTrigger className="w-20 h-8 dark:bg-gray-700">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -132,7 +132,7 @@ export function ProductionTablePagination({
               onClick={() => typeof page === "number" && onPageChange(page)}
               disabled={page === "..."}
             >
-              {page}
+              {page === "..." ? <span className="dark:text-gray-300">...</span> : page}
             </Button>
           ))}
 

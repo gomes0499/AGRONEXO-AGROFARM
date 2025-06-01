@@ -79,34 +79,34 @@ export function ProductionNavClient({
         onValueChange={handleTabChange}
         className="w-full max-w-full"
       >
-        <TabsList className="w-full">
+        <TabsList className="w-full overflow-x-auto flex flex-nowrap dark:bg-gray-800 dark:text-gray-300">
           {/* Configurações como primeira tab */}
-          <TabsTrigger value="config" className="relative">
+          <TabsTrigger value="config" className="relative dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-white">
             Configurações
           </TabsTrigger>
 
           {/* Áreas de Plantio */}
-          <TabsTrigger value="plantingAreas" className="relative">
+          <TabsTrigger value="plantingAreas" className="relative dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-white">
             Áreas de Plantio
           </TabsTrigger>
 
           {/* Produtividade */}
-          <TabsTrigger value="productivity" className="relative">
+          <TabsTrigger value="productivity" className="relative dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-white">
             Produtividade
           </TabsTrigger>
 
           {/* Custos de Produção */}
-          <TabsTrigger value="costs" className="relative">
+          <TabsTrigger value="costs" className="relative dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-white">
             Custos de Produção
           </TabsTrigger>
 
           {/* Rebanho */}
-          <TabsTrigger value="livestock" className="relative">
+          <TabsTrigger value="livestock" className="relative dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-white">
             Rebanho
           </TabsTrigger>
 
           {/* Operações Pecuárias */}
-          <TabsTrigger value="livestockOperations" className="relative">
+          <TabsTrigger value="livestockOperations" className="relative dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-white">
             Operações Pecuárias
           </TabsTrigger>
         </TabsList>

@@ -72,28 +72,28 @@ export function PropertyFilter({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="justify-between min-w-[250px]"
+          className="justify-between min-w-[250px] dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
         >
           <div className="flex items-center gap-2 truncate">
-            <MapPin className="h-4 w-4 shrink-0 opacity-50" />
+            <MapPin className="h-4 w-4 shrink-0 opacity-50 dark:text-gray-300" />
             <span className="truncate">{selectedCountText}</span>
             {selectedPropertyIds.length > 0 && selectedPropertyIds.length < properties.length && (
-              <Badge variant="secondary" className="ml-1">
+              <Badge variant="secondary" className="ml-1 dark:bg-gray-700 dark:text-white">
                 {selectedPropertyIds.length}
               </Badge>
             )}
           </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 dark:text-gray-300" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[300px]">
-        <Command>
-          <CommandInput placeholder="Buscar propriedade..." />
-          <CommandEmpty>Nenhuma propriedade encontrada.</CommandEmpty>
-          <CommandGroup>
+      <PopoverContent className="p-0 w-[300px] dark:bg-gray-800 dark:border-gray-700">
+        <Command className="dark:bg-gray-800">
+          <CommandInput placeholder="Buscar propriedade..." className="dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-400 dark:border-gray-700" />
+          <CommandEmpty className="dark:text-gray-300">Nenhuma propriedade encontrada.</CommandEmpty>
+          <CommandGroup className="dark:text-gray-200">
             <CommandItem 
               onSelect={handleSelectAll}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 dark:text-gray-200 dark:aria-selected:bg-gray-700 dark:hover:bg-gray-700"
             >
               <div className={cn(
                 "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
@@ -104,13 +104,13 @@ export function PropertyFilter({
               <span>Todas as propriedades</span>
             </CommandItem>
           </CommandGroup>
-          <CommandGroup heading="Propriedades">
+          <CommandGroup heading="Propriedades" className="dark:text-gray-400">
             <ScrollArea className="h-72">
               {properties.map((property) => (
                 <CommandItem
                   key={property.id}
                   onSelect={() => handleToggleProperty(property.id)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 dark:text-gray-200 dark:aria-selected:bg-gray-700 dark:hover:bg-gray-700"
                 >
                   <div className={cn(
                     "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
@@ -121,7 +121,7 @@ export function PropertyFilter({
                   <div className="flex flex-col">
                     <span>{property.nome}</span>
                     {property.cidade && property.estado && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground dark:text-gray-400">
                         {property.cidade}/{property.estado}
                       </span>
                     )}

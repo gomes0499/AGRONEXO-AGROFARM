@@ -6,9 +6,6 @@ export async function POST(req: Request) {
     // Extrair as mensagens e dados contextuais do corpo da requisição
     const { messages, context } = await req.json()
 
-    // Log para debug
-    console.log("Contexto recebido:", context)
-
     // Criar um prompt de sistema que inclui o contexto
     const systemPrompt = `
       Você é um assistente agrícola especializado em produção rural, culturas, clima e mercado agrícola.

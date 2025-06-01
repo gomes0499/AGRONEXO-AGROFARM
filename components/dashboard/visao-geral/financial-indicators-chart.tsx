@@ -230,14 +230,14 @@ export function FinancialIndicatorsChart({
                 data={data}
                 margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
                   dataKey="ano"
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
                   fontSize={12}
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 10, fill: "var(--foreground)" }}
                 />
                 <YAxis
                   tickFormatter={(value) => `${Number(value).toFixed(1)}x`}
@@ -246,9 +246,14 @@ export function FinancialIndicatorsChart({
                   tickMargin={10}
                   fontSize={12}
                   width={60}
+                  tick={{ fill: "var(--foreground)" }}
                 />
                 <ChartTooltip
-                  content={<ChartTooltipContent />}
+                  content={
+                    <div className="rounded-lg border bg-background dark:border-gray-700 p-2 shadow-md">
+                      <ChartTooltipContent className="dark:text-white" />
+                    </div>
+                  }
                   formatter={(value, name) => [
                     `${Number(value).toFixed(2)}x`,
                     name && typeof name === 'string' && 
@@ -257,7 +262,7 @@ export function FinancialIndicatorsChart({
                   ]}
                   labelFormatter={(label) => `Ano: ${label}`}
                 />
-                <ChartLegend content={<ChartLegendMultirow itemsPerRow={2} />} />
+                <ChartLegend content={<ChartLegendMultirow itemsPerRow={2} className="dark:text-gray-300" />} />
                 
                 {/* Linhas de referência para benchmarks */}
                 {benchmarks && (
@@ -317,7 +322,7 @@ export function FinancialIndicatorsChart({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-xs">
           {/* Nível de Risco */}
           <div className="space-y-1">
-            <div className="font-medium text-muted-foreground">Nível de Risco Atual</div>
+            <div className="font-medium text-muted-foreground dark:text-gray-400">Nível de Risco Atual</div>
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${
                 nivelRisco === 'CRÍTICO' ? 'bg-red-500' :
@@ -325,9 +330,9 @@ export function FinancialIndicatorsChart({
                 nivelRisco === 'MÉDIO' ? 'bg-yellow-500' : 'bg-green-500'
               }`}></div>
               <span className={
-                nivelRisco === 'CRÍTICO' ? 'text-red-600 font-medium' :
-                nivelRisco === 'ALTO' ? 'text-orange-600 font-medium' :
-                nivelRisco === 'MÉDIO' ? 'text-yellow-600 font-medium' : 'text-green-600 font-medium'
+                nivelRisco === 'CRÍTICO' ? 'text-red-600 dark:text-red-400 font-medium' :
+                nivelRisco === 'ALTO' ? 'text-orange-600 dark:text-orange-400 font-medium' :
+                nivelRisco === 'MÉDIO' ? 'text-yellow-600 dark:text-yellow-400 font-medium' : 'text-green-600 dark:text-green-400 font-medium'
               }>
                 {nivelRisco === 'CRÍTICO' ? '🔴 CRÍTICO' :
                  nivelRisco === 'ALTO' ? '🟠 ALTO' :
@@ -338,28 +343,28 @@ export function FinancialIndicatorsChart({
           
           {/* Benchmarks */}
           <div className="space-y-1">
-            <div className="font-medium text-muted-foreground">Benchmarks (Críticos)</div>
-            <div className="text-xs space-y-1">
+            <div className="font-medium text-muted-foreground dark:text-gray-400">Benchmarks (Críticos)</div>
+            <div className="text-xs space-y-1 dark:text-gray-300">
               <div>Dívida/Receita: &lt; {benchmarks?.dividaReceita.critico}x</div>
               <div>Dívida/EBITDA: &lt; {benchmarks?.dividaEbitda.critico}x</div>
             </div>
           </div>
         </div>
         
-        <div className="flex gap-2 font-medium leading-none pt-2 border-t border-muted-foreground/20 w-full">
+        <div className="flex gap-2 font-medium leading-none pt-2 border-t border-muted-foreground/20 dark:border-gray-700 w-full dark:text-white">
           Tendência predominante: 
           {(Number(tendencias.dividaReceita) + Number(tendencias.dividaEbitda) + Number(tendencias.dividaLucroLiquido)) / 3 >= 0 ? (
             <>
-              {" "}crescimento dos indicadores <TrendingUp className="h-4 w-4 text-red-500" />
+              {" "}crescimento dos indicadores <TrendingUp className="h-4 w-4 text-red-500 dark:text-red-400" />
             </>
           ) : (
             <>
-              {" "}melhoria dos indicadores <TrendingUp className="h-4 w-4 text-green-500 rotate-180" />
+              {" "}melhoria dos indicadores <TrendingUp className="h-4 w-4 text-green-500 dark:text-green-400 rotate-180" />
             </>
           )}
         </div>
         
-        <div className="leading-none text-muted-foreground text-xs">
+        <div className="leading-none text-muted-foreground dark:text-gray-400 text-xs">
           Indicadores baseados em dívidas vs receita, EBITDA e lucro líquido projetados
         </div>
       </CardFooter>

@@ -107,7 +107,7 @@ export function LandPlanForm({
       let tipoValido = values.tipo;
       
       // Verificar explicitamente por "PLANEJADO" e "REALIZADO" e substituí-los
-      if (tipoValido === "PLANEJADO" || tipoValido === "REALIZADO") {
+      if ((tipoValido as string) === "PLANEJADO" || (tipoValido as string) === "REALIZADO") {
         console.warn(`Detectado valor legado para tipo: "${tipoValido}". Substituindo por "COMPRA"`);
         tipoValido = "COMPRA";
       }

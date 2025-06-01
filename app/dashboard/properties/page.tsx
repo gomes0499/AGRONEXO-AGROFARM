@@ -28,13 +28,9 @@ export default async function PropertiesPage({
     const { initializeDefaultCommodityPrices } = await import(
       "@/lib/actions/indicator-actions/commodity-price-actions"
     );
-    console.log(`Inicializando preços para tenant: ${session.organizationId}`);
 
     try {
-      const result = await initializeDefaultCommodityPrices(
-        session.organizationId
-      );
-      console.log(`Resultado da inicialização: ${JSON.stringify(result)}`);
+      await initializeDefaultCommodityPrices(session.organizationId);
     } catch (error) {
       console.error(`Erro ao inicializar preços: ${error}`);
     }
@@ -48,11 +44,11 @@ export default async function PropertiesPage({
       <div className="flex flex-col gap-6 p-6">
         {/* Exibir alerta se os preços foram inicializados */}
         {searchParams?.init_prices === "true" && (
-          <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-2">
+          <div className="bg-green-50 dark:bg-green-950/30 border-l-4 border-green-500 p-4 mb-2">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-green-400"
+                  className="h-5 w-5 text-green-400 dark:text-green-300"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -64,11 +60,11 @@ export default async function PropertiesPage({
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-green-800">
+                <p className="text-sm font-medium text-green-800 dark:text-green-300">
                   Preços de commodities inicializados com sucesso para seu
                   tenant!
                 </p>
-                <div className="mt-2 text-xs text-green-700">
+                <div className="mt-2 text-xs text-green-700 dark:text-green-400">
                   <p>
                     Agora você pode acessar o módulo de{" "}
                     <a

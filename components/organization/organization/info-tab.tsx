@@ -33,10 +33,16 @@ export function OrganizationDetailInfo({
   // Função para renderizar o tipo de organização (PF ou PJ)
   const renderTypeField = () => {
     const isPJ = !!organization.cnpj;
-    
+
     return (
       <InfoField
-        icon={isPJ ? <Briefcase className="h-4 w-4" /> : <User className="h-4 w-4" />}
+        icon={
+          isPJ ? (
+            <Briefcase className="h-4 w-4" />
+          ) : (
+            <User className="h-4 w-4" />
+          )
+        }
         label="Tipo"
         copyable={false}
       >
@@ -68,7 +74,9 @@ export function OrganizationDetailInfo({
       .join(", ");
 
     const cep = organization.cep ? formatCEP(String(organization.cep)) : null;
-    const fullAddress = [addressLine1, addressLine2, cep && `CEP ${cep}`].filter(Boolean).join(" • ");
+    const fullAddress = [addressLine1, addressLine2, cep && `CEP ${cep}`]
+      .filter(Boolean)
+      .join(" • ");
 
     return (
       <InfoField
@@ -79,7 +87,9 @@ export function OrganizationDetailInfo({
       >
         <div className="space-y-1">
           <p className="font-medium text-foreground">{addressLine1}</p>
-          {addressLine2 && <p className="text-muted-foreground">{addressLine2}</p>}
+          {addressLine2 && (
+            <p className="text-muted-foreground">{addressLine2}</p>
+          )}
           {cep && <p className="text-sm text-muted-foreground">CEP {cep}</p>}
         </div>
       </InfoField>
@@ -87,8 +97,8 @@ export function OrganizationDetailInfo({
   };
 
   return (
-    <Card className="shadow-sm border-muted/80">
-      <CardHeaderPrimary 
+    <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
+      <CardHeaderPrimary
         icon={<Building2 className="h-4 w-4" />}
         title="Dados da Organização"
         description="Informações gerais e dados cadastrais da organização"
@@ -102,7 +112,7 @@ export function OrganizationDetailInfo({
             label="Nome da Organização"
             value={organization.nome}
           />
-          
+
           <InfoField
             icon={<Hash className="h-4 w-4" />}
             label="Identificador"
@@ -121,14 +131,17 @@ export function OrganizationDetailInfo({
           <InfoField
             icon={<Phone className="h-4 w-4" />}
             label="Telefone"
-            value={organization.telefone ? formatPhone(String(organization.telefone)) : null}
+            value={
+              organization.telefone
+                ? formatPhone(String(organization.telefone))
+                : null
+            }
           />
 
           <InfoField
             icon={<Globe className="h-4 w-4" />}
             label="Website"
             value={organization.website}
-            link={true}
           />
 
           {/* Documentos */}
@@ -144,7 +157,11 @@ export function OrganizationDetailInfo({
             <InfoField
               icon={<CreditCard className="h-4 w-4" />}
               label="CPF"
-              value={formatCPF ? formatCPF(String(organization.cpf)) : organization.cpf}
+              value={
+                formatCPF
+                  ? formatCPF(String(organization.cpf))
+                  : organization.cpf
+              }
             />
           )}
 

@@ -66,7 +66,7 @@ function KpiItem({
               <TooltipTrigger asChild>
                 <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                 <p>{tooltip}</p>
               </TooltipContent>
             </Tooltip>
@@ -335,7 +335,7 @@ export function PropertyKpiCardsFull({
                 <TooltipTrigger asChild>
                   <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                   <p>
                     Indicadores consolidados das propriedades incluindo área
                     total, valor patrimonial e potencial produtivo.
@@ -355,7 +355,7 @@ export function PropertyKpiCardsFull({
               isPositive={true}
               loading={loadingProperty}
               icon={
-                <HomeIcon className="h-5 w-5 text-white dark:text-gray-700" />
+                <HomeIcon className="h-5 w-5 text-white dark:text-white" />
               }
               tooltip="Número total de propriedades rurais cadastradas no sistema, incluindo fazendas próprias e arrendadas."
             />
@@ -371,7 +371,7 @@ export function PropertyKpiCardsFull({
               isPositive={true}
               loading={loadingProperty}
               icon={
-                <MapIcon className="h-5 w-5 text-white dark:text-gray-700" />
+                <MapIcon className="h-5 w-5 text-white dark:text-white" />
               }
               tooltip="Soma de todas as áreas das propriedades em hectares, representando o tamanho total do portfólio fundiário."
             />
@@ -391,7 +391,7 @@ export function PropertyKpiCardsFull({
               isPositive={true}
               loading={loadingProperty}
               icon={
-                <BanknoteIcon className="h-5 w-5 text-white dark:text-gray-700" />
+                <BanknoteIcon className="h-5 w-5 text-white dark:text-white" />
               }
               tooltip="Valor total de mercado de todas as propriedades, base para análise de patrimônio imobiliário rural."
             />
@@ -413,7 +413,7 @@ export function PropertyKpiCardsFull({
               isPositive={true}
               loading={loadingProperty}
               icon={
-                <SproutIcon className="h-5 w-5 text-white dark:text-gray-700" />
+                <SproutIcon className="h-5 w-5 text-white dark:text-white" />
               }
               tooltip="Área disponível para cultivo agrícola, mostrando o potencial produtivo das propriedades."
             />

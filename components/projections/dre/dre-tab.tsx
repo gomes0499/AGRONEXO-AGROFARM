@@ -40,7 +40,7 @@ export function DRETab({ organizationId }: DRETabProps) {
   
   if (loading) {
     return (
-      <Card className="shadow-sm border-muted/80">
+      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
         <CardHeaderPrimary
           icon={<FileText className="h-4 w-4" />}
           title="Demonstração de Resultado do Exercício (DRE)"
@@ -64,7 +64,7 @@ export function DRETab({ organizationId }: DRETabProps) {
   
   if (error) {
     return (
-      <Card className="shadow-sm border-muted/80">
+      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
         <CardHeaderPrimary
           icon={<FileText className="h-4 w-4" />}
           title="Demonstração de Resultado do Exercício (DRE)"
@@ -81,7 +81,7 @@ export function DRETab({ organizationId }: DRETabProps) {
   
   if (!dreData) {
     return (
-      <Card className="shadow-sm border-muted/80">
+      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
         <CardHeaderPrimary
           icon={<FileText className="h-4 w-4" />}
           title="Demonstração de Resultado do Exercício (DRE)"

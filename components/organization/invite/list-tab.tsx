@@ -56,7 +56,7 @@ type Invite = {
 
 type OrganizationDetailInvitesProps = {
   invites: Invite[];
-  organizationId?: string;
+  organizationId: string;
   organizationName?: string;
 };
 
@@ -116,7 +116,7 @@ export function OrganizationDetailInvites({
   );
 
   return (
-    <Card className="shadow-sm border-muted/80">
+    <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
       <CardHeader className="bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4">
         <div className="flex items-center gap-3">
           <div className="rounded-full p-2 bg-white/20">
@@ -131,7 +131,7 @@ export function OrganizationDetailInvites({
         </div>
         <div className="flex gap-2">
           <InviteDialog
-            organizationId={organizationId || ""}
+            organizationId={organizationId}
             organizationName={organizationName || ""}
             trigger={
               <Button variant="secondary" className="gap-1" size="default">
@@ -269,7 +269,7 @@ export function OrganizationDetailInvites({
               "Convidar" na aba de Membros para adicionar novos usuários.
             </p>
             <InviteDialog
-              organizationId={organizationId || ""}
+              organizationId={organizationId}
               organizationName={organizationName || ""}
               trigger={
                 <Button>

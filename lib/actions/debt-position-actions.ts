@@ -31,11 +31,26 @@ export interface ConsolidatedDebtPosition {
   anos: string[];
 }
 
+// Cache para armazenar os resultados da função getDebtPosition
+const debtPositionCache: Record<string, {
+  data: ConsolidatedDebtPosition;
+  timestamp: number;
+}> = {};
+
+// Tempo de expiração do cache em milissegundos (5 minutos)
+const CACHE_EXPIRATION = 5 * 60 * 1000;
+
 export async function getDebtPosition(organizationId: string): Promise<ConsolidatedDebtPosition> {
+  // Verificar se temos dados em cache para esta organização
+  const cacheKey = `debt_position_${organizationId}`;
+  const now = Date.now();
+  const cachedData = debtPositionCache[cacheKey];
+  
+  if (cachedData && (now - cachedData.timestamp) < CACHE_EXPIRATION) {
+    return cachedData.data;
+  }
   try {
     const supabase = await createClient();
-
-    console.log("💰 Calculando posição de dívida para organização:", organizationId);
 
     if (!organizationId) {
       throw new Error("ID da organização é obrigatório");
@@ -54,7 +69,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     }
 
     if (!safras || safras.length === 0) {
-      console.log("❌ Nenhuma safra encontrada");
       return {
         dividas: [],
         ativos: [],
@@ -80,14 +94,11 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       };
     }
 
-  console.log(`📅 Encontradas ${safras.length} safras`);
-
   // Filtrar apenas as safras até 2029/30 para exibição na tabela
   const anosFiltrados = safras.filter(s => {
     const anoFim = parseInt(s.ano_fim);
     return anoFim <= 2030; // 2029/30 é a última safra que queremos mostrar
   });
-  console.log(`📅 Após filtro, utilizando ${anosFiltrados.length} safras (até 2029/30)`);
 
   // Criar mapeamento de safra ID para nome (apenas para safras até 2029/30)
   const safraToYear = anosFiltrados.reduce((acc, safra) => {
@@ -110,7 +121,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
   
   const buscarTabela = async (tableName: string): Promise<Record<string, any>[]> => {
     try {
-      console.log(`🔍 Buscando dados de ${tableName}...`);
       const { data, error } = await supabase
         .from(tableName)
         .select("*")
@@ -121,29 +131,10 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
         return [];
       }
       
-      console.log(`✅ ${tableName}: ${data?.length || 0} registros`);
       return data || [];
     } catch (err) {
       console.warn(`⚠️ Erro inesperado ao buscar ${tableName}:`, err);
       return [];
-    }
-  };
-  
-  // Função auxiliar para debug de objetos JSONB
-  const debugJsonField = (objeto: Record<string, any>, campo: string) => {
-    try {
-      console.log(`🔎 DEBUG ${campo}:`, objeto[campo]);
-      if (objeto[campo]) {
-        if (typeof objeto[campo] === 'string') {
-          console.log(`🔎 DEBUG ${campo} (parsed):`, JSON.parse(objeto[campo]));
-        } else {
-          console.log(`🔎 DEBUG ${campo} (object):`, objeto[campo]);
-        }
-      } else {
-        console.log(`🔎 DEBUG ${campo}: campo não encontrado`);
-      }
-    } catch (e) {
-      console.error(`❌ Erro ao debugar campo ${campo}:`, e);
     }
   };
 
@@ -179,16 +170,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     // Continuar com arrays vazios para não quebrar a função
   }
 
-  console.log(`📊 Dados encontrados:`, {
-    dividasBancarias: dividasBancarias?.length || 0,
-    dividasTrading: dividasTrading?.length || 0,
-    dividasImoveis: dividasImoveis?.length || 0,
-    arrendamentos: arrendamentos?.length || 0,
-    fornecedores: fornecedores?.length || 0,
-    fatoresLiquidez: fatoresLiquidez?.length || 0,
-    estoques: estoques?.length || 0,
-    estoquesCommodities: estoquesCommodities?.length || 0
-  });
   
   // Valores específicos para CAIXAS E DISPONIBILIDADES (para garantir a exibição correta)
   // Estes valores são baseados no exemplo fornecido pelo usuário
@@ -240,26 +221,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     "2029/30": 6500000
   };
   
-  // Verificar estrutura dos fornecedores para debug
-  if (fornecedores?.length > 0) {
-    const primeiroFornecedor = fornecedores[0];
-    console.log("🔍 ESTRUTURA DO PRIMEIRO FORNECEDOR:", Object.keys(primeiroFornecedor));
-    
-    // Verificar se existe algum campo que parece ser de valores
-    const camposValores = Object.keys(primeiroFornecedor).filter(key => 
-      key.includes('valor') || 
-      key.includes('value') || 
-      key.includes('pagamento') || 
-      key.includes('fluxo')
-    );
-    
-    if (camposValores.length > 0) {
-      console.log("🔍 CAMPOS DE VALORES ENCONTRADOS:", camposValores);
-      camposValores.forEach(campo => {
-        console.log(`🔍 CONTEÚDO DO CAMPO ${campo}:`, primeiroFornecedor[campo]);
-      });
-    }
-  }
 
   // MODIFICAÇÃO: Consolidar dívidas bancárias (APENAS tipo = BANCO)
   // e dívidas da tabela dividas_trading
@@ -417,8 +378,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       anoToSafraId[safra.nome] = safra.id;
     });
     
-    console.log("💵 DEBUG: consolidarFornecedores - mapeamento ano -> safraId:", anoToSafraId);
-    console.log(`💵 DEBUG: consolidarFornecedores - encontrados ${fornecedores?.length || 0} fornecedores`);
     
     // Função para extrair os valores a partir de diferentes formatos possíveis
     const extrairValoresPorSafra = (fornecedor: Record<string, any>) => {
@@ -477,7 +436,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       // Extrair valores independente do formato
       const valoresPorAno = extrairValoresPorSafra(fornecedor);
       
-      console.log(`💵 DEBUG: Valores do fornecedor ${fornecedor.nome || fornecedor.id || 'desconhecido'}:`, valoresPorAno);
       
       // Para cada safra, pegar o valor exato (sem somar todos)
       anos.forEach(ano => {
@@ -502,7 +460,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       });
     });
     
-    console.log("💵 DEBUG: Valores finais dos fornecedores:", valores);
 
     return valores;
   };
@@ -611,18 +568,10 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     // Inicializar com zero todos os anos
     anos.forEach(ano => valores[ano] = 0);
     
-    console.log(`💰 DEBUG: consolidarCaixa - encontrados ${fatoresLiquidez?.length || 0} registros totais`);
-    
     // Filtrar para incluir apenas registros de CAIXA_BANCOS
     const caixaItens = fatoresLiquidez?.filter(item => 
       item.categoria === 'CAIXA_BANCOS'
     );
-    
-    console.log(`💰 DEBUG: Encontrados ${caixaItens?.length || 0} itens de CAIXA_BANCOS`);
-    
-    if (caixaItens && caixaItens.length > 0) {
-      console.log("💰 DEBUG: Exemplo de item de caixa:", caixaItens[0]);
-    }
     
     // Processar cada item de CAIXA_BANCOS
     caixaItens?.forEach(caixa => {
@@ -651,12 +600,10 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     // Fallback para os valores específicos se o banco não tiver dados
     anos.forEach(ano => {
       if (valores[ano] === 0 && valoresCaixasEspecificos[ano]) {
-        console.log(`💰 DEBUG: Usando valor específico para ${ano}`);
         valores[ano] = valoresCaixasEspecificos[ano];
       }
     });
     
-    console.log("💰 DEBUG: Valores finais de caixa:", valores);
     return valores;
   };
 
@@ -671,11 +618,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       item.categoria === 'ATIVO_BIOLOGICO'
     );
     
-    console.log(`🌱 DEBUG: Encontrados ${ativoBiologicoItens?.length || 0} itens de ATIVO_BIOLOGICO`);
-    
-    if (ativoBiologicoItens && ativoBiologicoItens.length > 0) {
-      console.log("🌱 DEBUG: Exemplo de item de ativo biológico:", ativoBiologicoItens[0]);
-    }
     
     // Processar cada item de ATIVO_BIOLOGICO
     ativoBiologicoItens?.forEach(item => {
@@ -704,12 +646,10 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     // Fallback para os valores específicos se o banco não tiver dados
     anos.forEach(ano => {
       if (valores[ano] === 0 && valoresAtivoBiologicoEspecificos[ano]) {
-        console.log(`🌱 DEBUG: Usando valor específico para ${ano}`);
         valores[ano] = valoresAtivoBiologicoEspecificos[ano];
       }
     });
     
-    console.log("🌱 DEBUG: Valores finais de ativo biológico:", valores);
     return valores;
   };
 
@@ -724,11 +664,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       item.categoria === 'ESTOQUE_DEFENSIVOS'
     );
     
-    console.log(`📦 DEBUG: Encontrados ${estoqueDefensivosItens?.length || 0} itens de ESTOQUE_DEFENSIVOS`);
-    
-    if (estoqueDefensivosItens && estoqueDefensivosItens.length > 0) {
-      console.log("📦 DEBUG: Exemplo de estoque de defensivos:", estoqueDefensivosItens[0]);
-    }
     
     // Processar cada item de ESTOQUE_DEFENSIVOS
     estoqueDefensivosItens?.forEach(item => {
@@ -757,12 +692,10 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     // Fallback para os valores específicos se o banco não tiver dados
     anos.forEach(ano => {
       if (valores[ano] === 0 && valoresEstoqueInsumosEspecificos[ano]) {
-        console.log(`📦 DEBUG: Usando valor específico para ${ano}`);
         valores[ano] = valoresEstoqueInsumosEspecificos[ano];
       }
     });
     
-    console.log("📦 DEBUG: Valores finais de estoques de insumos:", valores);
     return valores;
   };
 
@@ -777,11 +710,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       item.categoria === 'ESTOQUE_COMMODITIES'
     );
     
-    console.log(`🌾 DEBUG: Encontrados ${estoqueCommoditiesItens?.length || 0} itens de ESTOQUE_COMMODITIES`);
-    
-    if (estoqueCommoditiesItens && estoqueCommoditiesItens.length > 0) {
-      console.log("🌾 DEBUG: Exemplo de estoque de commodities:", estoqueCommoditiesItens[0]);
-    }
     
     // Processar cada item de ESTOQUE_COMMODITIES
     estoqueCommoditiesItens?.forEach(item => {
@@ -810,12 +738,10 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     // Fallback para os valores específicos se o banco não tiver dados
     anos.forEach(ano => {
       if (valores[ano] === 0 && valoresEstoqueCommoditiesEspecificos[ano]) {
-        console.log(`🌾 DEBUG: Usando valor específico para ${ano}`);
         valores[ano] = valoresEstoqueCommoditiesEspecificos[ano];
       }
     });
     
-    console.log("🌾 DEBUG: Valores finais de estoques de commodities:", valores);
     return valores;
   };
 
@@ -831,15 +757,11 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     });
 
     try {
-      console.log("🔄 Tentando buscar projeções de cultura...");
       const { getCultureProjections } = await import('./culture-projections-actions');
       const projections = await getCultureProjections(organizationId);
-      
-      console.log("✅ Projeções carregadas:", projections ? 'sim' : 'não');
 
       // Somar receitas e EBITDA do consolidado
       if (projections?.consolidado?.projections_by_year) {
-        console.log("📊 Processando dados consolidados...");
         anos.forEach(ano => {
           const data = projections.consolidado.projections_by_year[ano];
           if (data) {
@@ -847,9 +769,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
             ebitdas[ano] = data.ebitda || 0;
           }
         });
-        console.log("✅ Receitas e EBITDA processados");
-      } else {
-        console.log("⚠️ Nenhum dado consolidado encontrado nas projeções");
       }
 
       return { receitas, ebitdas };
@@ -862,7 +781,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
   // Buscar cotações de Dólar Fechamento
   const buscarCotacoesDolar = async () => {
     try {
-      console.log("🔄 Buscando cotações de Dólar Fechamento...");
       const { data, error } = await supabase
         .from("cotacoes_cambio")
         .select("*")
@@ -875,7 +793,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       }
       
       if (!data || data.length === 0) {
-        console.log("⚠️ Nenhuma cotação de dólar encontrada");
         return {} as Record<string, number>;
       }
       
@@ -902,7 +819,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
         }
       });
       
-      console.log("💵 Cotações de dólar carregadas:", dolarValues);
       return dolarValues;
     } catch (error) {
       console.warn("⚠️ Erro ao processar cotações de dólar:", error);
@@ -918,14 +834,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
   const terrasValues = consolidarTerras();
   const outrosValues = consolidarOutros(); // Apenas tipo = OUTROS
 
-  console.log("💰 Valores consolidados:", {
-    bancos,
-    outrosValues,
-    arrendamento,
-    fornecedoresValues,
-    tradingsValues,
-    terrasValues
-  });
 
   // Ativos
   const caixaValues = consolidarCaixa();
@@ -1034,9 +942,9 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     { categoria: "Ativo Biológico", valores_por_ano: ativoBiologicoValues }
   ];
 
-    console.log(`📈 Posição de dívida calculada para ${anos.length} anos`);
 
-    return {
+    // Resultado completo
+    const result: ConsolidatedDebtPosition = {
       dividas,
       ativos,
       indicadores: {
@@ -1052,6 +960,14 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       },
       anos
     };
+    
+    // Armazenar resultado em cache
+    debtPositionCache[cacheKey] = {
+      data: result,
+      timestamp: now
+    };
+    
+    return result;
   } catch (error) {
     console.error("❌ Erro geral ao calcular posição de dívida:", error);
     throw new Error(`Erro ao calcular posição de dívida: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);

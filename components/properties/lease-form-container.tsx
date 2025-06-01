@@ -121,7 +121,14 @@ export function LeaseFormContainer({
                     
                     if (isValid) {
                       const values = form.getValues();
-                      onSubmit(values);
+                      // Ensure required fields have default values
+                      const validatedValues = {
+                        ...values,
+                        tipo_pagamento: values.tipo_pagamento || "SACAS",
+                        custos_por_ano: values.custos_por_ano || {},
+                        ativo: values.ativo !== undefined ? values.ativo : true
+                      };
+                      onSubmit(validatedValues);
                     } else {
                       const errors = form.formState.errors;
                       console.error("Form validation errors:", errors);

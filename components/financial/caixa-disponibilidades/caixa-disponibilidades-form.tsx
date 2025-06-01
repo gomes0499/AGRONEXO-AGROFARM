@@ -134,7 +134,7 @@ export function CaixaDisponibilidadesForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[500px] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden" style={{ width: "90vw", maxWidth: "800px" }}>
         <DialogHeader className="p-6 pb-2">
           <div className="flex items-center gap-2">
             <Wallet className="h-5 w-5 text-primary" />

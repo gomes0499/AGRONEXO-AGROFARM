@@ -84,7 +84,7 @@ export function OrganizationSettings({
   }
 
   return (
-    <Card>
+    <Card className="border-border/50 hover:shadow-md transition-shadow">
       <CardHeader className="bg-primary text-white rounded-t-lg pb-4">
         <div className="flex items-center gap-3">
           <div className="rounded-full p-2 bg-white/20">

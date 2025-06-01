@@ -66,41 +66,84 @@ export async function getFinancialHistoricalMetricData(
     const historicalData: FinancialHistoricalMetricData[] = [];
     const currentYear = new Date().getFullYear();
 
-    for (const safra of safras) {
-      let valor = 0;
-      const isProjetado = safra.ano_inicio >= currentYear;
+    // OTIMIZAÇÃO: Usar a função getDebtPosition que já busca todos os dados necessários de uma vez
+    // em vez de fazer múltiplas chamadas separadas por safra
+    try {
+      const { getDebtPosition } = await import("./debt-position-actions");
+      const debtPosition = await getDebtPosition(organizationId);
+      
+      // Mapear safras para usar os dados pré-calculados de debtPosition
+      for (const safra of safras) {
+        let valor = 0;
+        const isProjetado = safra.ano_inicio >= currentYear;
+        const safraName = safra.nome;
+        
+        // Usar os dados pré-calculados do debtPosition para cada indicador
+        switch (metricType) {
+          case 'dividaReceita':
+            valor = debtPosition.indicadores.indicadores_calculados.divida_receita[safraName] || 0;
+            break;
+          case 'dividaEbitda':
+            valor = debtPosition.indicadores.indicadores_calculados.divida_ebitda[safraName] || 0;
+            break;
+          case 'dividaLiquidaReceita':
+            valor = debtPosition.indicadores.indicadores_calculados.divida_liquida_receita[safraName] || 0;
+            break;
+          case 'dividaLiquidaEbitda':
+            valor = debtPosition.indicadores.indicadores_calculados.divida_liquida_ebitda[safraName] || 0;
+            break;
+          default:
+            valor = 0;
+        }
 
-      // Buscar dados necessários para calcular o indicador
-      const dividaTotal = await getDividaTotal(supabase, organizationId, safra.id);
-      const dividaLiquida = await getDividaLiquida(supabase, organizationId, safra.id);
-      const receita = await getReceita(supabase, organizationId, safra.id);
-      const ebitda = await getEbitda(supabase, organizationId, safra.id);
-
-      // Calcular o valor do indicador baseado no tipo
-      switch (metricType) {
-        case 'dividaReceita':
-          valor = receita > 0 ? dividaTotal / receita : 0;
-          break;
-        case 'dividaEbitda':
-          valor = ebitda > 0 ? dividaTotal / ebitda : 0;
-          break;
-        case 'dividaLiquidaReceita':
-          valor = receita > 0 ? dividaLiquida / receita : 0;
-          break;
-        case 'dividaLiquidaEbitda':
-          valor = ebitda > 0 ? dividaLiquida / ebitda : 0;
-          break;
-        default:
-          valor = 0;
+        historicalData.push({
+          safra: safraName,
+          valor: valor,
+          safraId: safra.id,
+          ano: safra.ano_inicio,
+          isProjetado: isProjetado
+        });
       }
+    } catch (err) {
+      console.error("Erro ao usar getDebtPosition para métricas, usando fallback:", err);
+      
+      // Fallback para o método original caso a otimização falhe
+      for (const safra of safras) {
+        let valor = 0;
+        const isProjetado = safra.ano_inicio >= currentYear;
 
-      historicalData.push({
-        safra: safra.nome,
-        valor: valor,
-        safraId: safra.id,
-        ano: safra.ano_inicio,
-        isProjetado: isProjetado
-      });
+        // Buscar dados necessários para calcular o indicador
+        const dividaTotal = await getDividaTotal(supabase, organizationId, safra.id);
+        const dividaLiquida = await getDividaLiquida(supabase, organizationId, safra.id);
+        const receita = await getReceita(supabase, organizationId, safra.id);
+        const ebitda = await getEbitda(supabase, organizationId, safra.id);
+
+        // Calcular o valor do indicador baseado no tipo
+        switch (metricType) {
+          case 'dividaReceita':
+            valor = receita > 0 ? dividaTotal / receita : 0;
+            break;
+          case 'dividaEbitda':
+            valor = ebitda > 0 ? dividaTotal / ebitda : 0;
+            break;
+          case 'dividaLiquidaReceita':
+            valor = receita > 0 ? dividaLiquida / receita : 0;
+            break;
+          case 'dividaLiquidaEbitda':
+            valor = ebitda > 0 ? dividaLiquida / ebitda : 0;
+            break;
+          default:
+            valor = 0;
+        }
+
+        historicalData.push({
+          safra: safra.nome,
+          valor: valor,
+          safraId: safra.id,
+          ano: safra.ano_inicio,
+          isProjetado: isProjetado
+        });
+      }
     }
 
     // 3. Separar dados realizados e projetados

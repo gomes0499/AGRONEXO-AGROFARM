@@ -190,12 +190,12 @@ export async function updateEquipment(
         ? values.marca_outro 
         : marca,
       modelo: values.modelo || '',
-      alienado: values.alienado || false,
-      numero_chassi: values.numero_chassi || '',
+      alienado: false, // Default value as it's not in the type
+      numero_chassi: '', // Default value as it's not in the type
       valor_unitario: values.valor_unitario || 0,
       quantidade: values.quantidade || 1,
       valor_total: (values.quantidade || 1) * (values.valor_unitario || 0),
-      numero_serie: values.numero_serie || '',
+      numero_serie: '', // Default value as it's not in the type
       reposicao_sr: values.ano_fabricacao < values.ano_referencia_reposicao 
         ? values.valor_unitario * (values.percentual_reposicao / 100) 
         : 0
@@ -873,7 +873,7 @@ export async function createLandPlan(
     let tipo = values.tipo || "COMPRA";
     
     // Verificar explicitamente por "PLANEJADO" e "REALIZADO" e substituí-los
-    if (tipo === "PLANEJADO" || tipo === "REALIZADO") {
+    if ((tipo as string) === "PLANEJADO" || (tipo as string) === "REALIZADO") {
       console.warn(`Detectado valor legado para tipo: "${tipo}". Substituindo por "COMPRA"`);
       tipo = "COMPRA";
     }
@@ -929,7 +929,7 @@ export async function updateLandPlan(
     let tipo = values.tipo || "COMPRA";
     
     // Verificar explicitamente por "PLANEJADO" e "REALIZADO" e substituí-los
-    if (tipo === "PLANEJADO" || tipo === "REALIZADO") {
+    if ((tipo as string) === "PLANEJADO" || (tipo as string) === "REALIZADO") {
       console.warn(`Detectado valor legado para tipo: "${tipo}". Substituindo por "COMPRA"`);
       tipo = "COMPRA";
     }

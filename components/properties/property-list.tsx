@@ -204,7 +204,7 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
       </CardHeader>
 
       <CardContent className="p-6 space-y-6">
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -228,18 +228,20 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
             )}
           </div>
           <Select value={typeFilter} onValueChange={handleTypeChange}>
-            <SelectTrigger className="w-full md:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Todos os tipos" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">Todos os tipos</SelectItem>
               <SelectItem value="PROPRIO">Próprias</SelectItem>
               <SelectItem value="ARRENDADO">Arrendadas</SelectItem>
+              <SelectItem value="PARCERIA">Parceria</SelectItem>
+              <SelectItem value="COMODATO">Comodato</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
             {isFiltering
               ? `${filteredProperties.length} ${
@@ -251,14 +253,14 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                   totalItems === 1 ? "propriedade" : "propriedades"
                 }`}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isFiltering && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 Limpar filtros
               </Button>
             )}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Itens por página:</span>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Itens por página:</span>
               <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
                 <SelectTrigger className="w-20">
                   <SelectValue />
@@ -276,8 +278,8 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
 
         {filteredProperties.length > 0 ? (
           <>
-            <div className="rounded-md border">
-              <Table>
+            <div className="rounded-md border overflow-auto">
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
                     <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome</TableHead>
@@ -296,7 +298,7 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                       propertyTypeInfo[property.tipo] || propertyTypeInfo.PROPRIO;
 
                     return (
-                      <TableRow key={property.id}>
+                      <TableRow key={property.id} className="hover:bg-muted/40">
                         <TableCell className="font-medium">
                           {property.nome}
                         </TableCell>
@@ -319,7 +321,7 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                         <TableCell>{property.proprietario}</TableCell>
                         <TableCell>
                           {property.valor_atual ? (
-                            <Badge variant="default">
+                            <Badge variant="default" className="bg-accent text-accent-foreground">
                               {formatCurrency(property.valor_atual)}
                             </Badge>
                           ) : (
@@ -381,7 +383,7 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                                         : "Excluir"}
                                     </DropdownMenuItem>
                                   </AlertDialogTrigger>
-                                  <AlertDialogContent>
+                                  <AlertDialogContent className="dark:bg-background">
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>
                                         Excluir propriedade
@@ -396,7 +398,7 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                                     </AlertDialogHeader>
 
                                     {deleteError && (
-                                      <div className="flex items-center gap-2 p-3 text-sm bg-destructive/10 text-destructive rounded-md">
+                                      <div className="flex items-center gap-2 p-3 text-sm bg-destructive/10 dark:bg-destructive/20 text-destructive dark:text-destructive-foreground rounded-md">
                                         <AlertTriangleIcon
                                           size={16}
                                           className="shrink-0"
@@ -441,45 +443,53 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
 
             {/* Controles de Paginação */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="text-sm text-muted-foreground">
                   Mostrando {startIndex + 1} a {Math.min(endIndex, totalItems)} de {totalItems} propriedades
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-8 w-8 sm:h-8 sm:w-8"
                     onClick={() => handlePageChange(1)}
                     disabled={currentPage === 1}
                   >
                     <ChevronsLeft className="h-4 w-4" />
+                    <span className="sr-only">Primeira página</span>
                   </Button>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-8 w-8 sm:h-8 sm:w-8"
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
+                    <span className="sr-only">Página anterior</span>
                   </Button>
-                  <span className="flex items-center gap-1 text-sm">
-                    Página {currentPage} de {totalPages}
+                  <span className="flex items-center gap-1 text-sm px-2">
+                    <span className="hidden sm:inline">Página</span> {currentPage} <span className="hidden sm:inline">de</span> <span className="sm:hidden">/</span> {totalPages}
                   </span>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-8 w-8 sm:h-8 sm:w-8"
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
                   >
                     <ChevronRight className="h-4 w-4" />
+                    <span className="sr-only">Próxima página</span>
                   </Button>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-8 w-8 sm:h-8 sm:w-8"
                     onClick={() => handlePageChange(totalPages)}
                     disabled={currentPage === totalPages}
                   >
                     <ChevronsRight className="h-4 w-4" />
+                    <span className="sr-only">Última página</span>
                   </Button>
                 </div>
               </div>
@@ -493,12 +503,14 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                 ? "Tente ajustar seus filtros para encontrar o que está procurando."
                 : "Comece cadastrando sua primeira propriedade."
             }
-            icon={<Search size={48} className="text-muted-foreground" />}
+            icon={<Search size={48} className="text-muted-foreground dark:text-muted-foreground/70" />}
             action={
               isFiltering ? (
-                <Button onClick={clearFilters}>Limpar filtros</Button>
+                <Button onClick={clearFilters} className="bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90">
+                  Limpar filtros
+                </Button>
               ) : (
-                <Button onClick={() => setIsDrawerOpen(true)}>
+                <Button onClick={() => setIsDrawerOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90">
                   <PlusIcon className="mr-2 h-4 w-4" />
                   Nova Propriedade
                 </Button>

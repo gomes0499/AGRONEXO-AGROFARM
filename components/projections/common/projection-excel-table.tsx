@@ -134,11 +134,11 @@ export function ProjectionExcelTable({
           <div className="min-w-max">
             <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold text-center min-w-[180px] w-[180px] sticky left-0 bg-muted/50 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+              <TableRow className="bg-muted/50 dark:bg-gray-800">
+                <TableHead className="font-semibold text-center min-w-[180px] w-[180px] sticky left-0 bg-muted/50 dark:bg-gray-800 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   Métrica
                 </TableHead>
-                <TableHead className="font-semibold text-center min-w-[100px] w-[100px] sticky left-[180px] bg-muted/50 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableHead className="font-semibold text-center min-w-[100px] w-[100px] sticky left-[180px] bg-muted/50 dark:bg-gray-800 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   Unidade
                 </TableHead>
                 {projectionData.years.map((year) => (
@@ -153,11 +153,11 @@ export function ProjectionExcelTable({
             </TableHeader>
             <TableBody>
               {/* Área Plantada */}
-              <TableRow className="hover:bg-muted/30">
-                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+              <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   Área plantada
                 </TableCell>
-                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   hectares
                 </TableCell>
                 {projectionData.years.map((year) => (
@@ -207,17 +207,17 @@ export function ProjectionExcelTable({
               </TableRow>
 
               {/* Receita */}
-              <TableRow className="hover:bg-muted/30 bg-green-50/50">
-                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-green-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+              <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30 bg-green-50/50 dark:bg-green-900/20">
+                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-green-50 dark:bg-green-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   Receita
                 </TableCell>
-                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-green-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-green-50 dark:bg-green-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   R$
                 </TableCell>
                 {projectionData.years.map((year) => (
                   <TableCell 
                     key={year.safraId} 
-                    className="text-center font-mono text-green-700 font-semibold min-w-[120px] w-[120px] bg-green-50/50"
+                    className="text-center font-mono text-green-700 dark:text-green-400 font-semibold min-w-[120px] w-[120px] bg-green-50/50 dark:bg-green-900/20"
                   >
                     {formatCurrency(year.receita)}
                   </TableCell>
@@ -243,17 +243,17 @@ export function ProjectionExcelTable({
               </TableRow>
 
               {/* Custo Total */}
-              <TableRow className="hover:bg-muted/30 bg-red-50/50">
-                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-red-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+              <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30 bg-red-50/50 dark:bg-red-900/20">
+                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-red-50 dark:bg-red-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   Custo Total
                 </TableCell>
-                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-red-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-red-50 dark:bg-red-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   R$
                 </TableCell>
                 {projectionData.years.map((year) => (
                   <TableCell 
                     key={year.safraId} 
-                    className="text-center font-mono text-red-700 font-semibold min-w-[120px] w-[120px] bg-red-50/50"
+                    className="text-center font-mono text-red-700 dark:text-red-400 font-semibold min-w-[120px] w-[120px] bg-red-50/50 dark:bg-red-900/20"
                   >
                     {formatCurrency(year.custoTotal)}
                   </TableCell>
@@ -261,19 +261,19 @@ export function ProjectionExcelTable({
               </TableRow>
 
               {/* EBITDA */}
-              <TableRow className="hover:bg-muted/30 bg-blue-50/50">
-                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-blue-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+              <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30 bg-blue-50/50 dark:bg-blue-900/20">
+                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-blue-50 dark:bg-blue-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   EBITDA
                 </TableCell>
-                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-blue-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-blue-50 dark:bg-blue-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   R$
                 </TableCell>
                 {projectionData.years.map((year) => (
                   <TableCell 
                     key={year.safraId} 
                     className={cn(
-                      "text-center font-mono font-semibold min-w-[120px] w-[120px] bg-blue-50/50",
-                      year.ebitda >= 0 ? "text-blue-700" : "text-red-700"
+                      "text-center font-mono font-semibold min-w-[120px] w-[120px] bg-blue-50/50 dark:bg-blue-900/20",
+                      year.ebitda >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-700 dark:text-red-400"
                     )}
                   >
                     {formatCurrency(year.ebitda)}
@@ -282,19 +282,19 @@ export function ProjectionExcelTable({
               </TableRow>
 
               {/* EBITDA % */}
-              <TableRow className="hover:bg-muted/30 bg-blue-50/50">
-                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-blue-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+              <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30 bg-blue-50/50 dark:bg-blue-900/20">
+                <TableCell className="font-medium min-w-[180px] w-[180px] sticky left-0 bg-blue-50 dark:bg-blue-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   EBITDA
                 </TableCell>
-                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-blue-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <TableCell className="text-center text-muted-foreground min-w-[100px] w-[100px] sticky left-[180px] bg-blue-50 dark:bg-blue-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   %
                 </TableCell>
                 {projectionData.years.map((year) => (
                   <TableCell 
                     key={year.safraId} 
                     className={cn(
-                      "text-center font-mono font-semibold min-w-[120px] w-[120px] bg-blue-50/50",
-                      year.ebitdaPercentage >= 0 ? "text-blue-700" : "text-red-700"
+                      "text-center font-mono font-semibold min-w-[120px] w-[120px] bg-blue-50/50 dark:bg-blue-900/20",
+                      year.ebitdaPercentage >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-700 dark:text-red-400"
                     )}
                   >
                     {formatPercentage(year.ebitdaPercentage)}

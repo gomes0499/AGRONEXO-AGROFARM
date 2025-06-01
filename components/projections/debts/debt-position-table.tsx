@@ -62,7 +62,7 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-sm border-muted/80">
+      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
         <CardHeaderPrimary
           icon={<TrendingDown className="h-4 w-4" />}
           title="Posição de Dívida"
@@ -73,8 +73,8 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
             <div className="min-w-max">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
+                  <TableRow className="bg-primary hover:bg-primary dark:bg-primary/90 dark:hover:bg-primary/90">
+                    <TableHead className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
                       Posição de Dívida
                     </TableHead>
                     {anos.map((ano, index) => (
@@ -92,14 +92,14 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                 </TableHeader>
                 <TableBody>
                   {/* === SEÇÃO DE DÍVIDAS === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-primary dark:bg-primary/90 font-medium border-b-2 border-primary/20">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Dívidas
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center min-w-[120px] w-[120px] bg-primary text-primary-foreground"
+                        className="text-center min-w-[120px] w-[120px] bg-primary dark:bg-primary/90 text-primary-foreground"
                       >
                         {/* Célula vazia para cabeçalho de seção */}
                       </TableCell>
@@ -108,8 +108,8 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
 
                   {/* Linhas de dívidas */}
                   {dividas.map((divida, index) => (
-                    <TableRow key={index} className="hover:bg-muted/30">
-                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
+                    <TableRow key={index} className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
                         {formatCategoria(divida.categoria)}
                       </TableCell>
                       {anos.map((ano) => (
@@ -127,14 +127,14 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   ))}
                   
                   {/* Total do endividamento */}
-                  <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Endividamento Total
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center font-medium min-w-[120px] w-[120px] bg-gray-50"
+                        className="text-center font-medium min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800"
                       >
                         {formatNumber(indicadores.endividamento_total[ano] || 0, 0)}
                       </TableCell>
@@ -142,14 +142,14 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   </TableRow>
 
                   {/* === SEÇÃO DE ATIVOS === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-primary dark:bg-primary/90 font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Caixas e Disponibilidades
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center min-w-[120px] w-[120px] bg-primary text-primary-foreground"
+                        className="text-center min-w-[120px] w-[120px] bg-primary dark:bg-primary/90 text-primary-foreground"
                       >
                         {/* Célula vazia para cabeçalho de seção */}
                       </TableCell>
@@ -158,8 +158,8 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
 
                   {/* Linhas de ativos */}
                   {ativos.map((ativo, index) => (
-                    <TableRow key={index} className="hover:bg-muted/30">
-                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
+                    <TableRow key={index} className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
                         {formatCategoria(ativo.categoria)}
                       </TableCell>
                       {anos.map((ano) => (
@@ -177,14 +177,14 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   ))}
                   
                   {/* Total das disponibilidades */}
-                  <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Total Caixas e Disponibilidades
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center font-medium min-w-[120px] w-[120px] bg-gray-50"
+                        className="text-center font-medium min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800"
                       >
                         {formatNumber(indicadores.caixas_disponibilidades[ano] || 0, 0)}
                       </TableCell>
@@ -192,14 +192,14 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   </TableRow>
 
                   {/* === SEÇÃO DE ANÁLISE === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-primary dark:bg-primary/90 font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Análise e Indicadores
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center min-w-[120px] w-[120px] bg-primary text-primary-foreground"
+                        className="text-center min-w-[120px] w-[120px] bg-primary dark:bg-primary/90 text-primary-foreground"
                       >
                         {/* Célula vazia para cabeçalho de seção */}
                       </TableCell>
@@ -207,8 +207,8 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   </TableRow>
 
                   {/* Dívida Líquida */}
-                  <TableRow className="bg-gray-50 font-medium">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Dívida Líquida
                     </TableCell>
                     {anos.map((ano) => {
@@ -217,8 +217,8 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                         <TableCell 
                           key={ano} 
                           className={cn(
-                            "text-center font-medium min-w-[120px] w-[120px] bg-gray-50",
-                            valor < 0 ? "text-destructive" : ""
+                            "text-center font-medium min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800",
+                            valor < 0 ? "text-destructive dark:text-red-400" : "dark:text-green-400"
                           )}
                         >
                           {formatNumber(valor, 0)}
@@ -273,14 +273,14 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   </TableRow>
 
                   {/* === SEÇÃO DE INDICADORES === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-primary dark:bg-primary/90 font-medium border-b-2 border-primary/20 border-t-2">
+                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Indicadores de Receita e Endividamento
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center min-w-[120px] w-[120px] bg-primary text-primary-foreground"
+                        className="text-center min-w-[120px] w-[120px] bg-primary dark:bg-primary/90 text-primary-foreground"
                       >
                         {/* Célula vazia para cabeçalho de seção */}
                       </TableCell>

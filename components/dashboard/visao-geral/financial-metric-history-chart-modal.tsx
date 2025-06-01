@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,9 @@ export function FinancialMetricHistoryChartModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Criar referência para armazenar dados em cache
+  const metricsCache = React.useRef<Record<string, FinancialHistoricalMetricsResponse>>({});
+
   useEffect(() => {
     if (isOpen && organizationId) {
       fetchHistoricalData();
@@ -55,6 +58,14 @@ export function FinancialMetricHistoryChartModal({
   }, [isOpen, organizationId, metricType]);
 
   const fetchHistoricalData = async () => {
+    // Verificar se os dados já existem em cache
+    const cacheKey = `${organizationId}_${metricType}`;
+    
+    if (metricsCache.current[cacheKey]) {
+      setData(metricsCache.current[cacheKey]);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
@@ -62,6 +73,10 @@ export function FinancialMetricHistoryChartModal({
         organizationId,
         metricType
       );
+      
+      // Armazenar resultado em cache
+      metricsCache.current[cacheKey] = result;
+      
       setData(result);
     } catch (err) {
       console.error("Erro ao buscar dados históricos:", err);
@@ -284,15 +299,15 @@ export function FinancialMetricHistoryChartModal({
                   </div>
 
                   {/* Insights */}
-                  <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                    <h4 className="font-semibold mb-2">Insights da Evolução</h4>
-                    <div className="text-sm text-muted-foreground space-y-2">
+                  <div className="mt-6 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <h4 className="font-semibold mb-2 text-slate-900 dark:text-slate-100">Insights da Evolução</h4>
+                    <div className="text-sm space-y-3">
                       {/* Insights dos dados realizados */}
                       {data.realizadoData.length > 0 && (
                         <div className="flex items-start gap-2">
-                          <div className="w-3 h-3 rounded-full bg-primary mt-1 flex-shrink-0"></div>
-                          <div>
-                            <span className="font-medium text-primary">Dados Históricos:</span>
+                          <div className="w-3 h-3 rounded-full bg-violet-500 mt-1 flex-shrink-0"></div>
+                          <div className="text-slate-700 dark:text-slate-300">
+                            <span className="font-medium text-violet-600 dark:text-violet-400">Dados Históricos:</span>
                             {data.realizadoData.length >= 2 ? (
                               <>
                                 {isPositiveTrend(metricType, data.crescimentoRealizado) ? (
@@ -312,8 +327,8 @@ export function FinancialMetricHistoryChartModal({
                       {data.projetadoData.length > 0 && (
                         <div className="flex items-start gap-2">
                           <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 flex-shrink-0"></div>
-                          <div>
-                            <span className="font-medium text-blue-700">Projeção Futura:</span>
+                          <div className="text-slate-700 dark:text-slate-300">
+                            <span className="font-medium text-blue-600 dark:text-blue-400">Projeção Futura:</span>
                             {data.periodoProjetado ? (
                               <>
                                 {isPositiveTrend(metricType, data.crescimentoProjetado) ? (
@@ -332,8 +347,8 @@ export function FinancialMetricHistoryChartModal({
                       {/* Análise do valor ideal */}
                       <div className="flex items-start gap-2">
                         <div className="w-3 h-3 rounded-full bg-green-500 mt-1 flex-shrink-0"></div>
-                        <div>
-                          <span className="font-medium text-green-700">Valor de Referência:</span>
+                        <div className="text-slate-700 dark:text-slate-300">
+                          <span className="font-medium text-green-600 dark:text-green-400">Valor de Referência:</span>
                           {data.currentValue <= getReferenceLineValue(metricType) ? (
                             <span> ✅ O indicador atual de {formatValue(data.currentValue)} está dentro do valor ideal ({formatValue(getReferenceLineValue(metricType))}).</span>
                           ) : (
@@ -343,8 +358,8 @@ export function FinancialMetricHistoryChartModal({
                       </div>
 
                       {/* Resumo geral */}
-                      <div className="pt-2 border-t border-muted-foreground/20">
-                        <span>📊 Análise baseada em <strong>{data.realizadoData.length} safras realizadas</strong> e <strong>{data.projetadoData.length} safras projetadas</strong>.</span>
+                      <div className="pt-3 mt-1 border-t border-slate-200 dark:border-slate-700">
+                        <span className="text-slate-600 dark:text-slate-400">📊 Análise baseada em <strong>{data.realizadoData.length} safras realizadas</strong> e <strong>{data.projetadoData.length} safras projetadas</strong>.</span>
                       </div>
                     </div>
                   </div>

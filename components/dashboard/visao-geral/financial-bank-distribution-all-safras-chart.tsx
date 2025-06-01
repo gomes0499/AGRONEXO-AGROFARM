@@ -145,21 +145,21 @@ function CustomTooltip({ active, payload, label }: any) {
     const data = payload[0].payload;
     
     return (
-      <div className="bg-background border border-border rounded-lg shadow-lg p-3">
-        <p className="font-semibold text-sm">{label}</p>
-        <div className="my-1 h-px bg-border" />
+      <div className="bg-background border border-border dark:border-gray-700 rounded-lg shadow-lg p-3">
+        <p className="font-semibold text-sm dark:text-white">{label}</p>
+        <div className="my-1 h-px bg-border dark:bg-gray-600" />
         <div className="space-y-1 mt-2">
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground">Valor:</span> 
-            <span className="font-medium">{formatCurrency(data.valor)}</span>
+            <span className="text-muted-foreground dark:text-gray-400">Valor:</span> 
+            <span className="font-medium dark:text-white">{formatCurrency(data.valor)}</span>
           </p>
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground">Participação:</span> 
-            <span className="font-medium">{data.percentual.toFixed(1)}%</span>
+            <span className="text-muted-foreground dark:text-gray-400">Participação:</span> 
+            <span className="font-medium dark:text-white">{data.percentual.toFixed(1)}%</span>
           </p>
           <p className="text-sm flex justify-between gap-4">
-            <span className="text-muted-foreground">Ranking:</span> 
-            <span className="font-medium">{data.rank}º posição</span>
+            <span className="text-muted-foreground dark:text-gray-400">Ranking:</span> 
+            <span className="font-medium dark:text-white">{data.rank}º posição</span>
           </p>
         </div>
       </div>
@@ -339,7 +339,7 @@ export function FinancialBankDistributionAllSafrasChart({ organizationId }: Fina
                   textAnchor="end"
                   height={80}
                   interval={0}
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 10, fill: "var(--foreground)" }}
                   tickFormatter={(value) => value.length > 12 ? `${value.slice(0, 12)}...` : value}
                 />
                 <YAxis 
@@ -348,6 +348,7 @@ export function FinancialBankDistributionAllSafrasChart({ organizationId }: Fina
                   tickMargin={10}
                   fontSize={12}
                   width={40}
+                  tick={{ fill: "var(--foreground)" }}
                   tickFormatter={(value) => formatCurrency(value, 0)}
                 />
                 <ChartTooltip
@@ -369,11 +370,11 @@ export function FinancialBankDistributionAllSafrasChart({ organizationId }: Fina
         </div>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4 bg-muted/30">
-        <div className="flex gap-2 font-medium leading-none">
+        <div className="flex gap-2 font-medium leading-none dark:text-white">
           🏆 <span className="font-semibold">{topBank.banco}</span> lidera com {topBank.percentual.toFixed(1)}% do endividamento
           <TrendingUp className="h-4 w-4" />
         </div>
-        <div className="leading-none text-muted-foreground text-xs">
+        <div className="leading-none text-muted-foreground dark:text-gray-400 text-xs">
           Top 3 bancos concentram {concentracaoTop3.toFixed(1)}% do endividamento total ({formatCurrency(total)})
         </div>
       </CardFooter>

@@ -101,7 +101,7 @@ export function DividasBancariasFormModal({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[800px]" style={{ width: "90vw", maxWidth: "800px" }}>
         <DialogHeader>
           <DialogTitle>
             {initialData ? "Editar Dívida Bancária" : "Nova Dívida Bancária"}

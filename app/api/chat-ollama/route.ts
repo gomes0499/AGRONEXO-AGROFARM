@@ -23,9 +23,6 @@ export async function POST(req: Request) {
     // Extrair as mensagens do corpo da requisição
     const { messages } = await req.json()
 
-    // Log para debug
-    console.log("Mensagens recebidas (Ollama):", messages)
-
     // Chamar o Ollama
     const ollamaResponse = await callOllama(messages)
 

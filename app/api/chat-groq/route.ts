@@ -6,8 +6,6 @@ export async function POST(req: Request) {
     // Extrair as mensagens do corpo da requisição
     const { messages } = await req.json()
 
-    // Log para debug
-    console.log("Mensagens recebidas (Groq):", messages)
 
     // Chamar o modelo Groq
     const result = await streamText({

@@ -343,7 +343,7 @@ export function FinancialTotalLiabilitiesChart({
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           <div className="h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground dark:text-gray-400">
               <div className="flex items-center">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
                 Carregando dados financeiros...
@@ -377,7 +377,7 @@ export function FinancialTotalLiabilitiesChart({
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           <div className="h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">{error}</div>
+            <div className="text-muted-foreground dark:text-gray-400">{error}</div>
           </div>
         </CardContent>
       </Card>
@@ -406,10 +406,10 @@ export function FinancialTotalLiabilitiesChart({
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           <div className="h-[350px] sm:h-[400px] flex flex-col items-center justify-center">
-            <div className="text-muted-foreground mb-4">
+            <div className="text-muted-foreground dark:text-gray-400 mb-4">
               Nenhum dado de passivos encontrado
             </div>
-            <div className="text-center text-sm text-muted-foreground max-w-md">
+            <div className="text-center text-sm text-muted-foreground dark:text-gray-400 max-w-md">
               Para visualizar este gráfico, cadastre dívidas bancárias, de fornecedores e outras dívidas no módulo financeiro.
             </div>
           </div>
@@ -466,7 +466,7 @@ export function FinancialTotalLiabilitiesChart({
                   textAnchor="end"
                   height={80}
                   tickMargin={25}
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 11, fill: "var(--foreground)" }}
                   interval={0}
                 />
                 <YAxis 
@@ -474,9 +474,10 @@ export function FinancialTotalLiabilitiesChart({
                   tickLine={false}
                   axisLine={false}
                   width={90} // Aumentado para acomodar o espaço extra
+                  tick={{ fill: "var(--foreground)" }}
                 />
                 <ChartTooltip
-                  content={<ChartTooltipContent />}
+                  content={<ChartTooltipContent className="dark:border-gray-700" />}
                   formatter={(value: any, name: any) => {
                     // Formatar o valor com espaço entre o número e a unidade
                     const formattedValue = formatCurrency(Number(value)).replace(/mi$/, ' mi');
@@ -490,6 +491,9 @@ export function FinancialTotalLiabilitiesChart({
                 <Legend 
                   verticalAlign="top"
                   wrapperStyle={{ paddingTop: '10px' }}
+                  formatter={(value, entry) => (
+                    <span className="text-foreground dark:text-white">{value}</span>
+                  )}
                 />
                 {/* Ordem das barras ajustada para a visualização correta: total, líquida, bancos, outros */}
                 <Bar dataKey="outros" name="Outros Passivos" fill={chartConfig.outros.color} />

@@ -105,15 +105,15 @@ function CustomTooltip({ active, payload, label }: any) {
     const total = payload.reduce((sum: number, entry: any) => sum + entry.value, 0);
     
     return (
-      <div className="bg-background border border-border rounded-lg shadow-lg p-3">
-        <p className="font-medium">{`Ano: ${label}`}</p>
+      <div className="bg-background dark:bg-card border border-border dark:border-muted rounded-lg shadow-lg p-3">
+        <p className="font-medium dark:text-foreground">{`Ano: ${label}`}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} className="text-sm" style={{ color: entry.color }}>
             {`${entry.dataKey}: ${formatCurrency(entry.value)}`}
           </p>
         ))}
-        <div className="border-t pt-1 mt-1">
-          <p className="text-sm font-medium">
+        <div className="border-t dark:border-muted pt-1 mt-1">
+          <p className="text-sm font-medium dark:text-foreground">
             Total: {formatCurrency(total)}
           </p>
         </div>
@@ -268,14 +268,14 @@ export function FinancialDebtEvolutionChart({ organizationId }: FinancialDebtEvo
                 data={data}
                 margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
               >
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--muted)" />
                 <XAxis 
                   dataKey="ano" 
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
                   fontSize={12}
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 10, fill: "var(--foreground)" }}
                 />
                 <YAxis 
                   tickLine={false}
@@ -284,6 +284,7 @@ export function FinancialDebtEvolutionChart({ organizationId }: FinancialDebtEvo
                   fontSize={12}
                   width={40}
                   tickFormatter={(value) => formatCurrency(value, 0)}
+                  tick={{ fill: "var(--foreground)" }}
                 />
                 <ChartTooltip
                   content={<CustomTooltip />}
@@ -312,7 +313,7 @@ export function FinancialDebtEvolutionChart({ organizationId }: FinancialDebtEvo
         </div>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4 bg-muted/30">
-        <div className="flex gap-2 font-medium leading-none">
+        <div className="flex gap-2 font-medium leading-none dark:text-foreground">
           {crescimento >= 0 ? (
             <>
               Crescimento de {Math.abs(crescimento).toFixed(1)}% no período

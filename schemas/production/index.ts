@@ -6,8 +6,8 @@ import { z } from "zod";
 
 // Schema for Cultures (Culturas)
 export const cultureSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
   nome: z.string().min(1, "Nome da cultura é obrigatório"),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
@@ -25,8 +25,8 @@ export type CultureFormValues = z.infer<typeof cultureFormSchema>;
 
 // Schema for Systems (Sistemas)
 export const systemSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
   nome: z.string().min(1, "Nome do sistema é obrigatório"),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
@@ -44,8 +44,8 @@ export type SystemFormValues = z.infer<typeof systemFormSchema>;
 
 // Schema for Cycles (Ciclos)
 export const cycleSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
   nome: z.string().min(1, "Nome do ciclo é obrigatório"),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
@@ -63,11 +63,15 @@ export type CycleFormValues = z.infer<typeof cycleFormSchema>;
 
 // Schema for Harvests (Safras)
 export const harvestSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
   nome: z.string().min(1, "Nome da safra é obrigatório"),
-  ano_inicio: z.coerce.number().int().min(1900, "Ano de início deve ser válido"),
-  ano_fim: z.coerce.number().int().min(1900, "Ano de fim deve ser válido"),
+  ano_inicio: z.coerce.number().int("Ano de início deve ser um número inteiro").min(1900, "Ano de início deve ser após 1900").refine(val => !isNaN(val), {
+    message: "Insira um ano de início válido"
+  }),
+  ano_fim: z.coerce.number().int("Ano de fim deve ser um número inteiro").min(1900, "Ano de fim deve ser após 1900").refine(val => !isNaN(val), {
+    message: "Insira um ano de fim válido"
+  }),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
@@ -90,7 +94,9 @@ export type HarvestFormValues = z.infer<typeof harvestFormSchema>;
 // =======================================
 
 // Enum for productivity units
-export const productivityUnitEnum = z.enum(["sc/ha", "@/ha", "kg/ha"]);
+export const productivityUnitEnum = z.enum(["sc/ha", "@/ha", "kg/ha"], {
+  errorMap: (issue, ctx) => ({ message: "Selecione uma unidade de produtividade válida" })
+});
 export type ProductivityUnit = z.infer<typeof productivityUnitEnum>;
 
 // Schema for Planting Areas (Áreas de Plantio) - Multi-Safra JSONB
@@ -111,11 +117,13 @@ export type PlantingArea = z.infer<typeof plantingAreaSchema>;
 
 // Form schema for creating/editing planting areas
 export const plantingAreaFormSchema = z.object({
-  propriedade_id: z.string().uuid(),
-  cultura_id: z.string().uuid(),
-  sistema_id: z.string().uuid(),
-  ciclo_id: z.string().uuid(),
-  areas_por_safra: z.record(z.string(), z.coerce.number().min(0.01, "Área deve ser maior que 0"))
+  propriedade_id: z.string().uuid("Selecione uma propriedade válida"),
+  cultura_id: z.string().uuid("Selecione uma cultura válida"),
+  sistema_id: z.string().uuid("Selecione um sistema válido"),
+  ciclo_id: z.string().uuid("Selecione um ciclo válido"),
+  areas_por_safra: z.record(z.string(), z.coerce.number().min(0.01, "Área deve ser maior que 0").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para a área"
+  }))
     .refine(data => Object.keys(data).length > 0, "Adicione pelo menos uma área por safra"),
   observacoes: z.string().optional(),
 });
@@ -149,12 +157,16 @@ export type Productivity = z.infer<typeof productivitySchema>;
 
 // Form schema for creating/editing productivity
 export const productivityFormSchema = z.object({
-  propriedade_id: z.string().uuid().optional(),
-  cultura_id: z.string().uuid(),
-  sistema_id: z.string().uuid(),
+  propriedade_id: z.string().uuid("Selecione uma propriedade válida").optional(),
+  cultura_id: z.string().uuid("Selecione uma cultura válida"),
+  sistema_id: z.string().uuid("Selecione um sistema válido"),
   produtividades_por_safra: z.record(z.string(), z.object({
-    produtividade: z.coerce.number().min(0.01, "Produtividade deve ser maior que 0"),
-    unidade: productivityUnitEnum
+    produtividade: z.coerce.number().min(0.01, "Produtividade deve ser maior que 0").refine(val => !isNaN(val), {
+      message: "Insira um valor numérico válido para a produtividade"
+    }),
+    unidade: productivityUnitEnum.refine(val => !!val, {
+      message: "Selecione uma unidade de produtividade"
+    })
   })).refine(data => Object.keys(data).length > 0, "Adicione pelo menos uma produtividade por safra"),
   observacoes: z.string().optional(),
 });
@@ -181,7 +193,9 @@ export const productionCostCategoryEnum = z.enum([
   "BENEFICIAMENTO",
   "SERVICOS",
   "ADMINISTRATIVO"
-]);
+], {
+  errorMap: (issue, ctx) => ({ message: "Selecione uma categoria de custo válida" })
+});
 export type ProductionCostCategory = z.infer<typeof productionCostCategoryEnum>;
 
 // Schema for Production Costs (Custos de Produção) - Multi-Safra JSONB
@@ -203,11 +217,15 @@ export type ProductionCost = z.infer<typeof productionCostSchema>;
 
 // Form schema for creating/editing production costs
 export const productionCostFormSchema = z.object({
-  propriedade_id: z.string().uuid().optional(),
-  cultura_id: z.string().uuid(),
-  sistema_id: z.string().uuid(),
-  categoria: productionCostCategoryEnum,
-  custos_por_safra: z.record(z.string(), z.coerce.number().min(0.01, "Valor deve ser maior que 0"))
+  propriedade_id: z.string().uuid("Selecione uma propriedade válida").optional(),
+  cultura_id: z.string().uuid("Selecione uma cultura válida"),
+  sistema_id: z.string().uuid("Selecione um sistema válido"),
+  categoria: productionCostCategoryEnum.refine(val => !!val, {
+    message: "Selecione uma categoria de custo"
+  }),
+  custos_por_safra: z.record(z.string(), z.coerce.number().min(0.01, "Valor deve ser maior que 0").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para o custo"
+  }))
     .refine(data => Object.keys(data).length > 0, "Adicione pelo menos um custo por safra"),
   descricao: z.string().optional(),
   observacoes: z.string().optional(),
@@ -228,20 +246,30 @@ export const priceUnitEnum = z.enum([
   "KG",     // Por quilograma (R$/kg)
   "ARROBA", // Por arroba (R$/@)
   "LOTE"    // Por lote (R$/lote)
-]);
+], {
+  errorMap: (issue, ctx) => ({ message: "Selecione uma unidade de preço válida" })
+});
 export type PriceUnit = z.infer<typeof priceUnitEnum>;
 
 // Schema for Livestock (Rebanho)
 export const livestockSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
   tipo_animal: z.string().min(1, "Tipo de animal é obrigatório"),
   categoria: z.string().min(1, "Categoria é obrigatória"),
-  quantidade: z.coerce.number().min(0, "Quantidade deve ser positiva"),
-  preco_unitario: z.coerce.number().min(0, "Preço unitário deve ser positivo"),
-  unidade_preco: priceUnitEnum,
-  numero_cabecas: z.coerce.number().int().min(0, "Número de cabeças deve ser positivo").optional(),
-  propriedade_id: z.string().uuid(),
+  quantidade: z.coerce.number().min(0, "Quantidade deve ser positiva ou zero").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para a quantidade"
+  }),
+  preco_unitario: z.coerce.number().min(0, "Preço unitário deve ser positivo ou zero").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para o preço unitário"
+  }),
+  unidade_preco: priceUnitEnum.refine(val => !!val, {
+    message: "Selecione uma unidade de preço"
+  }),
+  numero_cabecas: z.coerce.number().int("Número de cabeças deve ser um número inteiro").min(0, "Número de cabeças deve ser positivo ou zero").optional().refine(val => val === undefined || !isNaN(val), {
+    message: "Insira um valor numérico válido para o número de cabeças"
+  }),
+  propriedade_id: z.string().uuid("Selecione uma propriedade válida"),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
@@ -261,24 +289,34 @@ export const livestockOperationCycleEnum = z.enum([
   "CONFINAMENTO",
   "PASTO",
   "SEMICONFINAMENTO"
-]);
+], {
+  errorMap: (issue, ctx) => ({ message: "Selecione um ciclo de operação válido" })
+});
 export type LivestockOperationCycle = z.infer<typeof livestockOperationCycleEnum>;
 
 // Enum for livestock operation origin
 export const livestockOperationOriginEnum = z.enum([
   "PROPRIO",
   "TERCEIRO"
-]);
+], {
+  errorMap: (issue, ctx) => ({ message: "Selecione uma origem válida" })
+});
 export type LivestockOperationOrigin = z.infer<typeof livestockOperationOriginEnum>;
 
 // Schema for Livestock Operations (Operações Pecuárias)
 export const livestockOperationSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
-  ciclo: livestockOperationCycleEnum,
-  origem: livestockOperationOriginEnum,
-  propriedade_id: z.string().uuid(),
-  volume_abate_por_safra: z.record(z.string(), z.number()).or(z.string()),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
+  ciclo: livestockOperationCycleEnum.refine(val => !!val, {
+    message: "Selecione um ciclo de operação"
+  }),
+  origem: livestockOperationOriginEnum.refine(val => !!val, {
+    message: "Selecione uma origem"
+  }),
+  propriedade_id: z.string().uuid("Selecione uma propriedade válida"),
+  volume_abate_por_safra: z.record(z.string(), z.number().refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para o volume de abate"
+  })).or(z.string()),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

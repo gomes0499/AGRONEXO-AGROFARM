@@ -264,8 +264,8 @@ export function BankDebtForm({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="!max-w-[700px] !important p-0 overflow-hidden" 
-        style={{ maxWidth: "700px !important" }}
+        className="p-0 overflow-hidden" 
+        style={{ width: "90vw", maxWidth: "900px", position: "relative" }}
       >
         <DialogHeader className="p-6 pb-2">
           <div className="flex items-center gap-2">
@@ -556,7 +556,7 @@ export function BankDebtForm({
                           }
                           onChange={field.onChange}
                           organizacaoId={organizationId}
-                          safras={harvests}
+                          safras={harvests.map(harvest => ({ id: harvest.id, nome: harvest.nome }))}
                         />
                       </FormControl>
                       <FormMessage />

@@ -34,8 +34,8 @@ export default async function ManageOrganizationPage({
   params,
   searchParams,
 }: {
-  params: any;
-  searchParams: any;
+  params: { id: string };
+  searchParams: { tab?: string };
 }) {
   // Verifica autenticação e obtém dados do usuário
   const user = await verifyUserPermission();
@@ -43,13 +43,9 @@ export default async function ManageOrganizationPage({
   // Verifica se o usuário é super admin
   const isSuperAdmin = user.app_metadata?.is_super_admin === true;
 
-  // Garantir que os parâmetros são resolvidos antes de usá-los
-  const paramsResolved = await Promise.resolve(params);
-  const searchParamsResolved = await Promise.resolve(searchParams);
-
   // Salvar em constantes para uso no componente
-  const organizationId = paramsResolved.id;
-  const activeTab = searchParamsResolved.tab || "info";
+  const organizationId = params.id;
+  const activeTab = searchParams.tab || "info";
 
   // Obtém dados da organização específica
   const supabase = await createClient();
@@ -149,9 +145,6 @@ export default async function ManageOrganizationPage({
           const metadata = currentUser?.user_metadata || {};
           userName = metadata.name || userEmail.split("@")[0] || "Usuário";
           userAvatar = metadata.avatar_url;
-
-          // Log para debug - remover após resolução
-          console.log("Current user metadata:", metadata);
         }
         // 2. Se encontrou dados de autenticação, use-os
         else if (authUser) {
@@ -161,9 +154,6 @@ export default async function ManageOrganizationPage({
           const metadata = authUser.raw_user_meta_data || {};
           userName = metadata.name || userEmail.split("@")[0] || "Usuário";
           userAvatar = metadata.avatar_url;
-
-          // Log para debug - remover após resolução
-          console.log("Auth user metadata:", metadata);
         }
         // 3. Último recurso: crie dados temporários baseados na associação
         else {

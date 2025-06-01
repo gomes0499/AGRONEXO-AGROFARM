@@ -29,6 +29,8 @@ interface CultureProjectionsTableProps {
 }
 
 export function CultureProjectionsTable({ projections, sementes, consolidado, anos }: CultureProjectionsTableProps) {
+  // Filtrar anos para remover 2030/31 e 2031/32
+  const anosFiltrados = anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
 
   const formatNumber = (value: number, decimals: number = 2) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -52,10 +54,10 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
 
   // Renderizar componente para cada seção de projeção usando accordion
   const renderProjectionAccordion = (projection: CultureProjectionData, key: string | number) => (
-    <AccordionItem key={key} value={`projection-${key}`} className="border rounded-lg shadow-sm">
+    <AccordionItem key={key} value={`projection-${key}`} className="border rounded-lg shadow-sm dark:border-gray-700">
       <AccordionTrigger className="px-6 py-4 hover:no-underline">
         <div className="flex items-center gap-3 text-left">
-          <BarChart3 className="h-4 w-4 text-primary" />
+          <BarChart3 className="h-4 w-4 text-primary dark:text-white" />
           <div>
             <h3 className="font-semibold text-base">{projection.combination_title}</h3>
             <p className="text-sm text-muted-foreground">
@@ -71,19 +73,19 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           <div className="min-w-max">
             <Table>
               <TableHeader>
-                <TableRow className="bg-primary hover:bg-primary">
-                  <TableHead className="font-medium text-primary-foreground min-w-[200px] w-[200px] sticky left-0 bg-primary z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
+                <TableRow className="bg-primary hover:bg-primary dark:bg-primary/90 dark:hover:bg-primary/90">
+                  <TableHead className="font-medium text-primary-foreground min-w-[200px] w-[200px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
                     {projection.section_title}
                   </TableHead>
                   <TableHead className="font-medium text-primary-foreground text-center min-w-[100px] w-[100px] whitespace-nowrap">
                     Unidade
                   </TableHead>
-                  {anos.map((ano, anoIndex) => (
+                  {anosFiltrados.map((ano, anoIndex) => (
                     <TableHead 
                       key={ano} 
                       className={cn(
                         "font-medium text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
-                        anoIndex === anos.length - 1 && "rounded-tr-md"
+                        anoIndex === anosFiltrados.length - 1 && "rounded-tr-md"
                       )}
                     >
                       {ano}
@@ -108,17 +110,17 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
       return (
         <>
           {/* Receita */}
-          <TableRow className="hover:bg-muted/30 bg-primary/5">
-            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+          <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30 bg-primary/5 dark:bg-primary/10">
+            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 dark:bg-primary/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
               Receita
             </TableCell>
-            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
+            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5 dark:bg-primary/10">
               R$
             </TableCell>
-            {anos.map((ano) => (
+            {anosFiltrados.map((ano) => (
               <TableCell 
                 key={ano} 
-                className="text-center font-medium text-primary min-w-[120px] w-[120px] bg-primary/5"
+                className="text-center font-medium text-primary dark:text-white min-w-[120px] w-[120px] bg-primary/5 dark:bg-primary/10"
               >
                 {projection.projections_by_year[ano] 
                   ? formatNumber(projection.projections_by_year[ano].receita, 0)
@@ -129,14 +131,14 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           </TableRow>
 
           {/* Custo Total */}
-          <TableRow className="hover:bg-muted/30">
-            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+          <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
               Custo Total
             </TableCell>
             <TableCell className="text-center min-w-[100px] w-[100px]">
               R$
             </TableCell>
-            {anos.map((ano) => (
+            {anosFiltrados.map((ano) => (
               <TableCell 
                 key={ano} 
                 className="text-center min-w-[120px] w-[120px]"
@@ -150,19 +152,21 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           </TableRow>
 
           {/* EBITDA */}
-          <TableRow className="hover:bg-muted/30 bg-primary/5">
-            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+          <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30 bg-primary/5 dark:bg-primary/10">
+            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 dark:bg-primary/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
               EBITDA
             </TableCell>
-            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
+            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5 dark:bg-primary/10">
               R$
             </TableCell>
-            {anos.map((ano) => (
+            {anosFiltrados.map((ano) => (
               <TableCell 
                 key={ano} 
                 className={cn(
-                  "text-center font-medium min-w-[120px] w-[120px] bg-primary/5",
-                  projection.projections_by_year[ano]?.ebitda >= 0 ? "text-primary" : "text-destructive"
+                  "text-center font-medium min-w-[120px] w-[120px] bg-primary/5 dark:bg-primary/10",
+                  projection.projections_by_year[ano]?.ebitda >= 0 
+                    ? "text-primary dark:text-white" 
+                    : "text-destructive dark:text-red-400"
                 )}
               >
                 {projection.projections_by_year[ano] 
@@ -174,19 +178,21 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           </TableRow>
 
           {/* EBITDA % */}
-          <TableRow className="hover:bg-muted/30 bg-primary/5">
-            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+          <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30 bg-primary/5 dark:bg-primary/10">
+            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 dark:bg-primary/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
               EBITDA
             </TableCell>
-            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
+            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5 dark:bg-primary/10">
               %
             </TableCell>
-            {anos.map((ano) => (
+            {anosFiltrados.map((ano) => (
               <TableCell 
                 key={ano} 
                 className={cn(
-                  "text-center font-medium min-w-[120px] w-[120px] bg-primary/5",
-                  projection.projections_by_year[ano]?.ebitda_percent >= 0 ? "text-primary" : "text-destructive"
+                  "text-center font-medium min-w-[120px] w-[120px] bg-primary/5 dark:bg-primary/10",
+                  projection.projections_by_year[ano]?.ebitda_percent >= 0 
+                    ? "text-primary dark:text-white" 
+                    : "text-destructive dark:text-red-400"
                 )}
               >
                 {projection.projections_by_year[ano] 
@@ -212,7 +218,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
             <TableCell className="text-center font-mono min-w-[100px] w-[100px]">
               hectares
             </TableCell>
-            {anos.map((ano) => (
+            {anosFiltrados.map((ano) => (
               <TableCell 
                 key={ano} 
                 className="text-center font-mono min-w-[120px] w-[120px]"
@@ -233,10 +239,10 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
             <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
               R$
             </TableCell>
-            {anos.map((ano) => (
+            {anosFiltrados.map((ano) => (
               <TableCell 
                 key={ano} 
-                className="text-center font-medium text-primary min-w-[120px] w-[120px] bg-primary/5"
+                className="text-center font-medium text-primary dark:text-white min-w-[120px] w-[120px] bg-primary/5 dark:bg-primary/10"
               >
                 {projection.projections_by_year[ano] 
                   ? formatNumber(projection.projections_by_year[ano].receita, 0)
@@ -254,7 +260,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
             <TableCell className="text-center min-w-[100px] w-[100px] bg-destructive/5">
               R$
             </TableCell>
-            {anos.map((ano) => (
+            {anosFiltrados.map((ano) => (
               <TableCell 
                 key={ano} 
                 className="text-center font-medium text-destructive min-w-[120px] w-[120px] bg-destructive/5"
@@ -268,19 +274,21 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           </TableRow>
 
           {/* EBITDA */}
-          <TableRow className="hover:bg-muted/30 bg-primary/5">
-            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+          <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30 bg-primary/5 dark:bg-primary/10">
+            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 dark:bg-primary/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
               EBITDA
             </TableCell>
-            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
+            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5 dark:bg-primary/10">
               R$
             </TableCell>
-            {anos.map((ano) => (
+            {anosFiltrados.map((ano) => (
               <TableCell 
                 key={ano} 
                 className={cn(
-                  "text-center font-medium min-w-[120px] w-[120px] bg-primary/5",
-                  projection.projections_by_year[ano]?.ebitda >= 0 ? "text-primary" : "text-destructive"
+                  "text-center font-medium min-w-[120px] w-[120px] bg-primary/5 dark:bg-primary/10",
+                  projection.projections_by_year[ano]?.ebitda >= 0 
+                    ? "text-primary dark:text-white" 
+                    : "text-destructive dark:text-red-400"
                 )}
               >
                 {projection.projections_by_year[ano] 
@@ -292,19 +300,21 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           </TableRow>
 
           {/* EBITDA % */}
-          <TableRow className="hover:bg-muted/30 bg-primary/5">
-            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+          <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30 bg-primary/5 dark:bg-primary/10">
+            <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-primary/5 dark:bg-primary/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
               EBITDA
             </TableCell>
-            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
+            <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5 dark:bg-primary/10">
               %
             </TableCell>
-            {anos.map((ano) => (
+            {anosFiltrados.map((ano) => (
               <TableCell 
                 key={ano} 
                 className={cn(
-                  "text-center font-medium min-w-[120px] w-[120px] bg-primary/5",
-                  projection.projections_by_year[ano]?.ebitda_percent >= 0 ? "text-primary" : "text-destructive"
+                  "text-center font-medium min-w-[120px] w-[120px] bg-primary/5 dark:bg-primary/10",
+                  projection.projections_by_year[ano]?.ebitda_percent >= 0 
+                    ? "text-primary dark:text-white" 
+                    : "text-destructive dark:text-red-400"
                 )}
               >
                 {projection.projections_by_year[ano] 
@@ -329,7 +339,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           <TableCell className="text-center min-w-[100px] w-[100px]">
             hectares
           </TableCell>
-          {anos.map((ano) => (
+          {anosFiltrados.map((ano) => (
             <TableCell 
               key={ano} 
               className="text-center min-w-[120px] w-[120px]"
@@ -350,7 +360,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           <TableCell className="text-center min-w-[100px] w-[100px]">
             {Object.values(projection.projections_by_year)[0]?.unidade || 'Sc/ha'}
           </TableCell>
-          {anos.map((ano) => (
+          {anosFiltrados.map((ano) => (
             <TableCell 
               key={ano} 
               className="text-center min-w-[120px] w-[120px]"
@@ -371,7 +381,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           <TableCell className="text-center min-w-[100px] w-[100px]">
             R$/Sc
           </TableCell>
-          {anos.map((ano) => (
+          {anosFiltrados.map((ano) => (
             <TableCell 
               key={ano} 
               className="text-center min-w-[120px] w-[120px]"
@@ -392,10 +402,10 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
             R$
           </TableCell>
-          {anos.map((ano) => (
+          {anosFiltrados.map((ano) => (
             <TableCell 
               key={ano} 
-              className="text-center font-medium text-primary min-w-[120px] w-[120px] bg-primary/5"
+              className="text-center font-medium text-primary dark:text-white min-w-[120px] w-[120px] bg-primary/5 dark:bg-primary/10"
             >
               {projection.projections_by_year[ano] 
                 ? formatNumber(projection.projections_by_year[ano].receita, 0)
@@ -413,7 +423,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           <TableCell className="text-center min-w-[100px] w-[100px]">
             R$/ha
           </TableCell>
-          {anos.map((ano) => (
+          {anosFiltrados.map((ano) => (
             <TableCell 
               key={ano} 
               className="text-center min-w-[120px] w-[120px]"
@@ -434,7 +444,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           <TableCell className="text-center min-w-[100px] w-[100px]">
             R$
           </TableCell>
-          {anos.map((ano) => (
+          {anosFiltrados.map((ano) => (
             <TableCell 
               key={ano} 
               className="text-center min-w-[120px] w-[120px]"
@@ -455,12 +465,12 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
             R$
           </TableCell>
-          {anos.map((ano) => (
+          {anosFiltrados.map((ano) => (
             <TableCell 
               key={ano} 
               className={cn(
                 "text-center font-medium min-w-[120px] w-[120px] bg-primary/5",
-                projection.projections_by_year[ano]?.ebitda >= 0 ? "text-primary" : "text-destructive"
+                projection.projections_by_year[ano]?.ebitda >= 0 ? "text-primary dark:text-white" : "text-destructive dark:text-red-400"
               )}
             >
               {projection.projections_by_year[ano] 
@@ -479,12 +489,12 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
           <TableCell className="text-center min-w-[100px] w-[100px] bg-primary/5">
             %
           </TableCell>
-          {anos.map((ano) => (
+          {anosFiltrados.map((ano) => (
             <TableCell 
               key={ano} 
               className={cn(
                 "text-center font-medium min-w-[120px] w-[120px] bg-primary/5",
-                projection.projections_by_year[ano]?.ebitda_percent >= 0 ? "text-primary" : "text-destructive"
+                projection.projections_by_year[ano]?.ebitda_percent >= 0 ? "text-primary dark:text-white" : "text-destructive dark:text-red-400"
               )}
             >
               {projection.projections_by_year[ano] 
@@ -500,7 +510,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
 
   if (!projections || projections.length === 0) {
     return (
-      <Card className="shadow-sm border-muted/80">
+      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
         <CardHeaderPrimary
           icon={<BarChart3 className="h-4 w-4" />}
           title="Projeções de Culturas por Safra"
@@ -519,7 +529,7 @@ export function CultureProjectionsTable({ projections, sementes, consolidado, an
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-sm border-muted/80">
+      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
         <CardHeaderPrimary
           icon={<BarChart3 className="h-4 w-4" />}
           title="Projeções de Culturas por Safra"

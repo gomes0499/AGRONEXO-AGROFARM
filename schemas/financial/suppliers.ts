@@ -2,17 +2,21 @@ import { z } from "zod";
 import { currencyEnum } from "./common";
 
 // Schema para valores anuais
-export const annualValuesSchema = z.record(z.string(), z.number());
+export const annualValuesSchema = z.record(z.string(), z.number().refine(val => !isNaN(val), {
+  message: "Insira um valor numérico válido"
+}));
 export type AnnualValuesType = z.infer<typeof annualValuesSchema>;
 
 // Schema para Fornecedores
 export const supplierSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizacao_id: z.string().uuid(),
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
   nome: z.string().min(1, "Nome do fornecedor é obrigatório"),
-  moeda: currencyEnum.default("BRL"),
+  moeda: currencyEnum.default("BRL").refine(val => !!val, {
+    message: "Selecione uma moeda"
+  }),
   valores_por_ano: annualValuesSchema.or(z.string()),
-  safra_id: z.string().uuid().optional(),
+  safra_id: z.string().uuid("Selecione uma safra válida").optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

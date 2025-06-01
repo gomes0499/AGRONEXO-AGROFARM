@@ -36,7 +36,7 @@ export function NewAssetSaleButton({
         title="Nova Venda de Ativo"
         description="Cadastre uma nova venda de ativo."
         showFooter={false}
-        className="sm:max-w-[600px]"
+        className="sm:max-w-[800px]"
       >
         <AssetSaleForm
           organizationId={organizationId}

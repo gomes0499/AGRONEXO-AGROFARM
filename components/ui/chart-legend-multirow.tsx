@@ -29,10 +29,12 @@ const ChartLegendMultirow = React.forwardRef<
     viewBox,
     verticalAlign,
     iconType,
+    iconSize, // Adicionando iconSize para evitar o erro
     layout,
     align,
     wrapperStyle,
     content,
+    onBBoxUpdate, // Adicionando onBBoxUpdate para evitar o erro
     ...domProps
   } = props;
   if (!payload?.length) return null;

@@ -64,7 +64,7 @@ export function NewPlantingAreaButton({
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const isMobile = useIsMobile();
 
-  const handleSuccess = (plantingArea: PlantingArea) => {
+  const handleSuccess = (plantingAreas: PlantingArea[]) => {
     setIsOpen(false);
   };
 

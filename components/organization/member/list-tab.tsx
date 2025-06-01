@@ -186,7 +186,7 @@ export function OrganizationDetailMembers({
   };
 
   return (
-    <Card className="shadow-sm border-muted/80">
+    <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
       <CardHeaderPrimary
         icon={<UserCircle2 className="h-4 w-4" />}
         title="Membros"

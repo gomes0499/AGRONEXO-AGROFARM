@@ -157,7 +157,7 @@ export function AgriculturalRevenueDashboard({ organizationId }: AgriculturalRev
                   <TableBody>
                     {revenueData.receitas.map((receita, index) => (
                       <TableRow key={index} className="hover:bg-muted/30">
-                        <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                        <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                           {receita.cultura} {receita.sistema} {receita.ciclo && `- ${receita.ciclo}`}
                         </TableCell>
                         {revenueData.anos.map((ano) => (

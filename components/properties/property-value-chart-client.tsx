@@ -107,7 +107,7 @@ export function PropertyValueChartClient({
               <TooltipTrigger asChild>
                 <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help ml-auto" />
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                 <p>Ranking patrimonial das propriedades ordenadas por valor de mercado, permitindo identificar os ativos de maior valor.</p>
               </TooltipContent>
             </Tooltip>
@@ -141,7 +141,7 @@ export function PropertyValueChartClient({
               <TooltipTrigger asChild>
                 <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help ml-auto" />
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
                 <p>Ranking patrimonial das propriedades ordenadas por valor de mercado, permitindo identificar os ativos de maior valor.</p>
               </TooltipContent>
             </Tooltip>
@@ -219,25 +219,19 @@ export function PropertyValueChartClient({
               fontSize={9}
               width={30}
             />
-            <ChartTooltip
-              cursor={false}
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  return (
-                    <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
-                      <p className="font-semibold text-sm">
-                        {data.nomeCompleto}
-                      </p>
-                      <p className="text-primary font-bold mt-1">
-                        {data.valorFormatado}
-                      </p>
-                    </div>
-                  );
-                }
-                return null;
+            <ChartTooltip content={<ChartTooltipContent 
+              formatter={(value, name, entry) => {
+                const data = entry.payload;
+                return (
+                  <div className="flex justify-between items-center w-full">
+                    <span className="font-medium">{data.nomeCompleto}</span>
+                    <span className="ml-4 font-mono tabular-nums font-medium">
+                      {data.valorFormatado}
+                    </span>
+                  </div>
+                );
               }}
-            />
+            />} />
             <Bar
               dataKey="valor"
               fill="var(--color-valor)"

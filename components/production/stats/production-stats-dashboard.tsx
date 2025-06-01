@@ -89,8 +89,8 @@ export function ProductionStatsDashboard({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Estatísticas de Produção</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-bold dark:text-white">Estatísticas de Produção</h2>
+          <p className="text-muted-foreground dark:text-gray-300">
             Resumo dos principais indicadores de produção
           </p>
         </div>
@@ -139,7 +139,7 @@ export function ProductionStatsDashboard({
           title="Área Total Plantada"
           value={formatCompactNumber(stats.totalPlantingArea || 0) + " ha"}
           trend={trends.area}
-          icon={<LandPlot className="h-5 w-5 text-muted-foreground/70" />}
+          icon={<LandPlot className="h-5 w-5 text-muted-foreground/70 dark:text-gray-300" />}
         />
 
         <StatsCard
@@ -163,7 +163,7 @@ export function ProductionStatsDashboard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-muted-foreground/70"
+              className="text-muted-foreground/70 dark:text-gray-300"
             >
               <path d="M12 2v8"></path>
               <path d="M4 10v12"></path>
@@ -194,7 +194,7 @@ export function ProductionStatsDashboard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-muted-foreground/70"
+              className="text-muted-foreground/70 dark:text-gray-300"
             >
               <path d="M12 2v8"></path>
               <path d="M2 12h20"></path>
@@ -219,7 +219,7 @@ export function ProductionStatsDashboard({
           description={`${
             stats.productivityByCultureAndSystem?.[0]?.unidade || "sc/ha"
           } - Cultura principal`}
-          icon={<LineChart className="h-5 w-5 text-muted-foreground/70" />}
+          icon={<LineChart className="h-5 w-5 text-muted-foreground/70 dark:text-gray-300" />}
         />
 
         <StatsCard
@@ -250,7 +250,7 @@ export function ProductionStatsDashboard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-muted-foreground/70"
+              className="text-muted-foreground/70 dark:text-gray-300"
             >
               <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
               <polyline points="16 7 22 7 22 13"></polyline>
@@ -273,7 +273,7 @@ export function ProductionStatsDashboard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-muted-foreground/70"
+              className="text-muted-foreground/70 dark:text-gray-300"
             >
               <path d="M12.2 8.2L6.2 2h12l-6 6.2z"></path>
               <path d="M12 22V12"></path>
@@ -296,7 +296,7 @@ export function ProductionStatsDashboard({
             value: trends.costs.value,
             positive: trends.costs.positive,
           }}
-          icon={<DollarSign className="h-5 w-5 text-muted-foreground/70" />}
+          icon={<DollarSign className="h-5 w-5 text-muted-foreground/70 dark:text-gray-300" />}
         />
 
         <StatsCard
@@ -322,7 +322,7 @@ export function ProductionStatsDashboard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-muted-foreground/70"
+              className="text-muted-foreground/70 dark:text-gray-300"
             >
               <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"></path>
               <path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1"></path>
@@ -345,7 +345,7 @@ export function ProductionStatsDashboard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-muted-foreground/70"
+              className="text-muted-foreground/70 dark:text-gray-300"
             >
               <rect width="6" height="16" x="4" y="4" rx="2"></rect>
               <rect width="6" height="9" x="14" y="11" rx="2"></rect>
@@ -360,7 +360,7 @@ export function ProductionStatsDashboard({
           title="Total de Animais"
           value={formatCompactNumber(totalAnimals || 0)}
           trend={trends.livestock}
-          icon={<Beef className="h-5 w-5 text-muted-foreground/70" />}
+          icon={<Beef className="h-5 w-5 text-muted-foreground/70 dark:text-gray-300" />}
         />
 
         <StatsCard
@@ -369,7 +369,7 @@ export function ProductionStatsDashboard({
           description={`Valor médio por animal: ${formatCompactCurrency(
             (totalLivestockValue || 0) / (totalAnimals || 1)
           )}`}
-          icon={<DollarSign className="h-5 w-5 text-muted-foreground/70" />}
+          icon={<DollarSign className="h-5 w-5 text-muted-foreground/70 dark:text-gray-300" />}
         />
 
         <StatsCard
@@ -389,7 +389,7 @@ export function ProductionStatsDashboard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-muted-foreground/70"
+              className="text-muted-foreground/70 dark:text-gray-300"
             >
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
@@ -408,7 +408,7 @@ export function ProductionStatsDashboard({
           title="Operações Ativas"
           value={0} // Replace with actual data when available
           description="Em diferentes propriedades"
-          icon={<Warehouse className="h-5 w-5 text-muted-foreground/70" />}
+          icon={<Warehouse className="h-5 w-5 text-muted-foreground/70 dark:text-gray-300" />}
         />
 
         <StatsCard
@@ -426,7 +426,7 @@ export function ProductionStatsDashboard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-muted-foreground/70"
+              className="text-muted-foreground/70 dark:text-gray-300"
             >
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
               <path d="M3 3v5h5"></path>
@@ -449,7 +449,7 @@ export function ProductionStatsDashboard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-muted-foreground/70"
+              className="text-muted-foreground/70 dark:text-gray-300"
             >
               <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
             </svg>

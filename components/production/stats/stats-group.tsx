@@ -14,9 +14,9 @@ export function StatsGroup({ title, children, viewMoreUrl, className = "" }: Sta
   return (
     <div className={`mt-8 ${className}`}>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold">{title}</h3>
+        <h3 className="text-xl font-semibold dark:text-white">{title}</h3>
         {viewMoreUrl && (
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white dark:border-gray-600">
             <Link href={viewMoreUrl}>
               <Eye className="mr-2 h-4 w-4" />
               Ver detalhes

@@ -36,7 +36,7 @@ export function NewLandPlanButton({ organizationId }: NewLandPlanButtonProps) {
       hectares: 0,
       sacas: 0,
       valor_total: 0,
-      tipo: "PLANEJADO",
+      tipo: "COMPRA", // Using a valid value from the enum
     },
   });
 
@@ -78,6 +78,7 @@ export function NewLandPlanButton({ organizationId }: NewLandPlanButtonProps) {
         description="Cadastre um novo plano de aquisição de terras"
         isSubmitting={isSubmitting}
         onSubmit={form.handleSubmit(handleSubmit)}
+        className="sm:max-w-[800px]"
       >
         <Form {...form}>
           <LandPlanForm 

@@ -27,13 +27,6 @@ export async function getDREData(organizacaoId: string): Promise<DREData> {
       receita_bruta: {
         agricola: {},
         pecuaria: {},
-        outras: {},
-        total: {},
-      },
-      deducoes: {
-        impostos_federais: {},
-        impostos_estaduais: {},
-        funrural: {},
         total: {},
       },
       receita_liquida: {},
@@ -70,14 +63,7 @@ export async function getDREData(organizacaoId: string): Promise<DREData> {
       // Receita Bruta
       dreData.receita_bruta.agricola[ano] = 0;
       dreData.receita_bruta.pecuaria[ano] = 0;
-      dreData.receita_bruta.outras[ano] = 0;
       dreData.receita_bruta.total[ano] = 0;
-
-      // Deduções
-      dreData.deducoes.impostos_federais[ano] = 0;
-      dreData.deducoes.impostos_estaduais[ano] = 0;
-      dreData.deducoes.funrural[ano] = 0;
-      dreData.deducoes.total[ano] = 0;
 
       // Receita Líquida
       dreData.receita_liquida[ano] = 0;
@@ -144,13 +130,6 @@ function generateZeroDREData(): DREData {
     receita_bruta: {
       agricola: {},
       pecuaria: {},
-      outras: {},
-      total: {},
-    },
-    deducoes: {
-      impostos_federais: {},
-      impostos_estaduais: {},
-      funrural: {},
       total: {},
     },
     receita_liquida: {},
@@ -187,14 +166,7 @@ function generateZeroDREData(): DREData {
     // Receita Bruta
     zeroData.receita_bruta.agricola[ano] = 0;
     zeroData.receita_bruta.pecuaria[ano] = 0;
-    zeroData.receita_bruta.outras[ano] = 0;
     zeroData.receita_bruta.total[ano] = 0;
-
-    // Deduções
-    zeroData.deducoes.impostos_federais[ano] = 0;
-    zeroData.deducoes.impostos_estaduais[ano] = 0;
-    zeroData.deducoes.funrural[ano] = 0;
-    zeroData.deducoes.total[ano] = 0;
 
     // Receita Líquida
     zeroData.receita_liquida[ano] = 0;
