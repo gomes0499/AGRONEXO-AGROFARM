@@ -13,9 +13,9 @@ export function DashboardTickers({ commercialPrices }: DashboardTickersProps) {
     <>
       {/* Market Ticker - full width */}
       <div className="w-full border-b bg-muted/30">
-        <div className="container flex items-center h-10">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground font-medium pr-4 border-r">
-            <DollarSign className="h-4 w-4 ml-4 text-primary" />
+        <div className="container flex items-center h-10 bg-primary">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground font-medium pr-4">
+            <DollarSign className="h-4 w-4 ml-4 text-white" />
           </div>
           <div className="flex-1">
             <MarketTicker commercialPrices={commercialPrices} />

@@ -137,8 +137,8 @@ export function OutrasDespesasListing({
   // Função para traduzir a categoria para um formato mais legível
   const formatCategoria = (categoria: string) => {
     const formatMap: Record<string, string> = {
+      TRIBUTARIAS: "Impostos e Taxas",
       PRO_LABORE: "Pró-Labore",
-      TRIBUTARIAS: "Despesas Tributárias",
       OUTRAS_OPERACIONAIS: "Outras Operacionais",
       DESPESAS_ADMINISTRATIVAS: "Despesas Administrativas",
       DESPESAS_COMERCIAIS: "Despesas Comerciais",
@@ -146,6 +146,14 @@ export function OutrasDespesasListing({
       MANUTENCAO: "Manutenção",
       SEGUROS: "Seguros",
       CONSULTORIAS: "Consultorias",
+      DEPRECIACAO: "Depreciação",
+      AMORTIZACAO: "Amortização",
+      ARRENDAMENTOS: "Arrendamentos",
+      PESSOAL: "Pessoal e Encargos",
+      ENERGIA_COMBUSTIVEL: "Energia e Combustível",
+      COMUNICACAO: "Comunicação",
+      VIAGENS: "Viagens",
+      MATERIAL_ESCRITORIO: "Material de Escritório",
       OUTROS: "Outros"
     };
     

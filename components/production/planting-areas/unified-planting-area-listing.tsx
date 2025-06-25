@@ -254,8 +254,11 @@ export function UnifiedPlantingAreaListing({
                       className={index % 2 === 0 ? "bg-background" : "bg-muted/25"}
                     >
                       <td className="p-3 border-r">
-                        <Badge variant="default" className="text-xs font-medium">
-                          {area.propriedades?.nome || "N/A"}
+                        <Badge 
+                          variant={area.propriedade_id ? "default" : "secondary"} 
+                          className="text-xs font-medium"
+                        >
+                          {area.propriedades?.nome || "Todas as Propriedades"}
                         </Badge>
                       </td>
                       <td className="p-3 border-r">

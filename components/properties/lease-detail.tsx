@@ -161,6 +161,10 @@ export function LeaseDetail({ lease, propertyId, organizationId }: LeaseDetailPr
     // Fallback para ordenação por UUID se não tiver dados da safra
     return a.localeCompare(b);
   });
+  
+  console.log("Custos do arrendamento:", custos);
+  console.log("Safras encontradas:", safrasMap);
+  console.log("Anos ordenados:", anos);
 
   // Preparar dados para o gráfico - convertendo de sacas para R$
   const chartData = anos.map((safraId) => {
@@ -269,6 +273,14 @@ export function LeaseDetail({ lease, propertyId, organizationId }: LeaseDetailPr
               {loadingSafras ? (
                 <div className="col-span-5 text-center py-4">
                   <div className="text-sm text-muted-foreground">Carregando informações das safras...</div>
+                </div>
+              ) : Object.keys(custos).length === 0 ? (
+                <div className="col-span-5 text-center py-4">
+                  <div className="text-sm text-muted-foreground">Nenhuma projeção de custo cadastrada para este arrendamento.</div>
+                </div>
+              ) : anos.length === 0 ? (
+                <div className="col-span-5 text-center py-4">
+                  <div className="text-sm text-muted-foreground">Não foi possível encontrar as safras para os custos cadastrados.</div>
                 </div>
               ) : (
                 anos.map((safraId) => {

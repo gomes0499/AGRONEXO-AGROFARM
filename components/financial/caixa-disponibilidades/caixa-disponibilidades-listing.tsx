@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { CaixaDisponibilidadesListItem, CaixaDisponibilidadesCategoriaType } from "@/schemas/financial/caixa_disponibilidades";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, WalletIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { PlusIcon, WalletIcon, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -25,6 +25,7 @@ import { useFinancialFilters } from "@/hooks/use-financial-filters";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CaixaDisponibilidadesSafraDetail } from "./caixa-disponibilidades-safra-detail";
+import { CashPolicyConfigDialog } from "./cash-policy-config-dialog";
 
 interface CaixaDisponibilidadesListingProps {
   organization: { id: string; nome: string };
@@ -40,6 +41,7 @@ export function CaixaDisponibilidadesListing({
   >(initialItems.map(item => ({ ...item, isExpanded: false })));
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CaixaDisponibilidadesListItem | null>(null);
+  const [isPolicyConfigOpen, setIsPolicyConfigOpen] = useState(false);
 
   const {
     filteredItems: filteredItems,
@@ -130,6 +132,7 @@ export function CaixaDisponibilidadesListing({
       ESTOQUE_FERTILIZANTES: "Estoque de Fertilizantes",
       ESTOQUE_ALMOXARIFADO: "Estoque de Almoxarifado",
       ESTOQUE_COMMODITIES: "Estoque de Commodities",
+      ESTOQUE_SEMENTES: "Estoque de Sementes",
       SEMOVENTES: "Semoventes",
       ATIVO_BIOLOGICO: "Ativo Biológico"
     };
@@ -153,15 +156,26 @@ export function CaixaDisponibilidadesListing({
         title="Caixa e Disponibilidades"
         description="Gestão de ativos líquidos e disponibilidades financeiras"
         action={
-          <Button
-            variant="outline"
-            size="default"
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            <PlusIcon className="h-4 w-4" />
-            Novo Item
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="default"
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
+              onClick={() => setIsPolicyConfigOpen(true)}
+            >
+              <Settings className="h-4 w-4" />
+              Configurar
+            </Button>
+            <Button
+              variant="outline"
+              size="default"
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              <PlusIcon className="h-4 w-4" />
+              Novo Item
+            </Button>
+          </div>
         }
         className="mb-4"
       />
@@ -306,6 +320,13 @@ export function CaixaDisponibilidadesListing({
           onSubmit={handleUpdateItem}
         />
       )}
+
+      {/* Dialog de configuração de política de caixa */}
+      <CashPolicyConfigDialog
+        open={isPolicyConfigOpen}
+        onOpenChange={setIsPolicyConfigOpen}
+        organizationId={organization.id}
+      />
     </Card>
   );
 }

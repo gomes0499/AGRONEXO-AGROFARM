@@ -12,13 +12,13 @@ import {
   ArrowDown,
   ArrowUp,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import Loading from "@/app/dashboard/production/loading";
 
 // Função para remover acentos
 function removeAccents(str: string) {
@@ -33,43 +33,43 @@ export const CITIES = [
   { name: "Nova Mutum", value: "Nova Mutum" },
   { name: "Primavera do Leste", value: "Primavera do Leste" },
   { name: "Lucas do Rio Verde", value: "Lucas do Rio Verde" },
-  
+
   // Principais regiões produtoras de milho
   { name: "Jataí", value: "Jatai" },
   { name: "Cristalina", value: "Cristalina" },
   { name: "Unaí", value: "Unai" },
   { name: "Maracaju", value: "Maracaju" },
-  
+
   // Principais regiões produtoras de algodão
   { name: "Sapezal", value: "Sapezal" },
   { name: "São Desidério", value: "Sao Desiderio" },
   { name: "Campo Verde", value: "Campo Verde" },
   { name: "Luís Eduardo Magalhães", value: "Luis Eduardo Magalhaes" },
   { name: "Barreiras", value: "Barreiras" },
-  
+
   // Principais regiões produtoras de café
   { name: "Patrocínio", value: "Patrocinio" },
   { name: "Monte Carmelo", value: "Monte Carmelo" },
   { name: "Guaxupé", value: "Guaxupe" },
   { name: "Franca", value: "Franca" },
-  
+
   // Principais regiões produtoras de cana-de-açúcar
   { name: "Ribeirão Preto", value: "Ribeirao Preto" },
   { name: "Piracicaba", value: "Piracicaba" },
   { name: "Jaú", value: "Jau" },
   { name: "Sertãozinho", value: "Sertaozinho" },
-  
+
   // Principais regiões produtoras de laranja
   { name: "Bebedouro", value: "Bebedouro" },
   { name: "Matão", value: "Matao" },
   { name: "Limeira", value: "Limeira" },
-  
+
   // Regiões importantes para pecuária
   { name: "Uberaba", value: "Uberaba" },
   { name: "Araguaína", value: "Araguaina" },
   { name: "Paragominas", value: "Paragominas" },
   { name: "Redenção", value: "Redencao" },
-  
+
   // Outras regiões agrícolas importantes
   { name: "Londrina", value: "Londrina" },
   { name: "Cascavel", value: "Cascavel" },
@@ -267,7 +267,7 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
       <div className="ticker-container">
         {loading ? (
           <div className="h-full flex items-center px-4 text-muted-foreground animate-pulse">
-            Carregando previsão...
+            Carregando...
           </div>
         ) : error ? (
           <div className="h-full flex items-center px-4 text-red-500">

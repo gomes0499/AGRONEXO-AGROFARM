@@ -5,7 +5,6 @@ import {
   Tag,
   MapPin,
   Hash,
-  DollarSign,
   Ruler,
   FileText,
   UserCheck,
@@ -22,7 +21,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { CurrencyField } from "@/components/shared/currency-field";
 import { DatePicker } from "@/components/shared/datepicker";
 import {
   Select,
@@ -35,8 +33,9 @@ import { Separator } from "@/components/ui/separator";
 import type { UseFormReturn } from "react-hook-form";
 import type { PropertyFormValues, anuenciaTypeEnum } from "@/schemas/properties";
 import { PropertyImageUpload } from "../property-image-upload";
+import { OwnersManager } from "../owners-manager";
 import { useWatch } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface BasicInfoStepProps {
   form: UseFormReturn<PropertyFormValues>;
@@ -88,7 +87,7 @@ export function BasicInfoStep({
     defaultValue: "PROPRIO"
   });
 
-  const isLeased = propertyType === "ARRENDADO";
+  const isLeased = propertyType === "ARRENDADO" || propertyType === "PARCERIA_AGRICOLA";
   
   // Quando o tipo mudar para arrendado, limpar o ano de aquisição
   // e quando mudar para próprio, limpar os campos de arrendamento
@@ -140,23 +139,15 @@ export function BasicInfoStep({
           )}
         />
 
+        {/* Campo de proprietário único será mantido mas oculto */}
         <FormField
           control={form.control}
           name="proprietario"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-muted-foreground" />
-                Proprietário*
-              </FormLabel>
+            <FormItem className="hidden">
               <FormControl>
-                <Input
-                  placeholder="Nome do proprietário"
-                  {...field}
-                  value={field.value ?? ""}
-                />
+                <Input {...field} value={field.value ?? ""} />
               </FormControl>
-              <FormMessage />
             </FormItem>
           )}
         />
@@ -179,8 +170,40 @@ export function BasicInfoStep({
                 <SelectContent>
                   <SelectItem value="PROPRIO">Própria</SelectItem>
                   <SelectItem value="ARRENDADO">Arrendada</SelectItem>
+                  <SelectItem value="PARCERIA_AGRICOLA">Parceria Agrícola</SelectItem>
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <Separator />
+
+      {/* Múltiplos Proprietários */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-medium text-muted-foreground">Proprietários</h4>
+        <FormField
+          control={form.control}
+          name="proprietarios"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <OwnersManager 
+                  form={form}
+                  owners={field.value || []}
+                  onChange={(owners) => {
+                    field.onChange(owners);
+                    // Atualizar o campo proprietario com o primeiro nome para compatibilidade
+                    if (owners.length > 0) {
+                      form.setValue("proprietario", owners[0].nome);
+                    } else {
+                      form.setValue("proprietario", null);
+                    }
+                  }}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -463,45 +486,6 @@ export function BasicInfoStep({
             />
           </div>
         )}
-        
-
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <CurrencyField
-            name="valor_atual"
-            label="Valor Atual"
-            control={form.control}
-            placeholder="R$ 0,00"
-          />
-
-          <CurrencyField
-            name="avaliacao_banco"
-            label="Avaliação do Banco"
-            control={form.control}
-            placeholder="R$ 0,00"
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="onus"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                Ônus (Observações)
-              </FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Descreva qualquer ônus ou observação sobre a propriedade..."
-                  className="min-h-[80px]"
-                  {...field}
-                  value={field.value ?? ""}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
       </div>
     </div>
   );

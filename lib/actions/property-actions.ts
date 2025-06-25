@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { 
   Property, 
   PropertyFormValues, 
+  PropertyOwner,
   Lease, 
   LeaseFormValues, 
   Improvement, 
@@ -89,9 +90,33 @@ export async function ensurePropertyTableColumns(forceCheck = false) {
   }
 }
 
+// Funções para buscar proprietários
+export async function getPropertyOwners(propertyId: string) {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from("propriedade_proprietarios")
+    .select("*")
+    .eq("propriedade_id", propertyId)
+    .order("created_at", { ascending: true });
+  
+  if (error) {
+    console.error("Erro ao buscar proprietários:", error);
+    return [];
+  }
+  
+  return data || [];
+}
+
 // Funções para Propriedades
 export async function getProperties(organizationId: string) {
   const supabase = await createClient();
+  
+  // Validar organizationId
+  if (!organizationId) {
+    console.warn("getProperties chamada sem organizationId");
+    return [];
+  }
   
   const { data, error } = await supabase
     .from("propriedades")
@@ -141,11 +166,14 @@ export async function createProperty(
       ano_aquisicao: values.tipo === "ARRENDADO" ? null : values.ano_aquisicao
     };
     
+    // Extrair proprietários do objeto de valores
+    const { proprietarios, ...propertyData } = processedValues;
+    
     const { data, error } = await supabase
       .from("propriedades")
       .insert({
         organizacao_id: organizationId,
-        ...processedValues
+        ...propertyData
       })
       .select()
       .single();
@@ -170,6 +198,27 @@ export async function createProperty(
       }
       
       throw new Error(errorMsg);
+    }
+    
+    // Salvar múltiplos proprietários se houver
+    if (proprietarios && proprietarios.length > 0) {
+      const ownersToInsert = proprietarios.map((owner: PropertyOwner) => ({
+        propriedade_id: data.id,
+        organizacao_id: organizationId,
+        nome: owner.nome,
+        cpf_cnpj: owner.cpf_cnpj || null,
+        tipo_pessoa: owner.tipo_pessoa || null,
+        percentual_participacao: owner.percentual_participacao || null
+      }));
+      
+      const { error: ownersError } = await supabase
+        .from("propriedade_proprietarios")
+        .insert(ownersToInsert);
+      
+      if (ownersError) {
+        console.error("Erro ao salvar proprietários:", ownersError);
+        // Não vamos falhar a operação completa, mas logamos o erro
+      }
     }
     
     revalidatePath("/dashboard/properties");
@@ -242,9 +291,12 @@ export async function updateProperty(
       ano_aquisicao: values.tipo === "ARRENDADO" ? null : values.ano_aquisicao
     };
     
+    // Extrair proprietários do objeto de valores
+    const { proprietarios, ...propertyData } = processedValues;
+    
     const { data, error } = await supabase
       .from("propriedades")
-      .update(processedValues)
+      .update(propertyData)
       .eq("id", id)
       .select()
       .single();
@@ -269,6 +321,40 @@ export async function updateProperty(
       }
       
       throw new Error(errorMsg);
+    }
+    
+    // Atualizar múltiplos proprietários
+    if (proprietarios !== undefined) {
+      // Primeiro, remover todos os proprietários existentes
+      const { error: deleteError } = await supabase
+        .from("propriedade_proprietarios")
+        .delete()
+        .eq("propriedade_id", id);
+      
+      if (deleteError) {
+        console.error("Erro ao remover proprietários antigos:", deleteError);
+      }
+      
+      // Depois, inserir os novos proprietários se houver
+      if (proprietarios.length > 0) {
+        const ownersToInsert = proprietarios.map((owner: PropertyOwner) => ({
+          propriedade_id: id,
+          organizacao_id: data.organizacao_id,
+          nome: owner.nome,
+          cpf_cnpj: owner.cpf_cnpj || null,
+          tipo_pessoa: owner.tipo_pessoa || null,
+          percentual_participacao: owner.percentual_participacao || null
+        }));
+        
+        const { error: ownersError } = await supabase
+          .from("propriedade_proprietarios")
+          .insert(ownersToInsert);
+        
+        if (ownersError) {
+          console.error("Erro ao salvar novos proprietários:", ownersError);
+          // Não vamos falhar a operação completa, mas logamos o erro
+        }
+      }
     }
     
     revalidatePath(`/dashboard/properties/${id}`);
@@ -434,43 +520,41 @@ export async function createLease(
     throw new Error(`Validação de arrendamento: ${validationErrors.join(", ")}`);
   }
   
-  // Verificar se já existe um arrendamento com o mesmo número para esta safra
-  if (values.safra_id && values.numero_arrendamento) {
+  // Verificar se já existe um arrendamento com o mesmo número para esta organização
+  if (values.numero_arrendamento) {
     const { data: existingLease, error: checkError } = await supabase
       .from("arrendamentos")
       .select("id")
       .eq("organizacao_id", organizationId)
-      .eq("safra_id", values.safra_id)
       .eq("numero_arrendamento", values.numero_arrendamento);
       
     if (!checkError && existingLease && existingLease.length > 0) {
-      throw new Error("Já existe um arrendamento com este número para esta safra");
+      throw new Error("Já existe um arrendamento com este número");
     }
   }
   
-  // Garantir que custos_por_ano seja um objeto válido e não vazio
-  let custos;
-  try {
-    custos = typeof values.custos_por_ano === 'string' 
-      ? JSON.parse(values.custos_por_ano) 
-      : values.custos_por_ano || {};
-      
-    // Garantir que não é vazio (requisito do banco de dados)
-    if (Object.keys(custos).length === 0) {
-      // Adicionar pelo menos um par chave-valor padrão se estiver vazio
-      const currentYear = new Date().getFullYear().toString();
-      custos = { [currentYear]: values.area_arrendada * (values.custo_hectare || 0) };
+  // Processar custos_por_ano de forma simplificada
+  let custos = values.custos_por_ano || {};
+  
+  // Garantir que custos seja um objeto válido
+  if (typeof custos === 'string') {
+    try {
+      custos = JSON.parse(custos);
+    } catch (e) {
+      custos = {};
     }
-  } catch (error) {
-    // Criar um objeto padrão em caso de erro
+  }
+  
+  // Se estiver vazio, criar um registro padrão com o ano atual
+  if (Object.keys(custos).length === 0) {
     const currentYear = new Date().getFullYear().toString();
-    custos = { [currentYear]: values.area_arrendada * (values.custo_hectare || 0) };
+    const custoTotal = values.area_arrendada * (values.custo_hectare || 0);
+    custos = { [currentYear]: custoTotal };
   }
   
   const insertData = {
     organizacao_id: organizationId,
     propriedade_id: propertyId,
-    safra_id: values.safra_id,
     numero_arrendamento: values.numero_arrendamento,
     area_fazenda: values.area_fazenda,
     area_arrendada: values.area_arrendada,
@@ -493,8 +577,8 @@ export async function createLease(
   
   if (error) {
     // Mensagens de erro mais específicas baseadas no código de erro
-    if (error.code === '23505' && error.message.includes('arrendamentos_organizacao_id_safra_id_numero_arrendamento')) {
-      throw new Error("Já existe um arrendamento com este número para esta safra");
+    if (error.code === '23505') {
+      throw new Error("Já existe um arrendamento com este número");
     } else if (error.code === '23514' && error.message.includes('custos_por_ano')) {
       throw new Error("É necessário informar pelo menos um custo anual para o arrendamento");
     } else if (error.code === '23514' && error.message.includes('area_arrendada')) {
@@ -516,7 +600,6 @@ export async function createLease(
 function validateLeaseData(values: LeaseFormValues) {
   const errors = [];
   
-  if (!values.safra_id) errors.push("Safra é obrigatória");
   if (!values.numero_arrendamento) errors.push("Número do arrendamento é obrigatório");
   if (!values.nome_fazenda) errors.push("Nome da fazenda é obrigatório");
   if (!values.arrendantes) errors.push("Arrendantes são obrigatórios");
@@ -546,33 +629,43 @@ export async function updateLease(
 ) {
   const supabase = await createClient();
   
+  // Buscar o arrendamento atual para obter organizacao_id
+  const { data: currentLease, error: fetchError } = await supabase
+    .from("arrendamentos")
+    .select("organizacao_id, propriedade_id")
+    .eq("id", id)
+    .single();
+    
+  if (fetchError || !currentLease) {
+    throw new Error("Arrendamento não encontrado");
+  }
+  
   // Validar dados de entrada
   const validationErrors = validateLeaseData(values);
   if (validationErrors.length > 0) {
     throw new Error(`Validação de arrendamento: ${validationErrors.join(", ")}`);
   }
   
-  // Garantir que custos_por_ano seja um objeto válido e não vazio
-  let custos;
-  try {
-    custos = typeof values.custos_por_ano === 'string' 
-      ? JSON.parse(values.custos_por_ano) 
-      : values.custos_por_ano || {};
-      
-    // Garantir que não é vazio (requisito do banco de dados)
-    if (Object.keys(custos).length === 0) {
-      // Adicionar pelo menos um par chave-valor padrão se estiver vazio
-      const currentYear = new Date().getFullYear().toString();
-      custos = { [currentYear]: values.area_arrendada * (values.custo_hectare || 0) };
+  // Processar custos_por_ano de forma simplificada
+  let custos = values.custos_por_ano || {};
+  
+  // Garantir que custos seja um objeto válido
+  if (typeof custos === 'string') {
+    try {
+      custos = JSON.parse(custos);
+    } catch (e) {
+      custos = {};
     }
-  } catch (error) {
-    // Criar um objeto padrão em caso de erro
+  }
+  
+  // Se estiver vazio, criar um registro padrão com o ano atual
+  if (Object.keys(custos).length === 0) {
     const currentYear = new Date().getFullYear().toString();
-    custos = { [currentYear]: values.area_arrendada * (values.custo_hectare || 0) };
+    const custoTotal = values.area_arrendada * (values.custo_hectare || 0);
+    custos = { [currentYear]: custoTotal };
   }
   
   const updateData = {
-    safra_id: values.safra_id,
     numero_arrendamento: values.numero_arrendamento,
     area_fazenda: values.area_fazenda,
     area_arrendada: values.area_arrendada,
@@ -596,8 +689,8 @@ export async function updateLease(
   
   if (error) {
     // Mensagens de erro mais específicas baseadas no código de erro
-    if (error.code === '23505' && error.message.includes('arrendamentos_organizacao_id_safra_id_numero_arrendamento')) {
-      throw new Error("Já existe um arrendamento com este número para esta safra");
+    if (error.code === '23505') {
+      throw new Error("Já existe um arrendamento com este número");
     } else if (error.code === '23514' && error.message.includes('custos_por_ano')) {
       throw new Error("É necessário informar pelo menos um custo anual para o arrendamento");
     } else if (error.code === '23514' && error.message.includes('area_arrendada')) {
@@ -610,7 +703,8 @@ export async function updateLease(
     }
   }
   
-  revalidatePath(`/dashboard/properties/${values.propriedade_id}`);
+  revalidatePath(`/dashboard/properties/${currentLease.propriedade_id}`);
+  revalidatePath("/dashboard/properties");
   
   return data as Lease;
 }
@@ -651,22 +745,85 @@ export async function getSafras(organizationId: string) {
   return data;
 }
 
-// Função para buscar safras por IDs específicos
-export async function getSafrasByIds(organizationId: string, safraIds: string[]) {
+// Função para obter mapeamento de anos para IDs de safra (dinâmico)
+export async function getYearToSafraIdMapping(organizationId: string) {
   const supabase = await createClient();
   
   const { data, error } = await supabase
     .from("safras")
+    .select("id, ano_inicio, ano_fim, nome")
+    .eq("organizacao_id", organizationId)
+    .order("ano_inicio", { ascending: true });
+  
+  if (error) {
+    console.error("Erro ao buscar mapeamento de safras:", error);
+    throw new Error("Não foi possível carregar o mapeamento de safras para anos");
+  }
+  
+  // Criar o mapeamento de ano para ID de safra
+  const yearToSafraId: Record<string, string> = {};
+  
+  data?.forEach(safra => {
+    // Mapear o ano de início para o ID da safra
+    yearToSafraId[safra.ano_inicio.toString()] = safra.id;
+  });
+  
+  return yearToSafraId;
+}
+
+// Função para buscar safras por IDs específicos
+export async function getSafrasByIds(organizationId: string, safraIds: string[]) {
+  const supabase = await createClient();
+  
+  // Log para verificar os IDs de safra recebidos
+  console.log("Buscando safras para os IDs:", safraIds);
+  
+  // Se não houver IDs, retorne uma lista vazia
+  if (!safraIds || safraIds.length === 0) {
+    return [];
+  }
+
+  // Verificar se todos os IDs são UUIDs válidos
+  const validUUIDs = safraIds.filter(id => 
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  );
+  
+  console.log("IDs válidos após filtro:", validUUIDs);
+  
+  // Se não houver IDs válidos, retorne uma lista vazia
+  if (validUUIDs.length === 0) {
+    return [];
+  }
+  
+  // Buscar todas as safras para ter um backup completo
+  const { data: allSafras } = await supabase
+    .from("safras")
+    .select("id, nome, ano_inicio, ano_fim")
+    .eq("organizacao_id", organizationId);
+    
+  console.log("Todas as safras disponíveis:", allSafras);
+  
+  // Buscar safras pelos IDs específicos
+  const { data, error } = await supabase
+    .from("safras")
     .select("id, nome, ano_inicio, ano_fim")
     .eq("organizacao_id", organizationId)
-    .in("id", safraIds);
+    .in("id", validUUIDs);
   
   if (error) {
     console.error("Erro ao buscar safras por IDs:", error);
     throw new Error("Não foi possível carregar as safras");
   }
   
-  return data;
+  console.log("Safras encontradas pela consulta:", data);
+  
+  // Se encontramos safras, retorne-as
+  if (data && data.length > 0) {
+    return data;
+  }
+  
+  // Se não encontramos safras pelos IDs, retorne todas as safras como backup
+  return allSafras || [];
 }
 
 // Funções para Benfeitorias
@@ -775,6 +932,47 @@ export async function deleteImprovement(id: string, propertyId: string) {
   return true;
 }
 
+export async function createImprovementsBatch(improvements: any[]) {
+  try {
+    if (!Array.isArray(improvements) || improvements.length === 0) {
+      throw new Error("Lista de benfeitorias é obrigatória");
+    }
+
+    const supabase = await createClient();
+    
+    // Processar cada benfeitoria
+    const processedImprovements = improvements.map(data => ({
+      organizacao_id: data.organizacao_id,
+      propriedade_id: data.propriedade_id,
+      descricao: data.descricao,
+      dimensoes: data.dimensoes || null,
+      valor: data.valor || 0,
+    }));
+    
+    const { data: results, error } = await supabase
+      .from("benfeitorias")
+      .insert(processedImprovements)
+      .select();
+    
+    if (error) {
+      console.error("Erro ao inserir benfeitorias em lote:", error);
+      throw error;
+    }
+    
+    // Revalidar todos os caminhos das propriedades afetadas
+    const uniquePropertyIds = [...new Set(improvements.map(imp => imp.propriedade_id))];
+    uniquePropertyIds.forEach(propertyId => {
+      revalidatePath(`/dashboard/properties/${propertyId}`);
+    });
+    revalidatePath("/dashboard/properties");
+    
+    return { data: results || [] };
+  } catch (error) {
+    console.error("Erro ao criar benfeitorias em lote:", error);
+    return { error: (error as Error).message || "Erro ao importar benfeitorias" };
+  }
+}
+
 // Função para calcular estatísticas de propriedades
 export async function getPropertyStats(organizationId: string) {
   const supabase = await createClient();
@@ -837,4 +1035,30 @@ export async function getPropertyStats(organizationId: string) {
     totalImprovements,
     improvementsValue
   };
+}
+
+// Função para criar propriedades em lote
+export async function createPropertiesBatch(properties: any[]) {
+  try {
+    if (!Array.isArray(properties) || properties.length === 0) {
+      throw new Error("Lista de propriedades é obrigatória");
+    }
+
+    const importedProperties = [];
+    
+    for (const propertyData of properties) {
+      if (!propertyData.organizacao_id) {
+        throw new Error("ID da organização é obrigatório");
+      }
+
+      // Usar a função createProperty existente para garantir a mesma lógica
+      const result = await createProperty(propertyData.organizacao_id, propertyData);
+      importedProperties.push(result);
+    }
+
+    return { data: importedProperties };
+  } catch (error) {
+    console.error("Erro ao criar propriedades em lote:", error);
+    return { error: error instanceof Error ? error.message : "Erro ao importar propriedades" };
+  }
 }

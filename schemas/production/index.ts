@@ -117,7 +117,9 @@ export type PlantingArea = z.infer<typeof plantingAreaSchema>;
 
 // Form schema for creating/editing planting areas
 export const plantingAreaFormSchema = z.object({
-  propriedade_id: z.string().uuid("Selecione uma propriedade válida"),
+  propriedade_id: z.string().refine(val => val === "all" || z.string().uuid().safeParse(val).success, {
+    message: "Selecione uma propriedade válida"
+  }),
   cultura_id: z.string().uuid("Selecione uma cultura válida"),
   sistema_id: z.string().uuid("Selecione um sistema válido"),
   ciclo_id: z.string().uuid("Selecione um ciclo válido"),
@@ -157,7 +159,9 @@ export type Productivity = z.infer<typeof productivitySchema>;
 
 // Form schema for creating/editing productivity
 export const productivityFormSchema = z.object({
-  propriedade_id: z.string().uuid("Selecione uma propriedade válida").optional(),
+  propriedade_id: z.string().refine(val => val === "all" || z.string().uuid().safeParse(val).success, {
+    message: "Selecione uma propriedade válida"
+  }).optional(),
   cultura_id: z.string().uuid("Selecione uma cultura válida"),
   sistema_id: z.string().uuid("Selecione um sistema válido"),
   produtividades_por_safra: z.record(z.string(), z.object({
@@ -217,7 +221,9 @@ export type ProductionCost = z.infer<typeof productionCostSchema>;
 
 // Form schema for creating/editing production costs
 export const productionCostFormSchema = z.object({
-  propriedade_id: z.string().uuid("Selecione uma propriedade válida").optional(),
+  propriedade_id: z.string().refine(val => val === "all" || z.string().uuid().safeParse(val).success, {
+    message: "Selecione uma propriedade válida"
+  }).optional(),
   cultura_id: z.string().uuid("Selecione uma cultura válida"),
   sistema_id: z.string().uuid("Selecione um sistema válido"),
   categoria: productionCostCategoryEnum.refine(val => !!val, {
@@ -330,3 +336,52 @@ export const livestockOperationFormSchema = livestockOperationSchema.omit({
   updated_at: true
 });
 export type LivestockOperationFormValues = z.infer<typeof livestockOperationFormSchema>;
+
+// =======================================
+// Bovine Schema (Faixas Etárias)
+// =======================================
+
+// Enum para faixas etárias de bovinos
+export const bovineAgeRangeEnum = z.enum([
+  "0_12",      // 0 a 12 meses
+  "13_24",     // 13 a 24 meses  
+  "25_36",     // 25 a 36 meses
+  "ACIMA_36"   // Acima de 36 meses
+], {
+  errorMap: (issue, ctx) => ({ message: "Selecione uma faixa etária válida" })
+});
+export type BovineAgeRange = z.infer<typeof bovineAgeRangeEnum>;
+
+// Schema for Bovine with age ranges
+export const bovineSchema = z.object({
+  id: z.string().uuid("ID inválido").optional(),
+  organizacao_id: z.string().uuid("Organização inválida"),
+  propriedade_id: z.string().refine(val => val === "all" || z.string().uuid().safeParse(val).success, {
+    message: "Selecione uma propriedade válida"
+  }).optional(),
+  sexo: z.enum(["MACHO", "FEMEA"], {
+    errorMap: (issue, ctx) => ({ message: "Selecione o sexo do animal" })
+  }),
+  faixa_etaria: bovineAgeRangeEnum,
+  quantidade: z.coerce.number().int("Quantidade deve ser um número inteiro").min(1, "Quantidade deve ser pelo menos 1").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para a quantidade"
+  }),
+  peso_medio: z.coerce.number().min(0, "Peso médio deve ser positivo").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para o peso"
+  }).optional(),
+  valor_arroba: z.coerce.number().min(0, "Valor da arroba deve ser positivo").refine(val => !isNaN(val), {
+    message: "Insira um valor numérico válido para o valor"
+  }).optional(),
+  created_at: z.date().optional(),
+  updated_at: z.date().optional(),
+});
+
+export type Bovine = z.infer<typeof bovineSchema>;
+
+export const bovineFormSchema = bovineSchema.omit({
+  id: true,
+  organizacao_id: true,
+  created_at: true,
+  updated_at: true
+});
+export type BovineFormValues = z.infer<typeof bovineFormSchema>;

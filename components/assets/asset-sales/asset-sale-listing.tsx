@@ -41,8 +41,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, DollarSign, MoreHorizontal, Edit2Icon, Trash2 } from "lucide-react";
+import { Plus, DollarSign, MoreHorizontal, Edit2Icon, Trash2, Upload } from "lucide-react";
 import { AssetSaleForm } from "./asset-sale-form";
+import { AssetSaleImportDialog } from "./asset-sale-import-dialog";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteAssetSale } from "@/lib/actions/patrimonio-actions";
@@ -64,6 +65,7 @@ export function AssetSaleListing({
   const [editingAssetSale, setEditingAssetSale] = useState<AssetSale | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -141,13 +143,14 @@ export function AssetSaleListing({
     }
   };
 
-  const totalAssetSales = assetSales.reduce(
+  const totalAssetSales = Array.isArray(assetSales) ? assetSales.reduce(
     (total, assetSale) => total + (assetSale?.valor_total || 0),
     0
-  );
+  ) : 0;
 
   const getCategoryBadge = (categoria: string) => {
     const categoryColors: Record<string, string> = {
+      PROPRIEDADE_RURAL: "bg-red-100 text-red-800",
       EQUIPAMENTO: "bg-blue-100 text-blue-800",
       TRATOR_COLHEITADEIRA_PULVERIZADOR: "bg-green-100 text-green-800",
       AERONAVE: "bg-purple-100 text-purple-800",
@@ -162,6 +165,7 @@ export function AssetSaleListing({
 
   const getCategoryLabel = (categoria: string) => {
     const categoryLabels: Record<string, string> = {
+      PROPRIEDADE_RURAL: "Propriedade Rural",
       EQUIPAMENTO: "Equipamento",
       TRATOR_COLHEITADEIRA_PULVERIZADOR: "Trator/Colheitadeira/Pulverizador",
       AERONAVE: "Aeronave",
@@ -174,6 +178,11 @@ export function AssetSaleListing({
     return categoryLabels[categoria] || categoria;
   };
 
+  const handleImportSuccess = (importedAssetSales: AssetSale[]) => {
+    setAssetSales([...importedAssetSales, ...assetSales]);
+    setIsImportModalOpen(false);
+  };
+
   return (
     <Card className="shadow-sm border-muted/80">
       <CardHeaderPrimary
@@ -181,13 +190,23 @@ export function AssetSaleListing({
         title="Vendas de Ativos"
         description="Registro de vendas de máquinas, equipamentos e outros ativos"
         action={
-          <Button
-            onClick={handleCreate}
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Venda
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsImportModalOpen(true)}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Excel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Venda
+            </Button>
+          </div>
         }
         className="mb-4"
       />
@@ -378,6 +397,13 @@ export function AssetSaleListing({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AssetSaleImportDialog
+        isOpen={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        organizationId={organizationId}
+        onSuccess={handleImportSuccess}
+      />
     </Card>
   );
 }

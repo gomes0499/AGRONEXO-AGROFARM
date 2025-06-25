@@ -226,8 +226,6 @@ export function EquipmentForm({
       modelo: initialData?.modelo || "",
       quantidade: initialData?.quantidade || 1,
       valor_unitario: initialData?.valor_unitario || 0,
-      percentual_reposicao: initialData?.percentual_reposicao || 10,
-      ano_referencia_reposicao: initialData?.ano_referencia_reposicao || 2020,
     },
   });
 
@@ -237,22 +235,12 @@ export function EquipmentForm({
   const quantidade = form.watch("quantidade") || 0;
   const valorUnitario = form.watch("valor_unitario") || 0;
   const anoFabricacao = form.watch("ano_fabricacao") || new Date().getFullYear();
-  const percentualReposicao = form.watch("percentual_reposicao") || 0;
-  const anoReferenciaReposicao = form.watch("ano_referencia_reposicao") || 2020;
   
   // Calcular valor total automaticamente
   const valorTotal = useMemo(() => {
     return quantidade * valorUnitario;
   }, [quantidade, valorUnitario]);
 
-  // Calcular reposição SR automaticamente
-  const reposicaoSR = useMemo(() => {
-    // Fórmula: IF(ano_fabricacao < ano_referencia, valor_unitario * percentual, 0)
-    if (anoFabricacao < anoReferenciaReposicao) {
-      return valorUnitario * (percentualReposicao / 100);
-    }
-    return 0;
-  }, [anoFabricacao, anoReferenciaReposicao, valorUnitario, percentualReposicao]);
 
   const onSubmit = async (values: EquipmentFormValues) => {
     try {
@@ -263,7 +251,6 @@ export function EquipmentForm({
         organizacao_id: organizationId,
         ...values,
         valor_total: valorTotal,
-        reposicao_sr: reposicaoSR,
       };
 
       let result;
@@ -294,30 +281,51 @@ export function EquipmentForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="equipamento"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Equipamento</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="equipamento"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Equipamento</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o equipamento" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {EQUIPMENT_OPTIONS.map((equipment) => (
+                      <SelectItem key={equipment} value={equipment}>
+                        {equipment.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="ano_fabricacao"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ano de Fabricação</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o equipamento" />
-                  </SelectTrigger>
+                  <Input
+                    type="number"
+                    placeholder="Ex: 2020"
+                    {...field}
+                    onChange={(e) => field.onChange(parseInt(e.target.value) || '')}
+                  />
                 </FormControl>
-                <SelectContent>
-                  {EQUIPMENT_OPTIONS.map((equipment) => (
-                    <SelectItem key={equipment} value={equipment}>
-                      {equipment.replace(/_/g, ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         {equipamento === "OUTROS" && (
           <FormField
@@ -338,49 +346,46 @@ export function EquipmentForm({
           />
         )}
 
-        <FormField
-          control={form.control}
-          name="ano_fabricacao"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Ano de Fabricação</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  placeholder="Ex: 2020"
-                  {...field}
-                  onChange={(e) => field.onChange(parseInt(e.target.value) || '')}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="marca"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Marca</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a marca" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {BRAND_OPTIONS.map((brand) => (
+                      <SelectItem key={brand} value={brand}>
+                        {brand.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="marca"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Marca</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+          <FormField
+            control={form.control}
+            name="modelo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Modelo</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a marca" />
-                  </SelectTrigger>
+                  <Input placeholder="Ex: 6155J, MX135" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {BRAND_OPTIONS.map((brand) => (
-                    <SelectItem key={brand} value={brand}>
-                      {brand.replace(/_/g, ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         {marca === "OUTROS" && (
           <FormField
@@ -400,20 +405,6 @@ export function EquipmentForm({
             )}
           />
         )}
-
-        <FormField
-          control={form.control}
-          name="modelo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Modelo</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: 6155J, MX135" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
@@ -454,67 +445,6 @@ export function EquipmentForm({
           />
         </div>
 
-        <div className="space-y-4">
-          <h4 className="text-sm font-medium">Configuração de Reposição/SR</h4>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="percentual_reposicao"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Percentual (%)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      placeholder="10"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="ano_referencia_reposicao"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ano de Referência</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="2020"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 2020)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Reposição/SR</label>
-            <Input
-              type="text"
-              value={formatGenericCurrency(reposicaoSR, "BRL")}
-              disabled
-              className="bg-muted"
-            />
-            <p className="text-xs text-muted-foreground">
-              Calculado automaticamente: {anoFabricacao < anoReferenciaReposicao 
-                ? `${formatGenericCurrency(valorUnitario, "BRL")} × ${percentualReposicao}%` 
-                : 'Ano de fabricação >= ano de referência'}
-            </p>
-          </div>
-        </div>
 
         <div className="flex justify-end gap-2 pt-4">
           <Button

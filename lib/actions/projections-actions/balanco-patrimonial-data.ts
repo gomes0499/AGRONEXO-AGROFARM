@@ -26,6 +26,7 @@ export interface BalancoPatrimonialData {
         fertilizantes: Record<string, number>;
         almoxarifado: Record<string, number>;
         commodities: Record<string, number>;
+        sementes: Record<string, number>;
         total: Record<string, number>;
       };
       emprestimos_terceiros: Record<string, number>;
@@ -106,6 +107,7 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
             fertilizantes: {},
             almoxarifado: {},
             commodities: {},
+            sementes: {},
             total: {},
           },
           emprestimos_terceiros: {},
@@ -163,6 +165,7 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
       balancoData.ativo.circulante.estoques.fertilizantes[ano] = 0;
       balancoData.ativo.circulante.estoques.almoxarifado[ano] = 0;
       balancoData.ativo.circulante.estoques.commodities[ano] = 0;
+      balancoData.ativo.circulante.estoques.sementes[ano] = 0;
       balancoData.ativo.circulante.estoques.total[ano] = 0;
       
       balancoData.ativo.circulante.emprestimos_terceiros[ano] = 0;
@@ -242,6 +245,7 @@ function generateZeroBalancoPatrimonialData(): BalancoPatrimonialData {
           fertilizantes: {},
           almoxarifado: {},
           commodities: {},
+          sementes: {},
           total: {},
         },
         emprestimos_terceiros: {},

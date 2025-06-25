@@ -1,0 +1,127 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+
+export interface CashPolicyConfig {
+  id?: string;
+  organizacao_id: string;
+  enabled: boolean;
+  minimum_cash: number | null;
+  currency: "BRL" | "USD";
+  priority: "debt" | "cash";
+  created_at?: string;
+  updated_at?: string;
+}
+
+export async function getCashPolicyConfig(organizacaoId: string): Promise<CashPolicyConfig | null> {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from("cash_policy_config")
+    .select("*")
+    .eq("organizacao_id", organizacaoId)
+    .single();
+  
+  if (error) {
+    // Se não encontrar, retorna configuração padrão
+    if (error.code === "PGRST116") {
+      return {
+        organizacao_id: organizacaoId,
+        enabled: false,
+        minimum_cash: null,
+        currency: "BRL",
+        priority: "cash"
+      };
+    }
+    console.error("Erro ao buscar configuração de política de caixa:", error);
+    return null;
+  }
+  
+  return data;
+}
+
+export async function updateCashPolicyConfig(
+  organizacaoId: string,
+  config: Partial<CashPolicyConfig>
+): Promise<CashPolicyConfig> {
+  const supabase = await createClient();
+  
+  // Primeiro, verifica se já existe uma configuração
+  const { data: existing } = await supabase
+    .from("cash_policy_config")
+    .select("id")
+    .eq("organizacao_id", organizacaoId)
+    .single();
+  
+  if (existing) {
+    // Atualiza configuração existente
+    const { data, error } = await supabase
+      .from("cash_policy_config")
+      .update({
+        ...config,
+        updated_at: new Date().toISOString()
+      })
+      .eq("organizacao_id", organizacaoId)
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Erro ao atualizar política de caixa: ${error.message}`);
+    }
+    
+    return data;
+  } else {
+    // Cria nova configuração
+    const { data, error } = await supabase
+      .from("cash_policy_config")
+      .insert({
+        organizacao_id: organizacaoId,
+        ...config,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Erro ao criar política de caixa: ${error.message}`);
+    }
+    
+    return data;
+  }
+}
+
+export async function checkCashPolicy(
+  organizacaoId: string,
+  paymentAmount: number,
+  currentCash: number,
+  paymentCurrency: "BRL" | "USD" = "BRL"
+): Promise<{
+  allowed: boolean;
+  reason?: string;
+  minimumRequired?: number;
+  currentBalance?: number;
+}> {
+  const config = await getCashPolicyConfig(organizacaoId);
+  
+  if (!config || !config.enabled || !config.minimum_cash) {
+    return { allowed: true };
+  }
+  
+  // Se as moedas são diferentes, seria necessário converter
+  // Por simplicidade, assumimos que já está na mesma moeda
+  const cashAfterPayment = currentCash - paymentAmount;
+  
+  if (cashAfterPayment < config.minimum_cash) {
+    if (config.priority === "cash") {
+      return {
+        allowed: false,
+        reason: `Pagamento bloqueado: o saldo ficaria abaixo do mínimo de ${config.currency} ${config.minimum_cash.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+        minimumRequired: config.minimum_cash,
+        currentBalance: currentCash
+      };
+    }
+  }
+  
+  return { allowed: true };
+}

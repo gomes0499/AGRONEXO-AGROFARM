@@ -300,7 +300,7 @@ export function PropertyKpiCardsFull({
   return (
     <TooltipProvider>
       <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
+        <CardHeader className="bg-primary text-white rounded-t-sm mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="rounded-full p-2 bg-white/20">

@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import resultadosData from "@/mock/resultados-data.json";
+import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
 
 // Calcular médias
 const calcularMedias = () => {
@@ -61,28 +62,40 @@ const calcularMedias = () => {
   };
 };
 
-const chartConfig = {
-  receitaTotal: {
-    label: "Receita Total",
-    color: "#10b981", // Verde
-  },
-  custoTotal: {
-    label: "Custo Total",
-    color: "#f59e0b", // Amarelo
-  },
-  ebitda: {
-    label: "Ebitda",
-    color: "#3b82f6", // Azul
-  },
-  lucroLiquido: {
-    label: "Lucro Líquido",
-    color: "#8b5cf6", // Roxo
-  },
-} satisfies ChartConfig;
+// Cores padrão caso não haja cores personalizadas
+const DEFAULT_CHART_COLORS = {
+  receitaTotal: "#10b981", // Verde
+  custoTotal: "#f59e0b", // Amarelo
+  ebitda: "#3b82f6", // Azul
+  lucroLiquido: "#8b5cf6", // Roxo
+};
 
-export function ResultadosChart() {
+export function ResultadosChart({ organizationId }: { organizationId?: string }) {
   const [periodo, setPeriodo] = React.useState("todas");
   const medias = calcularMedias();
+  const { palette, isLoading } = useOrganizationColors(organizationId);
+  
+  // Criar configuração dinâmica do gráfico com cores da organização ou padrão
+  const chartConfig = React.useMemo(() => {
+    return {
+      receitaTotal: {
+        label: "Receita Total",
+        color: palette[0] || DEFAULT_CHART_COLORS.receitaTotal,
+      },
+      custoTotal: {
+        label: "Custo Total",
+        color: palette[1] || DEFAULT_CHART_COLORS.custoTotal,
+      },
+      ebitda: {
+        label: "Ebitda",
+        color: palette[2] || DEFAULT_CHART_COLORS.ebitda,
+      },
+      lucroLiquido: {
+        label: "Lucro Líquido",
+        color: palette[3] || DEFAULT_CHART_COLORS.lucroLiquido,
+      },
+    } satisfies ChartConfig;
+  }, [palette]);
 
   // Filtrar dados com base no período selecionado
   const dadosFiltrados =

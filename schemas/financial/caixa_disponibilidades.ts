@@ -14,6 +14,7 @@ export const caixaDisponibilidadesCategoriaEnum = z.enum([
   "ESTOQUE_FERTILIZANTES", // Estoques de fertilizantes
   "ESTOQUE_ALMOXARIFADO", // Estoques de almoxarifado
   "ESTOQUE_COMMODITIES",  // Estoques de commodities
+  "ESTOQUE_SEMENTES",     // Estoques de sementes
   "SEMOVENTES",           // Rebanho (semoventes)
   "ATIVO_BIOLOGICO"       // Ativo biológico (culturas permanentes)
 ]);
@@ -26,6 +27,7 @@ export const caixaDisponibilidadesSchema = z.object({
   safra_id: z.string().uuid(),
   nome: z.string().min(1, "Nome é obrigatório"),
   categoria: caixaDisponibilidadesCategoriaEnum,
+  moeda: z.enum(["BRL", "USD"]).default("BRL"),
   valores_por_safra: safraValuesSchema.or(z.string()).optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
@@ -48,6 +50,7 @@ export const caixaDisponibilidadesListItemSchema = caixaDisponibilidadesSchema.p
   id: true,
   nome: true,
   categoria: true,
+  moeda: true,
   valores_por_safra: true,
 });
 

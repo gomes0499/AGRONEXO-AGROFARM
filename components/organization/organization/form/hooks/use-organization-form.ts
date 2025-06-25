@@ -18,7 +18,8 @@ export function useOrganizationForm({
   organizationData,
   mode = "create",
   onClose,
-}: Pick<OrganizationFormProps, "userId" | "organizationData" | "mode" | "onClose">) {
+  onSuccess,
+}: Pick<OrganizationFormProps, "userId" | "organizationData" | "mode" | "onClose" | "onSuccess">) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(
@@ -37,7 +38,7 @@ export function useOrganizationForm({
       website: organizationData?.website || "",
       cpf: organizationData?.cpf || "",
       cnpj: organizationData?.cnpj || "",
-      tipo: organizationData?.cnpj ? "juridica" : "fisica",
+      tipo: organizationData?.tipo || (organizationData?.cnpj ? "juridica" : "fisica"),
       endereco: organizationData?.endereco || "",
       numero: organizationData?.numero || "",
       complemento: organizationData?.complemento || "",
@@ -49,6 +50,11 @@ export function useOrganizationForm({
       roteiro: organizationData?.roteiro || "",
       latitude: organizationData?.latitude?.toString() || "",
       longitude: organizationData?.longitude?.toString() || "",
+      estrutura_societaria: organizationData?.estrutura_societaria || [],
+      cor_primaria: organizationData?.cor_primaria || "#0066FF",
+      cor_secundaria: organizationData?.cor_secundaria || "#FF6B00",
+      cor_fundo: organizationData?.cor_fundo || "#FFFFFF",
+      cor_texto: organizationData?.cor_texto || "#000000",
     },
   });
 
@@ -63,7 +69,7 @@ export function useOrganizationForm({
         website: organizationData.website || "",
         cpf: organizationData.cpf || "",
         cnpj: organizationData.cnpj || "",
-        tipo: organizationData.cnpj ? "juridica" : "fisica",
+        tipo: organizationData.tipo || (organizationData.cnpj ? "juridica" : "fisica"),
         endereco: organizationData.endereco || "",
         numero: organizationData.numero || "",
         complemento: organizationData.complemento || "",
@@ -75,6 +81,11 @@ export function useOrganizationForm({
         roteiro: organizationData.roteiro || "",
         latitude: organizationData.latitude?.toString() || "",
         longitude: organizationData.longitude?.toString() || "",
+        estrutura_societaria: organizationData.estrutura_societaria || [],
+        cor_primaria: organizationData.cor_primaria || "#0066FF",
+        cor_secundaria: organizationData.cor_secundaria || "#FF6B00",
+        cor_fundo: organizationData.cor_fundo || "#FFFFFF",
+        cor_texto: organizationData.cor_texto || "#000000",
       };
       form.reset(formData as OrganizationFormValues);
       setLogoUrl(organizationData.logo || null);
@@ -133,6 +144,7 @@ export function useOrganizationForm({
         website: values.website || null,
         cpf: values.tipo === "fisica" ? unformat(values.cpf) || null : null,
         cnpj: values.tipo === "juridica" ? unformat(values.cnpj) || null : null,
+        tipo: values.tipo,
         endereco: values.endereco || null,
         numero: values.numero || null,
         complemento: values.complemento || null,
@@ -145,6 +157,11 @@ export function useOrganizationForm({
         latitude: values.latitude || null,
         longitude: values.longitude || null,
         logo: logoUrl,
+        estrutura_societaria: values.estrutura_societaria || [],
+        cor_primaria: values.cor_primaria,
+        cor_secundaria: values.cor_secundaria,
+        cor_fundo: values.cor_fundo,
+        cor_texto: values.cor_texto,
       };
 
       if (mode === "edit" && organizationData?.id) {
@@ -159,6 +176,7 @@ export function useOrganizationForm({
         if (updateError) throw updateError;
 
         toast.success("Organização atualizada com sucesso");
+        if (onSuccess) onSuccess();
         if (onClose) onClose();
         return { success: true };
       } else {
@@ -239,6 +257,7 @@ export function useOrganizationForm({
         }
 
         toast.success("Organização criada com sucesso");
+        if (onSuccess) onSuccess();
         if (onClose) onClose();
         router.push("/dashboard");
         return { success: true };

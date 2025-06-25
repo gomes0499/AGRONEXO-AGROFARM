@@ -18,12 +18,10 @@ export function CardHeaderPrimary({
 }: CardHeaderPrimaryProps) {
   return (
     <CardHeader
-      className={`bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4 ${className}`}
+      className={`bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0  ${className}`}
     >
       <div className="flex items-center gap-3">
-        <div className="rounded-full p-2 bg-white/20">
-          {icon}
-        </div>
+        <div className="rounded-full p-2 bg-white/20">{icon}</div>
         <div>
           <CardTitle className="text-white">{title}</CardTitle>
           {description && (

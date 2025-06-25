@@ -1,5 +1,6 @@
 import { IndicatorThresholdViewer } from "@/components/indicators/indicator-threshold-viewer";
 import { UnifiedPricesTab } from "@/components/indicators/unified-prices-tab";
+import { RatingTab } from "@/components/indicators/rating-tab";
 import { getIndicatorConfigs } from "@/lib/actions/indicator-actions";
 import {
   getExchangeRatesByOrganizationId,
@@ -153,6 +154,14 @@ export default async function IndicatorsPage() {
     />
   );
 
+  // Componente de Rating
+  const RatingComponent = (
+    <RatingTab 
+      indicators={indicatorData}
+      organizationName="Organização"
+    />
+  );
+
   return (
     <div className="-mt-6 -mx-4 md:-mx-6">
       <CommodityInitializer
@@ -176,6 +185,12 @@ export default async function IndicatorsPage() {
               >
                 Preços
               </TabsTrigger>
+              <TabsTrigger
+                value="rating"
+                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
+              >
+                Rating
+              </TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -195,6 +210,10 @@ export default async function IndicatorsPage() {
 
               <TabsContent value="prices" className="space-y-4">
                 {PricesComponent}
+              </TabsContent>
+
+              <TabsContent value="rating" className="space-y-4">
+                {RatingComponent}
               </TabsContent>
             </Suspense>
           ) : (

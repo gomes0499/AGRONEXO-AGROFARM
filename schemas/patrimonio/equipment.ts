@@ -14,10 +14,6 @@ export const equipmentSchema = z.object({
   quantidade: z.number().int().min(1, "Quantidade deve ser pelo menos 1").default(1),
   valor_unitario: monetaryValueSchema,
   valor_total: monetaryValueSchema.optional(),
-  reposicao_sr: monetaryValueSchema,
-  // Campos para cálculo da reposição SR
-  percentual_reposicao: z.number().min(0).max(100).default(10), // Percentual para cálculo
-  ano_referencia_reposicao: yearSchema.default(2020), // Ano de referência
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
@@ -34,8 +30,6 @@ export const equipmentFormSchema = z.object({
   modelo: z.string().optional(),
   quantidade: z.number().int().min(1, "Quantidade deve ser pelo menos 1"),
   valor_unitario: monetaryValueSchema,
-  percentual_reposicao: z.number().min(0).max(100),
-  ano_referencia_reposicao: yearSchema,
 }).refine((data) => {
   // Se equipamento for "OUTROS", equipamento_outro deve ser preenchido
   if (data.equipamento === "OUTROS" && !data.equipamento_outro?.trim()) {
@@ -63,7 +57,6 @@ export const equipmentListItemSchema = equipmentSchema.pick({
   quantidade: true,
   valor_unitario: true,
   valor_total: true,
-  reposicao_sr: true,
 });
 
 export type EquipmentListItem = z.infer<typeof equipmentListItemSchema>;

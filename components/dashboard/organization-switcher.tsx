@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OrganizationFormContainer } from "@/components/organization/organization/form/organization-form-container";
 
 interface Organization {
   id: string;
@@ -45,53 +46,55 @@ export function OrganizationSwitcher() {
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [creatingNewOrg, setCreatingNewOrg] = React.useState(false);
+  const [showNewOrgForm, setShowNewOrgForm] = React.useState(false);
 
   // Verificar se o usuário é super admin
   const isSuperAdmin = React.useMemo(() => {
     return user?.app_metadata?.is_super_admin === true;
   }, [user]);
 
+  // Função para carregar organizações
+  const loadOrganizations = React.useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const supabase = createClient();
+
+      // Se for super admin, buscar todas as organizações
+      if (isSuperAdmin) {
+        const { data, error } = await supabase
+          .from("organizacoes")
+          .select("id, nome, slug, logo")
+          .order("nome");
+
+        if (error) throw error;
+        setOrganizations(data || []);
+      } else {
+        // Para usuários normais, buscar apenas organizações associadas
+        const { data, error } = await supabase
+          .from("associacoes")
+          .select("*, organizacao:organizacao_id(id, nome, slug, logo)")
+          .eq("usuario_id", user.id);
+
+        if (error) throw error;
+
+        // Extrair e formatar organizações
+        const orgs =
+          data?.map((assoc) => assoc.organizacao as Organization) || [];
+        setOrganizations(orgs);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar organizações:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, isSuperAdmin]);
+
   // Carregar organizações do usuário
   React.useEffect(() => {
-    async function loadOrganizations() {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        const supabase = createClient();
-
-        // Se for super admin, buscar todas as organizações
-        if (isSuperAdmin) {
-          const { data, error } = await supabase
-            .from("organizacoes")
-            .select("id, nome, slug, logo")
-            .order("nome");
-
-          if (error) throw error;
-          setOrganizations(data || []);
-        } else {
-          // Para usuários normais, buscar apenas organizações associadas
-          const { data, error } = await supabase
-            .from("associacoes")
-            .select("*, organizacao:organizacao_id(id, nome, slug, logo)")
-            .eq("usuario_id", user.id);
-
-          if (error) throw error;
-
-          // Extrair e formatar organizações
-          const orgs =
-            data?.map((assoc) => assoc.organizacao as Organization) || [];
-          setOrganizations(orgs);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar organizações:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     loadOrganizations();
-  }, [user, isSuperAdmin]);
+  }, [loadOrganizations]);
 
   // Verificar se a organização atual está na lista de organizações carregadas
   React.useEffect(() => {
@@ -104,7 +107,7 @@ export function OrganizationSwitcher() {
         setOrganization(organizations[0]);
       }
     }
-  }, [organizations, organization, loading]);
+  }, [organizations, organization, loading, setOrganization]);
 
   // Verificar se o usuário pode criar organizações
   const canCreateOrg = React.useMemo(() => {
@@ -154,8 +157,23 @@ export function OrganizationSwitcher() {
   const createNewOrganization = () => {
     setCreatingNewOrg(true);
     setOpen(false);
-    router.push("/dashboard/organization/new");
+    setShowNewOrgForm(true);
   };
+
+  // Função para lidar com o sucesso da criação da organização
+  const handleOrganizationCreated = () => {
+    setShowNewOrgForm(false);
+    setCreatingNewOrg(false);
+    // Recarregar organizações
+    loadOrganizations();
+  };
+
+  // Função para fechar o form de nova organização
+  const handleCloseNewOrgForm = () => {
+    setShowNewOrgForm(false);
+    setCreatingNewOrg(false);
+  };
+
 
   // Obtem iniciais para avatar - usando React.useMemo para garantir consistência entre servidor e cliente
   const getInitials = React.useMemo(() => {
@@ -185,87 +203,101 @@ export function OrganizationSwitcher() {
   }, []);
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem className="flex items-center gap-2">
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <SidebarMenuButton className="flex w-full justify-between bg-muted h-10">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-7 w-7 rounded-md">
-                  {organization && organization.logo ? (
-                    <AvatarImage
-                      src={organization.logo}
-                      alt={organization.nome || ""}
-                    />
-                  ) : null}
-                  <AvatarFallback className="rounded-md bg-primary text-xs text-foreground">
-                    {organization && organization.nome
-                      ? getInitials(organization.nome)
-                      : "OR"}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="truncate text-sm font-medium text-foreground ">
-                  {loading ? (
-                    <Skeleton className="h-4 w-24" />
-                  ) : (
-                    organization?.nome || "Selecionar organização"
-                  )}
-                </span>
-              </div>
-              <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-            </SidebarMenuButton>
-          </PopoverTrigger>
-          <PopoverContent className="w-[--radix-popover-trigger-width] min-w-52 rounded-md p-0">
-            <Command>
-              <CommandInput placeholder="Buscar organização..." />
-              <CommandList>
-                <CommandEmpty>Nenhuma organização encontrada.</CommandEmpty>
-                <CommandGroup
-                  heading={
-                    isSuperAdmin ? "Todas as organizações" : "Suas organizações"
-                  }
-                >
-                  {organizations.map((org) => (
-                    <CommandItem
-                      key={org.id}
-                      onSelect={() => switchOrganization(org)}
-                      className="text-sm"
-                    >
-                      <Avatar className="mr-2 h-6 w-6 rounded-md">
-                        {org.logo ? (
-                          <AvatarImage src={org.logo} alt={org.nome || ""} />
-                        ) : null}
-                        <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
-                          {org.nome ? getInitials(org.nome) : "OR"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span>{org.nome}</span>
-                      {organization?.id === org.id && (
-                        <Check className="ml-auto h-4 w-4 opacity-100" />
-                      )}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-                {canCreateOrg && (
-                  <>
-                    <CommandSeparator />
-                    <CommandGroup>
+    <>
+      <SidebarMenu>
+        <SidebarMenuItem className="flex items-center gap-2">
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <SidebarMenuButton className="flex w-full justify-between bg-muted/50 h-10">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-7 w-7 rounded-md">
+                    {organization && organization.logo ? (
+                      <AvatarImage
+                        src={organization.logo}
+                        alt={organization.nome || ""}
+                      />
+                    ) : null}
+                    <AvatarFallback className="rounded-md bg-primary text-xs text-foreground">
+                      {organization && organization.nome
+                        ? getInitials(organization.nome)
+                        : "OR"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate text-sm font-medium text-foreground ">
+                    {loading ? (
+                      <Skeleton className="h-4 w-24" />
+                    ) : (
+                      organization?.nome || "Selecionar organização"
+                    )}
+                  </span>
+                </div>
+                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+              </SidebarMenuButton>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] min-w-52 rounded-md p-0">
+              <Command>
+                <CommandInput placeholder="Buscar organização..." />
+                <CommandList>
+                  <CommandEmpty>Nenhuma organização encontrada.</CommandEmpty>
+                  <CommandGroup
+                    heading={
+                      isSuperAdmin ? "Todas as organizações" : "Suas organizações"
+                    }
+                  >
+                    {organizations.map((org) => (
                       <CommandItem
-                        onSelect={createNewOrganization}
-                        className="cursor-pointer"
-                        disabled={creatingNewOrg}
+                        key={org.id}
+                        onSelect={() => switchOrganization(org)}
+                        className="text-sm"
                       >
-                        <PlusCircle className="mr-2 h-5 w-5" />
-                        <span>Criar nova organização</span>
+                        <Avatar className="mr-2 h-6 w-6 rounded-md">
+                          {org.logo ? (
+                            <AvatarImage src={org.logo} alt={org.nome || ""} />
+                          ) : null}
+                          <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
+                            {org.nome ? getInitials(org.nome) : "OR"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{org.nome}</span>
+                        {organization?.id === org.id && (
+                          <Check className="ml-auto h-4 w-4 opacity-100" />
+                        )}
                       </CommandItem>
-                    </CommandGroup>
-                  </>
-                )}
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </SidebarMenuItem>
-    </SidebarMenu>
+                    ))}
+                  </CommandGroup>
+                  {canCreateOrg && (
+                    <>
+                      <CommandSeparator />
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={createNewOrganization}
+                          className="cursor-pointer"
+                          disabled={creatingNewOrg}
+                        >
+                          <PlusCircle className="mr-2 h-5 w-5" />
+                          <span>Criar nova organização</span>
+                        </CommandItem>
+                      </CommandGroup>
+                    </>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </SidebarMenuItem>
+      </SidebarMenu>
+
+      {/* Form de Nova Organização */}
+      {showNewOrgForm && user && (
+        <OrganizationFormContainer
+          userId={user.id}
+          isOpen={showNewOrgForm}
+          onClose={handleCloseNewOrgForm}
+          onOpenChange={setShowNewOrgForm}
+          onSuccess={handleOrganizationCreated}
+          mode="create"
+        />
+      )}
+    </>
   );
 }

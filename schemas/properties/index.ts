@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Enum para tipos de propriedades (must match database types.sql)
-export const propertyTypeEnum = z.enum(["PROPRIO", "ARRENDADO", "PARCERIA", "COMODATO"], {
+export const propertyTypeEnum = z.enum(["PROPRIO", "ARRENDADO", "PARCERIA_AGRICOLA"], {
   errorMap: (issue, ctx) => ({ message: "Selecione um tipo de propriedade válido" })
 });
 export type PropertyType = z.infer<typeof propertyTypeEnum>;
@@ -24,6 +24,30 @@ export const leasePaymentTypeEnum = z.enum(["SACAS", "DINHEIRO", "MISTO", "PERCE
 });
 export type LeasePaymentType = z.infer<typeof leasePaymentTypeEnum>;
 
+// Schema para proprietários de propriedades
+export const propertyOwnerSchema = z.object({
+  id: z.string().uuid().optional(),
+  propriedade_id: z.string().uuid().optional(),
+  organizacao_id: z.string().uuid().optional(),
+  nome: z.string().min(1, "Nome do proprietário é obrigatório"),
+  cpf_cnpj: z.string().optional(),
+  tipo_pessoa: z.enum(["F", "J"], {
+    errorMap: () => ({ message: "Selecione o tipo de pessoa" })
+  }).optional(),
+  percentual_participacao: z.coerce.number()
+    .min(0, "Percentual deve ser maior que 0")
+    .max(100, "Percentual não pode exceder 100")
+    .optional(),
+});
+
+export type PropertyOwner = z.infer<typeof propertyOwnerSchema>;
+
+// Enum para tipos de ônus
+export const onusTypeEnum = z.enum(["hipoteca", "alienacao_fiduciaria", "outros"], {
+  errorMap: () => ({ message: "Selecione um tipo de ônus válido" })
+});
+export type OnusType = z.infer<typeof onusTypeEnum>;
+
 // Schema para Propriedade (matches database table exactly)
 export const propertySchema = z.object({
   id: z.string().uuid("ID inválido").optional(),
@@ -34,6 +58,7 @@ export const propertySchema = z.object({
     message: "Insira um ano válido"
   }),
   proprietario: z.string().nullable(),
+  proprietarios: z.array(propertyOwnerSchema).optional().default([]),
   cidade: z.string().nullable(),
   estado: z.string().nullable(),
   numero_matricula: z.string().nullable(),
@@ -46,7 +71,27 @@ export const propertySchema = z.object({
   valor_atual: z.coerce.number().min(0, "Valor atual deve ser positivo ou zero").nullable().transform(val => val === 0 ? null : val).refine(val => val === null || !isNaN(val), {
     message: "Insira um valor numérico válido para o valor atual"
   }),
+  // Novos campos para cálculo de valor
+  valor_terra_nua: z.coerce.number().min(0, "Valor da terra nua deve ser positivo ou zero").nullable().optional().refine(val => val === null || val === undefined || !isNaN(val), {
+    message: "Insira um valor numérico válido para o valor da terra nua"
+  }),
+  valor_benfeitoria: z.coerce.number().min(0, "Valor da benfeitoria deve ser positivo ou zero").nullable().optional().refine(val => val === null || val === undefined || !isNaN(val), {
+    message: "Insira um valor numérico válido para o valor da benfeitoria"
+  }),
+  // Campos de ônus
   onus: z.string().nullable(),
+  tipo_onus: onusTypeEnum.nullable().optional(),
+  banco_onus: z.string().nullable().optional(),
+  valor_onus: z.coerce.number().min(0, "Valor do ônus deve ser positivo ou zero").nullable().optional().refine(val => val === null || val === undefined || !isNaN(val), {
+    message: "Insira um valor numérico válido para o valor do ônus"
+  }),
+  area_pecuaria: z.coerce.number().min(0, "Área de pecuária deve ser positiva ou zero").nullable().optional().refine(val => val === null || val === undefined || !isNaN(val), {
+    message: "Insira um valor numérico válido para a área de pecuária"
+  }),
+  avaliacao_terceiro: z.coerce.number().min(0, "Avaliação de terceiro deve ser positiva ou zero").nullable().optional().refine(val => val === null || val === undefined || !isNaN(val), {
+    message: "Insira um valor numérico válido para a avaliação de terceiro"
+  }),
+  documento_onus_url: z.string().nullable().optional(),
   avaliacao_banco: z.coerce.number().nullable().transform(val => val === 0 ? null : val).refine(val => val === null || !isNaN(val), {
     message: "Insira um valor numérico válido para a avaliação do banco"
   }),
@@ -92,12 +137,12 @@ export const propertyFormSchema = basePropertyFormSchema
         });
       }
     } 
-    // Validação para propriedades arrendadas
-    else if (data.tipo === "ARRENDADO") {
+    // Validação para propriedades arrendadas e parceria agrícola
+    else if (data.tipo === "ARRENDADO" || data.tipo === "PARCERIA_AGRICOLA") {
       if (!data.data_inicio) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Data de início é obrigatória para propriedades arrendadas",
+          message: `Data de início é obrigatória para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
           path: ["data_inicio"],
         });
       }
@@ -105,7 +150,7 @@ export const propertyFormSchema = basePropertyFormSchema
       if (!data.data_termino) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Data de término é obrigatória para propriedades arrendadas",
+          message: `Data de término é obrigatória para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
           path: ["data_termino"],
         });
       }
@@ -113,7 +158,7 @@ export const propertyFormSchema = basePropertyFormSchema
       if (!data.tipo_anuencia) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Tipo de anuência é obrigatório para propriedades arrendadas",
+          message: `Tipo de anuência é obrigatório para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
           path: ["tipo_anuencia"],
         });
       }
@@ -128,7 +173,6 @@ export const leaseSchema = z.object({
   id: z.string().uuid("ID inválido").optional(),
   organizacao_id: z.string().uuid("Organização inválida"),
   propriedade_id: z.string().uuid("Selecione uma propriedade válida"),
-  safra_id: z.string().uuid("Selecione uma safra válida"),
   numero_arrendamento: z.string().min(1, "Número do arrendamento é obrigatório"),
   nome_fazenda: z.string().min(1, "Nome da fazenda é obrigatório"),
   arrendantes: z.string().min(1, "Nome dos arrendantes é obrigatório"),
@@ -162,14 +206,7 @@ export const leaseSchema = z.object({
   updated_at: z.date().optional(),
 });
 
-export type Lease = z.infer<typeof leaseSchema> & {
-  safra?: {
-    id: string;
-    nome: string;
-    ano_inicio: number;
-    ano_fim: number;
-  };
-};
+export type Lease = z.infer<typeof leaseSchema>;
 
 // Schema para formulário de arrendamentos
 export const leaseFormSchema = leaseSchema.omit({ 

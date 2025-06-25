@@ -1,6 +1,7 @@
 "use client";
 
 import { TrendingUp, Leaf } from "lucide-react";
+import { useMemo } from "react";
 import {
   Bar,
   BarChart,
@@ -27,42 +28,19 @@ import {
 } from "@/components/ui/chart";
 import { ChartLegendMultirow } from "@/components/ui/chart-legend-multirow";
 import plantioData from "@/mock/plantio-data.json";
+import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
 
-// Configuração do gráfico com cores hard coded baseadas na imagem
-const chartConfig = {
-  SojaSequeiro: {
-    label: "Soja Sequeiro",
-    color: "#006400", // Verde escuro
-  },
-  SojaIrrigado: {
-    label: "Soja Irrigado",
-    color: "#FFA500", // Laranja
-  },
-  MilhoSequeiro: {
-    label: "Milho Sequeiro",
-    color: "#004d00", // Verde mais escuro
-  },
-  MilhoSafrinha: {
-    label: "Milho Safrinha",
-    color: "#90EE90", // Verde claro
-  },
-  Algodao: {
-    label: "Algodão",
-    color: "#000000", // Preto
-  },
-  ArrozIrrigado: {
-    label: "Arroz Irrigado",
-    color: "#00CC00", // Verde médio
-  },
-  Sorgo: {
-    label: "Sorgo",
-    color: "#B22222", // Vermelho escuro
-  },
-  Feijao: {
-    label: "Feijão",
-    color: "#808080", // Cinza
-  },
-} satisfies ChartConfig;
+// Cores padrão caso não haja cores personalizadas
+const DEFAULT_CHART_COLORS = {
+  SojaSequeiro: "#006400", // Verde escuro
+  SojaIrrigado: "#FFA500", // Laranja
+  MilhoSequeiro: "#004d00", // Verde mais escuro
+  MilhoSafrinha: "#90EE90", // Verde claro
+  Algodao: "#000000", // Preto
+  ArrozIrrigado: "#00CC00", // Verde médio
+  Sorgo: "#B22222", // Vermelho escuro
+  Feijao: "#808080", // Cinza
+};
 
 // Calcular o crescimento total da área plantada
 const calcularCrescimento = () => {
@@ -74,8 +52,26 @@ const calcularCrescimento = () => {
   return crescimento.toFixed(1);
 };
 
-export function AreaPlantioChart() {
+export function AreaPlantioChart({ organizationId }: { organizationId?: string }) {
   const crescimentoTotal = calcularCrescimento();
+  const { palette, isLoading } = useOrganizationColors(organizationId);
+  
+  // Criar configuração dinâmica do gráfico com cores da organização ou padrão
+  const chartConfig = useMemo(() => {
+    const culturas = ["SojaSequeiro", "SojaIrrigado", "MilhoSequeiro", "MilhoSafrinha", "Algodao", "ArrozIrrigado", "Sorgo", "Feijao"];
+    const labels = ["Soja Sequeiro", "Soja Irrigado", "Milho Sequeiro", "Milho Safrinha", "Algodão", "Arroz Irrigado", "Sorgo", "Feijão"];
+    
+    const config: ChartConfig = {};
+    
+    culturas.forEach((cultura, index) => {
+      config[cultura] = {
+        label: labels[index],
+        color: palette[index] || DEFAULT_CHART_COLORS[cultura as keyof typeof DEFAULT_CHART_COLORS],
+      };
+    });
+    
+    return config;
+  }, [palette]);
 
   return (
     <Card className="overflow-hidden">
@@ -119,44 +115,44 @@ export function AreaPlantioChart() {
                 <Bar
                   dataKey="SojaSequeiro"
                   stackId="a"
-                  fill="#006400"
+                  fill={chartConfig.SojaSequeiro?.color}
                   name="Soja Sequeiro"
                 />
                 <Bar
                   dataKey="SojaIrrigado"
                   stackId="a"
-                  fill="#FFA500"
+                  fill={chartConfig.SojaIrrigado?.color}
                   name="Soja Irrigado"
                 />
                 <Bar
                   dataKey="MilhoSequeiro"
                   stackId="a"
-                  fill="#004d00"
+                  fill={chartConfig.MilhoSequeiro?.color}
                   name="Milho Sequeiro"
                 />
                 <Bar
                   dataKey="MilhoSafrinha"
                   stackId="a"
-                  fill="#90EE90"
+                  fill={chartConfig.MilhoSafrinha?.color}
                   name="Milho Safrinha"
                 />
                 <Bar
                   dataKey="Algodao"
                   stackId="a"
-                  fill="#000000"
+                  fill={chartConfig.Algodao?.color}
                   name="Algodão"
                 />
                 <Bar
                   dataKey="ArrozIrrigado"
                   stackId="a"
-                  fill="#00CC00"
+                  fill={chartConfig.ArrozIrrigado?.color}
                   name="Arroz Irrigado"
                 />
-                <Bar dataKey="Sorgo" stackId="a" fill="#B22222" name="Sorgo" />
+                <Bar dataKey="Sorgo" stackId="a" fill={chartConfig.Sorgo?.color} name="Sorgo" />
                 <Bar
                   dataKey="Feijao"
                   stackId="a"
-                  fill="#808080"
+                  fill={chartConfig.Feijao?.color}
                   name="Feijão"
                 />
               </BarChart>

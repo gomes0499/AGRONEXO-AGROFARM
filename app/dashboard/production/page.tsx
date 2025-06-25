@@ -99,34 +99,8 @@ export default async function ProductionPage() {
     console.error("Erro ao verificar tabela de rebanho:", error);
   }
 
-  // Try to get livestock operations data separately - using a more permissive approach
-  try {
-    const supabase = await createClient();
-
-    // Check if vendas_pecuaria table exists
-    const { data: operationsItems, error: operationsError } = await supabase
-      .from("vendas_pecuaria")
-      .select("*")
-      .eq("organizacao_id", organizationId)
-      .limit(10);
-
-    if (!operationsError && operationsItems) {
-      // If no error, the table exists, so get the data properly
-      try {
-        const data = await getLivestockOperationsDataUnified(organizationId);
-        livestockOperationsData = data;
-      } catch (e) {
-        console.log(
-          "Erro ao buscar dados completos de operações pecuárias:",
-          e
-        );
-      }
-    } else {
-      console.log("Tabela vendas_pecuaria não existe ou não está acessível");
-    }
-  } catch (error) {
-    console.error("Erro ao verificar tabela de operações pecuárias:", error);
-  }
+  // Livestock operations removed - commercial module discontinued
+  livestockOperationsData = { operations: [] };
 
   const { safras, cultures, systems, cycles, properties } = productionConfig;
   const { plantingAreas } = plantingAreasData;

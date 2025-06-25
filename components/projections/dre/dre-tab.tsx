@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { FileText } from "lucide-react";
-import { getDREData } from "@/lib/actions/projections-actions/dre-data";
+import { getDREDataUpdated } from "@/lib/actions/projections-actions/dre-data-updated";
 import { DRETable } from "./dre-table";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -25,7 +25,7 @@ export function DRETab({ organizationId }: DRETabProps) {
         setLoading(true);
         setError(null);
         
-        const data = await getDREData(organizationId);
+        const data = await getDREDataUpdated(organizationId);
         setDreData(data);
       } catch (err) {
         console.error("Erro ao carregar dados do DRE:", err);

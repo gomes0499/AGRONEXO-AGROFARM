@@ -41,8 +41,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, TrendingUp, MoreHorizontal, Edit2Icon, Trash2 } from "lucide-react";
+import { Plus, TrendingUp, MoreHorizontal, Edit2Icon, Trash2, Upload } from "lucide-react";
 import { InvestmentForm } from "./investment-form";
+import { InvestmentImportDialog } from "./investment-import-dialog";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteInvestment } from "@/lib/actions/patrimonio-actions";
@@ -64,6 +65,7 @@ export function InvestmentListing({
   const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -166,6 +168,11 @@ export function InvestmentListing({
     return categoryLabels[categoria] || categoria;
   };
 
+  const handleImportSuccess = (importedInvestments: Investment[]) => {
+    setInvestments([...importedInvestments, ...investments]);
+    setIsImportModalOpen(false);
+  };
+
   return (
     <Card className="shadow-sm border-muted/80">
       <CardHeaderPrimary
@@ -173,13 +180,23 @@ export function InvestmentListing({
         title="Investimentos"
         description="Registro de investimentos em equipamentos, benfeitorias e melhorias"
         action={
-          <Button
-            onClick={handleCreate}
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Investimento
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsImportModalOpen(true)}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Excel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Investimento
+            </Button>
+          </div>
         }
         className="mb-4"
       />
@@ -370,6 +387,13 @@ export function InvestmentListing({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <InvestmentImportDialog
+        isOpen={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        organizationId={organizationId}
+        onSuccess={handleImportSuccess}
+      />
     </Card>
   );
 }

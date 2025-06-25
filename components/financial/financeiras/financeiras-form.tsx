@@ -68,6 +68,7 @@ export function FinanceirasForm({
     defaultValues: {
       nome: existingItem?.nome || "",
       categoria: existingItem?.categoria || "OUTROS_CREDITOS",
+      moeda: existingItem?.moeda || "BRL",
       valores_por_safra: existingItem?.valores_por_safra || {},
     },
   });
@@ -77,12 +78,14 @@ export function FinanceirasForm({
       form.reset({
         nome: existingItem.nome,
         categoria: existingItem.categoria,
+        moeda: existingItem.moeda || "BRL",
         valores_por_safra: existingItem.valores_por_safra || {},
       });
     } else if (open && !existingItem) {
       form.reset({
         nome: "",
         categoria: "OUTROS_CREDITOS",
+        moeda: "BRL",
         valores_por_safra: {},
       });
     }
@@ -191,6 +194,31 @@ export function FinanceirasForm({
               
               <FormField
                 control={form.control}
+                name="moeda"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Moeda</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a moeda" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="BRL">Real (R$)</SelectItem>
+                        <SelectItem value="USD">Dólar (US$)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
@@ -201,6 +229,7 @@ export function FinanceirasForm({
                         values={typeof field.value === 'string' ? JSON.parse(field.value) : field.value || {}}
                         onChange={field.onChange}
                         safras={safras}
+                        currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>
                     <FormMessage />

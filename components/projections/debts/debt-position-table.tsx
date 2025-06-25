@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import {
@@ -10,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrendingDown, TrendingUp, DollarSign } from "lucide-react";
+import { TrendingDown, TrendingUp, DollarSign, ChevronRight, ChevronDown, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DebtPositionData } from "@/lib/actions/debt-position-actions";
 
@@ -39,6 +40,8 @@ interface DebtPositionTableProps {
 }
 
 export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPositionTableProps) {
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  
   const formatNumber = (value: number, decimals: number = 0) => {
     return new Intl.NumberFormat('pt-BR', {
       minimumFractionDigits: decimals,
@@ -59,6 +62,18 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
     if (!categoria) return '';
     return categoria.charAt(0) + categoria.slice(1).toLowerCase();
   };
+
+  const toggleSection = (section: string) => {
+    const newCollapsed = new Set(collapsedSections);
+    if (newCollapsed.has(section)) {
+      newCollapsed.delete(section);
+    } else {
+      newCollapsed.add(section);
+    }
+    setCollapsedSections(newCollapsed);
+  };
+
+  const isSectionCollapsed = (section: string) => collapsedSections.has(section);
 
   return (
     <div className="space-y-6">
@@ -94,7 +109,18 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* === SEÇÃO DE DÍVIDAS === */}
                   <TableRow className="bg-primary dark:bg-primary/90 font-medium border-b-2 border-primary/20">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Dívidas
+                      <button
+                        onClick={() => toggleSection('dividas')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('dividas') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <TrendingDown className="h-4 w-4" />
+                        Dívidas
+                      </button>
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -107,9 +133,9 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   </TableRow>
 
                   {/* Linhas de dívidas */}
-                  {dividas.map((divida, index) => (
+                  {!isSectionCollapsed('dividas') && dividas.map((divida, index) => (
                     <TableRow key={index} className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
+                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
                         {formatCategoria(divida.categoria)}
                       </TableCell>
                       {anos.map((ano) => (
@@ -144,7 +170,18 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* === SEÇÃO DE ATIVOS === */}
                   <TableRow className="bg-primary dark:bg-primary/90 font-medium border-b-2 border-primary/20 border-t-2">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Caixas e Disponibilidades
+                      <button
+                        onClick={() => toggleSection('ativos')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('ativos') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <TrendingUp className="h-4 w-4" />
+                        Caixas e Disponibilidades
+                      </button>
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -157,9 +194,9 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   </TableRow>
 
                   {/* Linhas de ativos */}
-                  {ativos.map((ativo, index) => (
+                  {!isSectionCollapsed('ativos') && ativos.map((ativo, index) => (
                     <TableRow key={index} className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
+                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
                         {formatCategoria(ativo.categoria)}
                       </TableCell>
                       {anos.map((ano) => (
@@ -194,7 +231,18 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                   {/* === SEÇÃO DE ANÁLISE === */}
                   <TableRow className="bg-primary dark:bg-primary/90 font-medium border-b-2 border-primary/20 border-t-2">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Análise e Indicadores
+                      <button
+                        onClick={() => toggleSection('analise')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('analise') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <BarChart3 className="h-4 w-4" />
+                        Análise e Indicadores
+                      </button>
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -227,55 +275,71 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                     })}
                   </TableRow>
 
-                  {/* Dólar Fechamento */}
-                  <TableRow className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Dólar Fechamento
-                    </TableCell>
-                    {anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatNumber(indicadores.dolar_fechamento[ano] || 0, 2)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {/* Linhas da seção de análise */}
+                  {!isSectionCollapsed('analise') && (
+                    <>
+                      {/* Dólar Fechamento */}
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Dólar Fechamento
+                        </TableCell>
+                        {anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatNumber(indicadores.dolar_fechamento[ano] || 0, 2)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Dívida em Dólar */}
-                  <TableRow className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Dívida em Dólar
-                    </TableCell>
-                    {anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatNumber(indicadores.divida_dolar[ano] || 0, 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Dívida em Dólar */}
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Dívida em Dólar
+                        </TableCell>
+                        {anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatNumber(indicadores.divida_dolar[ano] || 0, 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Dívida Líquida em Dólar */}
-                  <TableRow className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Dívida Líquida em Dólar
-                    </TableCell>
-                    {anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatNumber(indicadores.divida_liquida_dolar[ano] || 0, 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Dívida Líquida em Dólar */}
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Dívida Líquida em Dólar
+                        </TableCell>
+                        {anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatNumber(indicadores.divida_liquida_dolar[ano] || 0, 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </>
+                  )}
 
                   {/* === SEÇÃO DE INDICADORES === */}
                   <TableRow className="bg-primary dark:bg-primary/90 font-medium border-b-2 border-primary/20 border-t-2">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Indicadores de Receita e Endividamento
+                      <button
+                        onClick={() => toggleSection('indicadores')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('indicadores') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <BarChart3 className="h-4 w-4" />
+                        Indicadores de Receita e Endividamento
+                      </button>
                     </TableCell>
                     {anos.map((ano) => (
                       <TableCell 
@@ -287,80 +351,85 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                     ))}
                   </TableRow>
 
-                  {/* Receita (Ano Safra) */}
-                  <TableRow className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Receita (Ano Safra)
-                    </TableCell>
-                    {anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatNumber(indicadores.receita_ano_safra[ano] || 0, 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {/* Linhas da seção de indicadores */}
+                  {!isSectionCollapsed('indicadores') && (
+                    <>
+                      {/* Receita (Ano Safra) */}
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Receita (Ano Safra)
+                        </TableCell>
+                        {anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatNumber(indicadores.receita_ano_safra[ano] || 0, 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Ebitda (Ano Safra) */}
-                  <TableRow className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      EBITDA (Ano Safra)
-                    </TableCell>
-                    {anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatNumber(indicadores.ebitda_ano_safra[ano] || 0, 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Ebitda (Ano Safra) */}
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          EBITDA (Ano Safra)
+                        </TableCell>
+                        {anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatNumber(indicadores.ebitda_ano_safra[ano] || 0, 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Dívida/ Receita */}
-                  <TableRow className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Dívida/ Receita
-                    </TableCell>
-                    {anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatRatio(indicadores.indicadores_calculados.divida_receita[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Dívida/ Receita */}
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Dívida/ Receita
+                        </TableCell>
+                        {anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatRatio(indicadores.indicadores_calculados.divida_receita[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Dívida/ Ebitda */}
-                  <TableRow className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Dívida/ Ebitda
-                    </TableCell>
-                    {anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatRatio(indicadores.indicadores_calculados.divida_ebitda[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Dívida/ Ebitda */}
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Dívida/ Ebitda
+                        </TableCell>
+                        {anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatRatio(indicadores.indicadores_calculados.divida_ebitda[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Dívida Líquida/ Receita */}
-                  <TableRow className="hover:bg-muted/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Dívida Líquida/ Receita
-                    </TableCell>
-                    {anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatRatio(indicadores.indicadores_calculados.divida_liquida_receita[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Dívida Líquida/ Receita */}
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Dívida Líquida/ Receita
+                        </TableCell>
+                        {anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatRatio(indicadores.indicadores_calculados.divida_liquida_receita[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </>
+                  )}
 
                   {/* Dívida Líquida/ Ebitda */}
                   <TableRow className="font-medium border-t-2 border-gray-100">

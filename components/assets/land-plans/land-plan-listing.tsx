@@ -39,8 +39,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, MapPin, MoreHorizontal, Edit2Icon, Trash2 } from "lucide-react";
+import { Plus, MapPin, MoreHorizontal, Edit2Icon, Trash2, Upload } from "lucide-react";
 import { LandPlanForm } from "./land-plan-form";
+import { LandAcquisitionImportDialog } from "../land-acquisition/land-acquisition-import-dialog";
 import { Badge } from "@/components/ui/badge";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -66,6 +67,7 @@ export function LandPlanListing({
   const [editingLandPlan, setEditingLandPlan] = useState<LandAcquisition | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -137,18 +139,23 @@ export function LandPlanListing({
     }
   };
 
-  const totalValue = landPlans.reduce(
+  const totalValue = Array.isArray(landPlans) ? landPlans.reduce(
     (total, landPlan) => total + landPlan.valor_total,
     0
-  );
-  const totalHectares = landPlans.reduce(
+  ) : 0;
+  const totalHectares = Array.isArray(landPlans) ? landPlans.reduce(
     (total, landPlan) => total + landPlan.hectares,
     0
-  );
-  const totalSacas = landPlans.reduce(
+  ) : 0;
+  const totalSacas = Array.isArray(landPlans) ? landPlans.reduce(
     (total, landPlan) => total + (landPlan.total_sacas || 0),
     0
-  );
+  ) : 0;
+
+  const handleImportSuccess = (importedLandPlans: LandAcquisition[]) => {
+    setLandPlans([...importedLandPlans, ...landPlans]);
+    setIsImportModalOpen(false);
+  };
 
   return (
     <Card className="shadow-sm border-muted/80">
@@ -157,13 +164,23 @@ export function LandPlanListing({
         title="Aquisição de Terras"
         description="Planejamento de aquisições futuras de propriedades rurais"
         action={
-          <Button
-            onClick={handleCreate}
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Aquisição
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsImportModalOpen(true)}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Excel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Aquisição
+            </Button>
+          </div>
         }
         className="mb-4"
       />
@@ -352,6 +369,13 @@ export function LandPlanListing({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <LandAcquisitionImportDialog
+        isOpen={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        organizationId={organizationId}
+        onSuccess={handleImportSuccess}
+      />
     </Card>
   );
 }

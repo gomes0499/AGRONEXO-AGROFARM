@@ -25,6 +25,7 @@ export const investmentFormSchema = z.object({
   valor_unitario: monetaryValueSchema,
   tipo: patrimonioTipoEnum,
   safra_id: z.string().uuid().optional(),
+  ano: yearSchema.optional(), // Campo opcional para permitir cálculo dinâmico
 });
 export type InvestmentFormValues = z.infer<typeof investmentFormSchema>;
 

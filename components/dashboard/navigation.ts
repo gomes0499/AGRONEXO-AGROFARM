@@ -1,6 +1,6 @@
 import { BuildingIcon, 
   WalletIcon, LineChartIcon, MapIcon, 
-  LandmarkIcon, GaugeIcon, StoreIcon, PaintbrushIcon,
+  LandmarkIcon, GaugeIcon, PaintbrushIcon,
   BarChartIcon,
   Brain,
   FileText
@@ -21,9 +21,9 @@ export const data = {
       icon: BuildingIcon,
     },
     {
-      title: "Bens Imóveis",
-      url: "/dashboard/properties",
-      icon: MapIcon,
+      title: "Patrimonial",
+      url: "/dashboard/assets",
+      icon: LandmarkIcon,
     },
     {
       title: "Produção",
@@ -31,19 +31,9 @@ export const data = {
       icon: BarChartIcon,
     },
     {
-      title: "Comercial",
-      url: "/dashboard/commercial",
-      icon: StoreIcon,
-    },
-    {
       title: "Financeiro",
       url: "/dashboard/financial",
       icon: WalletIcon,
-    },
-    {
-      title: "Patrimonial",
-      url: "/dashboard/assets",
-      icon: LandmarkIcon,
     },
     {
       title: "Projeções",

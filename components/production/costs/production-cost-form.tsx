@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, DollarSign, Leaf, Settings, Tag, MapPin } from "lucide-react";
+import { Loader2, DollarSign, Leaf, Settings, Tag, MapPin, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -244,9 +244,12 @@ export function ProductionCostForm({
         onSuccess?.(updatedItem);
       } else {
         // Criar novo item
+        // Se selecionou "all", passar undefined para propriedade_id
+        const propriedadeId = values.propriedade_id === "all" ? undefined : values.propriedade_id;
+        
         const newItem = await createProductionCost(organizationId, {
           organizacao_id: organizationId,
-          propriedade_id: values.propriedade_id,
+          propriedade_id: propriedadeId,
           cultura_id: values.cultura_id,
           sistema_id: values.sistema_id,
           categoria: values.categoria,
@@ -254,7 +257,11 @@ export function ProductionCostForm({
           descricao: "",
           observacoes: "",
         });
-        toast.success("Custo de produção criado com sucesso!");
+        toast.success(
+          values.propriedade_id === "all" 
+            ? "Custo de produção criado para todas as propriedades!" 
+            : "Custo de produção criado com sucesso!"
+        );
         onSuccess?.(newItem);
       }
 
@@ -295,6 +302,13 @@ export function ProductionCostForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="all">
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-primary" />
+                            <span className="font-medium">Todas as Propriedades</span>
+                          </div>
+                        </SelectItem>
+                        <Separator className="my-1" />
                         {properties.map((property: Property) => (
                           <SelectItem key={property.id} value={property.id}>
                             {property.nome}
@@ -308,6 +322,11 @@ export function ProductionCostForm({
                       </SelectContent>
                     </Select>
                     <FormMessage />
+                    {field.value === "all" && (
+                      <FormDescription className="text-xs mt-1">
+                        O custo será aplicado a todas as propriedades consolidadas
+                      </FormDescription>
+                    )}
                   </FormItem>
                 )}
               />
@@ -452,13 +471,15 @@ export function ProductionCostForm({
                     </div>
                   )}
 
-                  {selectedProperty && (
+                  {(selectedProperty || form.watch("propriedade_id") === "all") && (
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-muted-foreground">
                         Propriedade:
                       </span>
                       <span className="text-sm font-medium">
-                        {selectedProperty.nome}
+                        {form.watch("propriedade_id") === "all" 
+                          ? "Todas as Propriedades" 
+                          : selectedProperty?.nome}
                       </span>
                     </div>
                   )}

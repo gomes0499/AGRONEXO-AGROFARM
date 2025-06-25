@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { LayoutList, TrendingUp } from "lucide-react";
 import {
   BarChart,
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/chart";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
+import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
 
 // Formatar valor monetário
 function formatCurrency(value: number, digits = 2) {
@@ -55,24 +56,13 @@ interface LiabilityData {
   liquido: number;
 }
 
-const chartConfig = {
-  total: {
-    label: "Dívida Total",
-    color: "#1B124E", // Tom primário mais escuro
-  },
-  liquido: {
-    label: "Dívida Líquida",
-    color: "#4338CA", // Tom secundário
-  },
-  bancos_tradings: {
-    label: "Dívida Bancária",
-    color: "#6366F1", // Tom terciário
-  },
-  outros: {
-    label: "Outros Passivos",
-    color: "#818CF8", // Tom quaternário
-  },
-} satisfies ChartConfig;
+// Cores padrão caso não haja cores personalizadas
+const DEFAULT_CHART_COLORS = {
+  total: "#1B124E", // Tom primário mais escuro
+  liquido: "#4338CA", // Tom secundário
+  bancos_tradings: "#6366F1", // Tom terciário
+  outros: "#818CF8", // Tom quaternário
+};
 
 async function getTotalLiabilitiesData(
   organizationId: string,
@@ -304,6 +294,28 @@ export function FinancialTotalLiabilitiesChart({
   const [displaySafra, setDisplaySafra] = useState<string | undefined>(
     undefined
   );
+  
+  const { palette } = useOrganizationColors(organizationId);
+  
+  // Criar configuração dinâmica do gráfico com cores da organização
+  const chartConfig = useMemo(() => ({
+    total: {
+      label: "Dívida Total",
+      color: palette[0] || DEFAULT_CHART_COLORS.total,
+    },
+    liquido: {
+      label: "Dívida Líquida",
+      color: palette[1] || DEFAULT_CHART_COLORS.liquido,
+    },
+    bancos_tradings: {
+      label: "Dívida Bancária",
+      color: palette[2] || DEFAULT_CHART_COLORS.bancos_tradings,
+    },
+    outros: {
+      label: "Outros Passivos",
+      color: palette[3] || DEFAULT_CHART_COLORS.outros,
+    },
+  } satisfies ChartConfig), [palette]);
 
   // Efeito para carregar dados quando o valor solicitado ou organização mudar
   useEffect(() => {

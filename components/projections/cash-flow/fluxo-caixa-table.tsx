@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import {
@@ -10,16 +11,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrendingDown, TrendingUp, CircleDollarSign, DollarSign } from "lucide-react";
+import { TrendingDown, TrendingUp, CircleDollarSign, DollarSign, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/formatters";
 import type { FluxoCaixaData } from "@/lib/actions/projections-actions/fluxo-caixa-simplificado";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FluxoCaixaTableProps {
   data: FluxoCaixaData;
 }
 
 export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
+  const [selectedYear, setSelectedYear] = useState<string | undefined>();
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   if (!data || !data.anos || data.anos.length === 0) {
     return (
       <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
@@ -153,6 +163,18 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
     dataFiltrada.fluxo_acumulado = {};
   }
 
+  const toggleSection = (section: string) => {
+    const newCollapsed = new Set(collapsedSections);
+    if (newCollapsed.has(section)) {
+      newCollapsed.delete(section);
+    } else {
+      newCollapsed.add(section);
+    }
+    setCollapsedSections(newCollapsed);
+  };
+
+  const isSectionCollapsed = (section: string) => collapsedSections.has(section);
+
   return (
     <div className="space-y-6">
       <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
@@ -162,33 +184,46 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
           description="Análise consolidada de receitas, despesas e fluxo de caixa"
         />
         <CardContent className="p-6">
-          <div className="overflow-x-auto overflow-y-hidden border rounded-md" style={{ maxWidth: '100%' }}>
-            <div className="min-w-max">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-primary hover:bg-primary dark:bg-primary/90 dark:hover:bg-primary/90">
-                    <TableHead className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
-                      Fluxo de Caixa
-                    </TableHead>
-                    {dataFiltrada.anos.map((ano, index) => (
-                      <TableHead 
-                        key={ano} 
-                        className={cn(
-                          "font-medium text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
-                          index === dataFiltrada.anos.length - 1 && "rounded-tr-md"
-                        )}
-                      >
-                        {ano}
+          <TooltipProvider>
+            <div className="overflow-x-auto overflow-y-hidden border rounded-md" style={{ maxWidth: '100%' }}>
+              <div className="min-w-max">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-primary hover:bg-primary dark:bg-primary/90 dark:hover:bg-primary/90">
+                      <TableHead className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
+                        Fluxo de Caixa
                       </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* === SEÇÃO DE RECEITAS AGRÍCOLAS === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 dark:bg-primary/90">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Receitas Agrícolas
-                    </TableCell>
+                      {dataFiltrada.anos.map((ano, index) => (
+                        <TableHead 
+                          key={ano} 
+                          className={cn(
+                            "font-medium text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
+                            index === dataFiltrada.anos.length - 1 && "rounded-tr-md",
+                            selectedYear === ano && "ring-2 ring-primary-foreground ring-inset"
+                          )}
+                        >
+                          {ano}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* === SEÇÃO DE RECEITAS AGRÍCOLAS === */}
+                    <TableRow className="bg-primary font-medium border-b-2 border-primary/20 dark:bg-primary/90">
+                      <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                        <button
+                          onClick={() => toggleSection('receitas')}
+                          className="flex items-center gap-2 w-full text-left"
+                        >
+                          {isSectionCollapsed('receitas') ? (
+                            <ChevronRight className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                          <TrendingUp className="h-4 w-4" />
+                          Receitas Agrícolas
+                        </button>
+                      </TableCell>
                     {dataFiltrada.anos.map((ano) => (
                       <TableCell 
                         key={ano} 
@@ -200,19 +235,37 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   </TableRow>
 
                   {/* Linhas de receitas por cultura */}
-                  {dataFiltrada.receitas_agricolas?.culturas && Object.keys(dataFiltrada.receitas_agricolas.culturas).map((cultura) => (
+                  {!isSectionCollapsed('receitas') && dataFiltrada.receitas_agricolas?.culturas && Object.keys(dataFiltrada.receitas_agricolas.culturas).map((cultura) => (
                     <TableRow key={`receita-${cultura}`} className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
+                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
                         {cultura}
                       </TableCell>
-                      {dataFiltrada.anos.map((ano) => (
-                        <TableCell 
-                          key={ano} 
-                          className="text-center min-w-[120px] w-[120px]"
-                        >
-                          {formatCurrency((dataFiltrada.receitas_agricolas?.culturas?.[cultura]?.[ano]) || 0)}
-                        </TableCell>
-                      ))}
+                      {dataFiltrada.anos.map((ano) => {
+                        const valor = (dataFiltrada.receitas_agricolas?.culturas?.[cultura]?.[ano]) || 0;
+                        const total = (dataFiltrada.receitas_agricolas?.total_por_ano?.[ano]) || 0;
+                        const percentual = total > 0 ? (valor / total * 100).toFixed(1) : 0;
+                        
+                        return (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help">
+                                  {formatCurrency(valor)}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-sm">
+                                  <p className="font-medium">{cultura} - {ano}</p>
+                                  <p>{percentual}% do total de receitas</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TableCell>
+                        );
+                      })}
                     </TableRow>
                   ))}
                   
@@ -234,7 +287,18 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   {/* === SEÇÃO DE DESPESAS AGRÍCOLAS === */}
                   <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Despesas Agrícolas
+                      <button
+                        onClick={() => toggleSection('despesas')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('despesas') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <TrendingDown className="h-4 w-4" />
+                        Despesas Agrícolas
+                      </button>
                     </TableCell>
                     {dataFiltrada.anos.map((ano) => (
                       <TableCell 
@@ -247,9 +311,9 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   </TableRow>
 
                   {/* Linhas de despesas por cultura */}
-                  {dataFiltrada.despesas_agricolas?.culturas && Object.keys(dataFiltrada.despesas_agricolas.culturas).map((cultura) => (
+                  {!isSectionCollapsed('despesas') && dataFiltrada.despesas_agricolas?.culturas && Object.keys(dataFiltrada.despesas_agricolas.culturas).map((cultura) => (
                     <TableRow key={`despesa-cultura-${cultura}`} className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
+                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
                         {cultura}
                       </TableCell>
                       {dataFiltrada.anos.map((ano) => (
@@ -304,7 +368,18 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   {/* === SEÇÃO DE OUTRAS DESPESAS === */}
                   <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Outras Despesas
+                      <button
+                        onClick={() => toggleSection('outras_despesas')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('outras_despesas') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <TrendingDown className="h-4 w-4" />
+                        Outras Despesas
+                      </button>
                     </TableCell>
                     {dataFiltrada.anos.map((ano) => (
                       <TableCell 
@@ -316,95 +391,100 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                     ))}
                   </TableRow>
 
-                  {/* Arrendamento */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Arrendamento
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.outras_despesas?.arrendamento?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {/* Linhas de outras despesas */}
+                  {!isSectionCollapsed('outras_despesas') && (
+                    <>
+                      {/* Arrendamento */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Arrendamento
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.outras_despesas?.arrendamento?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Pró-Labore */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Pró-Labore
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.outras_despesas?.pro_labore?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Pró-Labore */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Pró-Labore
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.outras_despesas?.pro_labore?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Divisão de Lucros */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Divisão de Lucros
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.outras_despesas?.divisao_lucros?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Divisão de Lucros */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Divisão de Lucros
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.outras_despesas?.divisao_lucros?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Financeiras */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Financeiras
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.outras_despesas?.financeiras?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Financeiras */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Financeiras
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.outras_despesas?.financeiras?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Tributárias */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Tributárias
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.outras_despesas?.tributarias?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Tributárias */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Tributárias
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.outras_despesas?.tributarias?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Outras */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Outras
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.outras_despesas?.outras?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Outras */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Outras
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.outras_despesas?.outras?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </>
+                  )}
 
                   {/* Total de outras despesas */}
                   <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
@@ -424,7 +504,18 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   {/* === SEÇÃO DE INVESTIMENTOS === */}
                   <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Investimentos
+                      <button
+                        onClick={() => toggleSection('investimentos')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('investimentos') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <DollarSign className="h-4 w-4" />
+                        Investimentos
+                      </button>
                     </TableCell>
                     {dataFiltrada.anos.map((ano) => (
                       <TableCell 
@@ -436,50 +527,55 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                     ))}
                   </TableRow>
 
-                  {/* Terras */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Terras
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.investimentos?.terras?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                  
-                  {/* Maquinários */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Maquinários
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.investimentos?.maquinarios?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                  
-                  {/* Outros */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Outros
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.investimentos?.outros?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {/* Linhas de investimentos */}
+                  {!isSectionCollapsed('investimentos') && (
+                    <>
+                      {/* Terras */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Terras
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.investimentos?.terras?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                      
+                      {/* Maquinários */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Maquinários
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.investimentos?.maquinarios?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                      
+                      {/* Outros */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Outros
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.investimentos?.outros?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </>
+                  )}
 
                   {/* Total de investimentos */}
                   <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
@@ -499,7 +595,18 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   {/* === SEÇÃO DE FINANCEIRAS === */}
                   <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Financeiras
+                      <button
+                        onClick={() => toggleSection('financeiras')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('financeiras') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <CircleDollarSign className="h-4 w-4" />
+                        Financeiras
+                      </button>
                     </TableCell>
                     {dataFiltrada.anos.map((ano) => (
                       <TableCell 
@@ -511,50 +618,55 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                     ))}
                   </TableRow>
 
-                  {/* Serviço da Dívida */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Serviço da Dívida
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.financeiras?.servico_divida?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {/* Linhas de financeiras */}
+                  {!isSectionCollapsed('financeiras') && (
+                    <>
+                      {/* Serviço da Dívida */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Serviço da Dívida
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.financeiras?.servico_divida?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Pagamentos - Bancos */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Pagamentos - Bancos
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
-                      >
-                        {formatCurrency((dataFiltrada.financeiras?.pagamentos_bancos?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Pagamentos - Bancos */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Pagamentos - Bancos
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          >
+                            {formatCurrency((dataFiltrada.financeiras?.pagamentos_bancos?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Novas Linhas de Crédito */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Novas Linhas de Crédito
-                    </TableCell>
-                    {dataFiltrada.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-green-600 dark:text-green-400"
-                      >
-                        {formatCurrency((dataFiltrada.financeiras?.novas_linhas_credito?.[ano]) || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Novas Linhas de Crédito */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Novas Linhas de Crédito
+                        </TableCell>
+                        {dataFiltrada.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-green-600 dark:text-green-400"
+                          >
+                            {formatCurrency((dataFiltrada.financeiras?.novas_linhas_credito?.[ano]) || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </>
+                  )}
 
                   {/* Total Financeiras */}
                   <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
@@ -688,6 +800,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
               </Table>
             </div>
           </div>
+          </TooltipProvider>
         </CardContent>
       </Card>
     </div>

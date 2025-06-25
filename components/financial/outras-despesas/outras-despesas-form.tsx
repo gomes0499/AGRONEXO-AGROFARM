@@ -65,6 +65,7 @@ export function OutrasDespesasForm({
     defaultValues: {
       nome: existingItem?.nome || "",
       categoria: existingItem?.categoria || "OUTROS",
+      moeda: existingItem?.moeda || "BRL",
       valores_por_safra: existingItem?.valores_por_safra || {},
     },
   });
@@ -74,12 +75,14 @@ export function OutrasDespesasForm({
       form.reset({
         nome: existingItem.nome,
         categoria: existingItem.categoria,
+        moeda: existingItem.moeda || "BRL",
         valores_por_safra: existingItem.valores_por_safra || {},
       });
     } else if (open && !existingItem) {
       form.reset({
         nome: "",
         categoria: "OUTROS",
+        moeda: "BRL",
         valores_por_safra: {},
       });
     }
@@ -120,8 +123,8 @@ export function OutrasDespesasForm({
 
   // Categorias disponíveis - alinhadas com o enum do banco de dados
   const categorias = [
+    { value: "TRIBUTARIAS", label: "Impostos e Taxas" },
     { value: "PRO_LABORE", label: "Pró-Labore" },
-    { value: "TRIBUTARIAS", label: "Tributárias" },
     { value: "OUTRAS_OPERACIONAIS", label: "Outras Operacionais" },
     { value: "DESPESAS_ADMINISTRATIVAS", label: "Despesas Administrativas" },
     { value: "DESPESAS_COMERCIAIS", label: "Despesas Comerciais" },
@@ -129,6 +132,14 @@ export function OutrasDespesasForm({
     { value: "MANUTENCAO", label: "Manutenção" },
     { value: "SEGUROS", label: "Seguros" },
     { value: "CONSULTORIAS", label: "Consultorias" },
+    { value: "DEPRECIACAO", label: "Depreciação" },
+    { value: "AMORTIZACAO", label: "Amortização" },
+    { value: "ARRENDAMENTOS", label: "Arrendamentos" },
+    { value: "PESSOAL", label: "Pessoal e Encargos" },
+    { value: "ENERGIA_COMBUSTIVEL", label: "Energia e Combustível" },
+    { value: "COMUNICACAO", label: "Comunicação" },
+    { value: "VIAGENS", label: "Viagens" },
+    { value: "MATERIAL_ESCRITORIO", label: "Material de Escritório" },
     { value: "OUTROS", label: "Outros" }
   ];
   
@@ -215,6 +226,31 @@ export function OutrasDespesasForm({
               
               <FormField
                 control={form.control}
+                name="moeda"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Moeda</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a moeda" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="BRL">Real (R$)</SelectItem>
+                        <SelectItem value="USD">Dólar (US$)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
@@ -225,6 +261,7 @@ export function OutrasDespesasForm({
                         values={field.value}
                         onChange={field.onChange}
                         safras={safras}
+                        currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>
                     <FormMessage />

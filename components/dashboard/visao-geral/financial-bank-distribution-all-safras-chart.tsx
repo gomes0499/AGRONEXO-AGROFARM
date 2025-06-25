@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { TrendingUp, Building2 } from "lucide-react";
 import {
   Bar,
@@ -26,6 +26,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Loader2 } from "lucide-react";
+import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
 
 interface FinancialBankDistributionAllSafrasChartProps {
   organizationId: string;
@@ -38,12 +39,8 @@ interface BankData {
   rank: number;
 }
 
-const chartConfig = {
-  valor: {
-    label: "Valor da Dívida",
-    color: "#1B124E", // Tom primário da marca
-  },
-} satisfies ChartConfig;
+// Cor padrão caso não haja cores personalizadas
+const DEFAULT_BAR_COLOR = "#1B124E";
 
 async function getBankDistributionAllSafrasData(
   organizationId: string
@@ -191,6 +188,16 @@ export function FinancialBankDistributionAllSafrasChart({
   const [data, setData] = useState<BankData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { palette } = useOrganizationColors(organizationId);
+  
+  // Criar configuração dinâmica do gráfico com cores da organização
+  const chartConfig = useMemo(() => ({
+    valor: {
+      label: "Valor da Dívida",
+      color: palette[0] || DEFAULT_BAR_COLOR,
+    },
+  } satisfies ChartConfig), [palette]);
 
   // Efeito para carregar dados quando a organização mudar
   useEffect(() => {

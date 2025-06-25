@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, Leaf, Settings, CropIcon, Home } from "lucide-react";
+import { Loader2, Leaf, Settings, CropIcon, Home, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -80,14 +80,22 @@ export function MultiSafraPlantingAreaForm({
   const onSubmit = async (values: MultiSafraPlantingAreaFormValues) => {
     setIsSubmitting(true);
     try {
+      // Se selecionou "all", passar undefined para propriedade_id
+      const propriedadeId = values.propriedade_id === "all" ? undefined : values.propriedade_id;
+      
+      const formData = {
+        ...values,
+        propriedade_id: propriedadeId || '',
+      };
+      
       const newAreas = await createMultiSafraPlantingAreas(
         organizationId,
-        values
+        formData
       );
       toast.success(
-        `${
-          Object.keys(values.areas_por_safra).length
-        } área(s) de plantio criada(s) com sucesso!`
+        values.propriedade_id === "all"
+          ? `${Object.keys(values.areas_por_safra).length} área(s) de plantio criada(s) para todas as propriedades!`
+          : `${Object.keys(values.areas_por_safra).length} área(s) de plantio criada(s) com sucesso!`
       );
 
       if (onSuccess) {
@@ -131,6 +139,13 @@ export function MultiSafraPlantingAreaForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Todas as Propriedades</span>
+                      </div>
+                    </SelectItem>
+                    <Separator className="my-1" />
                     {properties.map((property) => (
                       <SelectItem key={property.id} value={property.id}>
                         <div className="flex flex-col">

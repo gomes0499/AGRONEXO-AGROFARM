@@ -307,7 +307,6 @@ export function DividasBancariasForm({
               name="moeda"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Moeda</FormLabel>
                   <FormControl>
                     <CurrencySelector
                       name="moeda"

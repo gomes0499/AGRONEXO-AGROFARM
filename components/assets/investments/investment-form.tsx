@@ -52,7 +52,7 @@ export function InvestmentForm({
   onCancel,
 }: InvestmentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string }>>([]);
+  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number }>>([]);
   const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
   const isEditing = !!initialData?.id;
 
@@ -62,7 +62,12 @@ export function InvestmentForm({
       try {
         setIsLoadingHarvests(true);
         const harvestsData = await getSafras(organizationId);
-        setHarvests(harvestsData.map(h => ({ id: h.id, nome: h.nome })));
+        setHarvests(harvestsData.map(h => ({ 
+          id: h.id, 
+          nome: h.nome,
+          ano_inicio: h.ano_inicio,
+          ano_fim: h.ano_fim
+        })));
       } catch (error) {
         console.error("Erro ao carregar safras:", error);
         toast.error("Erro ao carregar safras");
@@ -81,17 +86,28 @@ export function InvestmentForm({
       valor_unitario: initialData?.valor_unitario || 0,
       tipo: initialData?.tipo || "REALIZADO",
       safra_id: initialData?.safra_id || "",
+      ano: initialData?.ano || new Date().getFullYear(),
     },
   });
 
   // Watch form values for calculations
   const quantidade = form.watch("quantidade") || 0;
   const valorUnitario = form.watch("valor_unitario") || 0;
+  const selectedSafraId = form.watch("safra_id");
 
   // Calcular valor total automaticamente
   const valorTotal = useMemo(() => {
     return quantidade * valorUnitario;
   }, [quantidade, valorUnitario]);
+
+  // Obter o ano da safra selecionada
+  const getYearFromSafra = (safraId: string) => {
+    if (!safraId || safraId === "none") {
+      return new Date().getFullYear();
+    }
+    const safra = harvests.find(h => h.id === safraId);
+    return safra ? safra.ano_inicio : new Date().getFullYear();
+  };
 
   const onSubmit = async (values: InvestmentFormValues) => {
     try {
@@ -101,7 +117,7 @@ export function InvestmentForm({
       const dataToSubmit = {
         organizacao_id: organizationId,
         ...values,
-        ano: new Date().getFullYear(), // Usar ano atual já que removemos o campo
+        ano: getYearFromSafra(values.safra_id || ""), // Usar ano da safra selecionada
         valor_total: valorTotal, // Incluir valor calculado até que o banco seja ajustado
       };
 
@@ -212,6 +228,11 @@ export function InvestmentForm({
                 </SelectContent>
               </Select>
               <FormMessage />
+              {selectedSafraId && selectedSafraId !== "none" && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Ano do investimento: {getYearFromSafra(selectedSafraId)}
+                </p>
+              )}
             </FormItem>
           )}
         />

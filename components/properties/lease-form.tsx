@@ -96,7 +96,7 @@ export function LeaseForm({
   const projectionYears = Array.from({ length: 5 }, (_, i) =>
     (currentYear + i).toString()
   );
-
+  
   const form = useForm({
     resolver: zodResolver(leaseFormSchema),
     mode: "onSubmit", // Só validar quando o usuário submeter o formulário

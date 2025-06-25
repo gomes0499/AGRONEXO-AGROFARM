@@ -14,6 +14,13 @@ import { PropertySelector } from "../property-debts/property-selector";
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { toast } from "sonner";
 import { getSafras } from "@/lib/actions/production-actions";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 
 interface DividasTerrasFormProps {
   open: boolean;
@@ -59,6 +66,7 @@ export function DividasTerrasForm({
     defaultValues: {
       nome: existingDivida?.nome || "",
       propriedade_id: existingDivida?.propriedade_id || undefined,
+      moeda: existingDivida?.moeda || "BRL",
       valores_por_safra: existingDivida?.valores_por_safra || {},
     },
   });
@@ -68,12 +76,14 @@ export function DividasTerrasForm({
       form.reset({
         nome: existingDivida.nome,
         propriedade_id: existingDivida.propriedade_id,
+        moeda: existingDivida.moeda || "BRL",
         valores_por_safra: existingDivida.valores_por_safra || {},
       });
     } else if (open && !existingDivida) {
       form.reset({
         nome: "",
         propriedade_id: undefined,
+        moeda: "BRL",
         valores_por_safra: {},
       });
     }
@@ -163,6 +173,31 @@ export function DividasTerrasForm({
               
               <FormField
                 control={form.control}
+                name="moeda"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Moeda</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a moeda" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="BRL">Real (R$)</SelectItem>
+                        <SelectItem value="USD">Dólar (US$)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
@@ -173,6 +208,7 @@ export function DividasTerrasForm({
                         values={field.value}
                         onChange={field.onChange}
                         safras={safras}
+                        currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>
                     <FormMessage />

@@ -2,7 +2,6 @@ import { SiteHeader } from "@/components/dashboard/site-header";
 import { createClient } from "@/lib/supabase/server";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getPrices } from "@/lib/actions/commercial-actions";
 import { UnderConstruction } from "@/components/shared/under-construction";
 import { PropertyMapBreakdown } from "@/components/properties/property-map-breakdown";
 import { DashboardGlobalFilterWrapper } from "@/components/dashboard/dashboard-global-filter-wrapper";
@@ -119,15 +118,8 @@ export default async function DashboardPage() {
     organizationName = "Minha Organização";
   }
 
-  // Busca os preços mais recentes para o Market Ticker
+  // Preços removidos - módulo comercial descontinuado
   let latestPrice = null;
-  if (organizationId) {
-    const pricesResponse = await getPrices(organizationId);
-    latestPrice =
-      Array.isArray(pricesResponse) && pricesResponse.length > 0
-        ? pricesResponse[0]
-        : null;
-  }
 
   // Buscar dados para filtros globais se organizationId está disponível
   let filterData = null;

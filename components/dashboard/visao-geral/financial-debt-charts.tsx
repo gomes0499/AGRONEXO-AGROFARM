@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Loader2, TrendingUp, Building2 } from "lucide-react";
+import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
 
 interface FinancialDebtChartsProps {
   organizationId: string;
@@ -18,8 +19,8 @@ interface DebtData {
   percentage: number;
 }
 
-// Cores seguindo o padrão da aplicação (mesma paleta do módulo de produção)
-const COLORS = {
+// Cores padrão caso não haja cores personalizadas
+const DEFAULT_COLORS = {
   CUSTEIO: "#1B124E", // Tom primário da marca
   INVESTIMENTOS: "#6346C2", // Tom secundário da marca
 };
@@ -135,12 +136,21 @@ async function getDebtDataForYear(organizationId: string, year: number): Promise
 function DebtPieChart({ 
   data, 
   title, 
-  description 
+  description,
+  organizationId 
 }: { 
   data: DebtData[]; 
   title: string; 
   description: string;
+  organizationId?: string;
 }) {
+  const { palette } = useOrganizationColors(organizationId);
+  
+  // Criar mapeamento de cores dinâmico
+  const colors = useMemo(() => ({
+    CUSTEIO: palette[0] || DEFAULT_COLORS.CUSTEIO,
+    INVESTIMENTOS: palette[1] || DEFAULT_COLORS.INVESTIMENTOS,
+  }), [palette]);
   if (!data || data.length === 0) {
     return (
       <Card>
@@ -195,7 +205,7 @@ function DebtPieChart({
                 {data.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill={COLORS[entry.modalidade as keyof typeof COLORS]} 
+                    fill={colors[entry.modalidade as keyof typeof colors]} 
                   />
                 ))}
               </Pie>
@@ -293,6 +303,7 @@ export function FinancialDebtCharts({ organizationId, selectedYear }: FinancialD
       data={allYearsData}
       title="Distribuição de Dívidas Bancárias"
       description="Distribuição total entre custeio e investimentos"
+      organizationId={organizationId}
     />
   );
 }

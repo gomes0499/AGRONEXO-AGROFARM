@@ -55,7 +55,7 @@ export default async function PropertyDetailsPage({
         <SiteHeader
           title={`Propriedade ${property.nome}`}
           showBackButton={true}
-          backUrl="/dashboard/properties"
+          backUrl="/dashboard/assets"
         />
 
         {/* Tabs Navigation - logo abaixo do site header */}

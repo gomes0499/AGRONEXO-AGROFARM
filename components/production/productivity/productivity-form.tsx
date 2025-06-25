@@ -15,6 +15,7 @@ import {
   Plus,
   Trash2,
   Save,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,9 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  FormDescription,
+} from "@/components/ui/form";
 import {
   type Productivity,
   type ProductivityFormValues,
@@ -245,12 +249,20 @@ export function ProductivityForm({
         onSuccess?.(updatedItem);
       } else {
         // Create new item
+        // Se selecionou "all", passar undefined para propriedade_id
+        const propriedadeId = values.propriedade_id === "all" ? undefined : values.propriedade_id;
+        
         const dataWithOrgId = {
           ...values,
+          propriedade_id: propriedadeId,
           organizacao_id: organizationId
         };
         const newItem = await createProductivity(dataWithOrgId);
-        toast.success("Registro de produtividade criado com sucesso!");
+        toast.success(
+          values.propriedade_id === "all" 
+            ? "Produtividade média criada para todas as propriedades!" 
+            : "Registro de produtividade criado com sucesso!"
+        );
         onSuccess?.(newItem);
       }
     } catch (error) {
@@ -346,6 +358,13 @@ export function ProductivityForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Todas as Propriedades</span>
+                      </div>
+                    </SelectItem>
+                    <Separator className="my-1" />
                     {properties.map((property: Property) => (
                       <SelectItem key={property.id} value={property.id}>
                         {property.nome}
@@ -363,24 +382,31 @@ export function ProductivityForm({
             )}
           />
 
-          {selectedProperty && (
+          {(selectedProperty || form.watch("propriedade_id") === "all") && (
             <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border border-muted">
               <p className="font-medium text-foreground">
                 Propriedade selecionada:
               </p>
               <p className="mt-1">
-                {selectedProperty.nome}
-                {selectedProperty.cidade && selectedProperty.estado && (
+                {form.watch("propriedade_id") === "all" 
+                  ? "Todas as Propriedades (Valores Médios)" 
+                  : selectedProperty?.nome}
+                {selectedProperty && selectedProperty.cidade && selectedProperty.estado && (
                   <span>
                     {" "}
                     - {selectedProperty.cidade}/{selectedProperty.estado}
                   </span>
                 )}
               </p>
-              {selectedProperty.areaTotal && (
+              {selectedProperty?.areaTotal && (
                 <p className="mt-1">
                   Área total: {selectedProperty.areaTotal} hectares
                 </p>
+              )}
+              {form.watch("propriedade_id") === "all" && (
+                <FormDescription className="text-xs mt-2">
+                  A produtividade será calculada como média consolidada de todas as propriedades
+                </FormDescription>
               )}
             </div>
           )}

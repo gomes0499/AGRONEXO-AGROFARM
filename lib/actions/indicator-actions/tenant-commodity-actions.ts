@@ -40,18 +40,17 @@ export async function getSafraCommodityPrices(): Promise<CommodityPriceType[]> {
       return [];
     }
     
-    // Mapeamento dos IDs de safras para anos (baseado no CSV)
-    const safraToYear: Record<string, string> = {
-      "13e24d0c-8b9f-4391-84d0-6803f99a4eda": "2021", // 2021/22
-      "7c439880-c11b-45ab-9476-deb9673b6407": "2022", // 2022/23
-      "b396784e-5228-466b-baf9-11f7188e94bf": "2023", // 2023/24
-      "f9ca3ed0-dcc3-4092-be9b-a59ad1addbf7": "2024", // 2024/25
-      "781c5f04-4b75-4dee-b83e-266f4c297845": "2025", // 2025/26
-      "0422834d-283e-415d-ba7d-c03dff34518f": "2026", // 2026/27
-      "8d50aeb7-ed39-474c-9980-611af8ed44d1": "2027", // 2027/28
-      "34d47cd6-d8a3-4db9-b893-41fa92a3c982": "2028", // 2028/29
-      "ee2fe91b-4695-45bf-b786-1b8944e45465": "2029", // 2029/30
-    };
+    // Buscar dinamicamente o mapeamento de safras para anos
+    const { data: safras } = await supabase
+      .from("safras")
+      .select("id, ano_inicio, ano_fim")
+      .eq("organizacao_id", TENANT_ID);
+    
+    // Criar mapeamento dinâmico
+    const safraToYear: Record<string, string> = {};
+    safras?.forEach(safra => {
+      safraToYear[safra.id] = safra.ano_inicio.toString();
+    });
 
     // Transformar os resultados do formato JSONB para o formato esperado
     return prices.map(p => {

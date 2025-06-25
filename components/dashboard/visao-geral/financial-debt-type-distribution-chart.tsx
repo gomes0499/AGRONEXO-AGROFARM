@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   PieChart,
   Pie,
@@ -21,6 +21,7 @@ import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
 import { Loader2 } from "lucide-react";
+import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
 
 interface FinancialDebtTypeDistributionProps {
   organizationId: string;
@@ -34,18 +35,13 @@ interface DebtTypeData {
   color: string;
 }
 
-const COLORS = ["#1B124E", "#4338CA", "#6366F1", "#818CF8"];
-
-const chartConfig = {
-  valor: {
-    label: "Valor da Dívida",
-    color: "#1B124E",
-  },
-} satisfies ChartConfig;
+// Cores padrão caso não haja cores personalizadas
+const DEFAULT_COLORS = ["#1B124E", "#4338CA", "#6366F1", "#818CF8"];
 
 async function getDebtTypeDistributionData(
   organizationId: string,
-  yearOrSafraId?: number | string
+  yearOrSafraId?: number | string,
+  colors: string[] = DEFAULT_COLORS
 ): Promise<{ data: DebtTypeData[]; yearUsed: number; safraName?: string }> {
   const supabase = createClient();
 
@@ -227,13 +223,13 @@ async function getDebtTypeDistributionData(
       name: "Custeio",
       value: totalPorModalidade.CUSTEIO,
       percentual: totalPorModalidade.CUSTEIO / totalGeral,
-      color: COLORS[0],
+      color: colors[0],
     },
     {
       name: "Investimentos",
       value: totalPorModalidade.INVESTIMENTOS,
       percentual: totalPorModalidade.INVESTIMENTOS / totalGeral,
-      color: COLORS[1],
+      color: colors[1],
     },
   ].filter((item) => item.value > 0);
 
@@ -290,6 +286,16 @@ export function FinancialDebtTypeDistributionChart({
   const [requestedYearOrSafraId, setRequestedYearOrSafraId] = useState<
     number | string
   >(selectedYear || new Date().getFullYear());
+  
+  const { palette } = useOrganizationColors(organizationId);
+  
+  // Criar cores dinâmicas com base nas cores da organização
+  const colors = useMemo(() => {
+    if (palette.length >= 4) {
+      return palette.slice(0, 4);
+    }
+    return DEFAULT_COLORS;
+  }, [palette]);
 
   // Efeito para atualizar o valor solicitado quando o selectedYear mudar
   useEffect(() => {
@@ -309,7 +315,8 @@ export function FinancialDebtTypeDistributionChart({
 
         const result = await getDebtTypeDistributionData(
           organizationId,
-          requestedYearOrSafraId
+          requestedYearOrSafraId,
+          colors
         );
 
         // Usar o ano real e o nome da safra encontrados nos dados
@@ -330,7 +337,7 @@ export function FinancialDebtTypeDistributionChart({
     };
 
     loadData();
-  }, [organizationId, requestedYearOrSafraId]);
+  }, [organizationId, requestedYearOrSafraId, colors]);
 
   if (loading) {
     return (

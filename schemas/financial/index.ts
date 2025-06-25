@@ -8,6 +8,7 @@ export * from "./dividas_terras";
 export * from "./dividas_fornecedores";
 export * from "./caixa_disponibilidades";
 export * from "./outras_despesas";
+export * from "./receitas_financeiras";
 
 // Schemas anteriores - serão removidos após migração
 export * from "./bank-debts";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { TrendingUp, Building2 } from "lucide-react";
 import {
   Bar,
@@ -29,6 +29,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Loader2 } from "lucide-react";
+import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
 
 interface FinancialDebtEvolutionChartProps {
   organizationId: string;
@@ -41,16 +42,11 @@ interface DebtEvolutionData {
   total: number;
 }
 
-const chartConfig = {
-  CUSTEIO: {
-    label: "Custeio",
-    color: "#1B124E", // Tom primário da marca
-  },
-  INVESTIMENTOS: {
-    label: "Investimentos", 
-    color: "#6346C2", // Tom secundário da marca
-  },
-} satisfies ChartConfig;
+// Cores padrão caso não haja cores personalizadas
+const DEFAULT_CHART_COLORS = {
+  CUSTEIO: "#1B124E", // Tom primário da marca
+  INVESTIMENTOS: "#6346C2", // Tom secundário da marca
+};
 
 async function getDebtEvolutionData(organizationId: string): Promise<DebtEvolutionData[]> {
   const supabase = createClient();
@@ -127,6 +123,20 @@ export function FinancialDebtEvolutionChart({ organizationId }: FinancialDebtEvo
   const [data, setData] = useState<DebtEvolutionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { palette } = useOrganizationColors(organizationId);
+  
+  // Criar configuração dinâmica do gráfico com cores da organização
+  const chartConfig = useMemo(() => ({
+    CUSTEIO: {
+      label: "Custeio",
+      color: palette[0] || DEFAULT_CHART_COLORS.CUSTEIO,
+    },
+    INVESTIMENTOS: {
+      label: "Investimentos",
+      color: palette[1] || DEFAULT_CHART_COLORS.INVESTIMENTOS,
+    },
+  } satisfies ChartConfig), [palette]);
 
   useEffect(() => {
     const loadData = async () => {

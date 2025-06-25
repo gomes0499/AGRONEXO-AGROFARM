@@ -40,6 +40,7 @@ import { CardHeaderPrimary } from "@/components/organization/common/data-display
 
 import { deleteLivestock } from "@/lib/actions/production-actions";
 import { LivestockForm } from "./livestock-form";
+import { BovineForm } from "./bovine-form";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
@@ -71,7 +72,7 @@ export function LivestockList({
   const [livestock, setLivestock] = useState<Livestock[]>(initialLivestock);
   const [editingItem, setEditingItem] = useState<Livestock | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [isBovineModalOpen, setIsBovineModalOpen] = useState<boolean>(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
@@ -112,12 +113,6 @@ export function LivestockList({
   // Função para adicionar novo item à lista
   const handleAdd = (newItem: Livestock) => {
     setLivestock([...livestock, newItem]);
-    setIsCreateModalOpen(false);
-  };
-
-  // Função para abrir modal de criação
-  const handleCreate = () => {
-    setIsCreateModalOpen(true);
   };
 
   // Ordenar itens por tipo de animal e categoria
@@ -153,8 +148,13 @@ export function LivestockList({
             </CardDescription>
           </div>
         </div>
-        <Button variant="secondary" className="gap-1" size="default" onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button 
+          variant="secondary" 
+          className="gap-1" 
+          size="default"
+          onClick={() => setIsBovineModalOpen(true)}
+        >
+          <Plus className="h-4 w-4" />
           Novo Animal
         </Button>
       </CardHeader>
@@ -165,7 +165,7 @@ export function LivestockList({
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhum registro de rebanho cadastrado.</div>
             <Button 
-              onClick={handleCreate}
+              onClick={() => setIsBovineModalOpen(true)}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -284,26 +284,6 @@ export function LivestockList({
           </div>
         )}
 
-        {/* Modal de criação */}
-        <FormModal
-          open={isCreateModalOpen}
-          onOpenChange={setIsCreateModalOpen}
-          title="Novo Animal"
-          description="Adicione um novo registro de rebanho."
-          className="sm:max-w-[600px]"
-        >
-          <LivestockForm
-            properties={properties.map(p => ({
-              ...p,
-              cidade: p.cidade || undefined,
-              estado: p.estado || undefined
-            }))}
-            organizationId={organizationId}
-            onSuccess={handleAdd}
-            onCancel={() => setIsCreateModalOpen(false)}
-          />
-        </FormModal>
-
         {/* Modal de edição */}
         <FormModal
           open={isEditModalOpen}
@@ -325,6 +305,30 @@ export function LivestockList({
               onCancel={() => setIsEditModalOpen(false)}
             />
           )}
+        </FormModal>
+
+        {/* Modal de criação de bovinos */}
+        <FormModal
+          open={isBovineModalOpen}
+          onOpenChange={setIsBovineModalOpen}
+          title="Novo Bovino"
+          description="Adicione bovinos por faixa etária e sexo."
+          className="sm:max-w-[700px]"
+        >
+          <BovineForm
+            properties={properties.map(p => ({
+              ...p,
+              cidade: p.cidade || undefined,
+              estado: p.estado || undefined
+            }))}
+            organizationId={organizationId}
+            onSuccess={() => {
+              setIsBovineModalOpen(false);
+              // Trigger refresh - in a real app, you'd refetch the data
+              window.location.reload();
+            }}
+            onCancel={() => setIsBovineModalOpen(false)}
+          />
         </FormModal>
       </CardContent>
     </Card>

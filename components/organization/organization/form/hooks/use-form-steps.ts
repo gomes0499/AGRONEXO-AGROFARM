@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Building2, MapPin, Navigation } from "lucide-react";
+import { Building2, MapPin, Navigation, Users, Palette } from "lucide-react";
 import type { OrganizationFormValues } from "../schemas/organization-form-schema";
 
 export const steps = [
   { number: 1, title: "Informações Básicas", icon: Building2 },
   { number: 2, title: "Endereço", icon: MapPin },
   { number: 3, title: "Localização", icon: Navigation },
+  { number: 4, title: "Estrutura Societária", icon: Users },
+  { number: 5, title: "Branding", icon: Palette },
 ];
 
 export function useFormSteps(formValues: OrganizationFormValues) {
@@ -25,11 +27,11 @@ export function useFormSteps(formValues: OrganizationFormValues) {
       );
     }
 
-    return true; // Steps 2 e 3 são opcionais
+    return true; // Steps 2, 3, 4 e 5 são opcionais
   };
 
   const nextStep = () => {
-    if (currentStep < 3 && isStepValid(currentStep)) {
+    if (currentStep < 5 && isStepValid(currentStep)) {
       setCurrentStep(currentStep + 1);
     }
   };

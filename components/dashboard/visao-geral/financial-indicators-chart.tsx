@@ -27,31 +27,24 @@ import {
   ChartContainer,
 } from "@/components/ui/chart";
 import { ChartLegendMultirow } from "@/components/ui/chart-legend-multirow";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   getFinancialIndicatorsChart,
   getFinancialIndicatorsBenchmarks,
   type FinancialIndicatorData,
 } from "@/lib/actions/financial-indicators-actions";
+import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
 
 interface FinancialIndicatorsChartProps {
   organizationId: string;
 }
 
-const chartConfig = {
-  dividaReceita: {
-    label: "Dívida/Receita",
-    color: "#DC2626", // Tom final da paleta (vermelho)
-  },
-  dividaEbitda: {
-    label: "Dívida/EBITDA",
-    color: "#1B124E", // Tom primário da marca
-  },
-  dividaLucroLiquido: {
-    label: "Dívida/Lucro Líquido",
-    color: "#059669", // Tom de destaque (verde)
-  },
-} satisfies ChartConfig;
+// Cores padrão caso não haja cores personalizadas
+const DEFAULT_CHART_COLORS = {
+  dividaReceita: "#DC2626", // Tom final da paleta (vermelho)
+  dividaEbitda: "#1B124E", // Tom primário da marca
+  dividaLucroLiquido: "#059669", // Tom de destaque (verde)
+};
 
 export function FinancialIndicatorsChart({
   organizationId,
@@ -60,6 +53,24 @@ export function FinancialIndicatorsChart({
   const [benchmarks, setBenchmarks] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { palette } = useOrganizationColors(organizationId);
+  
+  // Criar configuração dinâmica do gráfico com cores da organização
+  const chartConfig = useMemo(() => ({
+    dividaReceita: {
+      label: "Dívida/Receita",
+      color: palette[4] || DEFAULT_CHART_COLORS.dividaReceita, // Usar uma cor mais distante na paleta
+    },
+    dividaEbitda: {
+      label: "Dívida/EBITDA",
+      color: palette[0] || DEFAULT_CHART_COLORS.dividaEbitda, // Cor primária
+    },
+    dividaLucroLiquido: {
+      label: "Dívida/Lucro Líquido",
+      color: palette[2] || DEFAULT_CHART_COLORS.dividaLucroLiquido, // Terceira cor
+    },
+  } satisfies ChartConfig), [palette]);
 
   useEffect(() => {
     async function fetchData() {

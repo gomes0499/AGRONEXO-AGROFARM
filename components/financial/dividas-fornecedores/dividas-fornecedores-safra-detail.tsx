@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { getSafras } from "@/lib/actions/production-actions";
+import { getCotacoesCambio } from "@/lib/actions/financial-actions/cotacoes-cambio-actions";
 
 interface DividasFornecedoresSafraDetailProps {
   divida: any;
@@ -26,25 +27,30 @@ export function DividasFornecedoresSafraDetail({
 }: DividasFornecedoresSafraDetailProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [safras, setSafras] = useState<any[]>([]);
+  const [cotacoes, setCotacoes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Carregar safras ao expandir
+  // Carregar safras e cotações ao expandir
   useEffect(() => {
     if (isExpanded && safras.length === 0 && !isLoading) {
       setIsLoading(true);
       
-      const loadSafras = async () => {
+      const loadData = async () => {
         try {
-          const data = await getSafras(organizacaoId);
-          setSafras(data || []);
+          const [safrasData, cotacoesData] = await Promise.all([
+            getSafras(organizacaoId),
+            getCotacoesCambio(organizacaoId)
+          ]);
+          setSafras(safrasData || []);
+          setCotacoes(cotacoesData || []);
         } catch (error) {
-          console.error("Erro ao carregar safras:", error);
+          console.error("Erro ao carregar dados:", error);
         } finally {
           setIsLoading(false);
         }
       };
       
-      loadSafras();
+      loadData();
     }
   }, [isExpanded, safras.length, organizacaoId, isLoading]);
   
@@ -82,6 +88,26 @@ export function DividasFornecedoresSafraDetail({
   const getSafraName = (safraId: string) => {
     const safra = safras.find(s => s.id === safraId);
     return safra ? safra.nome : `Safra ${safraId.substring(0, 8)}`;
+  };
+  
+  // Obter cotação de câmbio para uma safra específica
+  const getExchangeRateForSafra = (safraId: string): number => {
+    // Buscar cotação de DOLAR_FECHAMENTO para a safra
+    const cotacao = cotacoes.find(c => 
+      c.safra_id === safraId && 
+      c.tipo_moeda === "DOLAR_FECHAMENTO"
+    );
+    
+    if (cotacao && cotacao.cotacoes_por_ano) {
+      // Se tem cotações por ano, pegar a cotação para o safraId
+      const cotacoesPorAno = typeof cotacao.cotacoes_por_ano === 'string' 
+        ? JSON.parse(cotacao.cotacoes_por_ano)
+        : cotacao.cotacoes_por_ano;
+        
+      return cotacoesPorAno[safraId] || cotacao.cotacao_atual || 5.7;
+    }
+    
+    return cotacao?.cotacao_atual || 5.7; // Default 5.7 como no CSV
   };
   
   return (
@@ -130,12 +156,19 @@ export function DividasFornecedoresSafraDetail({
                     <TableRow key={safraId}>
                       <TableCell className="font-medium">{getSafraName(safraId)}</TableCell>
                       <TableCell className="text-right">
-                        <span className="font-medium text-sm">
-                          {formatGenericCurrency(Number(valor), divida.moeda || "BRL")}
-                        </span>
-                        <span className="ml-1 text-xs text-muted-foreground">
-                          {divida.moeda || "BRL"}
-                        </span>
+                        <div>
+                          <div className="font-medium text-sm">
+                            {formatGenericCurrency(Number(valor), divida.moeda || "BRL")}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {divida.moeda === "USD" 
+                              ? formatGenericCurrency(Number(valor) * getExchangeRateForSafra(safraId), "BRL")
+                              : divida.moeda === "BRL"
+                              ? formatGenericCurrency(Number(valor) / getExchangeRateForSafra(safraId), "USD")
+                              : null
+                            }
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         {(total as number) > 0 ? `${((Number(valor) / (total as number)) * 100).toFixed(1)}%` : "0%"}

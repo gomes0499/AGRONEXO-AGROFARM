@@ -42,12 +42,11 @@ export function UnifiedConfig({
             icon={<Wheat className="h-5 w-5" />}
             description="Configuração das culturas plantadas na organização"
             action={
-              <Button 
+              <Button
                 className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
                 onClick={() => culturesRef.current?.handleCreate()}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Cultura
+                <Plus className="h-4 w-4" />
               </Button>
             }
             className="mb-4"
@@ -68,7 +67,7 @@ export function UnifiedConfig({
             icon={<Settings className="h-5 w-5" />}
             description="Configuração dos sistemas de cultivo (sequeiro, irrigado, etc.)"
             action={
-              <Button 
+              <Button
                 className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
                 onClick={() => systemsRef.current?.handleCreate()}
               >
@@ -94,7 +93,7 @@ export function UnifiedConfig({
             icon={<RotateCcw className="h-5 w-5" />}
             description="Configuração dos ciclos de plantio (1ª safra, 2ª safra, etc.)"
             action={
-              <Button 
+              <Button
                 className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
                 onClick={() => cyclesRef.current?.handleCreate()}
               >
@@ -105,9 +104,9 @@ export function UnifiedConfig({
             className="mb-4"
           />
           <CardContent>
-            <CyclesTab 
+            <CyclesTab
               ref={cyclesRef}
-              initialCycles={cycles} 
+              initialCycles={cycles}
               organizationId={organizationId}
             />
           </CardContent>
@@ -121,7 +120,7 @@ export function UnifiedConfig({
           icon={<Calendar className="h-5 w-5" />}
           description="Configuração dos períodos de safras (2023/24, 2024/25, etc.)"
           action={
-            <Button 
+            <Button
               className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
               onClick={() => harvestsRef.current?.handleCreate()}
             >

@@ -29,11 +29,13 @@ import { DividasBancariasSafraDetail } from "./dividas-bancarias-safra-detail";
 interface DividasBancariasListingProps {
   organization: { id: string; nome: string };
   initialDividasBancarias: any[];
+  safras?: any[];
 }
 
 export function DividasBancariasListing({
   organization,
   initialDividasBancarias,
+  safras = [],
 }: DividasBancariasListingProps) {
   const [dividasBancarias, setDividasBancarias] = useState<any[]>(
     initialDividasBancarias.map(divida => ({
@@ -99,22 +101,56 @@ export function DividasBancariasListing({
   
   // Function to calculate total from valores_por_safra
   const calculateTotal = (divida: any) => {
+    // Se já tem o total calculado, usar ele
+    if (divida.total !== undefined) {
+      return divida.total;
+    }
+    
     let total = 0;
     
-    if (divida.valores_por_safra) {
-      if (typeof divida.valores_por_safra === 'string') {
+    // Tentar valores_por_safra primeiro (compatibilidade), depois valores_por_ano
+    const valores = divida.valores_por_safra || divida.valores_por_ano;
+    
+    if (valores) {
+      if (typeof valores === 'string') {
         try {
-          const parsedValues = JSON.parse(divida.valores_por_safra);
+          const parsedValues = JSON.parse(valores);
           total = Object.values(parsedValues).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
         } catch (e) {
-          console.error("Erro ao processar valores_por_safra:", e);
+          console.error("Erro ao processar valores:", e);
         }
       } else {
-        total = Object.values(divida.valores_por_safra).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
+        total = Object.values(valores).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
       }
     }
     
     return total;
+  };
+
+  // Get exchange rate for a divida
+  const getExchangeRate = (divida: any) => {
+    // First check if there's a specific contratacao rate
+    if (divida.taxa_cambio_contratacao) {
+      return divida.taxa_cambio_contratacao;
+    }
+    
+    // Then check if there's a safra with exchange rate
+    if (divida.safra?.taxa_cambio_usd) {
+      return divida.safra.taxa_cambio_usd;
+    }
+    
+    // Try to find safra from the values_por_safra keys
+    if (divida.valores_por_safra && safras.length > 0) {
+      const safraIds = Object.keys(divida.valores_por_safra);
+      const firstSafraId = safraIds[0];
+      const safra = safras.find(s => s.id === firstSafraId);
+      if (safra?.taxa_cambio_usd) {
+        return safra.taxa_cambio_usd;
+      }
+    }
+    
+    // Default exchange rate
+    return 5.00;
   };
 
   return (
@@ -239,15 +275,17 @@ export function DividasBancariasListing({
                             ) : "-"}
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium text-sm">
-                              {formatGenericCurrency(
-                                calculateTotal(divida),
-                                divida.moeda || "BRL"
-                              )}
-                            </span>
-                            <span className="ml-1 text-xs text-muted-foreground">
-                              {divida.moeda || "BRL"}
-                            </span>
+                            <div className="text-right">
+                              <div className="font-medium text-sm">
+                                {formatGenericCurrency(calculateTotal(divida), divida.moeda || "BRL")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {divida.moeda === "USD" 
+                                  ? formatGenericCurrency(calculateTotal(divida) * getExchangeRate(divida), "BRL")
+                                  : formatGenericCurrency(calculateTotal(divida) / getExchangeRate(divida), "USD")
+                                }
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -282,6 +320,46 @@ export function DividasBancariasListing({
                       </React.Fragment>
                     );
                   })}
+                  
+                  {/* Total row */}
+                  {paginatedData.length > 0 && (
+                    <TableRow className="bg-muted/20 font-medium">
+                      <TableCell colSpan={5} className="text-right">
+                        Total
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-right">
+                          <div className="font-medium text-sm">
+                            {formatGenericCurrency(
+                              paginatedData.reduce((sum, divida) => {
+                                const total = calculateTotal(divida);
+                                // Converter para BRL se necessário
+                                if (divida.moeda === "USD") {
+                                  return sum + (total * getExchangeRate(divida));
+                                }
+                                return sum + total;
+                              }, 0), 
+                              "BRL"
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatGenericCurrency(
+                              paginatedData.reduce((sum, divida) => {
+                                const total = calculateTotal(divida);
+                                // Converter para USD se necessário
+                                if (divida.moeda === "BRL") {
+                                  return sum + (total / getExchangeRate(divida));
+                                }
+                                return sum + total;
+                              }, 0), 
+                              "USD"
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
               
@@ -297,6 +375,7 @@ export function DividasBancariasListing({
               </div>
             </div>
           )}
+          
         </div>
       </CardContent>
 

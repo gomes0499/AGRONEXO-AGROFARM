@@ -39,8 +39,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Wrench, MoreHorizontal, Edit2Icon, Trash2 } from "lucide-react";
+import { Plus, Wrench, MoreHorizontal, Edit2Icon, Trash2, Upload } from "lucide-react";
 import { EquipmentForm } from "./equipment-form";
+import { EquipmentImportDialog } from "./equipment-import-dialog";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Equipment } from "@/schemas/patrimonio";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
@@ -64,6 +65,7 @@ export function EquipmentListing({
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -141,9 +143,14 @@ export function EquipmentListing({
     }
   };
 
-  const totalValue = equipments.reduce((sum, equipment) => {
+  const handleImportSuccess = (importedEquipments: Equipment[]) => {
+    setEquipments([...importedEquipments, ...equipments]);
+    setIsImportModalOpen(false);
+  };
+
+  const totalValue = Array.isArray(equipments) ? equipments.reduce((sum, equipment) => {
     return sum + (equipment?.valor_total || 0);
-  }, 0);
+  }, 0) : 0;
 
   return (
     <Card className="shadow-sm border-muted/80">
@@ -152,13 +159,23 @@ export function EquipmentListing({
         title="Máquinas e Equipamentos"
         description="Controle patrimonial de máquinas, equipamentos e implementos"
         action={
-          <Button
-            onClick={handleCreate}
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Equipamento
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsImportModalOpen(true)}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Excel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Equipamento
+            </Button>
+          </div>
         }
         className="mb-4"
       />
@@ -184,13 +201,22 @@ export function EquipmentListing({
         ) : equipments.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhum equipamento cadastrado.</div>
-            <Button 
-              onClick={handleCreate}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Primeiro Equipamento
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button 
+                variant="outline"
+                onClick={() => setIsImportModalOpen(true)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importar Excel
+              </Button>
+              <Button 
+                onClick={handleCreate}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Primeiro Equipamento
+              </Button>
+            </div>
           </div>
         ) : filteredCount === 0 ? (
           <div className="text-center py-10 text-muted-foreground space-y-4">
@@ -215,7 +241,6 @@ export function EquipmentListing({
                     <TableHead className="font-semibold text-primary-foreground">Quantidade</TableHead>
                     <TableHead className="font-semibold text-primary-foreground">Valor Unitário</TableHead>
                     <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Reposição/SR</TableHead>
                     <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -241,7 +266,6 @@ export function EquipmentListing({
                     <TableCell>{equipment.quantidade || 1}</TableCell>
                     <TableCell>{formatCurrency(equipment.valor_unitario || 0)}</TableCell>
                     <TableCell>{formatCurrency(equipment.valor_total || 0)}</TableCell>
-                    <TableCell>{formatCurrency(equipment.reposicao_sr || 0)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -292,7 +316,7 @@ export function EquipmentListing({
       </CardContent>
 
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-4xl w-[90vw]">
           <DialogHeader>
             <DialogTitle>Novo Equipamento</DialogTitle>
             <DialogDescription>
@@ -308,7 +332,7 @@ export function EquipmentListing({
       </Dialog>
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-4xl w-[90vw]">
           <DialogHeader>
             <DialogTitle>Editar Equipamento</DialogTitle>
             <DialogDescription>
@@ -346,6 +370,13 @@ export function EquipmentListing({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EquipmentImportDialog
+        isOpen={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        organizationId={organizationId}
+        onSuccess={handleImportSuccess}
+      />
     </Card>
   );
 }

@@ -527,16 +527,16 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
       </div>
 
       <style jsx global>{`
-        .ticker-container {
+        .market-ticker-container {
           width: 100%;
           position: relative;
           overflow: hidden;
           height: 2.5rem;
-          background-color: hsl(var(--background));
-          border-left: 1px solid hsl(var(--border));
+          background-color: hsl(var(--primary));
+          border-left: 1px solid hsl(var(--primary-foreground) / 0.2);
         }
 
-        .ticker-wrapper {
+        .market-ticker-wrapper {
           position: absolute;
           top: 0;
           left: 0;
@@ -546,15 +546,15 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           overflow: hidden;
         }
 
-        .ticker-track {
+        .market-ticker-track {
           position: absolute;
           height: 100%;
           display: inline-flex;
-          animation: tickerScroll 60s linear infinite;
+          animation: marketTickerScroll 60s linear infinite;
           will-change: transform;
         }
 
-        @keyframes tickerScroll {
+        @keyframes marketTickerScroll {
           0% {
             transform: translateX(0%);
           }
@@ -563,27 +563,27 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           }
         }
 
-        .ticker-item {
+        .market-ticker-item {
           display: flex;
           align-items: center;
           height: 100%;
           padding: 0 0.75rem;
-          border-right: 1px solid hsl(var(--border));
+          border-right: 1px solid hsl(var(--primary-foreground) / 0.2);
           white-space: nowrap;
           font-size: 0.875rem;
         }
 
-        .ticker-divider {
+        .market-ticker-divider {
           position: absolute;
           right: 0;
           top: 0;
           bottom: 0;
           width: 1px;
-          background-color: hsl(var(--border));
+          background-color: hsl(var(--primary-foreground) / 0.2);
           z-index: 10;
         }
 
-        .ticker-fade {
+        .market-ticker-fade {
           position: absolute;
           right: 0;
           top: 0;
@@ -592,44 +592,48 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           background: linear-gradient(
             to right,
             transparent,
-            hsl(var(--background))
+            hsl(var(--primary))
           );
           z-index: 5;
         }
 
-        .ticker-prefix {
-          color: hsl(var(--muted-foreground));
+        .market-ticker-prefix {
+          color: hsl(var(--primary-foreground) / 0.8);
           margin-right: 0.5rem;
         }
 
-        .ticker-value {
+        .market-ticker-value {
           font-weight: 600;
           margin-right: 0.25rem;
-          color: hsl(var(--foreground));
+          color: hsl(var(--primary-foreground));
         }
 
-        .ticker-variation {
+        .market-ticker-variation {
           font-size: 0.75rem;
           font-weight: 500;
         }
 
-        .value-positive {
-          color: hsl(var(--success, 142 76% 36%));
+        .market-value-positive {
+          color: hsl(142 76% 70%); /* Verde mais claro para contraste com primary */
         }
 
-        .value-negative {
-          color: rgb(239, 68, 68); /* Fallback red */
+        .market-value-negative {
+          color: hsl(0 84% 70%); /* Vermelho mais claro para contraste com primary */
         }
 
-        html.dark .value-negative {
-          color: rgb(248, 113, 113); /* Darker fallback red */
+        html.dark .market-value-positive {
+          color: hsl(142 76% 70%);
+        }
+
+        html.dark .market-value-negative {
+          color: hsl(0 84% 70%);
         }
       `}</style>
 
       {/* Container with fixed width and scrolling content */}
-      <div className="ticker-container">
-        <div className="ticker-wrapper">
-          <div className="ticker-track">
+      <div className="market-ticker-container">
+        <div className="market-ticker-wrapper">
+          <div className="market-ticker-track">
             {/* Original items */}
             {tickerData.map((item, index) => {
               const variation = calculateVariation(
@@ -638,18 +642,18 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
               );
               const isPositive = variation >= 0;
               const variationClassName = isPositive
-                ? "value-positive"
-                : "value-negative";
+                ? "market-value-positive"
+                : "market-value-negative";
               const valueWithUnit =
                 item.unit === "R$"
                   ? `R$ ${item.value.toFixed(1)}`
                   : `${item.value.toFixed(2)}${item.unit}`;
 
               return (
-                <div key={`${item.code}-${index}`} className="ticker-item">
-                  <span className="ticker-prefix">{item.name}</span>
-                  <span className="ticker-value">{valueWithUnit}</span>
-                  <span className={`ticker-variation ${variationClassName}`}>
+                <div key={`${item.code}-${index}`} className="market-ticker-item">
+                  <span className="market-ticker-prefix">{item.name}</span>
+                  <span className="market-ticker-value">{valueWithUnit}</span>
+                  <span className={`market-ticker-variation ${variationClassName}`}>
                     {isPositive ? "+" : ""}
                     {variation.toFixed(2)}%
                   </span>
@@ -665,18 +669,18 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
               );
               const isPositive = variation >= 0;
               const variationClassName = isPositive
-                ? "value-positive"
-                : "value-negative";
+                ? "market-value-positive"
+                : "market-value-negative";
               const valueWithUnit =
                 item.unit === "R$"
                   ? `R$ ${item.value.toFixed(1)}`
                   : `${item.value.toFixed(2)}${item.unit}`;
 
               return (
-                <div key={`${item.code}-dup-${index}`} className="ticker-item">
-                  <span className="ticker-prefix">{item.name}</span>
-                  <span className="ticker-value">{valueWithUnit}</span>
-                  <span className={`ticker-variation ${variationClassName}`}>
+                <div key={`${item.code}-dup-${index}`} className="market-ticker-item">
+                  <span className="market-ticker-prefix">{item.name}</span>
+                  <span className="market-ticker-value">{valueWithUnit}</span>
+                  <span className={`market-ticker-variation ${variationClassName}`}>
                     {isPositive ? "+" : ""}
                     {variation.toFixed(2)}%
                   </span>
@@ -692,18 +696,18 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
               );
               const isPositive = variation >= 0;
               const variationClassName = isPositive
-                ? "value-positive"
-                : "value-negative";
+                ? "market-value-positive"
+                : "market-value-negative";
               const valueWithUnit =
                 item.unit === "R$"
                   ? `R$ ${item.value.toFixed(1)}`
                   : `${item.value.toFixed(2)}${item.unit}`;
 
               return (
-                <div key={`${item.code}-dup2-${index}`} className="ticker-item">
-                  <span className="ticker-prefix">{item.name}</span>
-                  <span className="ticker-value">{valueWithUnit}</span>
-                  <span className={`ticker-variation ${variationClassName}`}>
+                <div key={`${item.code}-dup2-${index}`} className="market-ticker-item">
+                  <span className="market-ticker-prefix">{item.name}</span>
+                  <span className="market-ticker-value">{valueWithUnit}</span>
+                  <span className={`market-ticker-variation ${variationClassName}`}>
                     {isPositive ? "+" : ""}
                     {variation.toFixed(2)}%
                   </span>
@@ -714,8 +718,8 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
         </div>
 
         {/* Fade effect and divider at the right edge */}
-        <div className="ticker-fade"></div>
-        <div className="ticker-divider"></div>
+        <div className="market-ticker-fade"></div>
+        <div className="market-ticker-divider"></div>
       </div>
     </div>
   );

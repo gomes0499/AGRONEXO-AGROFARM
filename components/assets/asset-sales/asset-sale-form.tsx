@@ -42,6 +42,7 @@ interface AssetSaleFormProps {
 }
 
 const ASSET_CATEGORIES = [
+  { value: "PROPRIEDADE_RURAL", label: "Propriedade Rural (Área)" },
   { value: "EQUIPAMENTO", label: "Equipamento" },
   {
     value: "TRATOR_COLHEITADEIRA_PULVERIZADOR",

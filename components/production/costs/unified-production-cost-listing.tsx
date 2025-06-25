@@ -274,8 +274,11 @@ export function UnifiedProductionCostListing({
                     className={index % 2 === 0 ? "bg-background" : "bg-muted/25"}
                   >
                     <td className="p-3 border-r">
-                      <Badge variant="default" className="text-xs font-medium">
-                        {cost.propriedades?.nome || "Geral"}
+                      <Badge 
+                        variant={cost.propriedade_id ? "default" : "secondary"} 
+                        className="text-xs font-medium"
+                      >
+                        {cost.propriedades?.nome || "Todas as Propriedades"}
                       </Badge>
                     </td>
                     <td className="p-3 border-r">
@@ -320,7 +323,7 @@ export function UnifiedProductionCostListing({
                               <div className="flex items-center gap-2 mb-2">
                                 <h4 className="font-medium text-sm">Editar Custos de Produção</h4>
                                 <Badge variant="outline" className="ml-auto">
-                                  {cost.propriedades?.nome || "Geral"} • {cost.culturas?.nome} • {cost.sistemas?.nome}
+                                  {cost.propriedades?.nome || "Todas as Propriedades"} • {cost.culturas?.nome} • {cost.sistemas?.nome}
                                 </Badge>
                                 {getCategoryBadge(cost.categoria)}
                               </div>

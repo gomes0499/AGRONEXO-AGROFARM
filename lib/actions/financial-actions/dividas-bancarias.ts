@@ -23,12 +23,14 @@ export async function getDividasBancarias(organizacaoId: string) {
     
     // Calcular o total para cada item e adicionar campos para compatibilidade
     const dataWithTotal = (data || []).map((item) => {
-      const valores = item.valores_por_ano || {};
+      // Os valores estão em fluxo_pagamento_anual, não valores_por_ano
+      const valores = item.fluxo_pagamento_anual || item.valores_por_ano || {};
       const total = Object.values(valores).reduce((sum: number, value) => sum + (Number(value) || 0), 0);
       return {
         ...item,
         nome: item.instituicao_bancaria, // Adicionar campo nome para compatibilidade
-        valores_por_safra: item.valores_por_ano, // Adicionar campo valores_por_safra para compatibilidade
+        valores_por_safra: item.fluxo_pagamento_anual || item.valores_por_ano || {}, // Usar fluxo_pagamento_anual
+        valores_por_ano: item.fluxo_pagamento_anual || item.valores_por_ano || {}, // Manter ambos para compatibilidade
         total
       };
     });
@@ -59,7 +61,8 @@ export async function getDividaBancaria(id: string) {
   return {
     ...data,
     nome: data.instituicao_bancaria,
-    valores_por_safra: data.valores_por_ano
+    valores_por_safra: data.fluxo_pagamento_anual || data.valores_por_ano || {},
+    valores_por_ano: data.fluxo_pagamento_anual || data.valores_por_ano || {}
   };
 }
 
@@ -78,7 +81,7 @@ export async function createDividaBancaria(
     ano_contratacao: new Date().getFullYear(), // Ano atual
     indexador: values.indexador || 'CDI',
     taxa_real: values.taxa_real || 6.5,
-    valores_por_ano: values.valores_por_safra || {}, // Usar valores_por_safra como valores_por_ano
+    fluxo_pagamento_anual: values.valores_por_safra || {}, // Usar campo correto fluxo_pagamento_anual
     moeda: values.moeda || "BRL",
   };
   
@@ -116,7 +119,7 @@ export async function updateDividaBancaria(
     modalidade: values.categoria || 'CUSTEIO',
     indexador: values.indexador || 'CDI',
     taxa_real: values.taxa_real || 6.5,
-    valores_por_ano: values.valores_por_safra || {}, // Usar valores_por_safra como valores_por_ano
+    fluxo_pagamento_anual: values.valores_por_safra || {}, // Usar campo correto fluxo_pagamento_anual
     moeda: values.moeda || "BRL",
   };
   

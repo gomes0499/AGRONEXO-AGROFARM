@@ -14,12 +14,12 @@ export function WeatherTickerBar() {
   const [selectedCity, setSelectedCity] = useState(CITIES[0].value);
 
   return (
-    <div className="w-full border-b bg-muted/30">
+    <div className="w-full border-b bg-background">
       <div className="container flex items-center h-10">
         <div className="flex items-center space-x-2 text-sm text-muted-foreground font-medium pr-4 border-r">
           <Cloud className="h-4 w-4 ml-4 text-primary" />
           <Select value={selectedCity} onValueChange={setSelectedCity}>
-            <SelectTrigger className="w-[180px] h-8">
+            <SelectTrigger className="w-[180px] h-8 bg-muted/40">
               {CITIES.find((city) => city.value === selectedCity)?.name ||
                 selectedCity}
             </SelectTrigger>

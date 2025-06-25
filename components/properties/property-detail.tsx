@@ -1,11 +1,13 @@
 "use client";
 
-import type { Property } from "@/schemas/properties";
+import type { Property, PropertyOwner } from "@/schemas/properties";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatArea } from "@/lib/utils/formatters";
+import { formatCurrency, formatArea, formatCPF, formatCNPJ } from "@/lib/utils/formatters";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useEffect, useState } from "react";
+import { getPropertyOwners } from "@/lib/actions/property-actions";
 import {
   Building2,
   User,
@@ -18,6 +20,7 @@ import {
   CheckCircle,
   XCircle,
   Calendar as CalendarIcon,
+  Users,
 } from "lucide-react";
 import { InfoField } from "@/components/organization/common/data-display/info-field";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
@@ -28,6 +31,25 @@ interface PropertyDetailProps {
 }
 
 export function PropertyDetail({ property }: PropertyDetailProps) {
+  const [owners, setOwners] = useState<PropertyOwner[]>([]);
+  const [loadingOwners, setLoadingOwners] = useState(true);
+
+  useEffect(() => {
+    async function loadOwners() {
+      try {
+        const ownersData = await getPropertyOwners(property.id!);
+        setOwners(ownersData);
+      } catch (error) {
+        console.error("Erro ao carregar proprietários:", error);
+      } finally {
+        setLoadingOwners(false);
+      }
+    }
+    
+    if (property.id) {
+      loadOwners();
+    }
+  }, [property.id]);
   // Função para renderizar o tipo de propriedade
   const renderTypeField = () => {
     const typeInfo = {
@@ -161,11 +183,14 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
               value={property.nome}
             />
             
-            <InfoField
-              icon={<User className="h-4 w-4" />}
-              label="Proprietário"
-              value={property.proprietario}
-            />
+            {/* Mostrar proprietário único se não houver múltiplos proprietários */}
+            {owners.length === 0 && property.proprietario && (
+              <InfoField
+                icon={<User className="h-4 w-4" />}
+                label="Proprietário"
+                value={property.proprietario}
+              />
+            )}
 
             {renderTypeField()}
 
@@ -237,6 +262,41 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Card de Proprietários */}
+      {owners.length > 0 && (
+        <Card className="shadow-sm border-muted/80">
+          <CardHeaderPrimary 
+            icon={<Users className="h-4 w-4" />}
+            title="Proprietários"
+            description="Pessoas físicas e jurídicas proprietárias desta propriedade"
+          />
+          <CardContent className="mt-4">
+            <div className="space-y-3">
+              {owners.map((owner, index) => (
+                <div key={owner.id || index} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-medium">{owner.nome}</p>
+                    {owner.cpf_cnpj && (
+                      <p className="text-sm text-muted-foreground">
+                        {owner.tipo_pessoa === 'J' ? 'CNPJ' : 'CPF'}: {' '}
+                        {owner.tipo_pessoa === 'J' 
+                          ? formatCNPJ(owner.cpf_cnpj) 
+                          : formatCPF(owner.cpf_cnpj)}
+                      </p>
+                    )}
+                  </div>
+                  {owner.percentual_participacao !== null && owner.percentual_participacao !== undefined && (
+                    <Badge variant="secondary" className="ml-4">
+                      {owner.percentual_participacao}%
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Card do Mapa SICAR */}
       <PropertyMap property={property} />

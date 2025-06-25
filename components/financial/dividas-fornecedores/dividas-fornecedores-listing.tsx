@@ -26,6 +26,8 @@ import { CurrencyBadge } from "../common/currency-badge";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { DividasFornecedoresSafraDetail } from "./dividas-fornecedores-safra-detail";
+import { useEffect } from "react";
+import { getCotacoesCambio } from "@/lib/actions/financial-actions/cotacoes-cambio-actions";
 
 interface DividasFornecedoresListingProps {
   organization: { id: string; nome: string };
@@ -42,6 +44,7 @@ export function DividasFornecedoresListing({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDivida, setEditingDivida] =
     useState<DividasFornecedoresListItem | null>(null);
+  const [exchangeRate, setExchangeRate] = useState(5.7); // Taxa de câmbio padrão
 
   const {
     filteredItems: filteredDividas,
@@ -63,6 +66,22 @@ export function DividasFornecedoresListing({
     categoriaField: "categoria",
     moedaField: "moeda",
   });
+
+  // Carregar taxa de câmbio
+  useEffect(() => {
+    const loadExchangeRate = async () => {
+      try {
+        const cotacoes = await getCotacoesCambio(organization.id);
+        const dolarFechamento = cotacoes.find(c => c.tipo_moeda === "DOLAR_FECHAMENTO");
+        if (dolarFechamento) {
+          setExchangeRate(dolarFechamento.cotacao_atual || 5.7);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar taxa de câmbio:", error);
+      }
+    };
+    loadExchangeRate();
+  }, [organization.id]);
 
   // Adicionar nova dívida
   const handleAddDivida = (newDivida: DividasFornecedoresListItem) => {
@@ -260,15 +279,22 @@ export function DividasFornecedoresListing({
                           <TableCell
                             onClick={() => toggleExpanded(divida.id || "")}
                           >
-                            <span className="font-medium text-sm">
-                              {formatGenericCurrency(
-                                calculateTotal(divida),
-                                divida.moeda || "BRL"
-                              )}
-                            </span>
-                            <span className="ml-1 text-xs text-muted-foreground">
-                              {divida.moeda || "BRL"}
-                            </span>
+                            <div className="text-right">
+                              <div className="font-medium text-sm">
+                                {formatGenericCurrency(
+                                  calculateTotal(divida),
+                                  divida.moeda || "BRL"
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {divida.moeda === "USD" 
+                                  ? formatGenericCurrency(calculateTotal(divida) * exchangeRate, "BRL")
+                                  : divida.moeda === "BRL"
+                                  ? formatGenericCurrency(calculateTotal(divida) / exchangeRate, "USD")
+                                  : null
+                                }
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">

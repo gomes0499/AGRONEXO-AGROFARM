@@ -116,20 +116,8 @@ export async function getCultureProjections(organizationId: string): Promise<Con
     console.error("Erro ao buscar preços de commodities:", error);
   }
 
-  // Buscar vendas de sementes
-  const { data: vendasSementes, error: vendasError } = await supabase
-    .from("vendas_sementes")
-    .select(`
-      id,
-      safra_id,
-      cultura_id,
-      receita_operacional_bruta,
-      despesas_gerais,
-      culturas!inner(id, nome)
-    `)
-    .eq("organizacao_id", organizationId);
-
-  if (vendasError) throw vendasError;
+  // Vendas de sementes removidas - módulo comercial descontinuado
+  const vendasSementes: any[] = [];
 
 
 
@@ -309,60 +297,8 @@ export async function getCultureProjections(organizationId: string): Promise<Con
     });
   });
 
-  // Processar vendas de sementes
+  // Vendas de sementes removidas - módulo comercial descontinuado
   const sementesProjections: CultureProjectionData[] = [];
-  const sementesMap = new Map<string, Map<string, { receita: number; custo: number }>>();
-
-  vendasSementes?.forEach(venda => {
-    const culturas = venda.culturas as unknown as { id: string; nome: string };
-    const culturaNome = culturas.nome;
-    const safraId = venda.safra_id;
-    
-    if (!sementesMap.has(culturaNome)) {
-      sementesMap.set(culturaNome, new Map());
-    }
-    
-    const culturaMap = sementesMap.get(culturaNome)!;
-    culturaMap.set(safraId, {
-      receita: venda.receita_operacional_bruta || 0,
-      custo: venda.despesas_gerais || 0
-    });
-  });
-
-  // Criar projeções de sementes
-  sementesMap.forEach((safraData, culturaNome) => {
-    const projectionsByYear: Record<string, any> = {};
-    
-    safras.forEach(safra => {
-      const safraId = safra.id;
-      const anoNome = safra.nome;
-      const data = safraData.get(safraId);
-      
-      const receita = data?.receita || 0;
-      const custo = data?.custo || 0;
-      const ebitda = receita - custo;
-      const ebitdaPercent = receita > 0 ? (ebitda / receita) * 100 : 0;
-
-      anosSet.add(anoNome);
-
-      projectionsByYear[anoNome] = {
-        receita,
-        custo_total: custo,
-        ebitda,
-        ebitda_percent: ebitdaPercent,
-      };
-    });
-
-    sementesProjections.push({
-      cultura_nome: culturaNome,
-      sistema_nome: "",
-      ciclo_nome: "",
-      combination_title: `SEMENTE DE ${culturaNome.toUpperCase()}`,
-      section_title: culturaNome.toUpperCase(),
-      tipo: 'sementes',
-      projections_by_year: projectionsByYear,
-    });
-  });
 
   // Calcular consolidação total
   const consolidadoProjections: Record<string, any> = {};
@@ -383,14 +319,7 @@ export async function getCultureProjections(organizationId: string): Promise<Con
       }
     });
 
-    // Somar sementes
-    sementesProjections.forEach(projection => {
-      const data = projection.projections_by_year[ano];
-      if (data) {
-        receitaTotal += data.receita || 0;
-        custoTotal += data.custo_total || 0;
-      }
-    });
+    // Vendas de sementes removidas - módulo comercial descontinuado
 
     const ebitda = receitaTotal - custoTotal;
     const ebitdaPercent = receitaTotal > 0 ? (ebitda / receitaTotal) * 100 : 0;

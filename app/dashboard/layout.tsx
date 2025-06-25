@@ -7,7 +7,6 @@ import { UserProvider } from "@/components/auth/user-provider";
 import { OrganizationProvider } from "@/components/auth/organization-provider";
 import { DashboardProvider } from "./dashboard-provider";
 import { DashboardTickers } from "@/components/dashboard/dashboard-tickers";
-import { getPrices } from "@/lib/actions/commercial-actions";
 
 /**
  * Layout para todas as páginas do dashboard
@@ -90,14 +89,8 @@ export default async function DashboardLayout({
     organizacao: userData?.organizacao || null,
   };
 
-  // Busca os preços mais recentes para o Market Ticker
+  // Preços removidos - módulo comercial descontinuado
   let latestPrice = null;
-  if (organizationId) {
-    const pricesResponse = await getPrices(organizationId);
-    latestPrice = Array.isArray(pricesResponse) && pricesResponse.length > 0
-      ? pricesResponse[0]
-      : null;
-  }
 
   // Usar o componente wrapper do lado do cliente para evitar problemas com os Providers
   const DashboardProvidersWrapper = React.lazy(() => import('@/components/dashboard/dashboard-providers-wrapper'));

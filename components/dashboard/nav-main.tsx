@@ -98,7 +98,7 @@ export function NavMain({
             <StructuredReportGenerator
               title="Gerar Relatório"
               organizationName={organizationName}
-              className="w-full justify-start bg-muted shadow-none text-foreground hover:bg-muted/90"
+              className="w-full justify-start bg-muted/50 shadow-none text-foreground hover:bg-muted/90"
             />
           </SidebarMenuItem>
         </SidebarMenu>

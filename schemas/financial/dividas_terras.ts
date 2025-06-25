@@ -5,6 +5,7 @@ export const dividasTerrasSchema = z.object({
   organizacao_id: z.string().uuid().optional(),
   nome: z.string().min(1, "Nome é obrigatório"),
   propriedade_id: z.string().uuid().optional(),
+  moeda: z.enum(["BRL", "USD"]).default("BRL"),
   valores_por_safra: z.record(z.string(), z.number().nonnegative()).optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
@@ -26,6 +27,7 @@ export const dividasTerrasListItemSchema = z.object({
   nome: z.string(),
   propriedade_nome: z.string().optional(),
   propriedade_id: z.string().uuid().optional(),
+  moeda: z.enum(["BRL", "USD"]).default("BRL"),
   valores_por_safra: z.record(z.string(), z.number().nonnegative()).optional(),
   total: z.number().optional(),
 });

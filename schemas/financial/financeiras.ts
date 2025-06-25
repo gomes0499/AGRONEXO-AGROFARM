@@ -20,6 +20,7 @@ export const financeirasSchema = z.object({
   safra_id: z.string().uuid(),
   nome: z.string().min(1, "Nome é obrigatório"),
   categoria: financeirasCategoriasEnum,
+  moeda: z.enum(["BRL", "USD"]).default("BRL"),
   valores_por_safra: safraValuesSchema.or(z.string()).optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
@@ -42,6 +43,7 @@ export const financeirasListItemSchema = financeirasSchema.pick({
   id: true,
   nome: true,
   categoria: true,
+  moeda: true,
   valores_por_safra: true,
 });
 

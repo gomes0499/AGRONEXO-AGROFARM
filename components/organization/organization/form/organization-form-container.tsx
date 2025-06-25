@@ -15,6 +15,8 @@ import { useCepLookup } from "./hooks/use-cep-lookup";
 import { BasicInfoStep } from "./steps/basic-info-step";
 import { AddressStep } from "./steps/address-step";
 import { LocationStep } from "./steps/location-step";
+import { PartnershipStep } from "./steps/partnership-step";
+import { BrandingStep } from "./steps/branding-step";
 import { StepProgress } from "./components/step-progress";
 import { StepNavigation } from "./components/step-navigation";
 import type { OrganizationFormProps } from "./schemas/organization-form-schema";
@@ -25,6 +27,7 @@ export function OrganizationFormContainer({
   open,
   onClose,
   onOpenChange,
+  onSuccess,
   organizationData,
   mode = "create",
 }: OrganizationFormProps) {
@@ -48,6 +51,7 @@ export function OrganizationFormContainer({
     organizationData,
     mode,
     onClose,
+    onSuccess,
   });
 
   const formValues = form.watch();
@@ -104,6 +108,10 @@ export function OrganizationFormContainer({
         );
       case 3:
         return <LocationStep form={form} />;
+      case 4:
+        return <PartnershipStep form={form} />;
+      case 5:
+        return <BrandingStep form={form} />;
       default:
         return null;
     }
@@ -111,10 +119,7 @@ export function OrganizationFormContainer({
 
   return (
     <Sheet open={isDrawerOpen} onOpenChange={handleClose}>
-      <SheetContent
-        side="right"
-        className="w-[90vw] sm:w-[800px] lg:w-[1000px] xl:w-[1200px] overflow-hidden flex flex-col"
-      >
+      <SheetContent side="right" className="overflow-hidden flex flex-col">
         <SheetHeader className="space-y-3">
           <SheetTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
@@ -132,7 +137,13 @@ export function OrganizationFormContainer({
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(handleFormSubmit)}
+            onSubmit={(e) => {
+              e.preventDefault();
+              // Só submeter se estiver no último step
+              if (currentStep === steps.length) {
+                form.handleSubmit(handleFormSubmit)(e);
+              }
+            }}
             className="flex flex-col flex-1"
           >
             <div className="flex-1 overflow-y-auto pr-2 space-y-6">

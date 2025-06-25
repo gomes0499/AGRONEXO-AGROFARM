@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 // Removed accordion imports as we're using a single table now
@@ -17,7 +18,10 @@ import {
   TrendingDown, 
   BarChart3,
   ArrowDownCircle,
-  ArrowUpCircle 
+  ArrowUpCircle,
+  ChevronRight,
+  ChevronDown,
+  DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
@@ -44,9 +48,11 @@ export interface DREData {
   // Despesas Operacionais
   despesas_operacionais: {
     administrativas: Record<string, number>;
-    comerciais: Record<string, number>;
     pessoal: Record<string, number>;
     arrendamentos: Record<string, number>;
+    tributarias: Record<string, number>;
+    manutencao_seguros: Record<string, number>;
+    outros: Record<string, number>;
     total: Record<string, number>;
   };
   // EBITDA (Lucro antes de juros, impostos, depreciação e amortização)
@@ -61,6 +67,7 @@ export interface DREData {
   resultado_financeiro: {
     receitas_financeiras: Record<string, number>;
     despesas_financeiras: Record<string, number>;
+    variacao_cambial: Record<string, number>;
     total: Record<string, number>;
   };
   // Lucro Antes do Imposto de Renda
@@ -78,6 +85,8 @@ interface DRETableProps {
 }
 
 export function DRETable({ data }: DRETableProps) {
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  
   // Função para formatar texto em normal case
   const formatText = (text: string) => {
     if (!text) return '';
@@ -91,6 +100,18 @@ export function DRETable({ data }: DRETableProps) {
     // Converte para normal case (primeira letra maiúscula, resto minúsculo)
     return text.charAt(0) + text.slice(1).toLowerCase();
   };
+
+  const toggleSection = (section: string) => {
+    const newCollapsed = new Set(collapsedSections);
+    if (newCollapsed.has(section)) {
+      newCollapsed.delete(section);
+    } else {
+      newCollapsed.add(section);
+    }
+    setCollapsedSections(newCollapsed);
+  };
+
+  const isSectionCollapsed = (section: string) => collapsedSections.has(section);
   
   if (!data || !data.anos || data.anos.length === 0) {
     return (
@@ -143,7 +164,18 @@ export function DRETable({ data }: DRETableProps) {
                   {/* === RECEITA OPERACIONAL BRUTA === */}
                   <TableRow className="bg-primary font-medium border-b-2 border-primary/20 dark:bg-primary/90">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Receita Operacional Bruta
+                      <button
+                        onClick={() => toggleSection('receita_bruta')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('receita_bruta') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <TrendingUp className="h-4 w-4" />
+                        Receita Operacional Bruta
+                      </button>
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -155,35 +187,40 @@ export function DRETable({ data }: DRETableProps) {
                     ))}
                   </TableRow>
 
-                  {/* Receita Agrícola */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Receita Agrícola
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatCurrency(data.receita_bruta.agricola[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {/* Linhas de receita bruta */}
+                  {!isSectionCollapsed('receita_bruta') && (
+                    <>
+                      {/* Receita Agrícola */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Receita Agrícola
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatCurrency(data.receita_bruta.agricola[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Receita Pecuária */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Receita Pecuária
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatCurrency(data.receita_bruta.pecuaria[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Receita Pecuária */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Receita Pecuária
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatCurrency(data.receita_bruta.pecuaria[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </>
+                  )}
 
                   {/* Total Receita Bruta */}
                   <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
@@ -218,7 +255,18 @@ export function DRETable({ data }: DRETableProps) {
                   {/* === CUSTOS === */}
                   <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Custos
+                      <button
+                        onClick={() => toggleSection('custos')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('custos') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <TrendingDown className="h-4 w-4" />
+                        Custos
+                      </button>
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -230,35 +278,40 @@ export function DRETable({ data }: DRETableProps) {
                     ))}
                   </TableRow>
 
-                  {/* Custos Agrícola */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Custos Agrícola
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive"
-                      >
-                        {formatCurrency(data.custos.agricola[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {/* Linhas de custos */}
+                  {!isSectionCollapsed('custos') && (
+                    <>
+                      {/* Custos Agrícola */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Custos Agrícola
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive"
+                          >
+                            {formatCurrency(data.custos.agricola[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Custos Pecuária */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Custos Pecuária
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive"
-                      >
-                        {formatCurrency(data.custos.pecuaria[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Custos Pecuária */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Custos Pecuária
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive"
+                          >
+                            {formatCurrency(data.custos.pecuaria[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </>
+                  )}
 
                   {/* Total Custos */}
                   <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
@@ -299,7 +352,18 @@ export function DRETable({ data }: DRETableProps) {
                   {/* === DESPESAS OPERACIONAIS === */}
                   <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Despesas Operacionais
+                      <button
+                        onClick={() => toggleSection('despesas_operacionais')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('despesas_operacionais') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <TrendingDown className="h-4 w-4" />
+                        Despesas Operacionais
+                      </button>
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -311,65 +375,100 @@ export function DRETable({ data }: DRETableProps) {
                     ))}
                   </TableRow>
 
-                  {/* Despesas Administrativas */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Despesas Administrativas
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive"
-                      >
-                        {formatCurrency(data.despesas_operacionais.administrativas[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {/* Linhas de despesas operacionais */}
+                  {!isSectionCollapsed('despesas_operacionais') && (
+                    <>
+                      {/* Despesas Administrativas */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Despesas Administrativas
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive"
+                          >
+                            {formatCurrency(data.despesas_operacionais.administrativas[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Despesas Comerciais */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Despesas Comerciais
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive"
-                      >
-                        {formatCurrency(data.despesas_operacionais.comerciais[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Despesas de Pessoal */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Despesas de Pessoal
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive"
+                          >
+                            {formatCurrency(data.despesas_operacionais.pessoal[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Despesas de Pessoal */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Despesas de Pessoal
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive"
-                      >
-                        {formatCurrency(data.despesas_operacionais.pessoal[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Despesas com Arrendamentos */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Despesas com Arrendamentos
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive"
+                          >
+                            {formatCurrency(data.despesas_operacionais.arrendamentos[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Despesas com Arrendamentos */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Despesas com Arrendamentos
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive"
-                      >
-                        {formatCurrency(data.despesas_operacionais.arrendamentos[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Despesas Tributárias */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Despesas Tributárias
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive"
+                          >
+                            {formatCurrency(data.despesas_operacionais.tributarias[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+
+                      {/* Manutenção e Seguros */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Manutenção e Seguros
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive"
+                          >
+                            {formatCurrency(data.despesas_operacionais.manutencao_seguros[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+
+                      {/* Outras Despesas Operacionais */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Outras Despesas Operacionais
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive"
+                          >
+                            {formatCurrency(data.despesas_operacionais.outros[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </>
+                  )}
 
                   {/* Total Despesas Operacionais */}
                   <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
@@ -467,7 +566,18 @@ export function DRETable({ data }: DRETableProps) {
                   {/* === RESULTADO FINANCEIRO === */}
                   <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
                     <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Resultado Financeiro
+                      <button
+                        onClick={() => toggleSection('resultado_financeiro')}
+                        className="flex items-center gap-2 w-full text-left"
+                      >
+                        {isSectionCollapsed('resultado_financeiro') ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <DollarSign className="h-4 w-4" />
+                        Resultado Financeiro
+                      </button>
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
@@ -479,35 +589,61 @@ export function DRETable({ data }: DRETableProps) {
                     ))}
                   </TableRow>
 
-                  {/* Receitas Financeiras */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Receitas Financeiras
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
-                      >
-                        {formatCurrency(data.resultado_financeiro.receitas_financeiras[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {/* Linhas de resultado financeiro */}
+                  {!isSectionCollapsed('resultado_financeiro') && (
+                    <>
+                      {/* Receitas Financeiras */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Receitas Financeiras
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatCurrency(data.resultado_financeiro.receitas_financeiras[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
 
-                  {/* Despesas Financeiras */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-6">
-                      Despesas Financeiras
-                    </TableCell>
-                    {data.anos.map((ano) => (
-                      <TableCell 
-                        key={ano} 
-                        className="text-center min-w-[120px] w-[120px] text-destructive"
-                      >
-                        {formatCurrency(data.resultado_financeiro.despesas_financeiras[ano] || 0)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                      {/* Despesas Financeiras */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Despesas Financeiras
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive"
+                          >
+                            {formatCurrency(data.resultado_financeiro.despesas_financeiras[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+
+                      {/* Variação Cambial */}
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Variação Cambial de Ativos e Passivos
+                        </TableCell>
+                        {data.anos.map((ano) => {
+                          const valor = data.resultado_financeiro.variacao_cambial?.[ano] || 0;
+                          return (
+                            <TableCell 
+                              key={ano} 
+                              className={cn(
+                                "text-center min-w-[120px] w-[120px]",
+                                valor < 0 ? "text-destructive" : valor > 0 ? "text-green-600 dark:text-green-400" : ""
+                              )}
+                            >
+                              {formatCurrency(valor)}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    </>
+                  )}
 
                   {/* Total Resultado Financeiro */}
                   <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">

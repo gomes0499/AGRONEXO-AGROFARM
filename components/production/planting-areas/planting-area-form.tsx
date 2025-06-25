@@ -12,6 +12,7 @@ import {
   CropIcon,
   Home,
   Ruler,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -183,16 +184,23 @@ export function PlantingAreaForm({
         onSuccess?.(updatedArea);
       } else {
         // Criar nova área
+        // Se selecionou "all", passar undefined para propriedade_id
+        const propriedadeId = values.propriedade_id === "all" ? undefined : values.propriedade_id;
+        
         const newArea = await createPlantingArea({
           organizacao_id: organizationId,
-          propriedade_id: values.propriedade_id,
+          propriedade_id: propriedadeId,
           cultura_id: values.cultura_id,
           sistema_id: values.sistema_id,
           ciclo_id: values.ciclo_id,
           areas_por_safra: values.areas_por_safra,
           observacoes: values.observacoes
         });
-        toast.success("Área de plantio criada com sucesso!");
+        toast.success(
+          values.propriedade_id === "all" 
+            ? "Área de plantio criada para todas as propriedades!" 
+            : "Área de plantio criada com sucesso!"
+        );
         onSuccess?.(newArea);
       }
     } catch (error) {
@@ -321,6 +329,13 @@ export function PlantingAreaForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Todas as Propriedades</span>
+                      </div>
+                    </SelectItem>
+                    <Separator className="my-1" />
                     {properties.map((property) => (
                       <SelectItem key={property.id} value={property.id}>
                         <div className="flex flex-col">
@@ -336,6 +351,11 @@ export function PlantingAreaForm({
                   </SelectContent>
                 </Select>
                 <FormMessage />
+                {field.value === "all" && (
+                  <FormDescription className="text-xs mt-1">
+                    A área total será consolidada para todas as propriedades
+                  </FormDescription>
+                )}
               </FormItem>
             )}
           />

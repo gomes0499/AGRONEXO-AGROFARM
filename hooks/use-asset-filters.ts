@@ -31,9 +31,12 @@ export function useAssetFilters<T extends Record<string, any>>(
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
+  // Ensure items is always an array
+  const validItems = Array.isArray(items) ? items : [];
+
   // Filter and search logic
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+    return validItems.filter((item) => {
       // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
@@ -77,7 +80,7 @@ export function useAssetFilters<T extends Record<string, any>>(
 
       return true;
     });
-  }, [items, searchTerm, filters, filterConfig]);
+  }, [validItems, searchTerm, filters, filterConfig]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
@@ -117,7 +120,7 @@ export function useAssetFilters<T extends Record<string, any>>(
     if (filterConfig.categoryField) {
       const categories = Array.from(
         new Set(
-          items
+          validItems
             .map((item) => item[filterConfig.categoryField!])
             .filter(Boolean)
             .map(String)
@@ -133,7 +136,7 @@ export function useAssetFilters<T extends Record<string, any>>(
     if (filterConfig.yearField) {
       const years = Array.from(
         new Set(
-          items
+          validItems
             .map((item) => item[filterConfig.yearField!])
             .filter(Boolean)
             .map(String)
@@ -149,7 +152,7 @@ export function useAssetFilters<T extends Record<string, any>>(
     if (filterConfig.typeField) {
       const types = Array.from(
         new Set(
-          items
+          validItems
             .map((item) => item[filterConfig.typeField!])
             .filter(Boolean)
             .map(String)
@@ -165,7 +168,7 @@ export function useAssetFilters<T extends Record<string, any>>(
     if (filterConfig.marcaField) {
       const marcas = Array.from(
         new Set(
-          items
+          validItems
             .map((item) => item[filterConfig.marcaField!])
             .filter(Boolean)
             .map(String)
@@ -179,7 +182,7 @@ export function useAssetFilters<T extends Record<string, any>>(
     }
 
     return options;
-  }, [items, filterConfig]);
+  }, [validItems, filterConfig]);
 
   return {
     // Search and filters
@@ -200,7 +203,7 @@ export function useAssetFilters<T extends Record<string, any>>(
     // Data
     filteredItems,
     paginatedItems,
-    totalItems: items.length,
+    totalItems: validItems.length,
     filteredCount: filteredItems.length,
   };
 }

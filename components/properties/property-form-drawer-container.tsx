@@ -90,7 +90,7 @@ export function PropertyFormDrawerContainer({
         />
       );
     }
-    
+
     // Se a tabela não estiver pronta, exibir o helper de migração
     if (tableReady === false) {
       return (
@@ -99,17 +99,19 @@ export function PropertyFormDrawerContainer({
         </div>
       );
     }
-    
+
     // Se ainda estiver verificando a tabela, exibir loading
     if (tableReady === undefined) {
       return (
         <div className="flex flex-col items-center justify-center p-8 h-full">
           <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground">Verificando estrutura da tabela...</p>
+          <p className="text-muted-foreground">
+            Verificando estrutura da tabela...
+          </p>
         </div>
       );
     }
-    
+
     return (
       <BasicInfoStep
         form={form}
@@ -149,7 +151,7 @@ export function PropertyFormDrawerContainer({
             }}
             className="flex flex-col flex-1"
           >
-            <div className="flex-1 overflow-y-auto pr-2 space-y-6 max-h-[calc(100vh-180px)]">
+            <div className="flex-1 overflow-y-auto p-2 space-y-6 max-h-[calc(100vh-180px)]">
               {renderCurrentStep()}
             </div>
 

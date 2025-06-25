@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Building, Plus } from "lucide-react";
+import { Building, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImprovementRowActions } from "@/components/properties/improvement-row-actions";
 import { ImprovementModal } from "@/components/properties/improvement-modal";
+import { ImprovementImportDialog } from "@/components/properties/improvement-import-dialog";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 
 interface ImprovementListProps {
@@ -32,6 +33,7 @@ export function ImprovementList({
   organizationId,
 }: ImprovementListProps) {
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const router = useRouter();
   
   const totalValue = improvements.reduce(
@@ -52,6 +54,11 @@ export function ImprovementList({
     router.refresh();
   };
 
+  const handleImportSuccess = (importedImprovements: any[]) => {
+    setShowImportModal(false);
+    router.refresh();
+  };
+
   return (
     <Card className="shadow-sm border-muted/80">
       <CardHeaderPrimary 
@@ -63,14 +70,23 @@ export function ImprovementList({
             : "Infraestrutura e melhorias realizadas na propriedade"
         }
         action={
-          propertyId && (
-            <Button 
-              variant="secondary"
-              onClick={handleNewImprovement}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Benfeitoria
-            </Button>
+          propertyId && organizationId && (
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => setShowImportModal(true)}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Importar Excel
+              </Button>
+              <Button 
+                variant="secondary"
+                onClick={handleNewImprovement}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Benfeitoria
+              </Button>
+            </div>
           )
         }
       />
@@ -111,11 +127,17 @@ export function ImprovementList({
             description="Cadastre benfeitorias e melhorias realizadas nesta propriedade."
             icon={<Building size={48} className="text-muted-foreground" />}
             action={
-              propertyId && (
-                <Button onClick={handleNewImprovement}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Cadastrar Primeira Benfeitoria
-                </Button>
+              propertyId && organizationId && (
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Importar Excel
+                  </Button>
+                  <Button onClick={handleNewImprovement}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Cadastrar Primeira Benfeitoria
+                  </Button>
+                </div>
               )
             }
           />
@@ -130,6 +152,17 @@ export function ImprovementList({
           open={showModal}
           onOpenChange={setShowModal}
           onSuccess={handleSuccess}
+        />
+      )}
+
+      {/* Modal para importação */}
+      {showImportModal && organizationId && (
+        <ImprovementImportDialog
+          isOpen={showImportModal}
+          onOpenChange={setShowImportModal}
+          organizationId={organizationId}
+          propertyId={propertyId}
+          onSuccess={handleImportSuccess}
         />
       )}
     </Card>

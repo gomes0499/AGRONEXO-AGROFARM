@@ -68,6 +68,7 @@ export function CaixaDisponibilidadesForm({
     defaultValues: {
       nome: existingItem?.nome || "",
       categoria: existingItem?.categoria || "CAIXA_BANCOS",
+      moeda: existingItem?.moeda || "BRL",
       valores_por_safra: existingItem?.valores_por_safra || {},
     },
   });
@@ -77,12 +78,14 @@ export function CaixaDisponibilidadesForm({
       form.reset({
         nome: existingItem.nome,
         categoria: existingItem.categoria,
+        moeda: existingItem.moeda || "BRL",
         valores_por_safra: existingItem.valores_por_safra || {},
       });
     } else if (open && !existingItem) {
       form.reset({
         nome: "",
         categoria: "CAIXA_BANCOS",
+        moeda: "BRL",
         valores_por_safra: {},
       });
     }
@@ -128,6 +131,7 @@ export function CaixaDisponibilidadesForm({
     ESTOQUE_FERTILIZANTES: "Estoque de Fertilizantes",
     ESTOQUE_ALMOXARIFADO: "Estoque de Almoxarifado",
     ESTOQUE_COMMODITIES: "Estoque de Commodities",
+    ESTOQUE_SEMENTES: "Estoque de Sementes",
     SEMOVENTES: "Semoventes",
     ATIVO_BIOLOGICO: "Ativo Biológico"
   };
@@ -197,6 +201,31 @@ export function CaixaDisponibilidadesForm({
               
               <FormField
                 control={form.control}
+                name="moeda"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Moeda</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a moeda" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="BRL">Real (R$)</SelectItem>
+                        <SelectItem value="USD">Dólar (US$)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
@@ -207,6 +236,7 @@ export function CaixaDisponibilidadesForm({
                         values={typeof field.value === 'string' ? JSON.parse(field.value) : field.value || {}}
                         onChange={field.onChange}
                         safras={safras}
+                        currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>
                     <FormMessage />

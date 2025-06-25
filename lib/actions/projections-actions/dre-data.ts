@@ -38,9 +38,11 @@ export async function getDREData(organizacaoId: string): Promise<DREData> {
       lucro_bruto: {},
       despesas_operacionais: {
         administrativas: {},
-        comerciais: {},
         pessoal: {},
         arrendamentos: {},
+        tributarias: {},
+        manutencao_seguros: {},
+        outros: {},
         total: {},
       },
       ebitda: {},

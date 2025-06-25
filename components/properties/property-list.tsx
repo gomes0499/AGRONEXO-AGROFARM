@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Property, PropertyType } from "@/schemas/properties";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,11 +28,13 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { PropertyFormDrawer } from "./property-form-drawer";
+import { PropertyFormModal } from "./property-form-modal";
+import { PropertyImportDialog } from "../assets/properties/property-import-dialog";
 import { formatCurrency, formatArea } from "@/lib/utils/formatters";
 import {
   Table,
@@ -72,7 +74,10 @@ interface PropertyListProps {
   organizationId: string;
 }
 
-export function PropertyList({ properties, organizationId }: PropertyListProps) {
+export function PropertyList({
+  properties,
+  organizationId,
+}: PropertyListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<PropertyType | "ALL">("ALL");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -82,9 +87,19 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const router = useRouter();
+
+  // Log para debug
+  useEffect(() => {
+    console.log("PropertyList recebeu:", {
+      propertiesCount: properties?.length || 0,
+      organizationId,
+      firstProperty: properties?.[0] || null,
+    });
+  }, [properties, organizationId]);
 
   // Usando useCallback para funções que não mudam frequentemente
   const clearFilters = useCallback(() => {
@@ -141,8 +156,12 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
     return properties.filter((property) => {
       const matchesSearch =
         property.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (property.cidade && property.cidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (property.proprietario && property.proprietario.toLowerCase().includes(searchTerm.toLowerCase()));
+        (property.cidade &&
+          property.cidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (property.proprietario &&
+          property.proprietario
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()));
 
       const matchesType = typeFilter === "ALL" || property.tipo === typeFilter;
 
@@ -166,6 +185,17 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
     setCurrentPage(1);
   }, []);
 
+  const handleImportSuccess = useCallback(
+    (importedProperties: any[]) => {
+      setIsImportDialogOpen(false);
+      router.refresh();
+      toast.success(
+        `${importedProperties.length} propriedades importadas com sucesso!`
+      );
+    },
+    [router]
+  );
+
   const isFiltering = searchTerm || typeFilter !== "ALL";
 
   // Determine property type label and badge variant
@@ -173,6 +203,7 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
     PROPRIO: { label: "Próprio", variant: "default" as const },
     ARRENDADO: { label: "Arrendado", variant: "secondary" as const },
     PARCERIA: { label: "Parceria", variant: "outline" as const },
+    PARCERIA_AGRICOLA: { label: "Parceria Agrícola", variant: "outline" as const },
     COMODATO: { label: "Comodato", variant: "ghost" as const },
   };
 
@@ -186,20 +217,31 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
               Gerencie suas propriedades rurais, arrendamentos e benfeitorias
             </p>
           </div>
-          <PropertyFormDrawer
-            organizationId={organizationId}
-            isOpen={isDrawerOpen}
-            onOpenChange={setIsDrawerOpen}
-            onSuccess={() => {
-              setIsDrawerOpen(false);
-              router.refresh();
-            }}
-          >
-            <Button variant="secondary">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsImportDialogOpen(true)}
+              className="bg-white hover:bg-gray-100 text-gray-900 border-gray-200"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Importar Excel
+            </Button>
+            <Button variant="secondary" onClick={() => setIsModalOpen(true)}>
               <PlusIcon className="mr-2 h-4 w-4" />
               Nova Propriedade
             </Button>
-          </PropertyFormDrawer>
+
+            <PropertyFormModal
+              organizationId={organizationId}
+              mode="create"
+              open={isModalOpen}
+              onOpenChange={setIsModalOpen}
+              onSuccess={() => {
+                setIsModalOpen(false);
+                router.refresh();
+              }}
+            />
+          </div>
         </div>
       </CardHeader>
 
@@ -260,8 +302,13 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
               </Button>
             )}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Itens por página:</span>
-              <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                Itens por página:
+              </span>
+              <Select
+                value={itemsPerPage.toString()}
+                onValueChange={handleItemsPerPageChange}
+              >
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -282,20 +329,37 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
               <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Tipo</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Localização</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Área Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Área Cultivada</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Proprietário</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
-                    <TableHead className="text-right font-semibold text-primary-foreground rounded-tr-md">Ações</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">
+                      Nome
+                    </TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">
+                      Tipo
+                    </TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">
+                      Localização
+                    </TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">
+                      Área Total
+                    </TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">
+                      Área Cultivada
+                    </TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">
+                      Proprietário
+                    </TableHead>
+                    <TableHead className="font-semibold text-primary-foreground">
+                      Valor
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-primary-foreground rounded-tr-md">
+                      Ações
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedProperties.map((property) => {
                     const typeInfo =
-                      propertyTypeInfo[property.tipo] || propertyTypeInfo.PROPRIO;
+                      propertyTypeInfo[property.tipo] ||
+                      propertyTypeInfo.PROPRIO;
 
                     return (
                       <TableRow key={property.id} className="hover:bg-muted/40">
@@ -303,7 +367,9 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                           {property.nome}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={typeInfo.variant}>{typeInfo.label}</Badge>
+                          <Badge variant={typeInfo.variant}>
+                            {typeInfo.label}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
@@ -317,17 +383,20 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                           </div>
                         </TableCell>
                         <TableCell>{formatArea(property.area_total)}</TableCell>
-                        <TableCell>{formatArea(property.area_cultivada)}</TableCell>
+                        <TableCell>
+                          {formatArea(property.area_cultivada)}
+                        </TableCell>
                         <TableCell>{property.proprietario}</TableCell>
                         <TableCell>
                           {property.valor_atual ? (
-                            <Badge variant="default" className="bg-accent text-accent-foreground">
+                            <Badge
+                              variant="default"
+                              className="bg-accent text-accent-foreground"
+                            >
                               {formatCurrency(property.valor_atual)}
                             </Badge>
                           ) : (
-                            <Badge variant="outline">
-                              Não informado
-                            </Badge>
+                            <Badge variant="outline">Não informado</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -353,7 +422,9 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                                   </Link>
                                 </DropdownMenuItem>
 
-                                <DropdownMenuItem onClick={() => setEditingProperty(property)}>
+                                <DropdownMenuItem
+                                  onClick={() => setEditingProperty(property)}
+                                >
                                   <EditIcon size={14} className="mr-2" />
                                   Editar
                                 </DropdownMenuItem>
@@ -375,7 +446,10 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                                           className="mr-2 animate-spin"
                                         />
                                       ) : (
-                                        <Trash2Icon size={14} className="mr-2" />
+                                        <Trash2Icon
+                                          size={14}
+                                          className="mr-2"
+                                        />
                                       )}
                                       {isDeleting &&
                                       deletingPropertyId === property.id
@@ -389,11 +463,11 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                                         Excluir propriedade
                                       </AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Tem certeza que deseja excluir a propriedade
-                                        &quot;
-                                        {property.nome}&quot;? Esta ação não pode
-                                        ser desfeita e removerá todos os dados
-                                        relacionados.
+                                        Tem certeza que deseja excluir a
+                                        propriedade &quot;
+                                        {property.nome}&quot;? Esta ação não
+                                        pode ser desfeita e removerá todos os
+                                        dados relacionados.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
 
@@ -413,12 +487,16 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                                       </AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() =>
-                                          handleDelete(property.id!, property.nome)
+                                          handleDelete(
+                                            property.id!,
+                                            property.nome
+                                          )
                                         }
                                         className={cn(
                                           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
                                           isDeleting &&
-                                            deletingPropertyId === property.id &&
+                                            deletingPropertyId ===
+                                              property.id &&
                                             "opacity-50 pointer-events-none"
                                         )}
                                       >
@@ -445,7 +523,8 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="text-sm text-muted-foreground">
-                  Mostrando {startIndex + 1} a {Math.min(endIndex, totalItems)} de {totalItems} propriedades
+                  Mostrando {startIndex + 1} a {Math.min(endIndex, totalItems)}{" "}
+                  de {totalItems} propriedades
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2">
                   <Button
@@ -469,7 +548,9 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                     <span className="sr-only">Página anterior</span>
                   </Button>
                   <span className="flex items-center gap-1 text-sm px-2">
-                    <span className="hidden sm:inline">Página</span> {currentPage} <span className="hidden sm:inline">de</span> <span className="sm:hidden">/</span> {totalPages}
+                    <span className="hidden sm:inline">Página</span>{" "}
+                    {currentPage} <span className="hidden sm:inline">de</span>{" "}
+                    <span className="sm:hidden">/</span> {totalPages}
                   </span>
                   <Button
                     variant="outline"
@@ -503,14 +584,25 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
                 ? "Tente ajustar seus filtros para encontrar o que está procurando."
                 : "Comece cadastrando sua primeira propriedade."
             }
-            icon={<Search size={48} className="text-muted-foreground dark:text-muted-foreground/70" />}
+            icon={
+              <Search
+                size={48}
+                className="text-muted-foreground dark:text-muted-foreground/70"
+              />
+            }
             action={
               isFiltering ? (
-                <Button onClick={clearFilters} className="bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90">
+                <Button
+                  onClick={clearFilters}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
+                >
                   Limpar filtros
                 </Button>
               ) : (
-                <Button onClick={() => setIsDrawerOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90">
+                <Button
+                  onClick={() => setIsModalOpen(true)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
+                >
                   <PlusIcon className="mr-2 h-4 w-4" />
                   Nova Propriedade
                 </Button>
@@ -520,11 +612,11 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
         )}
       </CardContent>
 
-      {/* Edit Property Drawer */}
+      {/* Edit Property Modal */}
       {editingProperty && (
-        <PropertyFormDrawer
+        <PropertyFormModal
           organizationId={organizationId}
-          propertyId={editingProperty.id}
+          property={editingProperty}
           open={!!editingProperty}
           onOpenChange={(open) => !open && setEditingProperty(null)}
           mode="edit"
@@ -534,6 +626,14 @@ export function PropertyList({ properties, organizationId }: PropertyListProps) 
           }}
         />
       )}
+
+      {/* Import Dialog */}
+      <PropertyImportDialog
+        isOpen={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+        organizationId={organizationId}
+        onSuccess={handleImportSuccess}
+      />
     </Card>
   );
 }

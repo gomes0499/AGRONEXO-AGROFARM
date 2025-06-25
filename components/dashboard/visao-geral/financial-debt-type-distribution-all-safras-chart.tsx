@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   PieChart,
   Pie,
@@ -21,6 +21,7 @@ import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
 import { Loader2 } from "lucide-react";
+import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
 
 interface FinancialDebtTypeDistributionAllSafrasProps {
   organizationId: string;
@@ -33,17 +34,12 @@ interface DebtTypeData {
   color: string;
 }
 
-const COLORS = ["#1B124E", "#4338CA"];
-
-const chartConfig = {
-  valor: {
-    label: "Valor da Dívida",
-    color: "#1B124E",
-  },
-} satisfies ChartConfig;
+// Cores padrão caso não haja cores personalizadas
+const DEFAULT_COLORS = ["#1B124E", "#4338CA"];
 
 async function getDebtTypeDistributionAllSafrasData(
-  organizationId: string
+  organizationId: string,
+  colors: string[] = DEFAULT_COLORS
 ): Promise<{ data: DebtTypeData[] }> {
   const supabase = createClient();
 
@@ -122,13 +118,13 @@ async function getDebtTypeDistributionAllSafrasData(
       name: "Custeio",
       value: totalPorModalidade.CUSTEIO,
       percentual: totalPorModalidade.CUSTEIO / totalGeral,
-      color: COLORS[0],
+      color: colors[0],
     },
     {
       name: "Investimentos",
       value: totalPorModalidade.INVESTIMENTOS,
       percentual: totalPorModalidade.INVESTIMENTOS / totalGeral,
-      color: COLORS[1],
+      color: colors[1],
     },
   ].filter((item) => item.value > 0);
 
@@ -173,6 +169,16 @@ export function FinancialDebtTypeDistributionAllSafrasChart({
   const [data, setData] = useState<DebtTypeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { palette } = useOrganizationColors(organizationId);
+  
+  // Criar cores dinâmicas com base nas cores da organização
+  const colors = useMemo(() => {
+    if (palette.length >= 2) {
+      return palette.slice(0, 2);
+    }
+    return DEFAULT_COLORS;
+  }, [palette]);
 
   // Efeito para carregar dados quando a organização mudar
   useEffect(() => {
@@ -182,7 +188,8 @@ export function FinancialDebtTypeDistributionAllSafrasChart({
         setError(null);
 
         const result = await getDebtTypeDistributionAllSafrasData(
-          organizationId
+          organizationId,
+          colors
         );
 
         const { data: typeData } = result;
@@ -200,7 +207,7 @@ export function FinancialDebtTypeDistributionAllSafrasChart({
     };
 
     loadData();
-  }, [organizationId]);
+  }, [organizationId, colors]);
 
   if (loading) {
     return (

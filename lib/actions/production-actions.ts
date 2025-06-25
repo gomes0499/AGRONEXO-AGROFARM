@@ -11,7 +11,7 @@ import { normalizeProductivityData } from "@/lib/utils/production-helpers";
 export interface PlantingArea {
   id: string;
   organizacao_id: string;
-  propriedade_id: string;
+  propriedade_id?: string;
   cultura_id: string;
   sistema_id: string;
   ciclo_id: string;
@@ -544,7 +544,7 @@ export async function getPlantingAreaById(id: string) {
 
 export async function createPlantingArea(data: {
   organizacao_id: string;
-  propriedade_id: string;
+  propriedade_id?: string;
   cultura_id: string;
   sistema_id: string;
   ciclo_id: string;

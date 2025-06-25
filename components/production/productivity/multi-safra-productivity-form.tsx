@@ -9,6 +9,7 @@ import {
   Leaf,
   Settings,
   Home,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -82,14 +83,20 @@ export function MultiSafraProductivityForm({
   const onSubmit = async (values: MultiSafraProductivityFormValues) => {
     setIsSubmitting(true);
     try {
-      // Ensure propriedade_id is a string as required by the action function
+      // Se selecionou "all", passar undefined para propriedade_id
+      const propriedadeId = values.propriedade_id === "all" ? undefined : values.propriedade_id;
+      
       const formData = {
         ...values,
-        propriedade_id: values.propriedade_id || '',
+        propriedade_id: propriedadeId || '',
       };
       
       const newProductivities = await createMultiSafraProductivities(organizationId, formData);
-      toast.success(`${Object.keys(values.produtividades_por_safra).length} produtividade(s) criada(s) com sucesso!`);
+      toast.success(
+        values.propriedade_id === "all" 
+          ? `${Object.keys(values.produtividades_por_safra).length} produtividade(s) média(s) criada(s) para todas as propriedades!`
+          : `${Object.keys(values.produtividades_por_safra).length} produtividade(s) criada(s) com sucesso!`
+      );
       
       if (onSuccess) {
         onSuccess([newProductivities]);
@@ -127,6 +134,13 @@ export function MultiSafraProductivityForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Todas as Propriedades</span>
+                      </div>
+                    </SelectItem>
+                    <Separator className="my-1" />
                     {properties.map((property) => (
                       <SelectItem key={property.id} value={property.id}>
                         <div className="flex flex-col">

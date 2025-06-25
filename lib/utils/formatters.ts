@@ -12,12 +12,15 @@ export function formatCurrency(value: number | null | undefined, decimals: numbe
   const isNegative = value < 0;
   const absValue = Math.abs(value);
   
+  // Garante que decimals está dentro do intervalo válido (0-20)
+  const validDecimals = Math.max(0, Math.min(20, decimals || 2));
+  
   // Formata com símbolo de moeda, separador de milhar e com casas decimais conforme especificado
   const formatted = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
+    minimumFractionDigits: validDecimals,
+    maximumFractionDigits: validDecimals
   }).format(absValue);
   
   // Para valores negativos, adiciona o sinal de menos manualmente
@@ -32,12 +35,15 @@ export function formatUsdCurrency(value: number | null | undefined, decimals: nu
   const isNegative = value < 0;
   const absValue = Math.abs(value);
   
+  // Garante que decimals está dentro do intervalo válido (0-20)
+  const validDecimals = Math.max(0, Math.min(20, decimals || 2));
+  
   // Formata com símbolo de moeda, separador de milhar e com casas decimais
   const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
+    minimumFractionDigits: validDecimals,
+    maximumFractionDigits: validDecimals
   }).format(absValue);
   
   // Para valores negativos, adiciona o sinal de menos manualmente
@@ -57,12 +63,15 @@ export function formatEurCurrency(value: number | null | undefined, decimals: nu
   const isNegative = value < 0;
   const absValue = Math.abs(value);
   
+  // Garante que decimals está dentro do intervalo válido (0-20)
+  const validDecimals = Math.max(0, Math.min(20, decimals || 2));
+  
   // Formata com símbolo de moeda, separador de milhar e com casas decimais conforme especificado
   const formatted = new Intl.NumberFormat('de-DE', {
     style: 'currency',
     currency: 'EUR',
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
+    minimumFractionDigits: validDecimals,
+    maximumFractionDigits: validDecimals
   }).format(absValue);
   
   // Para valores negativos, adiciona o sinal de menos manualmente

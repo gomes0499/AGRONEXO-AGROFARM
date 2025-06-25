@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+// Schema para sócio/acionista
+export const partnerSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
+  documento: z.string().min(11, "Documento inválido"),
+  tipo_documento: z.enum(["cpf", "cnpj"]),
+  percentual: z.number().min(0).max(100).optional(),
+});
+
 // Schema de validação para o formulário de organização
 export const organizationSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -28,6 +36,12 @@ export const organizationSchema = z.object({
   roteiro: z.string().optional().or(z.literal("")),
   latitude: z.string().optional().or(z.literal("")),
   longitude: z.string().optional().or(z.literal("")),
+  // Novos campos
+  estrutura_societaria: z.array(partnerSchema).optional().default([]),
+  cor_primaria: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor inválida").default("#0066FF"),
+  cor_secundaria: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor inválida").default("#FF6B00"),
+  cor_fundo: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor inválida").default("#FFFFFF"),
+  cor_texto: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor inválida").default("#000000"),
 });
 
 export type OrganizationFormValues = z.infer<typeof organizationSchema>;
@@ -38,6 +52,7 @@ export interface OrganizationFormProps {
   open?: boolean;
   onClose?: () => void;
   onOpenChange?: (open: boolean) => void;
+  onSuccess?: () => void;
   organizationData?: any;
   mode?: "create" | "edit";
 }
