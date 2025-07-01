@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import type {
   Culture,
   System,
+  Cycle,
   Harvest,
   Productivity,
 } from "@/schemas/production";
@@ -41,6 +42,7 @@ interface Property {
 interface NewProductivityButtonProps {
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   harvests: Harvest[];
   properties: Property[];
   organizationId: string;
@@ -52,6 +54,7 @@ interface NewProductivityButtonProps {
 export function NewProductivityButton({
   cultures,
   systems,
+  cycles,
   harvests,
   properties,
   organizationId,
@@ -97,6 +100,7 @@ export function NewProductivityButton({
               <ProductivityForm
                 cultures={cultures}
                 systems={systems}
+                cycles={cycles}
                 harvests={harvests}
                 properties={properties}
                 organizationId={organizationId}
@@ -140,6 +144,7 @@ export function NewProductivityButton({
             <ProductivityForm
               cultures={cultures}
               systems={systems}
+              cycles={cycles}
               harvests={harvests}
               properties={properties}
               organizationId={organizationId}

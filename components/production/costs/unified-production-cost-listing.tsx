@@ -142,7 +142,6 @@ export function UnifiedProductionCostListing({
       
       await updateProductionCost(
         cost.id,
-        organizationId,
         { custos_por_safra: editValues }
       );
       
@@ -160,7 +159,7 @@ export function UnifiedProductionCostListing({
     
     setIsDeleting(true);
     try {
-      await deleteProductionCost(deletingCost.id, organizationId);
+      await deleteProductionCost(deletingCost.id);
       toast.success("Custo de produção excluído com sucesso");
       setDeletingCost(null);
     } catch (error) {

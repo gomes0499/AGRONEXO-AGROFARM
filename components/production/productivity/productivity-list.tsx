@@ -41,7 +41,7 @@ import { ProductivityForm } from "./productivity-form";
 import { MultiSafraProductivityForm } from "./multi-safra-productivity-form";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
-import { Productivity, Culture, System, Harvest } from "@/schemas/production";
+import { Productivity, Culture, System, Cycle, Harvest } from "@/schemas/production";
 
 // Define interface for the property entity
 interface Property {
@@ -57,6 +57,7 @@ interface ProductivityListProps {
   initialProductivities: Productivity[];
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   harvests: Harvest[];
   properties: Property[];
   organizationId: string;
@@ -73,6 +74,7 @@ export function ProductivityList({
   initialProductivities,
   cultures,
   systems,
+  cycles,
   harvests,
   properties,
   organizationId,
@@ -332,6 +334,7 @@ export function ProductivityList({
             properties={properties}
             cultures={cultures}
             systems={systems}
+            cycles={cycles}
             harvests={harvests}
             organizationId={organizationId}
             onSuccess={handleMultiSafraSuccess}
@@ -350,6 +353,7 @@ export function ProductivityList({
             <ProductivityForm
               cultures={cultures}
               systems={systems}
+              cycles={cycles}
               harvests={harvests}
               properties={properties}
               organizationId={organizationId}

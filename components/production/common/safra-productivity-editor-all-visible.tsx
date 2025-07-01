@@ -59,7 +59,7 @@ export function SafraProductivityEditorAllVisible({
     let hasChanges = false;
     
     filteredSafras.forEach(safra => {
-      if (!(safra.id in initialValues)) {
+      if (safra.id && !(safra.id in initialValues)) {
         initialValues[safra.id] = { produtividade: 0, unidade: defaultUnit };
         hasChanges = true;
       }
@@ -101,20 +101,24 @@ export function SafraProductivityEditorAllVisible({
       
       const newValues: Record<string, { produtividade: number; unidade: string }> = {};
       filteredSafras.forEach(safra => {
-        newValues[safra.id] = {
-          produtividade: defaultProdutividade,
-          unidade: defaultUnidade
-        };
+        if (safra.id) {
+          newValues[safra.id] = {
+            produtividade: defaultProdutividade,
+            unidade: defaultUnidade
+          };
+        }
       });
       onChange(newValues);
     } else {
       // Reset all to 0
       const newValues: Record<string, { produtividade: number; unidade: string }> = {};
       filteredSafras.forEach(safra => {
-        newValues[safra.id] = {
-          produtividade: 0,
-          unidade: values[safra.id]?.unidade || defaultUnit
-        };
+        if (safra.id) {
+          newValues[safra.id] = {
+            produtividade: 0,
+            unidade: values[safra.id]?.unidade || defaultUnit
+          };
+        }
       });
       onChange(newValues);
     }
@@ -213,7 +217,7 @@ export function SafraProductivityEditorAllVisible({
           {/* Safras Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredSafras.map((safra) => {
-              const value = values[safra.id] || { produtividade: 0, unidade: defaultUnit };
+              const value = safra.id ? values[safra.id] || { produtividade: 0, unidade: defaultUnit } : { produtividade: 0, unidade: defaultUnit };
               const isActive = value.produtividade > 0;
               
               return (
@@ -245,7 +249,7 @@ export function SafraProductivityEditorAllVisible({
                           type="number"
                           step="0.01"
                           value={value.produtividade || ""}
-                          onChange={(e) => handleProductivityChange(safra.id, e.target.value)}
+                          onChange={(e) => safra.id && handleProductivityChange(safra.id, e.target.value)}
                           placeholder="0.00"
                           disabled={disabled}
                           className={`${isActive ? 'border-primary' : ''}`}
@@ -258,7 +262,7 @@ export function SafraProductivityEditorAllVisible({
                         </Label>
                         <Select
                           value={value.unidade}
-                          onValueChange={(unit) => handleUnitChange(safra.id, unit)}
+                          onValueChange={(unit) => safra.id && handleUnitChange(safra.id, unit)}
                           disabled={disabled}
                         >
                           <SelectTrigger className={`${isActive ? 'border-primary' : ''}`}>

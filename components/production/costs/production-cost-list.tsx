@@ -42,7 +42,7 @@ import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
 import { ProductionTablePagination } from "../common/production-table-pagination";
-import { ProductionCost, Culture, System, Harvest } from "@/schemas/production";
+import { ProductionCost, Culture, System, Cycle, Harvest } from "@/schemas/production";
 
 // Define interface for the property entity
 interface Property {
@@ -58,6 +58,7 @@ interface ProductionCostListProps {
   initialCosts: ProductionCost[];
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   harvests: Harvest[];
   properties: Property[];
   organizationId: string;
@@ -74,6 +75,7 @@ export function ProductionCostList({
   initialCosts,
   cultures,
   systems,
+  cycles,
   harvests,
   properties,
   organizationId,
@@ -347,6 +349,7 @@ export function ProductionCostList({
           <MultiSafraProductionCostForm
             cultures={cultures}
             systems={systems}
+            cycles={cycles}
             harvests={harvests}
             properties={properties}
             organizationId={organizationId}
@@ -366,6 +369,7 @@ export function ProductionCostList({
             <ProductionCostForm
               cultures={cultures}
               systems={systems}
+              cycles={cycles}
               harvests={harvests}
               properties={properties}
               organizationId={organizationId}

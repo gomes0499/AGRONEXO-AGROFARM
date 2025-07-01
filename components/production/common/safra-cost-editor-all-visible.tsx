@@ -138,7 +138,7 @@ export function SafraCostEditorAllVisible({
           {/* Safras Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredSafras.map((safra) => {
-              const value = values[safra.id] || 0;
+              const value = values[safra.id || ""] || 0;
               const isActive = value > 0;
 
               return (
@@ -170,7 +170,7 @@ export function SafraCostEditorAllVisible({
                         step="0.01"
                         value={value || ""}
                         onChange={(e) =>
-                          handleValueChange(safra.id, e.target.value)
+                          handleValueChange(safra.id || "", e.target.value)
                         }
                         placeholder="0,00"
                         disabled={disabled}

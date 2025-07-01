@@ -28,31 +28,31 @@ export function SafraPriceEditorAllVisible({
   onChange,
   safras,
   disabled = false,
-  unit = "R$/saca"
+  unit = "R$/saca",
 }: SafraPriceEditorAllVisibleProps) {
   const [selectAll, setSelectAll] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  
+
   // Sort safras by year
   const sortedSafras = [...safras].sort((a, b) => a.ano_inicio - b.ano_inicio);
-  
+
   // Filter to show only relevant years (2021-2029)
-  const filteredSafras = sortedSafras.filter(safra => 
-    safra.ano_inicio >= 2021 && safra.ano_inicio <= 2029
+  const filteredSafras = sortedSafras.filter(
+    (safra) => safra.ano_inicio >= 2021 && safra.ano_inicio <= 2029
   );
 
   // Initialize all safras with 0 if not present
   useEffect(() => {
     const initialValues = { ...values };
     let hasChanges = false;
-    
-    filteredSafras.forEach(safra => {
-      if (!(safra.id in initialValues)) {
-        initialValues[safra.id] = 0;
+
+    filteredSafras.forEach((safra) => {
+      if (!(safra.id && safra.id in initialValues)) {
+        initialValues[safra.id || ""] = 0;
         hasChanges = true;
       }
     });
-    
+
     if (hasChanges) {
       onChange(initialValues);
     }
@@ -62,7 +62,7 @@ export function SafraPriceEditorAllVisible({
     const numValue = parseFloat(value) || 0;
     onChange({
       ...values,
-      [safraId]: numValue
+      [safraId]: numValue,
     });
   };
 
@@ -70,29 +70,29 @@ export function SafraPriceEditorAllVisible({
     setSelectAll(checked);
     if (checked) {
       // Set all values to the same as the first non-zero value, or 60 as default
-      const firstValue = Object.values(values).find(v => v > 0) || 60;
+      const firstValue = Object.values(values).find((v) => v > 0) || 60;
       const newValues: Record<string, number> = {};
-      filteredSafras.forEach(safra => {
-        newValues[safra.id] = firstValue;
+      filteredSafras.forEach((safra) => {
+        newValues[safra.id || ""] = firstValue;
       });
       onChange(newValues);
     } else {
       // Reset all to 0
       const newValues: Record<string, number> = {};
-      filteredSafras.forEach(safra => {
-        newValues[safra.id] = 0;
+      filteredSafras.forEach((safra) => {
+        newValues[safra.id || ""] = 0;
       });
       onChange(newValues);
     }
   };
 
-  const activeCount = Object.values(values).filter(v => v > 0).length;
+  const activeCount = Object.values(values).filter((v) => v > 0).length;
   const totalPrice = Object.values(values).reduce((sum, val) => sum + val, 0);
-  const isRealCurrency = unit?.toLowerCase().includes('r$');
+  const isRealCurrency = unit?.toLowerCase().includes("r$");
 
   return (
     <Card>
-      <CardHeader 
+      <CardHeader
         className="cursor-pointer"
         onClick={() => setCollapsed(!collapsed)}
       >
@@ -100,24 +100,26 @@ export function SafraPriceEditorAllVisible({
           <div>
             <CardTitle className="text-base">{label}</CardTitle>
             {description && (
-              <p className="text-sm text-muted-foreground mt-1">{description}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {description}
+              </p>
             )}
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={activeCount > 0 ? "default" : "secondary"}>
               {activeCount} de {filteredSafras.length} safras
             </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              type="button"
-            >
-              {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            <Button variant="ghost" size="sm" type="button">
+              {collapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
       </CardHeader>
-      
+
       {!collapsed && (
         <CardContent className="space-y-4">
           {/* Select All Option */}
@@ -128,8 +130,8 @@ export function SafraPriceEditorAllVisible({
               onCheckedChange={handleSelectAll}
               disabled={disabled}
             />
-            <Label 
-              htmlFor="select-all-prices" 
+            <Label
+              htmlFor="select-all-prices"
               className="text-sm font-medium cursor-pointer"
             >
               Aplicar mesmo preço para todas as safras
@@ -139,14 +141,14 @@ export function SafraPriceEditorAllVisible({
           {/* Safras Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredSafras.map((safra) => {
-              const value = values[safra.id] || 0;
+              const value = values[safra.id || ""] || 0;
               const isActive = value > 0;
-              
+
               return (
-                <div 
+                <div
                   key={safra.id}
                   className={`p-4 rounded-lg border ${
-                    isActive ? 'border-primary bg-primary/5' : 'border-border'
+                    isActive ? "border-primary bg-primary/5" : "border-border"
                   }`}
                 >
                   <div className="space-y-2">
@@ -154,14 +156,14 @@ export function SafraPriceEditorAllVisible({
                       <Label className="text-sm font-medium">
                         {safra.nome}
                       </Label>
-                      <Badge 
-                        variant={isActive ? "default" : "outline"} 
+                      <Badge
+                        variant={isActive ? "default" : "outline"}
                         className="text-xs"
                       >
                         {safra.ano_inicio}/{safra.ano_fim}
                       </Badge>
                     </div>
-                    
+
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">
                         {unit}
@@ -170,13 +172,15 @@ export function SafraPriceEditorAllVisible({
                         type="number"
                         step="0.01"
                         value={value || ""}
-                        onChange={(e) => handleValueChange(safra.id, e.target.value)}
+                        onChange={(e) =>
+                          handleValueChange(safra.id || "", e.target.value)
+                        }
                         placeholder="0,00"
                         disabled={disabled}
-                        className={`${isActive ? 'border-primary' : ''}`}
+                        className={`${isActive ? "border-primary" : ""}`}
                       />
                     </div>
-                    
+
                     {isActive && isRealCurrency && (
                       <p className="text-xs text-muted-foreground">
                         {formatCurrency(value)}
@@ -192,17 +196,18 @@ export function SafraPriceEditorAllVisible({
           <div className="pt-4 border-t space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Safras com preços:</span>
-              <span className="font-medium">{activeCount} de {filteredSafras.length}</span>
+              <span className="font-medium">
+                {activeCount} de {filteredSafras.length}
+              </span>
             </div>
             {activeCount > 0 && (
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Preço médio:</span>
                   <span className="font-medium">
-                    {isRealCurrency 
+                    {isRealCurrency
                       ? formatCurrency(totalPrice / activeCount)
-                      : `${(totalPrice / activeCount).toFixed(2)} ${unit}`
-                    }
+                      : `${(totalPrice / activeCount).toFixed(2)} ${unit}`}
                   </span>
                 </div>
               </>

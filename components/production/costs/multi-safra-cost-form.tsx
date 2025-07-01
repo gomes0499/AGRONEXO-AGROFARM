@@ -4,13 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Leaf,
-  Settings,
-  Home,
-  DollarSign,
-} from "lucide-react";
+import { Loader2, Leaf, Settings, Home, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -36,6 +30,7 @@ import {
   type Culture,
   type System,
   type Harvest,
+  Cycle,
 } from "@/schemas/production";
 import { createMultiSafraProductionCosts } from "@/lib/actions/production-actions";
 import { SafraCostEditorAllVisible } from "../common/safra-cost-editor-all-visible";
@@ -55,6 +50,7 @@ interface MultiSafraProductionCostFormProps {
   properties: Property[];
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   harvests: Harvest[];
   organizationId: string;
   onSuccess?: (costs: ProductionCost[]) => void;
@@ -63,43 +59,44 @@ interface MultiSafraProductionCostFormProps {
 
 const COST_CATEGORIES = {
   // Insumos
-  CALCARIO: 'Calcário',
-  FERTILIZANTE: 'Fertilizante',
-  SEMENTES: 'Sementes',
-  TRATAMENTO_SEMENTES: 'Tratamento de Sementes',
-  
+  CALCARIO: "Calcário",
+  FERTILIZANTE: "Fertilizante",
+  SEMENTES: "Sementes",
+  TRATAMENTO_SEMENTES: "Tratamento de Sementes",
+
   // Defensivos
-  HERBICIDA: 'Herbicida',
-  INSETICIDA: 'Inseticida',
-  FUNGICIDA: 'Fungicida',
-  OUTROS: 'Outros Defensivos',
-  
+  HERBICIDA: "Herbicida",
+  INSETICIDA: "Inseticida",
+  FUNGICIDA: "Fungicida",
+  OUTROS: "Outros Defensivos",
+
   // Operações
-  BENEFICIAMENTO: 'Beneficiamento',
-  SERVICOS: 'Serviços',
-  
+  BENEFICIAMENTO: "Beneficiamento",
+  SERVICOS: "Serviços",
+
   // Gestão
-  ADMINISTRATIVO: 'Administrativo'
-}
+  ADMINISTRATIVO: "Administrativo",
+};
 
 const CATEGORY_GROUPS = {
-  'Insumos': ['CALCARIO', 'FERTILIZANTE', 'SEMENTES', 'TRATAMENTO_SEMENTES'],
-  'Defensivos': ['HERBICIDA', 'INSETICIDA', 'FUNGICIDA', 'OUTROS'],
-  'Operações': ['BENEFICIAMENTO', 'SERVICOS'],
-  'Gestão': ['ADMINISTRATIVO']
-}
+  Insumos: ["CALCARIO", "FERTILIZANTE", "SEMENTES", "TRATAMENTO_SEMENTES"],
+  Defensivos: ["HERBICIDA", "INSETICIDA", "FUNGICIDA", "OUTROS"],
+  Operações: ["BENEFICIAMENTO", "SERVICOS"],
+  Gestão: ["ADMINISTRATIVO"],
+};
 
 const CATEGORY_COLORS = {
-  'Insumos': 'bg-green-100 text-green-800',
-  'Defensivos': 'bg-red-100 text-red-800',
-  'Operações': 'bg-blue-100 text-blue-800',
-  'Gestão': 'bg-purple-100 text-purple-800'
-}
+  Insumos: "bg-green-100 text-green-800",
+  Defensivos: "bg-red-100 text-red-800",
+  Operações: "bg-blue-100 text-blue-800",
+  Gestão: "bg-purple-100 text-purple-800",
+};
 
 export function MultiSafraProductionCostForm({
   properties,
   cultures,
   systems,
+  cycles,
   harvests,
   organizationId,
   onSuccess,
@@ -118,7 +115,7 @@ export function MultiSafraProductionCostForm({
     },
   });
 
-  const watchedCategory = form.watch('categoria');
+  const watchedCategory = form.watch("categoria");
 
   const onSubmit = async (values: MultiSafraProductionCostFormValues) => {
     setIsSubmitting(true);
@@ -129,13 +126,13 @@ export function MultiSafraProductionCostForm({
         setIsSubmitting(false);
         return;
       }
-      
+
       // Ensure propriedade_id is provided (it's required by the API)
       const finalValues = {
         ...values,
-        propriedade_id: values.propriedade_id || ''
+        propriedade_id: values.propriedade_id || "",
       };
-      
+
       // Filtrar apenas valores maiores que zero
       const validCosts: Record<string, number> = {};
       Object.entries(values.custos_por_safra).forEach(([safraId, value]) => {
@@ -143,29 +140,40 @@ export function MultiSafraProductionCostForm({
           validCosts[safraId] = value;
         }
       });
-      
+
       if (Object.keys(validCosts).length === 0) {
         toast.error("Adicione pelo menos um custo válido por safra");
         setIsSubmitting(false);
         return;
       }
-      
+
       // Atualizar com os valores filtrados
       finalValues.custos_por_safra = validCosts;
-      
-      const newCosts = await createMultiSafraProductionCosts(organizationId, finalValues);
-      toast.success(`${Object.keys(validCosts).length} custo(s) criado(s) com sucesso!`);
-      
+
+      const newCosts = await createMultiSafraProductionCosts(
+        organizationId,
+        finalValues
+      );
+      toast.success(
+        `${Object.keys(validCosts).length} custo(s) criado(s) com sucesso!`
+      );
+
       if (onSuccess) {
         // Convert to expected array type with date conversion and explicit casting
-        onSuccess([{
-          ...newCosts,
-          categoria: newCosts.categoria as any,
-          created_at: newCosts.created_at ? new Date(newCosts.created_at) : undefined,
-          updated_at: newCosts.updated_at ? new Date(newCosts.updated_at) : undefined
-        }]); // Cast to satisfy TypeScript
+        onSuccess([
+          {
+            ...newCosts,
+            categoria: newCosts.categoria as any,
+            created_at: newCosts.created_at
+              ? new Date(newCosts.created_at)
+              : undefined,
+            updated_at: newCosts.updated_at
+              ? new Date(newCosts.updated_at)
+              : undefined,
+          },
+        ]); // Cast to satisfy TypeScript
       }
-      
+
       // A revalidação já é feita pelas funções do servidor
     } catch (error) {
       console.error("Erro ao criar custos:", error);
@@ -178,16 +186,19 @@ export function MultiSafraProductionCostForm({
   const getCategoryGroup = (category: string) => {
     for (const [group, categories] of Object.entries(CATEGORY_GROUPS)) {
       if (Array.isArray(categories) && categories.indexOf(category) !== -1) {
-        return group
+        return group;
       }
     }
-    return 'Outros'
-  }
+    return "Outros";
+  };
 
   const getCategoryColor = (category: string) => {
-    const group = getCategoryGroup(category)
-    return CATEGORY_COLORS[group as keyof typeof CATEGORY_COLORS] || 'bg-gray-100 text-gray-800'
-  }
+    const group = getCategoryGroup(category);
+    return (
+      CATEGORY_COLORS[group as keyof typeof CATEGORY_COLORS] ||
+      "bg-gray-100 text-gray-800"
+    );
+  };
 
   return (
     <Form {...form}>
@@ -321,18 +332,24 @@ export function MultiSafraProductionCostForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.entries(CATEGORY_GROUPS).map(([group, categories]) => (
-                        <div key={group}>
-                          <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                            {group}
+                      {Object.entries(CATEGORY_GROUPS).map(
+                        ([group, categories]) => (
+                          <div key={group}>
+                            <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                              {group}
+                            </div>
+                            {categories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {
+                                  COST_CATEGORIES[
+                                    category as keyof typeof COST_CATEGORIES
+                                  ]
+                                }
+                              </SelectItem>
+                            ))}
                           </div>
-                          {categories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {COST_CATEGORIES[category as keyof typeof COST_CATEGORIES]}
-                            </SelectItem>
-                          ))}
-                        </div>
-                      ))}
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
