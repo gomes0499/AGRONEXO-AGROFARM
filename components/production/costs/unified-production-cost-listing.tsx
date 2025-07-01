@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Plus, Trash2, DollarSign } from "lucide-react";
-import { formatCurrencyCompact } from "@/lib/utils/formatters";
-import type { ProductionCost, Safra, Culture, System } from "@/lib/actions/production-actions";
+import { Edit, Plus, Trash2, DollarSign, Loader2, Save } from "lucide-react";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/utils/formatters";
+import type { ProductionCost, Safra, Culture, System, Cycle } from "@/lib/actions/production-actions";
 import { 
   Popover,
   PopoverContent,
@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { deleteProductionCost, updateProductionCost } from "@/lib/actions/production-actions";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ interface UnifiedProductionCostListingProps {
   properties: Property[];
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   organizationId: string;
 }
 
@@ -71,11 +73,11 @@ export function UnifiedProductionCostListing({
   properties,
   cultures,
   systems,
+  cycles,
   organizationId
 }: UnifiedProductionCostListingProps) {
-  const [editingCost, setEditingCost] = useState<ProductionCost | null>(null);
-  const [editingValues, setEditingValues] = useState<Record<string, number>>({});
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [editingState, setEditingState] = useState<Record<string, Record<string, number>>>({});
+  const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [deletingCost, setDeletingCost] = useState<ProductionCost | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -87,113 +89,91 @@ export function UnifiedProductionCostListing({
     })
     .sort((a, b) => a.ano_inicio - b.ano_inicio);
 
-  // Usar diretamente os custos de produção sem filtro
-  const filteredCosts = productionCosts;
-
-  const getCombinationBadge = (cost: ProductionCost) => {
-    return `${cost.culturas?.nome} - ${cost.sistemas?.nome}`;
+  const getCostValue = (cost: ProductionCost, safraId: string): number => {
+    if (cost.custos_por_safra && typeof cost.custos_por_safra === 'object') {
+      return cost.custos_por_safra[safraId] || 0;
+    }
+    return 0;
   };
 
   const getCategoryBadge = (categoria: string) => {
     return (
       <Badge 
         variant="secondary" 
-        className={`text-xs ${CATEGORY_COLORS[categoria] || CATEGORY_COLORS.OUTROS}`}
+        className={`${CATEGORY_COLORS[categoria]} text-xs`}
       >
-        {CATEGORY_LABELS[categoria] || categoria}
+        {CATEGORY_LABELS[categoria]}
       </Badge>
     );
   };
 
-  const getCostValue = (cost: ProductionCost, safraId: string): number => {
-    return cost.custos_por_safra[safraId] || 0;
+  const initCostEditState = (cost: ProductionCost) => {
+    if (!editingState[cost.id]) {
+      const newEditState: Record<string, number> = {};
+      
+      filteredSafras.forEach(safra => {
+        newEditState[safra.id] = getCostValue(cost, safra.id);
+      });
+      
+      setEditingState(prev => ({
+        ...prev,
+        [cost.id]: newEditState
+      }));
+    }
   };
 
-  const handleStartEdit = (cost: ProductionCost) => {
-    // Copia os valores atuais dos custos para o estado de edição
-    const currentValues = {...cost.custos_por_safra};
-    
-    // Garante que todos os valores sejam números
-    Object.keys(currentValues).forEach(key => {
-      if (typeof currentValues[key] !== 'number') {
-        currentValues[key] = parseFloat(currentValues[key] as any) || 0;
-      }
-    });
-    
-    // Atualiza o estado com o custo selecionado e seus valores
-    setEditingCost(cost);
-    setEditingValues(currentValues);
-  };
-
-  const handleEditValueChange = (safraId: string, value: string) => {
-    // Importante: verificamos se estamos editando algum custo
-    if (!editingCost) return;
-    
-    // Convertemos para número, usando 0 se não for um número válido
+  const handleEditValueChange = (costId: string, safraId: string, value: string) => {
     const numValue = parseFloat(value) || 0;
-    
-    // Atualizamos o estado com o novo valor para esta safra
-    setEditingValues(prev => ({
+    setEditingState(prev => ({
       ...prev,
-      [safraId]: numValue
+      [costId]: {
+        ...prev[costId],
+        [safraId]: numValue
+      }
     }));
   };
 
-  const handleSaveChanges = async () => {
-    // Verificamos se há um custo sendo editado
-    if (!editingCost) {
-      console.error("Nenhum custo sendo editado");
-      return;
-    }
-
+  const handleSaveChanges = async (cost: ProductionCost) => {
+    setIsLoading(prev => ({ ...prev, [cost.id]: true }));
+    
     try {
-      setIsUpdating(true);
+      const editValues = editingState[cost.id];
+      if (!editValues) return;
       
-      // Filtramos apenas os valores que são maiores que zero
-      const validValues = Object.fromEntries(
-        Object.entries(editingValues)
-          .filter(([_, value]) => value > 0)
+      await updateProductionCost(
+        cost.id,
+        organizationId,
+        { custos_por_safra: editValues }
       );
       
-      // Verificamos se há pelo menos um custo válido
-      if (Object.keys(validValues).length === 0) {
-        toast.error("Adicione pelo menos um custo válido por safra");
-        return;
-      }
-      
-      await updateProductionCost(editingCost.id, {
-        custos_por_safra: validValues,
-        observacoes: editingCost.observacoes
-      });
-      
-      toast.success("Custos de produção atualizados com sucesso!");
-      setEditingCost(null);
-      
-      // A revalidação já é feita pela função updateProductionCost
+      toast.success("Custos atualizados com sucesso");
     } catch (error) {
       console.error("Erro ao atualizar custos:", error);
-      toast.error("Erro ao atualizar custos de produção");
+      toast.error("Erro ao atualizar custos");
     } finally {
-      setIsUpdating(false);
+      setIsLoading(prev => ({ ...prev, [cost.id]: false }));
     }
   };
 
   const handleDeleteConfirm = async () => {
     if (!deletingCost) return;
-
+    
+    setIsDeleting(true);
     try {
-      setIsDeleting(true);
-      await deleteProductionCost(deletingCost.id);
-      toast.success("Custo de produção excluído com sucesso!");
+      await deleteProductionCost(deletingCost.id, organizationId);
+      toast.success("Custo de produção excluído com sucesso");
       setDeletingCost(null);
-      
-      // A revalidação já é feita pela função deleteProductionCost
     } catch (error) {
       console.error("Erro ao excluir custo:", error);
       toast.error("Erro ao excluir custo de produção");
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const formatCostValue = (value: number): string => {
+    if (value === 0) return "-";
+    return formatCurrencyCompact(value);
   };
 
   return (
@@ -216,6 +196,7 @@ export function UnifiedProductionCostListing({
           size="default"
           cultures={cultures}
           systems={systems}
+          cycles={cycles}
           harvests={safras}
           properties={properties}
           organizationId={organizationId}
@@ -228,11 +209,11 @@ export function UnifiedProductionCostListing({
             <table className="w-full text-sm">
               <thead className="bg-primary sticky top-0 z-10">
                 <tr>
-                  <th className="text-left p-3 font-medium text-white border-r first:rounded-tl-md min-w-[150px] w-[150px]">
+                  <th className="text-left p-3 font-medium text-white border-r first:rounded-tl-md min-w-[150px]">
                     Propriedade
                   </th>
-                  <th className="text-left p-3 font-medium text-white border-r min-w-[220px]">
-                    Cultura/Sistema
+                  <th className="text-left p-3 font-medium text-white border-r min-w-[280px]">
+                    Cultura/Sistema/Ciclo
                   </th>
                   <th className="text-left p-3 font-medium text-white border-r min-w-[120px]">
                     Categoria
@@ -248,127 +229,130 @@ export function UnifiedProductionCostListing({
                 </tr>
               </thead>
               <tbody>
-                {filteredCosts.map((cost, index) => (
-                  <tr 
-                    key={cost.id} 
-                    className={index % 2 === 0 ? "bg-background" : "bg-muted/25"}
-                  >
-                    <td className="p-3 border-r">
-                      <Badge 
-                        variant={cost.propriedade_id ? "default" : "secondary"} 
-                        className="text-xs font-medium"
-                      >
-                        {cost.propriedades?.nome || "Todas as Propriedades"}
-                      </Badge>
-                    </td>
-                    <td className="p-3 border-r">
-                      <Badge variant="default" className="text-xs">
-                        {getCombinationBadge(cost)}
-                      </Badge>
-                    </td>
-                    <td className="p-3 border-r">
-                      {getCategoryBadge(cost.categoria)}
-                    </td>
-                    {filteredSafras.map(safra => {
-                      const value = getCostValue(cost, safra.id);
-                      return (
-                        <td key={safra.id} className="p-3 border-r text-center">
-                          <span className={value > 0 ? "font-medium" : "text-muted-foreground"}>
-                            {value > 0 ? formatCurrencyCompact(value) : "-"}
-                          </span>
-                        </td>
-                      );
-                    })}
-                    <td className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Popover onOpenChange={(open) => {
-                          if (open) {
-                            handleStartEdit(cost);
-                          } else {
-                            setEditingCost(null);
-                          }
-                        }}>
-                          <PopoverTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleStartEdit(cost)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" className="w-auto p-4">
-                            <div className="grid gap-4 w-[600px] max-h-[400px] overflow-y-auto">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="font-medium text-sm">Editar Custos de Produção</h4>
-                                <Badge variant="outline" className="ml-auto">
-                                  {cost.propriedades?.nome || "Todas as Propriedades"} • {cost.culturas?.nome} • {cost.sistemas?.nome}
-                                </Badge>
-                                {getCategoryBadge(cost.categoria)}
-                              </div>
-                              
-                              <div className="grid grid-cols-3 gap-4">
-                                {filteredSafras.map(safra => {
-                                  const currentValue = editingCost?.id === cost.id 
-                                    ? (editingValues[safra.id] || 0) 
-                                    : (cost.custos_por_safra[safra.id] || 0);
-                                    
-                                  return (
-                                    <div key={safra.id} className="space-y-2">
-                                      <label className="text-sm font-medium">{safra.nome}</label>
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={currentValue || ""}
-                                        onChange={(e) => handleEditValueChange(safra.id, e.target.value)}
-                                        placeholder="0.00"
-                                        className="text-right"
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              
-                              <div className="flex justify-end gap-2 mt-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => setEditingCost(null)}
-                                  disabled={isUpdating}
-                                >
-                                  Cancelar
-                                </Button>
-                                <Button 
-                                  size="sm"
-                                  onClick={handleSaveChanges}
-                                  disabled={isUpdating}
-                                >
-                                  {isUpdating ? "Salvando..." : "Salvar"}
-                                </Button>
-                              </div>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          onClick={() => setDeletingCost(cost)}
+                {productionCosts.map((cost, index) => {
+                  initCostEditState(cost);
+                  
+                  return (
+                    <tr 
+                      key={cost.id} 
+                      className={index % 2 === 0 ? "bg-background" : "bg-muted/25"}
+                    >
+                      <td className="p-3 border-r">
+                        <Badge 
+                          variant={cost.propriedade_id ? "default" : "secondary"} 
+                          className="text-xs font-medium"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {cost.propriedades?.nome || "Todas as Propriedades"}
+                        </Badge>
+                      </td>
+                      <td className="p-3 border-r">
+                        <Badge variant="default" className="text-xs">
+                          {cost.culturas?.nome} - {cost.sistemas?.nome} - {cost.ciclos?.nome || ""}
+                        </Badge>
+                      </td>
+                      <td className="p-3 border-r">
+                        {getCategoryBadge(cost.categoria)}
+                      </td>
+                      {filteredSafras.map(safra => {
+                        const value = getCostValue(cost, safra.id);
+                        return (
+                          <td key={safra.id} className="p-3 border-r text-center">
+                            <span className={value > 0 ? "font-medium" : "text-muted-foreground"}>
+                              {formatCostValue(value)}
+                            </span>
+                          </td>
+                        );
+                      })}
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-auto p-4">
+                              <div className="grid gap-4 w-[600px] max-h-[500px] overflow-y-auto">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium leading-none">
+                                    Editar Custos - {CATEGORY_LABELS[cost.categoria]}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {cost.propriedades?.nome || "Todas as Propriedades"} • {cost.culturas?.nome} • {cost.sistemas?.nome} • {cost.ciclos?.nome || ""}
+                                  </p>
+                                </div>
+                                
+                                <div className="grid grid-cols-3 gap-3">
+                                  {filteredSafras.map(safra => {
+                                    const costId = cost.id;
+                                    return (
+                                      <div key={safra.id} className="space-y-2">
+                                        <Label htmlFor={`cost-${costId}-${safra.id}`}>
+                                          {safra.nome}
+                                        </Label>
+                                        <div className="relative">
+                                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                                            R$
+                                          </span>
+                                          <Input
+                                            id={`cost-${costId}-${safra.id}`}
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={editingState[costId]?.[safra.id] || ""}
+                                            onChange={(e) => handleEditValueChange(costId, safra.id, e.target.value)}
+                                            placeholder="0,00"
+                                            className="pl-10"
+                                          />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                
+                                <Button
+                                  onClick={() => handleSaveChanges(cost)}
+                                  disabled={isLoading[cost.id]}
+                                  className="w-full"
+                                >
+                                  {isLoading[cost.id] ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Salvando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Save className="mr-2 h-4 w-4" />
+                                      Salvar Alterações
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            onClick={() => setDeletingCost(cost)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
-        {filteredCosts.length === 0 && (
+        {productionCosts.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             Nenhum custo de produção cadastrado.
           </div>

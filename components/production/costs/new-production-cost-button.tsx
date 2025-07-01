@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Plus, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +24,7 @@ import { cn } from "@/lib/utils";
 import type {
   Culture,
   System,
+  Cycle,
   Harvest,
   ProductionCost,
 } from "@/schemas/production";
@@ -42,6 +42,7 @@ interface Property {
 interface NewProductionCostButtonProps {
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   harvests: Harvest[];
   properties: Property[];
   organizationId: string;
@@ -54,6 +55,7 @@ interface NewProductionCostButtonProps {
 export function NewProductionCostButton({
   cultures,
   systems,
+  cycles,
   harvests,
   properties,
   organizationId,
@@ -64,13 +66,9 @@ export function NewProductionCostButton({
 }: NewProductionCostButtonProps) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const isMobile = useIsMobile();
-  const router = useRouter();
 
   const handleSuccess = (cost: ProductionCost) => {
     setIsOpen(false);
-
-    // Atualizar a UI - a revalidação já é feita pelas funções do servidor
-    router.refresh();
 
     // Chamar o callback se fornecido
     if (onItemCreated) {
@@ -109,6 +107,7 @@ export function NewProductionCostButton({
               <ProductionCostForm
                 cultures={cultures}
                 systems={systems}
+                cycles={cycles}
                 harvests={harvests}
                 properties={properties}
                 organizationId={organizationId}
@@ -152,6 +151,7 @@ export function NewProductionCostButton({
             <ProductionCostForm
               cultures={cultures}
               systems={systems}
+              cycles={cycles}
               harvests={harvests}
               properties={properties}
               organizationId={organizationId}

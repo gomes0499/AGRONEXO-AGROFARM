@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { SafraPriceEditor } from "./safra-price-editor";
+import { SafraPriceEditorAllVisible } from "../common/safra-price-editor-all-visible";
 import { type Harvest } from "@/schemas/production";
 import * as z from "zod";
 
@@ -219,7 +219,7 @@ export function MultiSafraCommodityPriceForm({
           name="precos_por_safra"
           render={({ field }) => (
             <FormItem>
-              <SafraPriceEditor
+              <SafraPriceEditorAllVisible
                 label="Preços por Safra"
                 description="Defina os preços para cada safra"
                 values={field.value}

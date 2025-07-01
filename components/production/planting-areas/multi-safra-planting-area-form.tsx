@@ -32,7 +32,7 @@ import {
   type Harvest,
 } from "@/schemas/production";
 import { createMultiSafraPlantingAreas } from "@/lib/actions/production-actions";
-import { SafraAreaEditor } from "../common/safra-area-editor";
+import { SafraEditorAllVisible } from "../common/safra-editor-all-visible";
 
 // Define interface for the property entity
 interface Property {
@@ -273,13 +273,15 @@ export function MultiSafraPlantingAreaForm({
           name="areas_por_safra"
           render={({ field }) => (
             <FormItem>
-              <SafraAreaEditor
+              <SafraEditorAllVisible
                 label="Áreas por Safra"
                 description="Defina as áreas plantadas para cada safra"
                 values={field.value}
                 onChange={field.onChange}
                 safras={harvests}
                 disabled={isSubmitting}
+                unitLabel="ha"
+                placeholder="0"
               />
               <FormMessage />
             </FormItem>

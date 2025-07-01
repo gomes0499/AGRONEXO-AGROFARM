@@ -38,7 +38,7 @@ import {
   type Harvest,
 } from "@/schemas/production";
 import { createMultiSafraProductionCosts } from "@/lib/actions/production-actions";
-import { SafraCostEditor } from "../common/safra-cost-editor";
+import { SafraCostEditorAllVisible } from "../common/safra-cost-editor-all-visible";
 
 // Define interface for the property entity
 // Use the same Property type as in production-actions.ts
@@ -350,7 +350,7 @@ export function MultiSafraProductionCostForm({
           name="custos_por_safra"
           render={({ field }) => (
             <FormItem>
-              <SafraCostEditor
+              <SafraCostEditorAllVisible
                 label="Custos por Safra"
                 description={`Defina os custos de ${COST_CATEGORIES[watchedCategory as keyof typeof COST_CATEGORIES]} para cada safra`}
                 values={field.value}

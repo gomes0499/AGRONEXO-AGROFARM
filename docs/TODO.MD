@@ -1,20 +1,5 @@
-[] CORRIGIR CATEGORIA INVESTIMENTO vc tem acesso ao MCP no supabase corrija > Erro ao criar dívida bancária: {
-  code: '22P02',
-  details: null,
-  hint: null,
-  message: 'invalid input value for enum divida_modalidade: "INVESTIMENTO"'
-}
- ⨯ Error: Não foi possível criar a dívida bancária
-    at createDividaBancaria (lib/actions/financial-actions/dividas-bancarias.ts:96:10)
-  94 |   if (error) {
-  95 |     console.error("Erro ao criar dívida bancária:", error);
-> 96 |     throw new Error("Não foi possível criar a dívida bancária");
-     |          ^
-  97 |   }
-  98 |   
-  99 |   // Adicionar campos para compatibilidade {
-  digest: '1740630901'
-}
+[ ] ARRUMAR REVALIDATE PATH PARA TODAS AS ACTIONS DO MODULO DE PRODUCAO E REMOVER OS ROUTERS.REFRESHS DO MODULO DE PRODUCAO...
+[ ] AUMENTAR TAMANHO DO MODAL DE CRIACAO DE PRECOS DEIXAR DO MESMO TAMANHO DOS OUTROS DO MODULO
 
 [] DOMINIO SITE/EMAIL SR
 [] CONVIDAR MEMBRO - EMAIL N ESTA CHEGANDO

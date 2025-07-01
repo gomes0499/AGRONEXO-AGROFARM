@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { cache } from "react";
 
 // Import existing production actions
 import {
@@ -28,6 +27,14 @@ import {
   getReceitaChartData,
 } from "@/lib/actions/receita-chart-actions";
 
+import {
+  getCommodityPrices,
+} from "@/lib/actions/commodity-prices-actions";
+
+import {
+  getExchangeRates,
+} from "@/lib/actions/exchange-rates-actions";
+
 export interface ProductionFilters {
   safraId?: string;
   culturaId?: string;
@@ -51,6 +58,10 @@ export interface ProductionPageData {
   productivities: Awaited<ReturnType<typeof getProductivities>>;
   productionCosts: Awaited<ReturnType<typeof getProductionCosts>>;
   
+  // Prices data
+  commodityPrices: Awaited<ReturnType<typeof getCommodityPrices>>;
+  exchangeRates: Awaited<ReturnType<typeof getExchangeRates>>;
+  
   // Stats
   productionStats: Awaited<ReturnType<typeof getProductionStats>>;
   
@@ -65,13 +76,11 @@ export interface ProductionPageData {
 
 /**
  * Fetch all production page data in a single call
- * Uses React cache to avoid duplicate queries
  */
-export const fetchProductionPageData = cache(
-  async (
-    organizationId: string,
-    filters?: ProductionFilters
-  ): Promise<ProductionPageData> => {
+export const fetchProductionPageData = async (
+  organizationId: string,
+  filters?: ProductionFilters
+): Promise<ProductionPageData> => {
     // Set default filters
     const appliedFilters = {
       page: filters?.page || 1,
@@ -101,6 +110,10 @@ export const fetchProductionPageData = cache(
       productivities,
       productionCosts,
       
+      // Prices data
+      commodityPrices,
+      exchangeRates,
+      
       // Stats
       productionStats,
       
@@ -119,6 +132,10 @@ export const fetchProductionPageData = cache(
       getPlantingAreas(organizationId),
       getProductivities(organizationId),
       getProductionCosts(organizationId),
+      
+      // Prices data
+      getCommodityPrices(organizationId),
+      getExchangeRates(organizationId),
       
       // Stats
       getProductionStats(organizationId, propertyIds),
@@ -141,6 +158,10 @@ export const fetchProductionPageData = cache(
       productivities,
       productionCosts,
       
+      // Prices data
+      commodityPrices,
+      exchangeRates,
+      
       // Stats
       productionStats,
       
@@ -152,15 +173,13 @@ export const fetchProductionPageData = cache(
       // Applied filters
       filters: appliedFilters,
     };
-  }
-);
+};
 
 /**
  * Fetch form data for production entities
  * Includes cultures, systems, cycles, safras
  */
-export const fetchProductionFormData = cache(
-  async (organizationId: string) => {
+export const fetchProductionFormData = async (organizationId: string) => {
     const [cultures, systems, cycles, safras] = await Promise.all([
       getCultures(organizationId),
       getSystems(organizationId),
@@ -174,5 +193,4 @@ export const fetchProductionFormData = cache(
       cycles,
       safras,
     };
-  }
-);
+};

@@ -4,6 +4,9 @@ import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 import { fetchProductionPageData } from "@/lib/actions/production/unified-production-actions";
 import { ProductionPageClient } from "@/components/production/production-page-client";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Produção Agrícola | SR Consultoria",
   description: "Gestão de produção agrícola e pecuária",

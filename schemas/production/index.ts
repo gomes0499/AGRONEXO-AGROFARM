@@ -146,6 +146,7 @@ export const productivitySchema = z.object({
   propriedade_id: z.string().uuid().optional(),
   cultura_id: z.string().uuid(),
   sistema_id: z.string().uuid(),
+  ciclo_id: z.string().uuid(),
   produtividades_por_safra: z.record(z.string(), z.object({
     produtividade: z.coerce.number().min(0, "Produtividade deve ser positiva"),
     unidade: productivityUnitEnum
@@ -164,6 +165,7 @@ export const productivityFormSchema = z.object({
   }).optional(),
   cultura_id: z.string().uuid("Selecione uma cultura válida"),
   sistema_id: z.string().uuid("Selecione um sistema válido"),
+  ciclo_id: z.string().uuid("Selecione um ciclo válido"),
   produtividades_por_safra: z.record(z.string(), z.object({
     produtividade: z.coerce.number().min(0.01, "Produtividade deve ser maior que 0").refine(val => !isNaN(val), {
       message: "Insira um valor numérico válido para a produtividade"
@@ -209,6 +211,7 @@ export const productionCostSchema = z.object({
   propriedade_id: z.string().uuid().optional(),
   cultura_id: z.string().uuid(),
   sistema_id: z.string().uuid(),
+  ciclo_id: z.string().uuid(),
   categoria: productionCostCategoryEnum,
   custos_por_safra: z.record(z.string(), z.coerce.number().min(0, "Valor deve ser positivo")),
   descricao: z.string().optional(),
@@ -226,6 +229,7 @@ export const productionCostFormSchema = z.object({
   }).optional(),
   cultura_id: z.string().uuid("Selecione uma cultura válida"),
   sistema_id: z.string().uuid("Selecione um sistema válido"),
+  ciclo_id: z.string().uuid("Selecione um ciclo válido"),
   categoria: productionCostCategoryEnum.refine(val => !!val, {
     message: "Selecione uma categoria de custo"
   }),

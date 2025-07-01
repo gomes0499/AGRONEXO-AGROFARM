@@ -31,24 +31,30 @@ export async function getCommodityPrices(organizationId: string): Promise<Commod
   }
   
   // Transform to the expected format
-  return (data || []).map(item => ({
-    id: item.id,
-    organizacaoId: item.organizacao_id,
-    commodityType: item.commodity_type,
-    unit: item.unit,
-    currentPrice: item.current_price || 0,
-    price2021: item.price_2021,
-    price2022: item.price_2022,
-    price2023: item.price_2023,
-    price2024: item.price_2024,
-    price2025: item.price_2025,
-    price2026: item.price_2026,
-    price2027: item.price_2027,
-    price2028: item.price_2028,
-    price2029: item.price_2029,
-    createdAt: item.created_at ? new Date(item.created_at) : new Date(),
-    updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(),
-  }));
+  return (data || []).map(item => {
+    // Try to read year-based prices first, fall back to current_price
+    const precos = item.precos_por_ano || {};
+    const currentPrice = item.current_price || 0;
+    
+    return {
+      id: item.id,
+      organizacaoId: item.organizacao_id,
+      commodityType: item.commodity_type,
+      unit: item.unit,
+      currentPrice: currentPrice,
+      price2021: precos["2021"] || currentPrice,
+      price2022: precos["2022"] || currentPrice,
+      price2023: precos["2023"] || currentPrice,
+      price2024: precos["2024"] || currentPrice,
+      price2025: precos["2025"] || currentPrice,
+      price2026: precos["2026"] || currentPrice,
+      price2027: precos["2027"] || currentPrice,
+      price2028: precos["2028"] || currentPrice,
+      price2029: precos["2029"] || currentPrice,
+      createdAt: item.created_at ? new Date(item.created_at) : new Date(),
+      updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(),
+    };
+  });
 }
 
 // Create a new commodity price
@@ -69,9 +75,27 @@ export async function createCommodityPrice(data: {
 }) {
   const supabase = await createClient();
   
+  // Build the precos_por_ano JSONB object
+  const precos_por_ano: Record<string, number> = {};
+  if (data.price_2021 !== undefined) precos_por_ano["2021"] = data.price_2021;
+  if (data.price_2022 !== undefined) precos_por_ano["2022"] = data.price_2022;
+  if (data.price_2023 !== undefined) precos_por_ano["2023"] = data.price_2023;
+  if (data.price_2024 !== undefined) precos_por_ano["2024"] = data.price_2024;
+  precos_por_ano["2025"] = data.price_2025;
+  precos_por_ano["2026"] = data.price_2026;
+  precos_por_ano["2027"] = data.price_2027;
+  precos_por_ano["2028"] = data.price_2028;
+  precos_por_ano["2029"] = data.price_2029;
+  
   const { data: result, error } = await supabase
     .from("commodity_price_projections")
-    .insert(data)
+    .insert({
+      organizacao_id: data.organizacao_id,
+      commodity_type: data.commodity_type,
+      unit: data.unit,
+      current_price: data.current_price,
+      precos_por_ano
+    })
     .select()
     .single();
   
@@ -81,6 +105,8 @@ export async function createCommodityPrice(data: {
   }
   
   revalidatePath("/dashboard/production");
+  revalidatePath("/dashboard/production/prices");
+  revalidatePath("/dashboard");
   return result;
 }
 
@@ -99,12 +125,42 @@ export async function updateCommodityPrice(id: string, data: {
 }) {
   const supabase = await createClient();
   
+  // First, get the current record to merge with existing precos_por_ano
+  const { data: existing, error: fetchError } = await supabase
+    .from("commodity_price_projections")
+    .select("precos_por_ano")
+    .eq("id", id)
+    .single();
+    
+  if (fetchError) {
+    console.error("Erro ao buscar preço existente:", fetchError);
+    throw new Error("Não foi possível buscar o preço existente");
+  }
+  
+  // Build the updated precos_por_ano JSONB object
+  const precos_por_ano = existing?.precos_por_ano || {};
+  if (data.price_2021 !== undefined) precos_por_ano["2021"] = data.price_2021;
+  if (data.price_2022 !== undefined) precos_por_ano["2022"] = data.price_2022;
+  if (data.price_2023 !== undefined) precos_por_ano["2023"] = data.price_2023;
+  if (data.price_2024 !== undefined) precos_por_ano["2024"] = data.price_2024;
+  if (data.price_2025 !== undefined) precos_por_ano["2025"] = data.price_2025;
+  if (data.price_2026 !== undefined) precos_por_ano["2026"] = data.price_2026;
+  if (data.price_2027 !== undefined) precos_por_ano["2027"] = data.price_2027;
+  if (data.price_2028 !== undefined) precos_por_ano["2028"] = data.price_2028;
+  if (data.price_2029 !== undefined) precos_por_ano["2029"] = data.price_2029;
+  
+  const updateData: any = {
+    updated_at: new Date().toISOString(),
+    precos_por_ano
+  };
+  
+  if (data.current_price !== undefined) {
+    updateData.current_price = data.current_price;
+  }
+  
   const { data: result, error } = await supabase
     .from("commodity_price_projections")
-    .update({
-      ...data,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("id", id)
     .select()
     .single();
@@ -115,6 +171,8 @@ export async function updateCommodityPrice(id: string, data: {
   }
   
   revalidatePath("/dashboard/production");
+  revalidatePath("/dashboard/production/prices");
+  revalidatePath("/dashboard");
   return result;
 }
 
@@ -133,6 +191,8 @@ export async function deleteCommodityPrice(id: string) {
   }
   
   revalidatePath("/dashboard/production");
+  revalidatePath("/dashboard/production/prices");
+  revalidatePath("/dashboard");
 }
 
 // Create multiple commodity prices for multiple safras
@@ -141,37 +201,57 @@ export async function createMultiSafraCommodityPrices(data: {
   commodityType: string; // Already the commodity type (e.g., "SOJA", "MILHO")
   safrasIds: string[];
   precoAtual: number;
-  precosporSafra: Record<string, number>;
+  precosporSafra: Record<string, number>; // Key is safra ID, value is price
 }) {
+  let priceToCreate: any = null;
+  
   try {
     const supabase = await createClient();
     
     // Determine unit based on commodity type
     const unit = data.commodityType.toLowerCase().includes('algodao') ? "R$/@" : "R$/Saca";
     
-    const pricesToCreate = data.safrasIds.map(safraId => ({
+    // Create a single price entry that applies to all selected safras
+    // Use the first safra ID as the main one
+    const mainSafraId = data.safrasIds[0];
+    const priceValue = data.precosporSafra[mainSafraId] || data.precoAtual;
+    
+    // Build precos_por_ano with years as keys
+    const precos_por_ano: Record<string, number> = {};
+    for (let year = 2021; year <= 2029; year++) {
+      precos_por_ano[year.toString()] = priceValue;
+    }
+    
+    priceToCreate = {
       organizacao_id: data.organizationId,
       commodity_type: data.commodityType,
+      safra_id: mainSafraId, // Use the first safra as the main reference
       unit: unit,
-      current_price: data.precoAtual,
-      price_2025: data.precosporSafra[safraId] || data.precoAtual,
-      price_2026: data.precosporSafra[safraId] || data.precoAtual,
-      price_2027: data.precosporSafra[safraId] || data.precoAtual,
-      price_2028: data.precosporSafra[safraId] || data.precoAtual,
-      price_2029: data.precosporSafra[safraId] || data.precoAtual,
-    }));
+      current_price: priceValue,
+      precos_por_ano
+    };
 
-    const { data: createdPrices, error } = await supabase
+    const { data: createdPrice, error } = await supabase
       .from("commodity_price_projections")
-      .insert(pricesToCreate)
-      .select();
+      .insert(priceToCreate)
+      .select()
+      .single();
 
     if (error) throw error;
 
     revalidatePath("/dashboard/production");
-    return { success: true, data: createdPrices };
+    revalidatePath("/dashboard/production/prices");
+    revalidatePath("/dashboard");
+    return { success: true, data: createdPrice };
   } catch (error: any) {
-    console.error("Erro ao criar preços múltiplos:", error);
-    throw new Error(error.message || "Falha ao criar preços");
+    console.error("Erro ao criar preço - Full error:", error);
+    console.error("Error details:", {
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      message: error.message
+    });
+    console.error("Data being inserted:", priceToCreate);
+    throw new Error(error.message || "Falha ao criar preço");
   }
 }

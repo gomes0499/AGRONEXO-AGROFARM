@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, Leaf, Settings, MapPin, Globe } from "lucide-react";
+import { Loader2, Leaf, Settings, MapPin, Globe, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -28,6 +28,7 @@ import {
   productivityFormSchema,
   type Culture,
   type System,
+  type Cycle,
   type Harvest,
 } from "@/schemas/production";
 import {
@@ -50,6 +51,7 @@ interface Property {
 interface ProductivityFormProps {
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   harvests: Harvest[];
   organizationId: string;
   productivity?: Productivity | null;
@@ -62,6 +64,7 @@ interface ProductivityFormProps {
 export function ProductivityForm({
   cultures,
   systems,
+  cycles,
   harvests,
   organizationId,
   productivity = null,
@@ -77,6 +80,7 @@ export function ProductivityForm({
     defaultValues: {
       cultura_id: productivity?.cultura_id || "",
       sistema_id: productivity?.sistema_id || "",
+      ciclo_id: productivity?.ciclo_id || "",
       propriedade_id: productivity?.propriedade_id || "",
       produtividades_por_safra: productivity?.produtividades_por_safra || {},
       observacoes: productivity?.observacoes || "",
@@ -170,7 +174,7 @@ export function ProductivityForm({
             )}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FormField
               control={form.control}
               name="cultura_id"
@@ -226,6 +230,38 @@ export function ProductivityForm({
                       {systems.map((system) => (
                         <SelectItem key={system.id} value={system.id || ""}>
                           {system.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ciclo_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                    <Layers className="h-4 w-4 text-muted-foreground" />
+                    Ciclo
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione o ciclo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {cycles.map((cycle) => (
+                        <SelectItem key={cycle.id} value={cycle.id || ""}>
+                          {cycle.nome}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -37,6 +37,8 @@ export function ProductionPageClient({
     plantingAreas,
     productivities,
     productionCosts,
+    commodityPrices,
+    exchangeRates,
   } = initialData;
 
   // Extract properties from plantingAreas if available
@@ -72,8 +74,8 @@ export function ProductionPageClient({
           organizationId={organizationId}
           cultures={cultures}
           safras={safras}
-          commodityPrices={[]}
-          exchangeRates={[]}
+          commodityPrices={commodityPrices}
+          exchangeRates={exchangeRates}
         />
       ),
     },
@@ -106,6 +108,7 @@ export function ProductionPageClient({
           properties={properties}
           cultures={cultures}
           systems={systems}
+          cycles={cycles}
           organizationId={organizationId}
         />
       ),
@@ -122,6 +125,7 @@ export function ProductionPageClient({
           properties={properties}
           cultures={cultures}
           systems={systems}
+          cycles={cycles}
           organizationId={organizationId}
         />
       ),

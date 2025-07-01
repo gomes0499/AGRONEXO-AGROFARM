@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, DollarSign, Leaf, Settings, Tag, MapPin, Globe } from "lucide-react";
+import { Loader2, DollarSign, Leaf, Settings, Tag, MapPin, Globe, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -33,6 +33,7 @@ import {
   type Culture,
   type System,
   type Harvest,
+  type Cycle,
   type ProductionCostCategory,
 } from "@/schemas/production";
 
@@ -43,7 +44,7 @@ import {
 } from "@/lib/actions/production-actions";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
-import { SafraCostEditor } from "../common/safra-cost-editor";
+import { SafraCostEditorAllVisible } from "../common/safra-cost-editor-all-visible";
 
 // Define interface for the property entity
 interface Property {
@@ -58,6 +59,7 @@ interface Property {
 interface ProductionCostFormProps {
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   harvests: Harvest[];
   organizationId: string;
   cost?: ProductionCost | null;
@@ -151,6 +153,7 @@ const CATEGORY_GROUPS = COST_CATEGORIES.reduce<
 export function ProductionCostForm({
   cultures,
   systems,
+  cycles,
   harvests,
   organizationId,
   cost = null,
@@ -168,6 +171,7 @@ export function ProductionCostForm({
     defaultValues: {
       cultura_id: cost?.cultura_id || "",
       sistema_id: cost?.sistema_id || "",
+      ciclo_id: cost?.ciclo_id || "",
       propriedade_id: cost?.propriedade_id || "",
       categoria: cost?.categoria || "OUTROS",
       custos_por_safra: cost?.custos_por_safra || {},
@@ -194,11 +198,12 @@ export function ProductionCostForm({
     (cat) => cat.value === selectedCategory
   );
 
-  // Encontrar detalhes da cultura, sistema e propriedade selecionados
+  // Encontrar detalhes da cultura, sistema, ciclo e propriedade selecionados
   const selectedCulture = cultures.find(
     (c) => c.id === form.watch("cultura_id")
   );
   const selectedSystem = systems.find((s) => s.id === form.watch("sistema_id"));
+  const selectedCycle = cycles.find((c) => c.id === form.watch("ciclo_id"));
   const selectedProperty = properties.find(
     (p) => p.id === form.watch("propriedade_id")
   );
@@ -252,6 +257,7 @@ export function ProductionCostForm({
           propriedade_id: propriedadeId,
           cultura_id: values.cultura_id,
           sistema_id: values.sistema_id,
+          ciclo_id: values.ciclo_id,
           categoria: values.categoria,
           custos_por_safra: values.custos_por_safra,
           descricao: "",
@@ -279,10 +285,9 @@ export function ProductionCostForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
         <div className="space-y-5">
-          {/* Primeira seção: Propriedade e Categoria */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="space-y-5">
-              <FormField
+          {/* Primeira seção: Propriedade, Cultura e Categoria */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <FormField
                 control={form.control as any}
                 name="propriedade_id"
                 render={({ field }) => (
@@ -362,10 +367,8 @@ export function ProductionCostForm({
                   </FormItem>
                 )}
               />
-            </div>
 
-            <div className="space-y-5">
-              <FormField
+            <FormField
                 control={form.control as any}
                 name="categoria"
                 render={({ field }) => (
@@ -417,45 +420,80 @@ export function ProductionCostForm({
                   </FormItem>
                 )}
               />
+          </div>
 
-              <FormField
-                control={form.control as any}
-                name="sistema_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                      <Settings className="h-4 w-4 text-muted-foreground" />
-                      Sistema
-                    </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isSubmitting}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione o sistema" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {systems.map((system) => (
-                          <SelectItem key={system.id} value={system.id || ""}>
-                            {system.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+          {/* Segunda seção: Sistema e Ciclo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <FormField
+              control={form.control as any}
+              name="sistema_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    Sistema
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione o sistema" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {systems.map((system) => (
+                        <SelectItem key={system.id} value={system.id || ""}>
+                          {system.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control as any}
+              name="ciclo_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                    Ciclo
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione o ciclo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {cycles.map((cycle) => (
+                        <SelectItem key={cycle.id} value={cycle.id || ""}>
+                          {cycle.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           {/* Resumo das seleções */}
           {(selectedCategoryDetails ||
             selectedCulture ||
             selectedSystem ||
+            selectedCycle ||
             selectedProperty) && (
             <Card className="bg-muted/30 border-muted">
               <CardContent className="p-3">
@@ -505,6 +543,17 @@ export function ProductionCostForm({
                       </span>
                     </div>
                   )}
+
+                  {selectedCycle && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        Ciclo:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {selectedCycle.nome}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -518,7 +567,7 @@ export function ProductionCostForm({
             name="custos_por_safra"
             render={({ field }) => (
               <FormItem>
-                <SafraCostEditor
+                <SafraCostEditorAllVisible
                   label="Custos por Safra"
                   description={`Defina os custos por safra (R$/ha)`}
                   values={field.value}

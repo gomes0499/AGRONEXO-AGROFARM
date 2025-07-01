@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +56,6 @@ export function EnhancedCommodityPriceManager({
   safras,
   cultures
 }: EnhancedCommodityPriceManagerProps) {
-  const router = useRouter();
   const [showMultiSafraCommodityForm, setShowMultiSafraCommodityForm] = useState(false);
   const [showMultiSafraExchangeForm, setShowMultiSafraExchangeForm] = useState(false);
   const [editingCommodityPrices, setEditingCommodityPrices] = useState<Record<string, number>>({});
@@ -95,12 +93,10 @@ export function EnhancedCommodityPriceManager({
 
   const handleMultiSafraCommoditySuccess = () => {
     setShowMultiSafraCommodityForm(false);
-    router.refresh();
   };
 
   const handleMultiSafraExchangeSuccess = () => {
     setShowMultiSafraExchangeForm(false);
-    router.refresh();
   };
 
   const getCommodityDisplayName = (commodityType: string) => {
@@ -145,7 +141,6 @@ export function EnhancedCommodityPriceManager({
 
       await Promise.all(updatePromises);
       toast.success("Todos os preços de commodities foram atualizados!");
-      router.refresh();
     } catch (error) {
       toast.error("Erro ao atualizar preços de commodities");
       console.error(error);
@@ -167,7 +162,6 @@ export function EnhancedCommodityPriceManager({
 
       await Promise.all(updatePromises);
       toast.success("Todas as cotações de câmbio foram atualizadas!");
-      router.refresh();
     } catch (error) {
       toast.error("Erro ao atualizar cotações de câmbio");
       console.error(error);

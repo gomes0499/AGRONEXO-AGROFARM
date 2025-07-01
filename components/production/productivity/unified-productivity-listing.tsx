@@ -38,6 +38,7 @@ interface UnifiedProductivityListingProps {
   properties?: any[];
   cultures?: any[];
   systems?: any[];
+  cycles?: any[];
   organizationId?: string;
 }
 
@@ -47,6 +48,7 @@ export function UnifiedProductivityListing({
   properties = [],
   cultures = [],
   systems = [],
+  cycles = [],
   organizationId = ""
 }: UnifiedProductivityListingProps) {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -178,7 +180,13 @@ export function UnifiedProductivityListing({
   };
 
   const getCombinationBadge = (productivity: Productivity) => {
-    return `${productivity.culturas?.nome} - ${productivity.sistemas?.nome}`;
+    const culturaNome = productivity.culturas?.nome || "";
+    const sistemaNome = productivity.sistemas?.nome || "";
+    const cicloNome = productivity.ciclos?.nome || "";
+    
+    return cicloNome 
+      ? `${culturaNome} - ${sistemaNome} - ${cicloNome}`
+      : `${culturaNome} - ${sistemaNome}`;
   };
 
   const getProductivityValue = (productivity: Productivity, safraId: string) => {
@@ -227,8 +235,8 @@ export function UnifiedProductivityListing({
                   <th className="text-left p-3 font-medium text-white border-r first:rounded-tl-md min-w-[150px] w-[150px]">
                     Propriedade
                   </th>
-                  <th className="text-left p-3 font-medium text-white border-r min-w-[220px]">
-                    Cultura/Sistema
+                  <th className="text-left p-3 font-medium text-white border-r min-w-[280px]">
+                    Cultura/Sistema/Ciclo
                   </th>
                   {filteredSafras.map(safra => (
                     <th key={safra.id} className="text-center p-3 font-medium text-white border-r min-w-[100px]">
@@ -456,6 +464,7 @@ export function UnifiedProductivityListing({
                   properties={properties}
                   cultures={cultures}
                   systems={systems}
+                  cycles={cycles}
                   harvests={safras}
                   organizationId={organizationId}
                   onSuccess={(newProductivities) => {
@@ -484,6 +493,7 @@ export function UnifiedProductivityListing({
                   properties={properties}
                   cultures={cultures}
                   systems={systems}
+                  cycles={cycles}
                   harvests={safras}
                   organizationId={organizationId}
                   onSuccess={(newProductivities) => {

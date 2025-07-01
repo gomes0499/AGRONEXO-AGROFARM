@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +50,6 @@ export function CommodityPriceManager({
   safras,
   cultures
 }: CommodityPriceManagerProps) {
-  const router = useRouter();
   const [showMultiSafraCommodityForm, setShowMultiSafraCommodityForm] = useState(false);
   const [showMultiSafraExchangeForm, setShowMultiSafraExchangeForm] = useState(false);
   const [editingCommodity, setEditingCommodity] = useState<CommodityPrice | null>(null);
@@ -59,12 +57,10 @@ export function CommodityPriceManager({
 
   const handleMultiSafraCommoditySuccess = () => {
     setShowMultiSafraCommodityForm(false);
-    router.refresh();
   };
 
   const handleMultiSafraExchangeSuccess = () => {
     setShowMultiSafraExchangeForm(false);
-    router.refresh();
   };
 
   const getCommodityDisplayName = (commodityType: string) => {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Plus, TrendingUp, CircleDollarSign, Loader2, Save, Trash2 } from "lucide-react";
+import { Edit, Plus, TrendingUp, Trash2, Loader2, Save } from "lucide-react";
 import { 
   Popover,
   PopoverContent,
@@ -13,17 +13,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { formatNumber } from "@/lib/utils/formatters";
+import { formatNumber, formatCurrency } from "@/lib/utils/formatters";
 import { updateCommodityPrice, deleteCommodityPrice } from "@/lib/actions/commodity-prices-actions";
 import { updateExchangeRate, deleteExchangeRate } from "@/lib/actions/exchange-rates-actions";
-import { MultiSafraPriceForm } from "./multi-safra-price-form";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { NewPriceButton } from "./new-price-button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,12 +27,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { CommodityPriceType } from "@/schemas/indicators/prices";
 import { commodityDisplayNames, commodityUnits, exchangeRateDisplayNames, exchangeRateUnits } from "@/schemas/indicators/prices";
 
@@ -58,7 +45,6 @@ export function UnifiedPricesListing({
   cultures = [],
   safras = []
 }: UnifiedPricesListingProps) {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingState, setEditingState] = useState<Record<string, Record<string, string>>>({});
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -72,22 +58,29 @@ export function UnifiedPricesListing({
   const years = [2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029];
 
   // Exchange rate types for identification
-  const EXCHANGE_RATE_TYPES = ["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_FECHAMENTO"];
+  const EXCHANGE_RATE_TYPES = ["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_MILHO", "DOLAR_FECHAMENTO"];
+
+  // Group prices by type to avoid duplicates
+  const groupedPrices = allPrices.reduce((acc, price) => {
+    const type = price.commodity_type || price.commodityType || "";
+    if (!acc[type]) {
+      acc[type] = price;
+    }
+    return acc;
+  }, {} as Record<string, CommodityPriceType>);
 
   // Initialize editing state for a price
   const initPriceEditState = (price: CommodityPriceType) => {
-    if (!price || !price.id) return; // Safety check
+    if (!price || !price.id) return;
     
     if (!editingState[price.id]) {
-      const newEditState: Record<string, string> = {
-        currentPrice: (price.currentPrice || (price as any).current_price || 0).toString(),
-      };
+      const newEditState: Record<string, string> = {};
       
       years.forEach(year => {
         const camelKey = `price${year}` as keyof CommodityPriceType;
         const snakeKey = `price_${year}` as keyof any;
         const value = (price as any)[camelKey] || (price as any)[snakeKey] || 0;
-        newEditState[camelKey] = value.toString();
+        newEditState[year.toString()] = value.toString();
       });
       
       setEditingState(prev => ({
@@ -95,148 +88,114 @@ export function UnifiedPricesListing({
         [price.id]: newEditState
       }));
     }
-
-    if (isLoading[price.id] === undefined) {
-      setIsLoading(prev => ({
-        ...prev,
-        [price.id]: false
-      }));
-    }
   };
 
-  // Handle input change
-  const handleInputChange = (priceId: string, field: string, value: string) => {
+  const handleEditValueChange = (priceId: string, year: string, value: string) => {
     setEditingState(prev => ({
       ...prev,
       [priceId]: {
-        ...(prev[priceId] || {}),
-        [field]: value
+        ...prev[priceId],
+        [year]: value
       }
     }));
   };
 
-  // Save changes
   const handleSavePrice = async (price: CommodityPriceType) => {
+    const priceId = price.id;
+    setIsLoading(prev => ({ ...prev, [priceId]: true }));
+    
     try {
-      setIsLoading(prev => ({
-        ...prev,
-        [price.id]: true
-      }));
+      const editValues = editingState[priceId];
+      if (!editValues) {
+        throw new Error("No edit values found");
+      }
 
-      const editValues = editingState[price.id];
-      if (!editValues) return;
+      const updates: any = {};
       
-      const updateData = {
-        current_price: parseFloat(editValues.currentPrice) || 0,
-        price_2021: parseFloat(editValues.price2021) || 0,
-        price_2022: parseFloat(editValues.price2022) || 0,
-        price_2023: parseFloat(editValues.price2023) || 0,
-        price_2024: parseFloat(editValues.price2024) || 0,
-        price_2025: parseFloat(editValues.price2025) || 0,
-        price_2026: parseFloat(editValues.price2026) || 0,
-        price_2027: parseFloat(editValues.price2027) || 0,
-        price_2028: parseFloat(editValues.price2028) || 0,
-        price_2029: parseFloat(editValues.price2029) || 0,
-      };
-
-      const isExchangeRate = EXCHANGE_RATE_TYPES.includes(price.commodityType);
-      const updatedPrice = isExchangeRate 
-        ? await updateExchangeRate(price.id, updateData)
-        : await updateCommodityPrice(price.id, updateData);
-      
-      // Update local state with the returned data
-      Object.assign(price, {
-        currentPrice: updatedPrice.current_price,
-        price2021: updatedPrice.price_2021,
-        price2022: updatedPrice.price_2022,
-        price2023: updatedPrice.price_2023,
-        price2024: updatedPrice.price_2024,
-        price2025: updatedPrice.price_2025,
-        price2026: updatedPrice.price_2026,
-        price2027: updatedPrice.price_2027,
-        price2028: updatedPrice.price_2028,
-        price2029: updatedPrice.price_2029,
+      years.forEach(year => {
+        const snakeKey = `price_${year}`;
+        updates[snakeKey] = parseFloat(editValues[year.toString()] || "0");
       });
+
+      // Set current price as the most recent year with data
+      const currentYear = new Date().getFullYear();
+      updates.current_price = updates[`price_${currentYear}`] || updates.price_2024 || 0;
+
+      const isExchangeRate = EXCHANGE_RATE_TYPES.includes(price.commodity_type || price.commodityType || "");
       
-      toast.success(isExchangeRate ? "Cotações atualizadas com sucesso!" : "Preços atualizados com sucesso!");
-    } catch (error: any) {
-      console.error("Erro ao salvar:", error);
-      toast.error(`Erro ao salvar: ${error.message || "Falha na atualização"}`);
+      if (isExchangeRate) {
+        await updateExchangeRate(priceId, organizationId, updates);
+      } else {
+        await updateCommodityPrice(priceId, organizationId, updates);
+      }
+      
+      toast.success("Preço atualizado com sucesso");
+    } catch (error) {
+      console.error("Error updating price:", error);
+      toast.error("Erro ao atualizar preço");
     } finally {
-      setIsLoading(prev => ({
-        ...prev,
-        [price.id]: false
-      }));
+      setIsLoading(prev => ({ ...prev, [priceId]: false }));
     }
   };
 
-  // Open delete confirmation dialog
-  const handleDeleteClick = (price: CommodityPriceType) => {
-    setPriceToDelete(price);
-    setDeleteDialogOpen(true);
-  };
-
-  // Confirm delete price
-  const handleConfirmDelete = async () => {
+  const handleDeletePrice = async () => {
     if (!priceToDelete) return;
-
-    const displayInfo = getDisplayInfo(priceToDelete);
-    const isExchangeRate = EXCHANGE_RATE_TYPES.includes(priceToDelete.commodityType);
-
+    
+    setIsDeleting(true);
     try {
-      setIsDeleting(true);
+      const isExchangeRate = EXCHANGE_RATE_TYPES.includes(priceToDelete.commodity_type || priceToDelete.commodityType || "");
       
       if (isExchangeRate) {
-        await deleteExchangeRate(priceToDelete.id);
+        await deleteExchangeRate(priceToDelete.id, organizationId);
       } else {
-        await deleteCommodityPrice(priceToDelete.id);
+        await deleteCommodityPrice(priceToDelete.id, organizationId);
       }
       
-      toast.success(`${isExchangeRate ? 'Cotação' : 'Preço'} de "${displayInfo.name}" excluído com sucesso!`);
+      toast.success("Preço excluído com sucesso");
       setDeleteDialogOpen(false);
       setPriceToDelete(null);
-      window.location.reload(); // Refresh to update the list
-    } catch (error: any) {
-      console.error("Erro ao excluir:", error);
-      toast.error(`Erro ao excluir: ${error.message || "Falha na exclusão"}`);
+    } catch (error) {
+      console.error("Error deleting price:", error);
+      toast.error("Erro ao excluir preço");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Format value for display
-  const formatPriceValue = (value: number | null | undefined, isExchangeRate: boolean): string => {
-    if (value === null || value === undefined || value === 0) return "-";
-    
-    if (isExchangeRate) {
-      return value.toLocaleString("pt-BR", {
-        minimumFractionDigits: 4,
-        maximumFractionDigits: 4,
-      });
-    }
-    
-    return formatNumber(value);
+  const getPriceValue = (price: CommodityPriceType, year: number): number => {
+    const camelKey = `price${year}` as keyof CommodityPriceType;
+    const snakeKey = `price_${year}` as keyof any;
+    return (price as any)[camelKey] || (price as any)[snakeKey] || 0;
   };
 
-  // Get display names and units
-  const getDisplayInfo = (price: CommodityPriceType) => {
-    const isExchangeRate = EXCHANGE_RATE_TYPES.includes(price.commodityType);
+  const getDisplayName = (type: string): string => {
+    return commodityDisplayNames[type as keyof typeof commodityDisplayNames] || 
+           exchangeRateDisplayNames[type as keyof typeof exchangeRateDisplayNames] || 
+           type;
+  };
+
+  const getUnit = (type: string): string => {
+    return commodityUnits[type as keyof typeof commodityUnits] || 
+           exchangeRateUnits[type as keyof typeof exchangeRateUnits] || 
+           "R$";
+  };
+
+  const isExchangeRate = (type: string): boolean => {
+    return EXCHANGE_RATE_TYPES.includes(type);
+  };
+
+  const formatPriceValue = (value: number, unit: string): string => {
+    if (value === 0) return "-";
     
-    return {
-      name: isExchangeRate 
-        ? exchangeRateDisplayNames[price.commodityType as keyof typeof exchangeRateDisplayNames] || price.commodityType
-        : commodityDisplayNames[price.commodityType as keyof typeof commodityDisplayNames] || price.commodityType,
-      unit: isExchangeRate
-        ? exchangeRateUnits[price.commodityType as keyof typeof exchangeRateUnits] || "R$"
-        : commodityUnits[price.commodityType as keyof typeof commodityUnits] || "R$/Saca",
-      isExchangeRate
-    };
+    if (unit.includes("R$")) {
+      return formatCurrency(value);
+    }
+    return formatNumber(value, 4);
   };
 
   return (
-    <TooltipProvider>
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4">
+    <Card>
+      <CardHeader className="bg-primary text-white rounded-t-lg flex flex-row items-center justify-between space-y-0 pb-4">
         <div className="flex items-center gap-3">
           <div className="rounded-full p-2 bg-white/20">
             <TrendingUp className="h-4 w-4 text-white" />
@@ -244,430 +203,204 @@ export function UnifiedPricesListing({
           <div>
             <CardTitle className="text-white">Preços e Cotações</CardTitle>
             <CardDescription className="text-white/80">
-              Preços de commodities e cotações de câmbio por safra
+              Preços de commodities e cotações de câmbio por ano
             </CardDescription>
           </div>
         </div>
-        {allPrices.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              className="gap-1 bg-white text-black hover:bg-gray-100" 
-              size="default"
-              onClick={() => setIsCreateModalOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Novo Preço
-            </Button>
-          </div>
-        )}
+        <NewPriceButton 
+          variant="outline" 
+          className="gap-1 bg-white text-black hover:bg-gray-100" 
+          size="default"
+          cultures={cultures}
+          harvests={safras}
+          organizationId={organizationId}
+        />
       </CardHeader>
       <CardContent>
-        {allPrices.length === 0 ? (
-          /* Empty State */
-          <div className="text-center py-10 text-muted-foreground space-y-4">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted">
-              <TrendingUp className="h-8 w-8" />
-            </div>
-            <div>
-              <h3 className="mt-4 text-lg font-semibold text-foreground">Nenhuma área definida ainda</h3>
-              <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-                Clique em "Adicionar Preço" para começar
-              </p>
-            </div>
-            <Button 
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Preço
-            </Button>
-          </div>
-        ) : (
-          /* Table Container with Scroll */
-          <div className="border rounded-lg mt-4">
-            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-primary sticky top-0 z-10">
-                  <tr>
-                    <th className="text-left p-3 font-medium text-white border-r first:rounded-tl-md min-w-[200px]">
-                      Item
+        {/* Table Container with Scroll */}
+        <div className="border rounded-lg mt-4">
+          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-primary sticky top-0 z-10">
+                <tr>
+                  <th className="text-left p-3 font-medium text-white border-r first:rounded-tl-md min-w-[150px]">
+                    Tipo
+                  </th>
+                  <th className="text-left p-3 font-medium text-white border-r min-w-[200px]">
+                    Item
+                  </th>
+                  <th className="text-left p-3 font-medium text-white border-r min-w-[100px]">
+                    Unidade
+                  </th>
+                  {years.map(year => (
+                    <th key={year} className="text-center p-3 font-medium text-white border-r min-w-[100px]">
+                      {year}
                     </th>
-                    <th className="text-left p-3 font-medium text-white border-r min-w-[100px]">
-                      Tipo
-                    </th>
-                    <th className="text-left p-3 font-medium text-white border-r min-w-[100px]">
-                      Unidade
-                    </th>
-                    <th className="text-center p-3 font-medium text-white border-r min-w-[100px]">
-                      Atual
-                    </th>
-                    {years.map(year => (
-                      <th key={year} className="text-center p-3 font-medium text-white border-r min-w-[100px]">
-                        {year}/{String(year + 1).slice(-2)}
-                      </th>
-                    ))}
-                    <th className="text-center p-3 font-medium text-white last:rounded-tr-md min-w-[80px]">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Commodity Prices */}
-                  {commodityPrices.length > 0 && (
-                    <>
-                      <tr className="bg-gray-50">
-                        <td colSpan={13} className="p-2 font-semibold text-gray-600 text-sm">
-                          Preços de Commodities
-                        </td>
-                      </tr>
-                      {commodityPrices.map((price, index) => {
-                        const displayInfo = getDisplayInfo(price);
-                        initPriceEditState(price);
-                        
+                  ))}
+                  <th className="text-center p-3 font-medium text-white last:rounded-tr-md min-w-[100px]">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(groupedPrices).map(([type, price], index) => {
+                  initPriceEditState(price);
+                  const unit = getUnit(type);
+                  const isExchange = isExchangeRate(type);
+                  
+                  return (
+                    <tr 
+                      key={price.id} 
+                      className={index % 2 === 0 ? "bg-background" : "bg-muted/25"}
+                    >
+                      <td className="p-3 border-r">
+                        <Badge 
+                          variant={isExchange ? "secondary" : "default"} 
+                          className="text-xs font-medium"
+                        >
+                          {isExchange ? "Câmbio" : "Commodity"}
+                        </Badge>
+                      </td>
+                      <td className="p-3 border-r">
+                        <span className="font-medium">{getDisplayName(type)}</span>
+                      </td>
+                      <td className="p-3 border-r">
+                        <Badge variant="outline" className="text-xs">
+                          {unit}
+                        </Badge>
+                      </td>
+                      {years.map(year => {
+                        const value = getPriceValue(price, year);
                         return (
-                          <tr 
-                            key={price.id} 
-                            className={index % 2 === 0 ? "bg-background" : "bg-muted/25"}
-                          >
-                            <td className="p-3 border-r">
-                              <span className="font-medium">{displayInfo.name}</span>
-                            </td>
-                            <td className="p-3 border-r">
-                              <Badge variant="default" className="text-xs">
-                                <TrendingUp className="h-3 w-3 mr-1" />
-                                Commodity
-                              </Badge>
-                            </td>
-                            <td className="p-3 border-r">
-                              <span className="text-muted-foreground">
-                                {displayInfo.unit}
-                              </span>
-                            </td>
-                            <td className="p-3 border-r text-center">
-                              <span className="font-medium">
-                                {formatPriceValue(price.currentPrice || (price as any).current_price || 0, false)}
-                              </span>
-                            </td>
-                            {years.map(year => {
-                              const camelKey = `price${year}` as keyof CommodityPriceType;
-                              const snakeKey = `price_${year}` as keyof any;
-                              const value = (price as any)[camelKey] || (price as any)[snakeKey] || 0;
-                              return (
-                                <td key={year} className="p-3 border-r text-center">
-                                  <span className={value && value > 0 ? "font-medium" : "text-muted-foreground"}>
-                                    {formatPriceValue(value, false)}
-                                  </span>
-                                </td>
-                              );
-                            })}
-                            <td className="p-3 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm"
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent align="end" className="w-auto p-4">
-                                    <div className="grid gap-4 w-[800px] max-h-[500px] overflow-y-auto">
-                                      <div className="space-y-2">
-                                        <h4 className="font-medium leading-none">
-                                          Editar Preços - {displayInfo.name}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground">
-                                          Atualize os preços projetados para os anos seguintes.
-                                        </p>
-                                      </div>
-                                      <div className="grid grid-cols-4 gap-3">
-                                        <div className="space-y-2">
-                                          <Label htmlFor={`price-${price.id}-current`}>
-                                            Preço Atual
-                                          </Label>
-                                          <Input
-                                            id={`price-${price.id}-current`}
-                                            type="number"
-                                            step="0.01"
-                                            value={editingState[price.id]?.currentPrice || ""}
-                                            onChange={(e) => handleInputChange(price.id, "currentPrice", e.target.value)}
-                                            placeholder="0.00"
-                                          />
-                                        </div>
-                                        {years.map((year) => (
-                                          <div key={year} className="space-y-2">
-                                            <Label htmlFor={`price-${price.id}-${year}`}>
-                                              {year}/{String(year + 1).slice(-2)}
-                                            </Label>
-                                            <Input
-                                              id={`price-${price.id}-${year}`}
-                                              type="number"
-                                              step="0.01"
-                                              value={editingState[price.id]?.[`price${year}`] || ""}
-                                              onChange={(e) => handleInputChange(price.id, `price${year}`, e.target.value)}
-                                              placeholder="0.00"
-                                            />
-                                          </div>
-                                        ))}
-                                      </div>
-                                      <Button
-                                        onClick={() => handleSavePrice(price)}
-                                        disabled={isLoading[price.id]}
-                                        className="w-full"
-                                      >
-                                        {isLoading[price.id] ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Salvando...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Save className="mr-2 h-4 w-4" />
-                                            Salvar Alterações
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  </PopoverContent>
-                                </Popover>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      onClick={() => handleDeleteClick(price)}
-                                      disabled={isDeleting}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Excluir preço</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </td>
-                          </tr>
+                          <td key={year} className="p-3 border-r text-center">
+                            <span className={value > 0 ? "font-medium" : "text-muted-foreground"}>
+                              {formatPriceValue(value, unit)}
+                            </span>
+                          </td>
                         );
                       })}
-                    </>
-                  )}
-
-                  {/* Exchange Rates */}
-                  {exchangeRates.length > 0 && (
-                    <>
-                      <tr className="bg-gray-50">
-                        <td colSpan={13} className="p-2 font-semibold text-gray-600 text-sm">
-                          Cotações de Câmbio
-                        </td>
-                      </tr>
-                      {exchangeRates.map((rate, index) => {
-                        const displayInfo = getDisplayInfo(rate);
-                        initPriceEditState(rate);
-                        
-                        return (
-                          <tr 
-                            key={rate.id} 
-                            className={index % 2 === 0 ? "bg-background" : "bg-muted/25"}
-                          >
-                            <td className="p-3 border-r">
-                              <span className="font-medium">{displayInfo.name}</span>
-                            </td>
-                            <td className="p-3 border-r">
-                              <Badge variant="secondary" className="text-xs">
-                                <CircleDollarSign className="h-3 w-3 mr-1" />
-                                Câmbio
-                              </Badge>
-                            </td>
-                            <td className="p-3 border-r">
-                              <span className="text-muted-foreground">
-                                {displayInfo.unit}
-                              </span>
-                            </td>
-                            <td className="p-3 border-r text-center">
-                              <span className="font-medium">
-                                {formatPriceValue(rate.currentPrice || (rate as any).current_price || 0, true)}
-                              </span>
-                            </td>
-                            {years.map(year => {
-                              const camelKey = `price${year}` as keyof CommodityPriceType;
-                              const snakeKey = `price_${year}` as keyof any;
-                              const value = (rate as any)[camelKey] || (rate as any)[snakeKey] || 0;
-                              return (
-                                <td key={year} className="p-3 border-r text-center">
-                                  <span className={value && value > 0 ? "font-medium" : "text-muted-foreground"}>
-                                    {formatPriceValue(value, true)}
-                                  </span>
-                                </td>
-                              );
-                            })}
-                            <td className="p-3 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm"
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent align="end" className="w-auto p-4">
-                                    <div className="grid gap-4 w-[800px] max-h-[500px] overflow-y-auto">
-                                      <div className="space-y-2">
-                                        <h4 className="font-medium leading-none">
-                                          Editar Cotações - {displayInfo.name}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground">
-                                          Atualize as cotações projetadas para os anos seguintes.
-                                        </p>
-                                      </div>
-                                      <div className="grid grid-cols-4 gap-3">
-                                        <div className="space-y-2">
-                                          <Label htmlFor={`rate-${rate.id}-current`}>
-                                            Cotação Atual
-                                          </Label>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-auto p-4">
+                              <div className="grid gap-4 w-[600px] max-h-[500px] overflow-y-auto">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium leading-none">
+                                    Editar Preços - {getDisplayName(type)}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    Atualize os preços para cada ano.
+                                  </p>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                  {years.map((year) => {
+                                    const priceId = price.id;
+                                    return (
+                                      <div key={year} className="space-y-2">
+                                        <Label htmlFor={`price-${priceId}-${year}`}>
+                                          {year}
+                                        </Label>
+                                        <div className="relative">
+                                          {unit.includes("R$") && (
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                                              R$
+                                            </span>
+                                          )}
                                           <Input
-                                            id={`rate-${rate.id}-current`}
+                                            id={`price-${priceId}-${year}`}
                                             type="number"
                                             step="0.0001"
-                                            value={editingState[rate.id]?.currentPrice || ""}
-                                            onChange={(e) => handleInputChange(rate.id, "currentPrice", e.target.value)}
-                                            placeholder="0.0000"
+                                            value={editingState[priceId]?.[year.toString()] || ""}
+                                            onChange={(e) => handleEditValueChange(priceId, year.toString(), e.target.value)}
+                                            placeholder="0.00"
+                                            className={unit.includes("R$") ? "pl-10" : ""}
                                           />
                                         </div>
-                                        {years.map((year) => (
-                                          <div key={year} className="space-y-2">
-                                            <Label htmlFor={`rate-${rate.id}-${year}`}>
-                                              {year}/{String(year + 1).slice(-2)}
-                                            </Label>
-                                            <Input
-                                              id={`rate-${rate.id}-${year}`}
-                                              type="number"
-                                              step="0.0001"
-                                              value={editingState[rate.id]?.[`price${year}`] || ""}
-                                              onChange={(e) => handleInputChange(rate.id, `price${year}`, e.target.value)}
-                                              placeholder="0.0000"
-                                            />
-                                          </div>
-                                        ))}
                                       </div>
-                                      <Button
-                                        onClick={() => handleSavePrice(rate)}
-                                        disabled={isLoading[rate.id]}
-                                        className="w-full"
-                                      >
-                                        {isLoading[rate.id] ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Salvando...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Save className="mr-2 h-4 w-4" />
-                                            Salvar Alterações
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  </PopoverContent>
-                                </Popover>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      onClick={() => handleDeleteClick(rate)}
-                                      disabled={isDeleting}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Excluir cotação</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                    );
+                                  })}
+                                </div>
+                                <Button
+                                  onClick={() => handleSavePrice(price)}
+                                  disabled={isLoading[price.id]}
+                                  className="w-full"
+                                >
+                                  {isLoading[price.id] ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Salvando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Save className="mr-2 h-4 w-4" />
+                                      Salvar Alterações
+                                    </>
+                                  )}
+                                </Button>
                               </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                            </PopoverContent>
+                          </Popover>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            onClick={() => {
+                              setPriceToDelete(price);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {Object.keys(groupedPrices).length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhum preço ou cotação cadastrada.
           </div>
         )}
+      </CardContent>
 
-        {/* Modal de criação */}
-        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Novo Preço de Commodity</DialogTitle>
-              <DialogDescription>
-                Configure preços para commodities ou cotações de câmbio.
-              </DialogDescription>
-            </DialogHeader>
-            <MultiSafraPriceForm
-              organizationId={organizationId}
-              cultures={cultures}
-              safras={safras}
-              onSuccess={() => {
-                setIsCreateModalOpen(false);
-                window.location.reload();
+      {/* Delete Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Preço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este preço? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeletePrice();
               }}
-              onCancel={() => setIsCreateModalOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
-                {priceToDelete && (
-                  <>
-                    Tem certeza que deseja excluir o {EXCHANGE_RATE_TYPES.includes(priceToDelete.commodityType) ? 'câmbio' : 'preço'} de{' '}
-                    <strong>"{getDisplayInfo(priceToDelete).name}"</strong>?
-                    <br />
-                    <br />
-                    Esta ação não pode ser desfeita.
-                  </>
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>
-                Cancelar
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="bg-destructive hover:bg-destructive/90"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Excluindo...
-                  </>
-                ) : (
-                  'Excluir'
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        </CardContent>
-      </Card>
-    </TooltipProvider>
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
   );
 }

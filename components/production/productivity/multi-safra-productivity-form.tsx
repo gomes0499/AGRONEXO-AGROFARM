@@ -10,6 +10,7 @@ import {
   Settings,
   Home,
   Globe,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,10 +35,11 @@ import {
   multiSafraProductivityFormSchema,
   type Culture,
   type System,
+  type Cycle,
   type Harvest,
 } from "@/schemas/production";
 import { createMultiSafraProductivities } from "@/lib/actions/production-actions";
-import { SafraProductivityEditor } from "../common/safra-productivity-editor";
+import { SafraProductivityEditorAllVisible } from "../common/safra-productivity-editor-all-visible";
 
 // Define interface for the property entity
 interface Property {
@@ -53,6 +55,7 @@ interface MultiSafraProductivityFormProps {
   properties: Property[];
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   harvests: Harvest[];
   organizationId: string;
   onSuccess?: (productivities: any[]) => void;
@@ -63,6 +66,7 @@ export function MultiSafraProductivityForm({
   properties,
   cultures,
   systems,
+  cycles,
   harvests,
   organizationId,
   onSuccess,
@@ -76,6 +80,7 @@ export function MultiSafraProductivityForm({
       propriedade_id: "",
       cultura_id: "",
       sistema_id: "",
+      ciclo_id: "",
       produtividades_por_safra: {},
     },
   });
@@ -160,7 +165,7 @@ export function MultiSafraProductivityForm({
             )}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FormField
               control={form.control}
               name="cultura_id"
@@ -224,6 +229,38 @@ export function MultiSafraProductivityForm({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="ciclo_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                    <Layers className="h-4 w-4 text-muted-foreground" />
+                    Ciclo
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione o ciclo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {cycles.map((cycle) => (
+                        <SelectItem key={cycle.id} value={cycle.id || ""}>
+                          {cycle.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
@@ -235,7 +272,7 @@ export function MultiSafraProductivityForm({
           name="produtividades_por_safra"
           render={({ field }) => (
             <FormItem>
-              <SafraProductivityEditor
+              <SafraProductivityEditorAllVisible
                 label="Produtividades por Safra"
                 description="Defina as produtividades para cada safra"
                 values={field.value}

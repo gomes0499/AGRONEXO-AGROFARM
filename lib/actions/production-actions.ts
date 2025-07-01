@@ -38,6 +38,7 @@ export interface Productivity {
   propriedade_id?: string;
   cultura_id: string;
   sistema_id: string;
+  ciclo_id: string;
   produtividades_por_safra: Record<string, number | { produtividade: number; unidade: string }>; // JSONB (hybrid format)
   observacoes?: string;
   created_at: string;
@@ -46,6 +47,7 @@ export interface Productivity {
   propriedades?: { nome: string };
   culturas?: { nome: string };
   sistemas?: { nome: string };
+  ciclos?: { nome: string };
 }
 
 export interface ProductionCost {
@@ -54,6 +56,7 @@ export interface ProductionCost {
   propriedade_id?: string;
   cultura_id: string;
   sistema_id: string;
+  ciclo_id: string;
   categoria: string;
   custos_por_safra: Record<string, number>; // JSONB: { "safra_id": valor }
   descricao?: string;
@@ -64,6 +67,7 @@ export interface ProductionCost {
   propriedades?: { nome: string };
   culturas?: { nome: string };
   sistemas?: { nome: string };
+  ciclos?: { nome: string };
 }
 
 export interface Safra {
@@ -671,7 +675,8 @@ export async function getProductivities(organizationId: string, filters?: {
       *,
       propriedades:propriedade_id(nome),
       culturas:cultura_id(nome),
-      sistemas:sistema_id(nome)
+      sistemas:sistema_id(nome),
+      ciclos:ciclo_id(nome)
     `)
     .eq("organizacao_id", organizationId);
   
@@ -708,7 +713,8 @@ export async function getProductivityById(id: string) {
       *,
       propriedades:propriedade_id(nome),
       culturas:cultura_id(nome),
-      sistemas:sistema_id(nome)
+      sistemas:sistema_id(nome),
+      ciclos:ciclo_id(nome)
     `)
     .eq("id", id)
     .single();
@@ -732,6 +738,7 @@ export async function createProductivity(data: {
   propriedade_id?: string;
   cultura_id: string;
   sistema_id: string;
+  ciclo_id: string;
   produtividades_por_safra: Record<string, { produtividade: number; unidade: string }>;
   observacoes?: string;
 }) {
@@ -868,7 +875,8 @@ export async function getProductionCosts(organizationId: string, filters?: {
       *,
       propriedades:propriedade_id(nome),
       culturas:cultura_id(nome),
-      sistemas:sistema_id(nome)
+      sistemas:sistema_id(nome),
+      ciclos:ciclos!custos_producao_ciclo_id_fkey(nome)
     `)
     .eq("organizacao_id", organizationId);
   
@@ -903,7 +911,8 @@ export async function getProductionCostById(id: string) {
       *,
       propriedades:propriedade_id(nome),
       culturas:cultura_id(nome),
-      sistemas:sistema_id(nome)
+      sistemas:sistema_id(nome),
+      ciclos:ciclos!custos_producao_ciclo_id_fkey(nome)
     `)
     .eq("id", id)
     .single();
@@ -921,6 +930,7 @@ export async function createProductionCost(organizationId: string, values: {
   propriedade_id?: string;
   cultura_id: string;
   sistema_id: string;
+  ciclo_id: string;
   categoria: string;
   custos_por_safra: Record<string, number>;
   descricao?: string;
@@ -1419,6 +1429,7 @@ export async function createMultiSafraProductivities(
     propriedade_id: string;
     cultura_id: string;
     sistema_id: string;
+    ciclo_id: string;
     produtividades_por_safra: Record<string, { produtividade: number; unidade: string }>;
     observacoes?: string;
   }
@@ -1451,6 +1462,7 @@ export async function createMultiSafraProductivities(
       propriedade_id: data.propriedade_id || null,
       cultura_id: data.cultura_id,
       sistema_id: data.sistema_id,
+      ciclo_id: data.ciclo_id,
       // Usar apenas números para evitar o erro de tipo JSONB
       produtividades_por_safra: numericProductivities,
       observacoes: data.observacoes || null

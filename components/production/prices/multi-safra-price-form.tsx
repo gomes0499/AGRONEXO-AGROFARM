@@ -149,7 +149,7 @@ export function MultiSafraPriceForm({
         });
       }
       
-      toast.success(`${data.tipo === "COMMODITY" ? "Preços" : "Cotações"} criados para ${data.safrasIds.length} safra(s)!`);
+      toast.success(`${data.tipo === "COMMODITY" ? "Preço" : "Cotação"} criado com sucesso!`);
       onSuccess();
     } catch (error: any) {
       console.error("Erro ao criar preços:", error);
