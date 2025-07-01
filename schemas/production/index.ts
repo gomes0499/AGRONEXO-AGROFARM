@@ -123,7 +123,7 @@ export const plantingAreaFormSchema = z.object({
   cultura_id: z.string().uuid("Selecione uma cultura válida"),
   sistema_id: z.string().uuid("Selecione um sistema válido"),
   ciclo_id: z.string().uuid("Selecione um ciclo válido"),
-  areas_por_safra: z.record(z.string(), z.coerce.number().min(0.01, "Área deve ser maior que 0").refine(val => !isNaN(val), {
+  areas_por_safra: z.record(z.string(), z.coerce.number().min(0, "Área deve ser maior ou igual a 0").refine(val => !isNaN(val), {
     message: "Insira um valor numérico válido para a área"
   }))
     .refine(data => Object.keys(data).length > 0, "Adicione pelo menos uma área por safra"),
@@ -167,7 +167,7 @@ export const productivityFormSchema = z.object({
   sistema_id: z.string().uuid("Selecione um sistema válido"),
   ciclo_id: z.string().uuid("Selecione um ciclo válido"),
   produtividades_por_safra: z.record(z.string(), z.object({
-    produtividade: z.coerce.number().min(0.01, "Produtividade deve ser maior que 0").refine(val => !isNaN(val), {
+    produtividade: z.coerce.number().min(0, "Produtividade deve ser maior ou igual a 0").refine(val => !isNaN(val), {
       message: "Insira um valor numérico válido para a produtividade"
     }),
     unidade: productivityUnitEnum.refine(val => !!val, {
@@ -233,7 +233,7 @@ export const productionCostFormSchema = z.object({
   categoria: productionCostCategoryEnum.refine(val => !!val, {
     message: "Selecione uma categoria de custo"
   }),
-  custos_por_safra: z.record(z.string(), z.coerce.number().min(0.01, "Valor deve ser maior que 0").refine(val => !isNaN(val), {
+  custos_por_safra: z.record(z.string(), z.coerce.number().min(0, "Valor deve ser maior ou igual a 0").refine(val => !isNaN(val), {
     message: "Insira um valor numérico válido para o custo"
   }))
     .refine(data => Object.keys(data).length > 0, "Adicione pelo menos um custo por safra"),

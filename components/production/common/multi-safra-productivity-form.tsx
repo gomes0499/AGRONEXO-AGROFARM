@@ -24,7 +24,7 @@ const multiSafraProductivitySchema = z.object({
   sistema_id: z.string().min(1, "Sistema é obrigatório"),
   produtividades_por_safra: z.array(z.object({
     safra_id: z.string().min(1, "Safra é obrigatória"),
-    produtividade: z.coerce.number().min(0.01, "Produtividade deve ser maior que 0"),
+    produtividade: z.coerce.number().min(0, "Produtividade deve ser maior ou igual a 0"),
     unidade: z.enum(['sc/ha', '@/ha', 'kg/ha', 'ton/ha'] as const),
   })).min(1, "Adicione pelo menos uma produtividade por safra"),
 })

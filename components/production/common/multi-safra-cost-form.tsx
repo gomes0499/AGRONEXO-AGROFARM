@@ -26,7 +26,7 @@ const multiSafraCostSchema = z.object({
   ]),
   custos_por_safra: z.array(z.object({
     safra_id: z.string().min(1, "Safra é obrigatória"),
-    valor: z.coerce.number().min(0.01, "Valor deve ser maior que 0"),
+    valor: z.coerce.number().min(0, "Valor deve ser maior ou igual a 0"),
   })).min(1, "Adicione pelo menos um custo por safra"),
 })
 

@@ -182,10 +182,10 @@ export const leaseSchema = z.object({
   data_termino: z.coerce.date({
     errorMap: () => ({ message: "Data de término inválida" })
   }),
-  area_fazenda: z.coerce.number().min(0.01, "Área da fazenda deve ser positiva").refine(val => !isNaN(val), {
+  area_fazenda: z.coerce.number().min(0, "Área da fazenda deve ser maior ou igual a 0").refine(val => !isNaN(val), {
     message: "Insira um valor numérico válido para a área da fazenda"
   }),
-  area_arrendada: z.coerce.number().min(0.01, "Área arrendada deve ser positiva").refine(val => !isNaN(val), {
+  area_arrendada: z.coerce.number().min(0, "Área arrendada deve ser maior ou igual a 0").refine(val => !isNaN(val), {
     message: "Insira um valor numérico válido para a área arrendada"
   }),
   custo_hectare: z.coerce.number().min(0, "Custo por hectare deve ser positivo ou zero").nullable().refine(val => val === null || !isNaN(val), {
