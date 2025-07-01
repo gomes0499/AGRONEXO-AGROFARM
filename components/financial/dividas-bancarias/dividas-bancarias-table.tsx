@@ -33,7 +33,7 @@ export function DividasBancariasTable({
     switch (category) {
       case "CUSTEIO":
         return "default";
-      case "INVESTIMENTO":
+      case "INVESTIMENTOS":
         return "outline";
       default:
         return "secondary";

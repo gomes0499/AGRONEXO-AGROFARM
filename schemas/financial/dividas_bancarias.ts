@@ -1,7 +1,7 @@
 import * as z from "zod";
 
 // Let's define a categoryEnum here for now
-const categoriaDividaBancariaEnum = z.enum(["CUSTEIO", "INVESTIMENTO", "OUTROS"]);
+const categoriaDividaBancariaEnum = z.enum(["CUSTEIO", "INVESTIMENTOS", "OUTROS"]);
 const moedaEnum = z.enum(["BRL", "USD"]);
 const tipoDividaBancariaEnum = z.enum(["BANCO", "TRADING", "OUTROS"]);
 const indexadorEnum = z.enum(["CDI", "SELIC", "IPCA", "PRE_FIXADO", "DOLAR"]);

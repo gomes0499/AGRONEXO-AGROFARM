@@ -102,7 +102,7 @@ export function DividasBancariasForm({
   // Categorias disponíveis
   const categorias = [
     { value: "CUSTEIO", label: "Custeio" },
-    { value: "INVESTIMENTO", label: "Investimento" },
+    { value: "INVESTIMENTOS", label: "Investimentos" },
     { value: "OUTROS", label: "Outros" }
   ];
   

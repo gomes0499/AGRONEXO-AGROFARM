@@ -139,7 +139,7 @@ export function DividasBancariasFormModal({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="CUSTEIO">Custeio</SelectItem>
-                      <SelectItem value="INVESTIMENTO">Investimento</SelectItem>
+                      <SelectItem value="INVESTIMENTOS">Investimentos</SelectItem>
                       <SelectItem value="OUTROS">Outros</SelectItem>
                     </SelectContent>
                   </Select>
