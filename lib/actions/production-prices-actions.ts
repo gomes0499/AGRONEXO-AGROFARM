@@ -7,7 +7,9 @@ export interface CommodityPriceProjection {
   id: string;
   organizacao_id: string;
   safra_id: string;
-  commodity_type: string;
+  commodity_type: string; // Mantido por compatibilidade
+  cultura_id?: string;
+  sistema_id?: string;
   unit: string;
   current_price: number;
   precos_por_ano: Record<string, number>;
@@ -64,21 +66,32 @@ export async function getCommodityPriceProjections(projectionId?: string) {
 export async function createCommodityPrice(data: {
   organizacao_id: string;
   safra_id: string;
-  commodity_type: string;
+  commodity_type?: string; // Opcional, mantido por compatibilidade
+  cultura_id: string;
+  sistema_id: string;
   current_price: number;
   unit: string;
   precos_por_ano: Record<string, number>;
 }) {
   try {
+    // Log para debug - ver exatamente o que está sendo recebido
+    console.log("createCommodityPrice - Dados recebidos:", JSON.stringify(data, null, 2));
+    console.log("createCommodityPrice - precos_por_ano específico:", data.precos_por_ano);
+    
     const supabase = await createClient();
+
+    const insertData = {
+      ...data,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    
+    // Log do que será inserido no banco
+    console.log("createCommodityPrice - Dados a serem inseridos:", JSON.stringify(insertData, null, 2));
 
     const { data: newData, error } = await supabase
       .from("commodity_price_projections")
-      .insert({
-        ...data,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -87,6 +100,9 @@ export async function createCommodityPrice(data: {
       throw new Error(`Erro ao criar preço de commodity: ${error.message}`);
     }
 
+    // Log do resultado
+    console.log("createCommodityPrice - Dados salvos no banco:", JSON.stringify(newData, null, 2));
+    
     return newData;
   } catch (error) {
     console.error("Erro ao criar preço de commodity:", error);
@@ -302,6 +318,54 @@ export async function updateExchangeRateProjection(
   } catch (error) {
     console.error("Erro ao atualizar cotação de câmbio:", error);
     return { data: null, error };
+  }
+}
+
+// Deletar preço de commodity
+export async function deleteCommodityPriceProjection(id: string) {
+  try {
+    const supabase = await createClient();
+    const organizationId = await getOrganizationId();
+
+    const { error } = await supabase
+      .from("commodity_price_projections")
+      .delete()
+      .eq("id", id)
+      .eq("organizacao_id", organizationId);
+
+    if (error) {
+      console.error("Erro ao deletar preço de commodity:", error);
+      return { error };
+    }
+
+    return { error: null };
+  } catch (error) {
+    console.error("Erro ao deletar preço de commodity:", error);
+    return { error };
+  }
+}
+
+// Deletar cotação de câmbio
+export async function deleteExchangeRateProjection(id: string) {
+  try {
+    const supabase = await createClient();
+    const organizationId = await getOrganizationId();
+
+    const { error } = await supabase
+      .from("cotacoes_cambio")
+      .delete()
+      .eq("id", id)
+      .eq("organizacao_id", organizationId);
+
+    if (error) {
+      console.error("Erro ao deletar cotação de câmbio:", error);
+      return { error };
+    }
+
+    return { error: null };
+  } catch (error) {
+    console.error("Erro ao deletar cotação de câmbio:", error);
+    return { error };
   }
 }
 

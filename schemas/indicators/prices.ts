@@ -121,6 +121,8 @@ export type CommodityPriceType = {
   id: string;
   organizacaoId: string;
   commodityType: AllPriceTypeEnum; // Using AllPriceTypeEnum for compatibility
+  culturaId?: string; // New field for culture reference
+  sistemaId?: string; // New field for system reference
   unit: string;
   currentPrice: number;
   price2020?: number;

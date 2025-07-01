@@ -16,45 +16,22 @@ export interface ExchangeRate {
 }
 
 // Get all exchange rates for an organization
-export async function getExchangeRates(organizationId: string): Promise<CommodityPriceType[]> {
+export async function getExchangeRates(organizationId: string): Promise<any[]> {
   const supabase = await createClient();
   
   const { data, error } = await supabase
-    .from("commodity_price_projections")
+    .from("cotacoes_cambio")
     .select("*")
     .eq("organizacao_id", organizationId)
-    .in("commodity_type", ["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_FECHAMENTO"]);
+    .is("projection_id", null); // Buscar apenas dados reais, não projeções
   
   if (error) {
     console.error("Erro ao buscar cotações de câmbio:", error);
     return [];
   }
   
-  // Transform to the expected format
-  return (data || []).map(item => {
-    // Try to read year-based prices first, fall back to current_price
-    const precos = item.precos_por_ano || {};
-    const currentPrice = item.current_price || 0;
-    
-    return {
-      id: item.id,
-      organizacaoId: item.organizacao_id,
-      commodityType: item.commodity_type,
-      unit: item.unit,
-      currentPrice: currentPrice,
-      price2021: precos["2021"] || currentPrice,
-      price2022: precos["2022"] || currentPrice,
-      price2023: precos["2023"] || currentPrice,
-      price2024: precos["2024"] || currentPrice,
-      price2025: precos["2025"] || currentPrice,
-      price2026: precos["2026"] || currentPrice,
-      price2027: precos["2027"] || currentPrice,
-      price2028: precos["2028"] || currentPrice,
-      price2029: precos["2029"] || currentPrice,
-      createdAt: item.created_at ? new Date(item.created_at) : new Date(),
-      updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(),
-    };
-  });
+  // Return data as-is to preserve all fields including cotacoes_por_ano
+  return data || [];
 }
 
 // Create a new exchange rate

@@ -346,6 +346,34 @@ export async function getSystems(organizationId: string) {
   return data as System[];
 }
 
+export async function ensureDefaultSystems(organizationId: string) {
+  const supabase = await createClient();
+  
+  // Verificar se já existem sistemas
+  const { data: existingSystems } = await supabase
+    .from("sistemas")
+    .select("*")
+    .eq("organizacao_id", organizationId);
+  
+  // Se não existem sistemas, criar os padrões
+  if (!existingSystems || existingSystems.length === 0) {
+    const defaultSystems = [
+      { organizacao_id: organizationId, nome: "SEQUEIRO", descricao: "Sistema de sequeiro" },
+      { organizacao_id: organizationId, nome: "IRRIGADO", descricao: "Sistema irrigado" }
+    ];
+    
+    const { error } = await supabase
+      .from("sistemas")
+      .insert(defaultSystems);
+    
+    if (error) {
+      console.error("Erro ao criar sistemas padrão:", error);
+    }
+  }
+  
+  return getSystems(organizationId);
+}
+
 export async function createSystem(organizationId: string, values: {
   nome: string;
   descricao?: string;

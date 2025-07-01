@@ -9,6 +9,7 @@ type UnifiedPricesTabProps = {
   exchangeRates: CommodityPriceType[] | undefined;
   organizationId?: string;
   cultures?: Array<{ id: string; nome: string }>;
+  systems?: Array<{ id: string; nome: string }>;
   safras?: Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number }>;
 };
 
@@ -17,6 +18,7 @@ export function UnifiedPricesTab({
   exchangeRates = [],
   organizationId,
   cultures = [],
+  systems = [],
   safras = [],
 }: UnifiedPricesTabProps) {
 
@@ -45,6 +47,7 @@ export function UnifiedPricesTab({
       exchangeRates={filteredExchangeRates}
       organizationId={organizationId}
       cultures={cultures}
+      systems={systems}
       safras={safras}
     />
   );

@@ -12,18 +12,39 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PriceForm } from "./price-form";
-import type { Culture, Harvest } from "@/schemas/production";
+// Define types with required id for component usage
+type Culture = {
+  id: string;
+  nome: string;
+  organizacao_id?: string;
+};
+
+type Harvest = {
+  id: string;
+  nome: string;
+  ano_inicio: number;
+  ano_fim: number;
+  organizacao_id?: string;
+};
+
+type System = {
+  id: string;
+  nome: string;
+  organizacao_id?: string;
+};
 import type { ButtonProps } from "@/components/ui/button";
 
 interface NewPriceButtonProps extends ButtonProps {
   cultures: Culture[];
   harvests: Harvest[];
+  systems: System[];
   organizationId: string;
 }
 
 export function NewPriceButton({
   cultures,
   harvests,
+  systems,
   organizationId,
   variant = "default",
   size = "default",
@@ -33,10 +54,6 @@ export function NewPriceButton({
   const [open, setOpen] = useState(false);
 
   const handleSuccess = () => {
-    setOpen(false);
-  };
-
-  const handleCancel = () => {
     setOpen(false);
   };
 
@@ -64,9 +81,9 @@ export function NewPriceButton({
           <PriceForm
             cultures={cultures}
             harvests={harvests}
+            systems={systems}
             organizationId={organizationId}
             onSuccess={handleSuccess}
-            onCancel={handleCancel}
           />
         </div>
       </DialogContent>

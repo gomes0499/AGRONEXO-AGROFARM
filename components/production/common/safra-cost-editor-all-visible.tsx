@@ -67,8 +67,8 @@ export function SafraCostEditorAllVisible({
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     if (checked) {
-      // Set all values to the same as the first non-zero value, or 1000 as default
-      const firstValue = Object.values(values).find((v) => v > 0) || 1000;
+      // Set all values to the same as the first non-zero value, or 0 as default
+      const firstValue = Object.values(values).find((v) => v > 0) || 0;
       const newValues: Record<string, number> = {};
       filteredSafras.forEach((safra) => {
         newValues[safra.id || ""] = firstValue;

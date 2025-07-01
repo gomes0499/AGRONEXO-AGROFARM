@@ -111,7 +111,7 @@ export function CommodityPriceForm({
         await updateCommodityPriceProjection(initialData.id, submitData);
         toast.success("Preço de commodity atualizado com sucesso!");
       } else {
-        await createCommodityPrice(submitData);
+        await createCommodityPrice(submitData as any);
         toast.success("Preço de commodity criado com sucesso!");
       }
 

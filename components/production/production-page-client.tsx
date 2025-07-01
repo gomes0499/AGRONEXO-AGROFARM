@@ -73,6 +73,7 @@ export function ProductionPageClient({
           key={`unified-prices-tab-${organizationId}`}
           organizationId={organizationId}
           cultures={cultures}
+          systems={systems}
           safras={safras}
           commodityPrices={commodityPrices}
           exchangeRates={exchangeRates}

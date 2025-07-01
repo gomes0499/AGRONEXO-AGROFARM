@@ -24,7 +24,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { SafraPriceEditorAllVisible } from "../common/safra-price-editor-all-visible";
-import { type Harvest } from "@/schemas/production";
 import * as z from "zod";
 
 // Schema para o formulário multi-safra de cotações de câmbio
@@ -35,6 +34,15 @@ const multiSafraExchangeRateSchema = z.object({
 });
 
 type MultiSafraExchangeRateFormValues = z.infer<typeof multiSafraExchangeRateSchema>;
+
+// Define local Harvest type to avoid schema conflicts
+interface Harvest {
+  id: string;
+  nome: string;
+  ano_inicio: number;
+  ano_fim: number;
+  organizacao_id?: string;
+}
 
 interface MultiSafraExchangeRateFormProps {
   safras: Harvest[];

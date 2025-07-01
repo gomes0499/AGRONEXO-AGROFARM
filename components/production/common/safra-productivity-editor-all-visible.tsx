@@ -94,9 +94,9 @@ export function SafraProductivityEditorAllVisible({
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     if (checked) {
-      // Set all values to the same as the first non-zero value, or 60 as default
+      // Set all values to the same as the first non-zero value, or 0 as default
       const firstValue = Object.values(values).find(v => v.produtividade > 0);
-      const defaultProdutividade = firstValue?.produtividade || 60;
+      const defaultProdutividade = firstValue?.produtividade || 0;
       const defaultUnidade = firstValue?.unidade || defaultUnit;
       
       const newValues: Record<string, { produtividade: number; unidade: string }> = {};

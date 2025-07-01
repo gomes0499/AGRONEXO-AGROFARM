@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getCultures,
   getSystems,
+  ensureDefaultSystems,
   getCycles,
   getSafras,
   getPlantingAreas,
@@ -124,7 +125,7 @@ export const fetchProductionPageData = async (
     ] = await Promise.all([
       // Configuration data
       getCultures(organizationId),
-      getSystems(organizationId),
+      ensureDefaultSystems(organizationId), // Garante que sistemas padrão existam
       getCycles(organizationId),
       getSafras(organizationId),
       

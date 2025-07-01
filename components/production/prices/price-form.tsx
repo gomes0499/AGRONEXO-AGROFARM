@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { Loader2, DollarSign, Leaf, Settings, TrendingUp, CircleDollarSign } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -13,85 +10,82 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
-import {
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { SafraPriceEditorAllVisible } from "../common/safra-price-editor-all-visible";
-import type { Culture, Harvest } from "@/schemas/production";
-import { z } from "zod";
+import { toast } from "sonner";
+import { useState } from "react";
+import { SafraPriceEditorAllVisible } from "@/components/production/common/safra-price-editor-all-visible";
+import { DollarSign, CircleDollarSign, TrendingUp, Leaf, Settings } from "lucide-react";
+import { PriceFormValues, priceFormSchema } from "@/schemas/production";
 
-// Schema para o formulário
-const priceFormSchema = z.object({
-  tipo: z.enum(["COMMODITY", "EXCHANGE_RATE"]),
-  item_id: z.string().min(1, "Selecione um item"),
-  sistema: z.enum(["SEQUEIRO", "IRRIGADO"]).optional(),
-  unit: z.string().min(1, "Defina a unidade"),
-  precos_por_safra: z.record(z.number().min(0, "Preço deve ser positivo")),
-});
-
-type PriceFormValues = z.infer<typeof priceFormSchema>;
-
-interface PriceFormProps {
-  cultures: Culture[];
-  harvests: Harvest[];
-  organizationId: string;
-  onSuccess?: () => void;
-  onCancel?: () => void;
+// Define types with optional organizacao_id
+interface Harvest {
+  id: string;
+  nome: string;
+  ano_inicio: number;
+  ano_fim: number;
+  organizacao_id?: string;
 }
 
-// Tipos de câmbio disponíveis
-const EXCHANGE_RATE_TYPES = [
-  { id: "DOLAR_ALGODAO", nome: "Dólar Algodão", unit: "R$" },
-  { id: "DOLAR_SOJA", nome: "Dólar Soja", unit: "R$" },
-  { id: "DOLAR_MILHO", nome: "Dólar Milho", unit: "R$" },
-  { id: "DOLAR_FECHAMENTO", nome: "Dólar Fechamento", unit: "R$" },
-];
+interface Culture {
+  id: string;
+  nome: string;
+  organizacao_id?: string;
+}
 
-export function PriceForm({
-  cultures,
-  harvests,
-  organizationId,
-  onSuccess,
-  onCancel,
-}: PriceFormProps) {
+interface System {
+  id: string;
+  nome: string;
+  organizacao_id?: string;
+}
+
+interface PriceFormProps {
+  harvests: Harvest[];
+  cultures: Culture[];
+  systems: System[];
+  organizationId: string;
+  onSuccess?: () => void;
+}
+
+export function PriceForm({ harvests, cultures, systems, organizationId, onSuccess }: PriceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<PriceFormValues>({
     resolver: zodResolver(priceFormSchema),
     defaultValues: {
-      tipo: "COMMODITY",
-      item_id: "",
-      sistema: "SEQUEIRO",
-      unit: "R$/saca",
+      tipo: undefined,
+      item_id: undefined,
+      sistema_id: undefined,
+      unit: "",
       precos_por_safra: {},
     },
   });
 
   const watchedTipo = form.watch("tipo");
-  const watchedItem = form.watch("item_id");
+  const watchedItemId = form.watch("item_id");
 
-  // Get available items based on type
   const getAvailableItems = () => {
     if (watchedTipo === "COMMODITY") {
-      return cultures;
+      return cultures.map(c => ({ id: c.id, nome: c.nome }));
     } else {
-      return EXCHANGE_RATE_TYPES;
+      return [
+        { id: "DOLAR_ALGODAO", nome: "Dólar Algodão" },
+        { id: "DOLAR_SOJA", nome: "Dólar Soja" },
+        { id: "DOLAR_FECHAMENTO", nome: "Dólar Fechamento" },
+      ];
     }
   };
 
-  // Update unit based on selection
   const updateUnit = (itemId: string) => {
     if (watchedTipo === "COMMODITY") {
       const culture = cultures.find(c => c.id === itemId);
-      if (culture?.nome.toLowerCase().includes("algodao")) {
+      if (culture?.nome.toLowerCase().includes("algodão")) {
         form.setValue("unit", "R$/@");
       } else {
         form.setValue("unit", "R$/saca");
@@ -104,6 +98,10 @@ export function PriceForm({
   const onSubmit = async (values: PriceFormValues) => {
     setIsSubmitting(true);
     try {
+      // Log para debug
+      console.log("Form values being submitted:", values);
+      console.log("Preços por safra:", values.precos_por_safra);
+      
       const validPrices = Object.entries(values.precos_por_safra)
         .filter(([_, price]) => price > 0);
 
@@ -114,22 +112,40 @@ export function PriceForm({
       }
 
       if (values.tipo === "COMMODITY") {
-        const culture = cultures.find(c => c.id === values.item_id);
-        const commodityType = values.sistema 
-          ? `${culture?.nome.toUpperCase()}_${values.sistema}`
-          : culture?.nome.toUpperCase() || "";
+        // Sistema ID já vem diretamente do formulário
+        const sistemaId = values.sistema_id;
 
-        // Converter preços por safra para preços por ano
+        if (!sistemaId) {
+          toast.error("Selecione um sistema");
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Usar preços por safra ID diretamente
         const precosPorAno: Record<string, number> = {};
         const safrasIds = validPrices.map(([safraId]) => safraId);
         
-        // Para cada safra selecionada, mapear seu ano para o preço
+        // Para cada safra selecionada, usar o ID da safra como chave
         for (const [safraId, price] of validPrices) {
-          const safra = harvests.find(s => s.id === safraId);
-          if (safra) {
-            precosPorAno[safra.ano_inicio.toString()] = price;
-          }
+          precosPorAno[safraId] = price;
         }
+
+        // Gerar commodity_type para compatibilidade
+        const culture = cultures.find(c => c.id === values.item_id);
+        const system = systems.find(s => s.id === sistemaId);
+        const commodityType = culture && system ? `${culture.nome.toUpperCase()}_${system.nome.toUpperCase()}` : "";
+
+        // Log para debug antes de enviar
+        console.log("Dados sendo enviados para API:", {
+          organizacao_id: organizationId,
+          safra_id: safrasIds[0],
+          commodity_type: commodityType,
+          cultura_id: values.item_id,
+          sistema_id: sistemaId,
+          current_price: validPrices[0][1],
+          unit: values.unit,
+          precos_por_ano: precosPorAno,
+        });
 
         // Criar um único registro com todos os preços
         const response = await fetch('/api/production/commodity-prices', {
@@ -138,7 +154,9 @@ export function PriceForm({
           body: JSON.stringify({
             organizacao_id: organizationId,
             safra_id: safrasIds[0], // Usar a primeira safra como referência
-            commodity_type: commodityType,
+            commodity_type: commodityType, // Para compatibilidade
+            cultura_id: values.item_id, // ID da cultura selecionada
+            sistema_id: sistemaId, // ID do sistema
             current_price: validPrices[0][1], // Primeiro preço como padrão
             unit: values.unit,
             precos_por_ano: precosPorAno, // Todos os preços em um objeto
@@ -148,19 +166,30 @@ export function PriceForm({
         if (!response.ok) {
           throw new Error('Erro ao criar preço de commodity');
         }
+
+        const responseData = await response.json();
+        console.log("Resposta da API:", responseData);
       } else {
         // Exchange rate
-        // Converter cotações por safra para cotações por ano
+        // Usar cotações por safra ID diretamente
         const cotacoesPorAno: Record<string, number> = {};
         const safrasIds = validPrices.map(([safraId]) => safraId);
         
-        // Para cada safra selecionada, mapear seu ano para a cotação
+        // Para cada safra selecionada, usar o ID da safra como chave
         for (const [safraId, price] of validPrices) {
-          const safra = harvests.find(s => s.id === safraId);
-          if (safra) {
-            cotacoesPorAno[safra.ano_inicio.toString()] = price;
-          }
+          cotacoesPorAno[safraId] = price;
         }
+
+        // Log para debug antes de enviar
+        console.log("Dados sendo enviados para API (Exchange):", {
+          organizacao_id: organizationId,
+          safra_id: safrasIds[0],
+          commodity_type: values.item_id, // Para compatibilidade
+          tipo_moeda: values.item_id,
+          cotacao_atual: validPrices[0][1],
+          unit: values.unit,
+          cotacoes_por_ano: cotacoesPorAno,
+        });
 
         // Criar um único registro com todas as cotações
         const response = await fetch('/api/production/exchange-rates', {
@@ -169,6 +198,7 @@ export function PriceForm({
           body: JSON.stringify({
             organizacao_id: organizationId,
             safra_id: safrasIds[0], // Usar a primeira safra como referência
+            commodity_type: values.item_id, // Para compatibilidade
             tipo_moeda: values.item_id,
             cotacao_atual: validPrices[0][1], // Primeira cotação como padrão
             unit: values.unit,
@@ -179,6 +209,9 @@ export function PriceForm({
         if (!response.ok) {
           throw new Error('Erro ao criar cotação de câmbio');
         }
+
+        const responseData = await response.json();
+        console.log("Resposta da API (Exchange):", responseData);
       }
 
       toast.success(`Preço criado com sucesso para ${validPrices.length} safra(s)!`);
@@ -281,7 +314,7 @@ export function PriceForm({
           {watchedTipo === "COMMODITY" && (
             <FormField
               control={form.control}
-              name="sistema"
+              name="sistema_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-medium flex items-center gap-1.5">
@@ -299,8 +332,11 @@ export function PriceForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="SEQUEIRO">Sequeiro</SelectItem>
-                      <SelectItem value="IRRIGADO">Irrigado</SelectItem>
+                      {systems.map((system) => (
+                        <SelectItem key={system.id} value={system.id || ""}>
+                          {system.nome}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -310,71 +346,42 @@ export function PriceForm({
           )}
         </div>
 
-        {/* Summary */}
-        {watchedItem && (
-          <div className="p-3 bg-muted/30 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Badge variant={watchedTipo === "COMMODITY" ? "default" : "secondary"}>
-                {watchedTipo === "COMMODITY" ? "Commodity" : "Câmbio"}
-              </Badge>
-              <span className="text-sm text-muted-foreground">•</span>
-              <span className="text-sm font-medium">
-                {getAvailableItems().find(item => item.id === watchedItem)?.nome}
-              </span>
-              {watchedTipo === "COMMODITY" && form.watch("sistema") && (
-                <>
-                  <span className="text-sm text-muted-foreground">•</span>
-                  <span className="text-sm">
-                    {form.watch("sistema") === "SEQUEIRO" ? "Sequeiro" : "Irrigado"}
-                  </span>
-                </>
-              )}
-              <Badge variant="outline" className="ml-auto">
-                {form.watch("unit")}
-              </Badge>
-            </div>
-          </div>
+        {/* Preços por Safra */}
+        {watchedItemId && (
+          <FormField
+            control={form.control}
+            name="precos_por_safra"
+            render={({ field }) => (
+              <FormItem>
+                <SafraPriceEditorAllVisible
+                  label={
+                    watchedTipo === "COMMODITY" 
+                      ? "Preços por Safra" 
+                      : "Cotações por Safra"
+                  }
+                  description={
+                    watchedTipo === "COMMODITY" 
+                      ? "Defina o preço para cada safra" 
+                      : "Defina a cotação para cada safra"
+                  }
+                  values={field.value}
+                  onChange={(newValues) => {
+                    console.log("SafraPriceEditor onChange:", newValues);
+                    field.onChange(newValues);
+                  }}
+                  safras={harvests}
+                  unit={form.watch("unit")}
+                  disabled={isSubmitting}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         )}
 
-        <Separator />
-
-        {/* Price Editor */}
-        <FormField
-          control={form.control}
-          name="precos_por_safra"
-          render={({ field }) => (
-            <FormItem>
-              <SafraPriceEditorAllVisible
-                label="Preços por Safra"
-                description={`Defina os preços para cada safra`}
-                values={field.value}
-                onChange={field.onChange}
-                safras={harvests}
-                disabled={isSubmitting}
-                unit={form.watch("unit")}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Separator />
-
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isSubmitting}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSubmitting ? "Salvando..." : "Salvar Preços"}
-          </Button>
-        </div>
+        <Button type="submit" disabled={isSubmitting || !watchedItemId}>
+          {isSubmitting ? "Criando..." : "Criar Preço"}
+        </Button>
       </form>
     </Form>
   );

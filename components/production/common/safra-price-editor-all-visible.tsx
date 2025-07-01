@@ -9,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency } from "@/lib/utils/formatters";
-import type { Harvest } from "@/schemas/production";
+// Define Harvest interface locally to avoid schema type conflicts
+interface Harvest {
+  id: string;
+  nome: string;
+  ano_inicio: number;
+  ano_fim: number;
+  organizacao_id?: string;
+}
 
 interface SafraPriceEditorAllVisibleProps {
   label?: string;
@@ -69,8 +76,8 @@ export function SafraPriceEditorAllVisible({
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     if (checked) {
-      // Set all values to the same as the first non-zero value, or 60 as default
-      const firstValue = Object.values(values).find((v) => v > 0) || 60;
+      // Set all values to the same as the first non-zero value, or 0 as default
+      const firstValue = Object.values(values).find((v) => v > 0) || 0;
       const newValues: Record<string, number> = {};
       filteredSafras.forEach((safra) => {
         newValues[safra.id || ""] = firstValue;

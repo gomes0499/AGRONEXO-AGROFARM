@@ -21,13 +21,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { formatNumber, formatCurrency } from "@/lib/utils/formatters";
 import {
-  updateCommodityPrice,
-  deleteCommodityPrice,
-} from "@/lib/actions/commodity-prices-actions";
-import {
-  updateExchangeRate,
-  deleteExchangeRate,
-} from "@/lib/actions/exchange-rates-actions";
+  updateCommodityPriceProjection,
+  updateExchangeRateProjection,
+  deleteCommodityPriceProjection,
+  deleteExchangeRateProjection,
+} from "@/lib/actions/production-prices-actions";
 import { NewPriceButton } from "./new-price-button";
 import {
   AlertDialog,
@@ -47,11 +45,24 @@ import {
   exchangeRateUnits,
 } from "@/schemas/indicators/prices";
 
+// Define price type for better type safety
+interface Price {
+  id: string;
+  commodity_type?: string;
+  tipo_moeda?: string;
+  cultura_id?: string;
+  sistema_id?: string;
+  unit?: string;
+  precos_por_ano?: Record<string, number>;
+  cotacoes_por_ano?: Record<string, number>;
+}
+
 interface UnifiedPricesListingProps {
-  commodityPrices: CommodityPriceType[];
-  exchangeRates: CommodityPriceType[];
+  commodityPrices: Price[];
+  exchangeRates: Price[];
   organizationId: string;
   cultures?: Array<{ id: string; nome: string; organizacao_id?: string }>;
+  systems?: Array<{ id: string; nome: string; organizacao_id?: string }>;
   safras?: Array<{
     id: string;
     nome: string;
@@ -66,6 +77,7 @@ export function UnifiedPricesListing({
   exchangeRates,
   organizationId,
   cultures = [],
+  systems = [],
   safras = [],
 }: UnifiedPricesListingProps) {
   const [editingState, setEditingState] = useState<
@@ -73,7 +85,7 @@ export function UnifiedPricesListing({
   >({});
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [priceToDelete, setPriceToDelete] = useState<CommodityPriceType | null>(
+  const [priceToDelete, setPriceToDelete] = useState<Price | null>(
     null
   );
   const [isDeleting, setIsDeleting] = useState(false);
@@ -91,8 +103,10 @@ export function UnifiedPricesListing({
     price => !deletedIds.has(price.id)
   );
 
-  // Years to display (2021 to 2029)
-  const years = [2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029];
+  // Filter and sort safras for display
+  const displaySafras = safras
+    .filter(s => s.ano_inicio >= 2021 && s.ano_inicio <= 2029)
+    .sort((a, b) => a.ano_inicio - b.ano_inicio);
 
   // Exchange rate types for identification
   const EXCHANGE_RATE_TYPES = [
@@ -102,30 +116,35 @@ export function UnifiedPricesListing({
     "DOLAR_FECHAMENTO",
   ];
 
-  // Group prices by type to avoid duplicates
+  // Group prices by unique key to avoid duplicates
   const groupedPrices = allPrices.reduce(
     (acc, price) => {
-      const type = price.commodityType || "";
-      if (!acc[type]) {
-        acc[type] = price;
+      // For commodities with cultura_id and sistema_id, create a unique key
+      let key = price.commodity_type || price.tipo_moeda || "";
+      if (price.cultura_id && price.sistema_id) {
+        key = `${price.cultura_id}_${price.sistema_id}`;
+      }
+      
+      if (!acc[key]) {
+        acc[key] = price;
       }
       return acc;
     },
-    {} as Record<string, CommodityPriceType>
+    {} as Record<string, Price>
   );
 
   // Initialize editing state for a price
-  const initPriceEditState = (price: CommodityPriceType) => {
+  const initPriceEditState = (price: Price) => {
     if (!price || !price.id) return;
 
     if (!editingState[price.id]) {
       const newEditState: Record<string, string> = {};
 
-      years.forEach((year) => {
-        const camelKey = `price${year}` as keyof CommodityPriceType;
-        const snakeKey = `price_${year}` as keyof any;
-        const value = (price as any)[camelKey] || (price as any)[snakeKey] || 0;
-        newEditState[year.toString()] = value.toString();
+      // Use safra IDs from precos_por_ano
+      const precosPorAno = price.precos_por_ano || {};
+      displaySafras.forEach((safra) => {
+        const value = precosPorAno[safra.id] || 0;
+        newEditState[safra.id] = value.toString();
       });
 
       setEditingState((prev) => ({
@@ -149,7 +168,7 @@ export function UnifiedPricesListing({
     }));
   };
 
-  const handleSavePrice = async (price: CommodityPriceType) => {
+  const handleSavePrice = async (price: Price) => {
     const priceId = price.id;
     setIsLoading((prev) => ({ ...prev, [priceId]: true }));
 
@@ -159,26 +178,32 @@ export function UnifiedPricesListing({
         throw new Error("No edit values found");
       }
 
-      const updates: any = {};
-
-      years.forEach((year) => {
-        const snakeKey = `price_${year}`;
-        updates[snakeKey] = parseFloat(editValues[year.toString()] || "0");
+      // Convert edit state to precos_por_ano format
+      const precosPorAno: Record<string, number> = {};
+      displaySafras.forEach((safra) => {
+        const value = editValues[safra.id];
+        if (value !== undefined) {
+          precosPorAno[safra.id] = parseFloat(value) || 0;
+        }
       });
 
-      // Set current price as the most recent year with data
-      const currentYear = new Date().getFullYear();
-      updates.current_price =
-        updates[`price_${currentYear}`] || updates.price_2024 || 0;
+      // Set current price as the first safra price
+      const currentPrice = precosPorAno[displaySafras[0]?.id] || 0;
 
       const isExchangeRate = EXCHANGE_RATE_TYPES.includes(
-        price.commodityType || ""
-      );
+        price.commodity_type || ""
+      ) || price.tipo_moeda;
 
       if (isExchangeRate) {
-        await updateExchangeRate(priceId, updates);
+        await updateExchangeRateProjection(priceId, {
+          cotacao_atual: currentPrice,
+          cotacoes_por_ano: precosPorAno,
+        });
       } else {
-        await updateCommodityPrice(priceId, updates);
+        await updateCommodityPriceProjection(priceId, {
+          current_price: currentPrice,
+          precos_por_ano: precosPorAno,
+        });
       }
 
       toast.success("Preço atualizado com sucesso");
@@ -196,13 +221,13 @@ export function UnifiedPricesListing({
     setIsDeleting(true);
     try {
       const isExchangeRate = EXCHANGE_RATE_TYPES.includes(
-        priceToDelete.commodityType || ""
-      );
+        priceToDelete.commodity_type || ""
+      ) || !!priceToDelete.tipo_moeda;
 
       if (isExchangeRate) {
-        await deleteExchangeRate(priceToDelete.id);
+        await deleteExchangeRateProjection(priceToDelete.id);
       } else {
-        await deleteCommodityPrice(priceToDelete.id);
+        await deleteCommodityPriceProjection(priceToDelete.id);
       }
 
       // Add the deleted ID to local state for immediate UI update
@@ -219,10 +244,9 @@ export function UnifiedPricesListing({
     }
   };
 
-  const getPriceValue = (price: CommodityPriceType, year: number): number => {
-    const camelKey = `price${year}` as keyof CommodityPriceType;
-    const snakeKey = `price_${year}` as keyof any;
-    return (price as any)[camelKey] || (price as any)[snakeKey] || 0;
+  const getPriceValue = (price: Price, safraId: string): number => {
+    const precosPorAno = price.precos_por_ano || price.cotacoes_por_ano || {};
+    return precosPorAno[safraId] || 0;
   };
 
   const getDisplayName = (type: string): string => {
@@ -233,7 +257,14 @@ export function UnifiedPricesListing({
     );
   };
 
-  const getUnit = (type: string): string => {
+  const getUnit = (price: Price): string => {
+    // If price has a unit field, use it directly
+    if (price.unit) {
+      return price.unit;
+    }
+    
+    // Fall back to type-based unit determination
+    const type = price.commodity_type || "";
     return (
       commodityUnits[type as keyof typeof commodityUnits] ||
       exchangeRateUnits[type as keyof typeof exchangeRateUnits] ||
@@ -264,17 +295,18 @@ export function UnifiedPricesListing({
           <div>
             <CardTitle className="text-white">Preços e Cotações</CardTitle>
             <CardDescription className="text-white/80">
-              Preços de commodities e cotações de câmbio por ano
+              Preços de commodities e cotações de câmbio por safra
             </CardDescription>
           </div>
         </div>
-        {cultures && safras && cultures.length > 0 && safras.length > 0 && (
+        {cultures && systems && safras && cultures.length > 0 && systems.length > 0 && safras.length > 0 && (
           <NewPriceButton
             variant="outline"
             className="gap-1 bg-white text-black hover:bg-gray-100"
             size="default"
             cultures={cultures as any}
             harvests={safras as any}
+            systems={systems as any}
             organizationId={organizationId}
           />
         )}
@@ -295,12 +327,12 @@ export function UnifiedPricesListing({
                   <th className="text-left p-3 font-medium text-white border-r min-w-[100px]">
                     Unidade
                   </th>
-                  {years.map((year) => (
+                  {displaySafras.map((safra) => (
                     <th
-                      key={year}
+                      key={safra.id}
                       className="text-center p-3 font-medium text-white border-r min-w-[100px]"
                     >
-                      {year}
+                      {safra.nome}
                     </th>
                   ))}
                   <th className="text-center p-3 font-medium text-white last:rounded-tr-md min-w-[100px]">
@@ -309,10 +341,11 @@ export function UnifiedPricesListing({
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(groupedPrices).map(([type, price], index) => {
+                {Object.entries(groupedPrices).map(([, price], index) => {
                   initPriceEditState(price);
-                  const unit = getUnit(type);
-                  const isExchange = isExchangeRate(type);
+                  const unit = getUnit(price);
+                  const type = price.commodity_type || price.tipo_moeda || "";
+                  const isExchange = isExchangeRate(type) || !!price.tipo_moeda;
 
                   return (
                     <tr
@@ -331,7 +364,18 @@ export function UnifiedPricesListing({
                       </td>
                       <td className="p-3 border-r">
                         <span className="font-medium">
-                          {getDisplayName(type)}
+                          {(() => {
+                            // For commodities with cultura_id, show culture and system names
+                            if (!isExchange && price.cultura_id) {
+                              const culture = cultures.find(c => c.id === price.cultura_id);
+                              const system = systems.find(s => s.id === price.sistema_id);
+                              if (culture) {
+                                return `${culture.nome}${system ? ` - ${system.nome}` : ''}`;
+                              }
+                            }
+                            // Fall back to commodity type display name
+                            return getDisplayName(type);
+                          })()}
                         </span>
                       </td>
                       <td className="p-3 border-r">
@@ -339,10 +383,10 @@ export function UnifiedPricesListing({
                           {unit}
                         </Badge>
                       </td>
-                      {years.map((year) => {
-                        const value = getPriceValue(price, year);
+                      {displaySafras.map((safra) => {
+                        const value = getPriceValue(price, safra.id);
                         return (
-                          <td key={year} className="p-3 border-r text-center">
+                          <td key={safra.id} className="p-3 border-r text-center">
                             <span
                               className={
                                 value > 0
@@ -374,18 +418,18 @@ export function UnifiedPricesListing({
                                     Editar Preços - {getDisplayName(type)}
                                   </h4>
                                   <p className="text-sm text-muted-foreground">
-                                    Atualize os preços para cada ano.
+                                    Atualize os preços para cada safra.
                                   </p>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
-                                  {years.map((year) => {
+                                  {displaySafras.map((safra) => {
                                     const priceId = price.id;
                                     return (
-                                      <div key={year} className="space-y-2">
+                                      <div key={safra.id} className="space-y-2">
                                         <Label
-                                          htmlFor={`price-${priceId}-${year}`}
+                                          htmlFor={`price-${priceId}-${safra.id}`}
                                         >
-                                          {year}
+                                          {safra.nome}
                                         </Label>
                                         <div className="relative">
                                           {unit.includes("R$") && (
@@ -394,18 +438,18 @@ export function UnifiedPricesListing({
                                             </span>
                                           )}
                                           <Input
-                                            id={`price-${priceId}-${year}`}
+                                            id={`price-${priceId}-${safra.id}`}
                                             type="number"
                                             step="0.0001"
                                             value={
                                               editingState[priceId]?.[
-                                                year.toString()
+                                                safra.id
                                               ] || ""
                                             }
                                             onChange={(e) =>
                                               handleEditValueChange(
                                                 priceId,
-                                                year.toString(),
+                                                safra.id,
                                                 e.target.value
                                               )
                                             }
