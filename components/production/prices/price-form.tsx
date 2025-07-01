@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { useState } from "react";
 import { SafraPriceEditorAllVisible } from "@/components/production/common/safra-price-editor-all-visible";
-import { DollarSign, CircleDollarSign, TrendingUp, Leaf, Settings } from "lucide-react";
+import { DollarSign, CircleDollarSign, TrendingUp, Leaf, Settings, RefreshCw } from "lucide-react";
 import { PriceFormValues, priceFormSchema } from "@/schemas/production";
 
 // Define types with optional organizacao_id
@@ -45,15 +45,22 @@ interface System {
   organizacao_id?: string;
 }
 
+interface Cycle {
+  id: string;
+  nome: string;
+  organizacao_id?: string;
+}
+
 interface PriceFormProps {
   harvests: Harvest[];
   cultures: Culture[];
   systems: System[];
+  cycles: Cycle[];
   organizationId: string;
   onSuccess?: () => void;
 }
 
-export function PriceForm({ harvests, cultures, systems, organizationId, onSuccess }: PriceFormProps) {
+export function PriceForm({ harvests, cultures, systems, cycles, organizationId, onSuccess }: PriceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<PriceFormValues>({
@@ -62,6 +69,7 @@ export function PriceForm({ harvests, cultures, systems, organizationId, onSucce
       tipo: undefined,
       item_id: undefined,
       sistema_id: undefined,
+      ciclo_id: undefined,
       unit: "",
       precos_por_safra: {},
     },
@@ -121,6 +129,13 @@ export function PriceForm({ harvests, cultures, systems, organizationId, onSucce
           return;
         }
 
+        const cicloId = values.ciclo_id;
+        if (!cicloId) {
+          toast.error("Selecione um ciclo");
+          setIsSubmitting(false);
+          return;
+        }
+
         // Usar preços por safra ID diretamente
         const precosPorAno: Record<string, number> = {};
         const safrasIds = validPrices.map(([safraId]) => safraId);
@@ -142,6 +157,7 @@ export function PriceForm({ harvests, cultures, systems, organizationId, onSucce
           commodity_type: commodityType,
           cultura_id: values.item_id,
           sistema_id: sistemaId,
+          ciclo_id: cicloId,
           current_price: validPrices[0][1],
           unit: values.unit,
           precos_por_ano: precosPorAno,
@@ -157,6 +173,7 @@ export function PriceForm({ harvests, cultures, systems, organizationId, onSucce
             commodity_type: commodityType, // Para compatibilidade
             cultura_id: values.item_id, // ID da cultura selecionada
             sistema_id: sistemaId, // ID do sistema
+            ciclo_id: cicloId, // ID do ciclo
             current_price: validPrices[0][1], // Primeiro preço como padrão
             unit: values.unit,
             precos_por_ano: precosPorAno, // Todos os preços em um objeto
@@ -271,47 +288,48 @@ export function PriceForm({ harvests, cultures, systems, organizationId, onSucce
         />
 
         {/* Item Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="item_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium flex items-center gap-1.5">
-                  <Leaf className="h-4 w-4 text-muted-foreground" />
-                  {watchedTipo === "COMMODITY" ? "Cultura" : "Tipo de Câmbio"}
-                </FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    updateUnit(value);
-                  }}
-                  defaultValue={field.value}
-                  disabled={isSubmitting}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={
-                        watchedTipo === "COMMODITY" 
-                          ? "Selecione a cultura" 
-                          : "Selecione o tipo de câmbio"
-                      } />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {getAvailableItems().map((item) => (
-                      <SelectItem key={item.id} value={item.id || ""}>
-                        {item.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="item_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                <Leaf className="h-4 w-4 text-muted-foreground" />
+                {watchedTipo === "COMMODITY" ? "Cultura" : "Tipo de Câmbio"}
+              </FormLabel>
+              <Select
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  updateUnit(value);
+                }}
+                defaultValue={field.value}
+                disabled={isSubmitting}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={
+                      watchedTipo === "COMMODITY" 
+                        ? "Selecione a cultura" 
+                        : "Selecione o tipo de câmbio"
+                    } />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {getAvailableItems().map((item) => (
+                    <SelectItem key={item.id} value={item.id || ""}>
+                      {item.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          {watchedTipo === "COMMODITY" && (
+        {/* Sistema e Ciclo para Commodities */}
+        {watchedTipo === "COMMODITY" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
               name="sistema_id"
@@ -343,8 +361,40 @@ export function PriceForm({ harvests, cultures, systems, organizationId, onSucce
                 </FormItem>
               )}
             />
-          )}
-        </div>
+
+            <FormField
+              control={form.control}
+              name="ciclo_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                    Ciclo
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione o ciclo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {cycles.map((cycle) => (
+                        <SelectItem key={cycle.id} value={cycle.id || ""}>
+                          {cycle.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
 
         {/* Preços por Safra */}
         {watchedItemId && (

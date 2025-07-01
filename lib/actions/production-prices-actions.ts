@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getOrganizationId } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
 export interface CommodityPriceProjection {
   id: string;
@@ -10,6 +11,7 @@ export interface CommodityPriceProjection {
   commodity_type: string; // Mantido por compatibilidade
   cultura_id?: string;
   sistema_id?: string;
+  ciclo_id?: string;
   unit: string;
   current_price: number;
   precos_por_ano: Record<string, number>;
@@ -69,6 +71,7 @@ export async function createCommodityPrice(data: {
   commodity_type?: string; // Opcional, mantido por compatibilidade
   cultura_id: string;
   sistema_id: string;
+  ciclo_id?: string;
   current_price: number;
   unit: string;
   precos_por_ano: Record<string, number>;
@@ -102,6 +105,11 @@ export async function createCommodityPrice(data: {
 
     // Log do resultado
     console.log("createCommodityPrice - Dados salvos no banco:", JSON.stringify(newData, null, 2));
+    
+    // Revalidate paths
+    revalidatePath("/dashboard/production");
+    revalidatePath("/dashboard/production/prices");
+    revalidatePath("/dashboard");
     
     return newData;
   } catch (error) {
@@ -140,6 +148,11 @@ export async function createCommodityPriceProjection(
       return { data: null, error };
     }
 
+    // Revalidate paths
+    revalidatePath("/dashboard/production");
+    revalidatePath("/dashboard/production/prices");
+    revalidatePath("/dashboard");
+
     return { data: newData, error: null };
   } catch (error) {
     console.error("Erro ao criar projeção de preço:", error);
@@ -174,6 +187,11 @@ export async function createExchangeRate(data: {
       throw new Error(`Erro ao criar cotação de câmbio: ${error.message}`);
     }
 
+    // Revalidate paths
+    revalidatePath("/dashboard/production");
+    revalidatePath("/dashboard/production/prices");
+    revalidatePath("/dashboard");
+
     return newData;
   } catch (error) {
     console.error("Erro ao criar cotação de câmbio:", error);
@@ -207,6 +225,11 @@ export async function updateCommodityPriceProjection(
       console.error("Erro ao atualizar projeção de preço:", error);
       return { data: null, error };
     }
+
+    // Revalidate paths
+    revalidatePath("/dashboard/production");
+    revalidatePath("/dashboard/production/prices");
+    revalidatePath("/dashboard");
 
     return { data, error: null };
   } catch (error) {
@@ -279,6 +302,11 @@ export async function createExchangeRateProjection(
       return { data: null, error };
     }
 
+    // Revalidate paths
+    revalidatePath("/dashboard/production");
+    revalidatePath("/dashboard/production/prices");
+    revalidatePath("/dashboard");
+
     return { data: newData, error: null };
   } catch (error) {
     console.error("Erro ao criar cotação de câmbio:", error);
@@ -314,6 +342,11 @@ export async function updateExchangeRateProjection(
       return { data: null, error };
     }
 
+    // Revalidate paths
+    revalidatePath("/dashboard/production");
+    revalidatePath("/dashboard/production/prices");
+    revalidatePath("/dashboard");
+
     return { data, error: null };
   } catch (error) {
     console.error("Erro ao atualizar cotação de câmbio:", error);
@@ -338,6 +371,11 @@ export async function deleteCommodityPriceProjection(id: string) {
       return { error };
     }
 
+    // Revalidate paths
+    revalidatePath("/dashboard/production");
+    revalidatePath("/dashboard/production/prices");
+    revalidatePath("/dashboard");
+
     return { error: null };
   } catch (error) {
     console.error("Erro ao deletar preço de commodity:", error);
@@ -361,6 +399,11 @@ export async function deleteExchangeRateProjection(id: string) {
       console.error("Erro ao deletar cotação de câmbio:", error);
       return { error };
     }
+
+    // Revalidate paths
+    revalidatePath("/dashboard/production");
+    revalidatePath("/dashboard/production/prices");
+    revalidatePath("/dashboard");
 
     return { error: null };
   } catch (error) {

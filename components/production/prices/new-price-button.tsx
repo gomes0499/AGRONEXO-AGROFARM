@@ -32,12 +32,20 @@ type System = {
   nome: string;
   organizacao_id?: string;
 };
+
+type Cycle = {
+  id: string;
+  nome: string;
+  organizacao_id?: string;
+};
+
 import type { ButtonProps } from "@/components/ui/button";
 
 interface NewPriceButtonProps extends ButtonProps {
   cultures: Culture[];
   harvests: Harvest[];
   systems: System[];
+  cycles: Cycle[];
   organizationId: string;
 }
 
@@ -45,6 +53,7 @@ export function NewPriceButton({
   cultures,
   harvests,
   systems,
+  cycles,
   organizationId,
   variant = "default",
   size = "default",
@@ -82,6 +91,7 @@ export function NewPriceButton({
             cultures={cultures}
             harvests={harvests}
             systems={systems}
+            cycles={cycles}
             organizationId={organizationId}
             onSuccess={handleSuccess}
           />

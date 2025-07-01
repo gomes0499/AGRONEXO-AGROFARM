@@ -74,6 +74,7 @@ export function ProductionPageClient({
           organizationId={organizationId}
           cultures={cultures}
           systems={systems}
+          cycles={cycles}
           safras={safras}
           commodityPrices={commodityPrices}
           exchangeRates={exchangeRates}

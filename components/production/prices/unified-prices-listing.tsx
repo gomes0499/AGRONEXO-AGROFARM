@@ -52,6 +52,7 @@ interface Price {
   tipo_moeda?: string;
   cultura_id?: string;
   sistema_id?: string;
+  ciclo_id?: string;
   unit?: string;
   precos_por_ano?: Record<string, number>;
   cotacoes_por_ano?: Record<string, number>;
@@ -63,6 +64,7 @@ interface UnifiedPricesListingProps {
   organizationId: string;
   cultures?: Array<{ id: string; nome: string; organizacao_id?: string }>;
   systems?: Array<{ id: string; nome: string; organizacao_id?: string }>;
+  cycles?: Array<{ id: string; nome: string; organizacao_id?: string }>;
   safras?: Array<{
     id: string;
     nome: string;
@@ -78,6 +80,7 @@ export function UnifiedPricesListing({
   organizationId,
   cultures = [],
   systems = [],
+  cycles = [],
   safras = [],
 }: UnifiedPricesListingProps) {
   const [editingState, setEditingState] = useState<
@@ -299,7 +302,7 @@ export function UnifiedPricesListing({
             </CardDescription>
           </div>
         </div>
-        {cultures && systems && safras && cultures.length > 0 && systems.length > 0 && safras.length > 0 && (
+        {cultures && systems && cycles && safras && cultures.length > 0 && systems.length > 0 && cycles.length > 0 && safras.length > 0 && (
           <NewPriceButton
             variant="outline"
             className="gap-1 bg-white text-black hover:bg-gray-100"
@@ -307,6 +310,7 @@ export function UnifiedPricesListing({
             cultures={cultures as any}
             harvests={safras as any}
             systems={systems as any}
+            cycles={cycles as any}
             organizationId={organizationId}
           />
         )}
@@ -365,12 +369,13 @@ export function UnifiedPricesListing({
                       <td className="p-3 border-r">
                         <span className="font-medium">
                           {(() => {
-                            // For commodities with cultura_id, show culture and system names
+                            // For commodities with cultura_id, show culture, system and cycle names
                             if (!isExchange && price.cultura_id) {
                               const culture = cultures.find(c => c.id === price.cultura_id);
                               const system = systems.find(s => s.id === price.sistema_id);
+                              const cycle = cycles.find(c => c.id === price.ciclo_id);
                               if (culture) {
-                                return `${culture.nome}${system ? ` - ${system.nome}` : ''}`;
+                                return `${culture.nome}${system ? ` - ${system.nome}` : ''}${cycle ? ` - ${cycle.nome}` : ''}`;
                               }
                             }
                             // Fall back to commodity type display name

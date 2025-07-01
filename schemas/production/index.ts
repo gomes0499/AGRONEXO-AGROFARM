@@ -401,6 +401,7 @@ export const priceFormSchema = z.object({
   }),
   item_id: z.string().min(1, "Selecione um item"),
   sistema_id: z.string().uuid("ID do sistema inválido").optional(),
+  ciclo_id: z.string().uuid("ID do ciclo inválido").optional(),
   unit: z.string().min(1, "Unidade é obrigatória"),
   precos_por_safra: z.record(z.string(), z.coerce.number().min(0, "Preço deve ser maior ou igual a 0"))
 });

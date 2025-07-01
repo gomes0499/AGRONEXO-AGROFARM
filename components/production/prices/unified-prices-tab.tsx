@@ -10,6 +10,7 @@ type UnifiedPricesTabProps = {
   organizationId?: string;
   cultures?: Array<{ id: string; nome: string }>;
   systems?: Array<{ id: string; nome: string }>;
+  cycles?: Array<{ id: string; nome: string }>;
   safras?: Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number }>;
 };
 
@@ -19,6 +20,7 @@ export function UnifiedPricesTab({
   organizationId,
   cultures = [],
   systems = [],
+  cycles = [],
   safras = [],
 }: UnifiedPricesTabProps) {
 
@@ -48,6 +50,7 @@ export function UnifiedPricesTab({
       organizationId={organizationId}
       cultures={cultures}
       systems={systems}
+      cycles={cycles}
       safras={safras}
     />
   );
