@@ -357,7 +357,7 @@ export function ImageUploadCropper({
             {...getRootProps()}
             className={cn(
               "flex cursor-pointer flex-col items-center justify-center text-center rounded-md",
-              previewSize.width <= 80 ? "gap-1 p-2" : "gap-2 p-4 w-full min-h-[150px]",
+              previewSize.width <= 80 ? "gap-1 p-2" : "gap-3 p-6 w-full min-h-[150px]",
               disabled && "cursor-not-allowed opacity-60"
             )}
             style={previewSize.width <= 80 ? { 

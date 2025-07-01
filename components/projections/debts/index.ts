@@ -1,2 +1,2 @@
-export { DebtPositionTab } from './debt-position-tab';
+export { DebtProjectionTab } from './debt-projection-tab';
 export { DebtPositionTable } from './debt-position-table';

@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCultureProjections } from "@/lib/actions/culture-projections-actions";
 import { getOutrasDespesas } from "@/lib/actions/financial-actions/outras-despesas";
+import { getInvestments } from "@/lib/actions/patrimonio-actions";
+import { getCashPolicyConfig } from "@/lib/actions/financial-actions/cash-policy-actions";
 
 export interface FluxoCaixaCompletoData {
   anos: string[];
@@ -25,15 +27,45 @@ export interface FluxoCaixaCompletoData {
   };
   fluxo_atividade: Record<string, number>;
   investimentos: Record<string, number>;
+  financiamentos: {
+    captacoes: Record<string, number>;
+    amortizacoes: Record<string, number>;
+    variacao_liquida: Record<string, number>;
+  };
   fluxo_liquido: Record<string, number>;
   fluxo_acumulado: Record<string, number>;
+  politica_caixa: {
+    ativa: boolean;
+    valor_minimo: number | null;
+    moeda: "BRL" | "USD";
+    prioridade: "debt" | "cash";
+    alertas: Record<string, {
+      abaixo_minimo: boolean;
+      valor_faltante: number;
+    }>;
+  };
 }
 
 export async function getFluxoCaixaCompleto(
   organizationId: string
 ): Promise<FluxoCaixaCompletoData> {
   try {
-
+    const supabase = await createClient();
+    
+    // Buscar todas as safras para criar mapeamento correto
+    const { data: safras } = await supabase
+      .from('safras')
+      .select('id, nome')
+      .eq('organizacao_id', organizationId)
+      .order('nome');
+    
+    // Criar mapeamento de ID para nome de safra
+    const safraIdToName: Record<string, string> = {};
+    if (safras) {
+      safras.forEach(safra => {
+        safraIdToName[safra.id] = safra.nome;
+      });
+    }
 
     // 1. Buscar projeções de culturas (incluindo receitas e custos)
     const cultureProjections = await getCultureProjections(organizationId);
@@ -106,27 +138,7 @@ export async function getFluxoCaixaCompleto(
       const categoria = despesa.categoria;
       const valoresPorAno = despesa.valores_por_ano || {};
       
-      // Mapear IDs de safra para nomes de safra usando o cache já carregado
-      const safraIdToName: Record<string, string> = {};
-      
-      // Usar as safras já carregadas no início da função
-      anos.forEach((anoNome, index) => {
-        const safra = cultureProjections.anos.find(a => a === anoNome);
-        if (safra) {
-          // Encontrar o ID da safra para este ano
-          const safraId = Object.keys(cultureProjections.projections[0]?.projections_by_year || {})
-            .find(id => {
-              const safraData = cultureProjections.projections[0]?.projections_by_year[id];
-              return safraData && id;
-            });
-          
-          if (safraId) {
-            safraIdToName[safraId] = anoNome;
-          }
-        }
-      });
-      
-      // Processar valores por safra
+      // Processar valores por safra usando o mapeamento criado no início
       Object.entries(valoresPorAno).forEach(([safraId, valor]) => {
         const anoNome = safraIdToName[safraId];
         if (anoNome && anos.includes(anoNome)) {
@@ -157,27 +169,215 @@ export async function getFluxoCaixaCompleto(
       fluxoAtividade[ano] = totalReceitasPorAno[ano] - totalDespesasPorAno[ano] - totalOutrasDespesasPorAno[ano];
     });
 
-    // 7. Obter investimentos (simplificado por enquanto)
+    // 7. Obter investimentos
     const investimentos: Record<string, number> = {};
+    
+    // Inicializar valores com zero
     anos.forEach(ano => {
-      investimentos[ano] = 0; // Valor zerado até implementarmos lógica específica
+      investimentos[ano] = 0;
     });
+    
+    try {
+      // Buscar investimentos do patrimônio
+      const investmentData = await getInvestments(organizationId);
+      
+      if (investmentData && 'data' in investmentData && Array.isArray(investmentData.data)) {
+        // Agrupar investimentos por ano
+        investmentData.data.forEach((inv: any) => {
+          // Encontrar o ano/safra correspondente
+          const anoInvestimento = inv.ano;
+          
+          // Procurar a safra que corresponde a este ano
+          const safraCorrespondente = anos.find(safra => {
+            // Extrair o ano inicial da safra (ex: "2023/24" -> 2023)
+            const anoInicialSafra = parseInt(safra.split('/')[0]);
+            return anoInicialSafra === anoInvestimento;
+          });
+          
+          if (safraCorrespondente && investimentos.hasOwnProperty(safraCorrespondente)) {
+            // Calcular valor total do investimento
+            const valorInvestimento = (inv.quantidade || 0) * (inv.valor_unitario || 0);
+            investimentos[safraCorrespondente] += valorInvestimento;
+          }
+        });
+      }
+      
+      // Buscar também compras de propriedades se houver
+      const supabase = await createClient();
+      
+      // Buscar aquisições de terras por ano
+      const { data: propriedades } = await supabase
+        .from('propriedades')
+        .select('ano_aquisicao, valor_atual')
+        .eq('organizacao_id', organizationId)
+        .not('ano_aquisicao', 'is', null);
+      
+      if (propriedades) {
+        propriedades.forEach(prop => {
+          const anoAquisicao = prop.ano_aquisicao;
+          
+          // Procurar a safra correspondente
+          const safraCorrespondente = anos.find(safra => {
+            const anoInicialSafra = parseInt(safra.split('/')[0]);
+            return anoInicialSafra === anoAquisicao;
+          });
+          
+          if (safraCorrespondente && investimentos.hasOwnProperty(safraCorrespondente)) {
+            investimentos[safraCorrespondente] += prop.valor_atual || 0;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar investimentos:', error);
+      // Manter valores zerados em caso de erro
+    }
 
-    // 8. Calcular fluxo líquido (fluxo atividade - investimentos)
+    // 8. Buscar financiamentos (captações e amortizações)
+    const financiamentos: {
+      captacoes: Record<string, number>;
+      amortizacoes: Record<string, number>;
+      variacao_liquida: Record<string, number>;
+    } = {
+      captacoes: {},
+      amortizacoes: {},
+      variacao_liquida: {}
+    };
+    
+    // Inicializar valores com zero
+    anos.forEach(ano => {
+      financiamentos.captacoes[ano] = 0;
+      financiamentos.amortizacoes[ano] = 0;
+      financiamentos.variacao_liquida[ano] = 0;
+    });
+    
+    try {
+      // Buscar dívidas bancárias
+      const { data: dividasBancarias } = await supabase
+        .from('dividas_bancarias')
+        .select('*')
+        .eq('organizacao_id', organizationId);
+      
+      // Buscar dívidas com fornecedores
+      const { data: dividasFornecedores } = await supabase
+        .from('dividas_fornecedores')
+        .select('*')
+        .eq('organizacao_id', organizationId);
+      
+      // Buscar dívidas de terras
+      const { data: dividasTerras } = await supabase
+        .from('dividas_terras')
+        .select('*')
+        .eq('organizacao_id', organizationId);
+      
+      // Processar cada tipo de dívida
+      const processarDividas = (dividas: any[], tipoDivida: string) => {
+        if (!dividas) return;
+        
+        dividas.forEach(divida => {
+          const fluxoPagamento = divida.fluxo_pagamento_anual || {};
+          
+          // Para cada safra, calcular a variação da dívida
+          anos.forEach((safra, index) => {
+            // Encontrar o ID da safra pelo nome
+            const safraId = Object.entries(safraIdToName).find(([id, nome]) => nome === safra)?.[0];
+            if (!safraId) return;
+            
+            const valorAtual = fluxoPagamento[safraId] || 0;
+            
+            // Para o primeiro ano ou se não há ano anterior, considerar o valor total como captação
+            if (index === 0) {
+              if (valorAtual > 0) {
+                financiamentos.captacoes[safra] += valorAtual;
+              }
+            } else {
+              // Para anos subsequentes, calcular a variação
+              const safraAnterior = anos[index - 1];
+              const safraAnteriorId = Object.entries(safraIdToName).find(([id, nome]) => nome === safraAnterior)?.[0];
+              const valorAnterior = safraAnteriorId ? (fluxoPagamento[safraAnteriorId] || 0) : 0;
+              
+              const variacao = valorAtual - valorAnterior;
+              
+              if (variacao > 0) {
+                // Aumento da dívida = captação
+                financiamentos.captacoes[safra] += variacao;
+              } else if (variacao < 0) {
+                // Redução da dívida = amortização (valor positivo)
+                financiamentos.amortizacoes[safra] += Math.abs(variacao);
+              }
+            }
+          });
+        });
+      };
+      
+      // Processar todas as dívidas
+      processarDividas(dividasBancarias || [], 'bancarias');
+      processarDividas(dividasFornecedores || [], 'fornecedores');
+      processarDividas(dividasTerras || [], 'terras');
+      
+      // Calcular variação líquida de financiamentos
+      anos.forEach(ano => {
+        financiamentos.variacao_liquida[ano] = financiamentos.captacoes[ano] - financiamentos.amortizacoes[ano];
+      });
+      
+    } catch (error) {
+      console.error('Erro ao buscar financiamentos:', error);
+      // Manter valores zerados em caso de erro
+    }
+
+    // 9. Buscar política de caixa mínimo ANTES de calcular fluxo líquido
+    const politicaCaixa = await getCashPolicyConfig(organizationId);
+    const alertasCaixa: Record<string, { abaixo_minimo: boolean; valor_faltante: number }> = {};
+    
+    // Criar cópias ajustadas dos financiamentos
+    const financiamentosAjustados = {
+      captacoes: { ...financiamentos.captacoes },
+      amortizacoes: { ...financiamentos.amortizacoes },
+      variacao_liquida: { ...financiamentos.variacao_liquida }
+    };
+    
+    // 10. Calcular fluxo líquido com ajustes da política de caixa
     const fluxoLiquido: Record<string, number> = {};
-    anos.forEach(ano => {
-      fluxoLiquido[ano] = fluxoAtividade[ano] - investimentos[ano];
-    });
-
-    // 9. Calcular fluxo acumulado
     const fluxoAcumulado: Record<string, number> = {};
     let acumulado = 0;
-    anos.forEach(ano => {
+    
+    anos.forEach((ano, index) => {
+      // Calcular fluxo sem considerar amortizações primeiro
+      const fluxoSemAmortizacao = fluxoAtividade[ano] - investimentos[ano] + financiamentosAjustados.captacoes[ano];
+      const saldoProjetadoSemAmortizacao = acumulado + fluxoSemAmortizacao;
+      
+      // Verificar se pode pagar as amortizações
+      if (politicaCaixa && politicaCaixa.enabled && politicaCaixa.minimum_cash && politicaCaixa.priority === 'cash') {
+        const amortizacaoOriginal = financiamentosAjustados.amortizacoes[ano];
+        const saldoAposPagamento = saldoProjetadoSemAmortizacao - amortizacaoOriginal;
+        
+        // Se o pagamento deixar abaixo do mínimo, não pagar (ou pagar parcialmente)
+        if (saldoAposPagamento < politicaCaixa.minimum_cash) {
+          // Calcular quanto pode pagar mantendo o caixa mínimo
+          const valorDisponivel = Math.max(0, saldoProjetadoSemAmortizacao - politicaCaixa.minimum_cash);
+          const amortizacaoAjustada = Math.min(amortizacaoOriginal, valorDisponivel);
+          
+          // Ajustar os valores
+          financiamentosAjustados.amortizacoes[ano] = amortizacaoAjustada;
+          financiamentosAjustados.variacao_liquida[ano] = financiamentosAjustados.captacoes[ano] - amortizacaoAjustada;
+        }
+      }
+      
+      // Calcular fluxo líquido final
+      fluxoLiquido[ano] = fluxoAtividade[ano] - investimentos[ano] + financiamentosAjustados.variacao_liquida[ano];
       acumulado += fluxoLiquido[ano];
       fluxoAcumulado[ano] = acumulado;
+      
+      // Registrar alertas
+      if (politicaCaixa && politicaCaixa.enabled && politicaCaixa.minimum_cash) {
+        const abaixoMinimo = acumulado < politicaCaixa.minimum_cash;
+        alertasCaixa[ano] = {
+          abaixo_minimo: abaixoMinimo,
+          valor_faltante: abaixoMinimo ? politicaCaixa.minimum_cash - acumulado : 0
+        };
+      }
     });
 
-    // 10. Retornar dados completos
+    // 12. Retornar dados completos
     return {
       anos,
       receitas_agricolas: {
@@ -199,8 +399,16 @@ export async function getFluxoCaixaCompleto(
       },
       fluxo_atividade: fluxoAtividade,
       investimentos,
+      financiamentos: financiamentosAjustados,
       fluxo_liquido: fluxoLiquido,
-      fluxo_acumulado: fluxoAcumulado
+      fluxo_acumulado: fluxoAcumulado,
+      politica_caixa: {
+        ativa: politicaCaixa?.enabled || false,
+        valor_minimo: politicaCaixa?.minimum_cash || null,
+        moeda: politicaCaixa?.currency || "BRL",
+        prioridade: politicaCaixa?.priority || "cash",
+        alertas: alertasCaixa
+      }
     };
   } catch (error) {
     console.error("Erro ao calcular fluxo de caixa:", error);

@@ -75,7 +75,13 @@ export function OrganizationProvider({
     if (typeof window !== "undefined") {
       try {
         if (org) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(org));
+          // Armazenar apenas dados mínimos necessários, não o objeto completo
+          const minimalOrgData = {
+            id: org.id,
+            nome: org.nome,
+            slug: org.slug
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(minimalOrgData));
         } else {
           localStorage.removeItem(STORAGE_KEY);
         }

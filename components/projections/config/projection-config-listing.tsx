@@ -17,7 +17,7 @@ import { ProjectionConfigForm } from "./projection-config-form";
 import { ProjectionConfigRowActions } from "./projection-config-row-actions";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
-import { deleteProjecaoConfig } from "@/lib/actions/projections-actions";
+import { deleteProjecaoConfig } from "@/lib/actions/projections-actions/index";
 import { formatDate } from "@/lib/utils/formatters";
 
 interface ProjecaoConfig {

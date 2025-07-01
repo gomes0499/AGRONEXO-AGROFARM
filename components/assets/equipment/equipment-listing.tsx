@@ -48,9 +48,7 @@ import { CardHeaderPrimary } from "@/components/organization/common/data-display
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteEquipment } from "@/lib/actions/patrimonio-actions";
 import { toast } from "sonner";
-import { AssetFilterBar } from "../common/asset-filter-bar";
 import { AssetPagination } from "../common/asset-pagination";
-import { useAssetFilters } from "@/hooks/use-asset-filters";
 
 interface EquipmentListingProps {
   initialEquipments: Equipment[];
@@ -73,29 +71,22 @@ export function EquipmentListing({
     setEquipments(initialEquipments);
   }, [initialEquipments]);
 
-  // Filters and pagination
-  const {
-    searchTerm,
-    filters,
-    filterOptions,
-    handleSearchChange,
-    handleFilterChange,
-    clearFilters,
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    handlePageChange,
-    handleItemsPerPageChange,
-    paginatedItems,
-    totalItems,
-    filteredCount,
-  } = useAssetFilters(equipments, {
-    searchFields: ["equipamento", "marca", "modelo"],
-    categoryField: "equipamento",
-    yearField: "ano_fabricacao",
-    // typeField: "tipo", // Commented out as 'tipo' field doesn't exist in equipment schema
-    marcaField: "marca",
-  });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  const totalPages = Math.ceil(equipments.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedItems = equipments.slice(startIndex, startIndex + itemsPerPage);
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   const handleCreate = () => {
     setEditingEquipment(null);
@@ -163,7 +154,7 @@ export function EquipmentListing({
             <Button
               variant="outline"
               onClick={() => setIsImportModalOpen(true)}
-              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+              className="bg-card hover:bg-accent text-card-foreground border border-border"
             >
               <Upload className="w-4 h-4 mr-2" />
               Importar Excel
@@ -180,17 +171,6 @@ export function EquipmentListing({
         className="mb-4"
       />
       <CardContent>
-        {/* Filters */}
-        <AssetFilterBar
-          searchTerm={searchTerm}
-          onSearchChange={handleSearchChange}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          filterOptions={filterOptions}
-          totalItems={totalItems}
-          filteredItems={filteredCount}
-          onClearFilters={clearFilters}
-        />
 
         {isLoading ? (
           <div className="space-y-4">
@@ -217,16 +197,6 @@ export function EquipmentListing({
                 Adicionar Primeiro Equipamento
               </Button>
             </div>
-          </div>
-        ) : filteredCount === 0 ? (
-          <div className="text-center py-10 text-muted-foreground space-y-4">
-            <div>Nenhum equipamento encontrado com os filtros aplicados.</div>
-            <Button 
-              variant="outline"
-              onClick={clearFilters}
-            >
-              Limpar filtros
-            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -306,7 +276,7 @@ export function EquipmentListing({
             <AssetPagination
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={filteredCount}
+              totalItems={equipments.length}
               itemsPerPage={itemsPerPage}
               onPageChange={handlePageChange}
               onItemsPerPageChange={handleItemsPerPageChange}

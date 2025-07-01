@@ -29,6 +29,17 @@ export const investmentFormSchema = z.object({
 });
 export type InvestmentFormValues = z.infer<typeof investmentFormSchema>;
 
+// Multi-safra form schema
+export const multiSafraInvestmentFormSchema = z.object({
+  categoria: z.string().min(1, "Categoria é obrigatória"),
+  tipo: patrimonioTipoEnum,
+  investimentos_por_safra: z.record(z.string(), z.object({
+    quantidade: quantitySchema,
+    valor_unitario: monetaryValueSchema
+  })).refine(data => Object.keys(data).length > 0, "Adicione pelo menos um investimento por safra"),
+});
+export type MultiSafraInvestmentFormValues = z.infer<typeof multiSafraInvestmentFormSchema>;
+
 // List schema
 export const investmentListItemSchema = investmentSchema.pick({
   id: true,
@@ -40,3 +51,6 @@ export const investmentListItemSchema = investmentSchema.pick({
   tipo: true,
 });
 export type InvestmentListItem = z.infer<typeof investmentListItemSchema>;
+
+// Export both schemas for component usage
+export { investmentFormSchema as singleInvestmentFormSchema };

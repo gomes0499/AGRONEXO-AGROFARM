@@ -1,22 +1,18 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { Loader2, TrendingUp, Building2 } from "lucide-react";
+import { TrendingUp, Building2 } from "lucide-react";
 import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
+import type { FinancialDebtChartsData, DebtData } from "@/lib/actions/financial-debt-charts-actions";
+import { getFinancialDebtChartsData } from "@/lib/actions/financial-debt-charts-actions";
 
-interface FinancialDebtChartsProps {
+interface FinancialDebtChartsRefactoredProps {
   organizationId: string;
+  initialData: FinancialDebtChartsData;
   selectedYear?: number;
-}
-
-interface DebtData {
-  modalidade: string;
-  valor: number;
-  percentage: number;
 }
 
 // Cores padrão caso não haja cores personalizadas
@@ -73,66 +69,6 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-async function getDebtDataForAllYears(organizationId: string): Promise<DebtData[]> {
-  const supabase = createClient();
-  
-  const { data: dividasBancarias } = await supabase
-    .from('dividas_bancarias')
-    .select('modalidade, fluxo_pagamento_anual')
-    .eq('organizacao_id', organizationId);
-
-  const modalidades: Record<string, number> = {
-    CUSTEIO: 0,
-    INVESTIMENTOS: 0,
-  };
-
-  dividasBancarias?.forEach(divida => {
-    const fluxo = divida.fluxo_pagamento_anual || {};
-    const totalDivida = Object.values(fluxo).reduce((sum: number, valor: any) => sum + (valor || 0), 0);
-    modalidades[divida.modalidade] += totalDivida;
-  });
-
-  const total = Object.values(modalidades).reduce((sum, valor) => sum + valor, 0);
-
-  return Object.entries(modalidades)
-    .filter(([_, valor]) => valor > 0)
-    .map(([modalidade, valor]) => ({
-      modalidade,
-      valor,
-      percentage: total > 0 ? (valor / total) * 100 : 0,
-    }));
-}
-
-async function getDebtDataForYear(organizationId: string, year: number): Promise<DebtData[]> {
-  const supabase = createClient();
-  
-  const { data: dividasBancarias } = await supabase
-    .from('dividas_bancarias')
-    .select('modalidade, fluxo_pagamento_anual')
-    .eq('organizacao_id', organizationId);
-
-  const modalidades: Record<string, number> = {
-    CUSTEIO: 0,
-    INVESTIMENTOS: 0,
-  };
-
-  dividasBancarias?.forEach(divida => {
-    const fluxo = divida.fluxo_pagamento_anual || {};
-    const valorAno = fluxo[year.toString()] || 0;
-    modalidades[divida.modalidade] += valorAno;
-  });
-
-  const total = Object.values(modalidades).reduce((sum, valor) => sum + valor, 0);
-
-  return Object.entries(modalidades)
-    .filter(([_, valor]) => valor > 0)
-    .map(([modalidade, valor]) => ({
-      modalidade,
-      valor,
-      percentage: total > 0 ? (valor / total) * 100 : 0,
-    }));
-}
-
 function DebtPieChart({ 
   data, 
   title, 
@@ -151,6 +87,7 @@ function DebtPieChart({
     CUSTEIO: palette[0] || DEFAULT_COLORS.CUSTEIO,
     INVESTIMENTOS: palette[1] || DEFAULT_COLORS.INVESTIMENTOS,
   }), [palette]);
+
   if (!data || data.length === 0) {
     return (
       <Card>
@@ -223,7 +160,7 @@ function DebtPieChart({
           </ResponsiveContainer>
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4 bg-muted/30">
+      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4">
         <div className="flex gap-2 font-medium leading-none">
           Total de {formatCurrency(total)} em dívidas bancárias
           <TrendingUp className="h-4 w-4" />
@@ -236,72 +173,28 @@ function DebtPieChart({
   );
 }
 
-export function FinancialDebtCharts({ organizationId, selectedYear }: FinancialDebtChartsProps) {
-  const [allYearsData, setAllYearsData] = useState<DebtData[]>([]);
-  const [yearData, setYearData] = useState<DebtData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function FinancialDebtChartsRefactored({ 
+  organizationId, 
+  initialData,
+  selectedYear 
+}: FinancialDebtChartsRefactoredProps) {
+  const [data, setData] = useState<FinancialDebtChartsData>(initialData);
+  const [isPending, startTransition] = useTransition();
 
-  const currentYear = selectedYear || new Date().getFullYear();
-
+  // Update data when year changes
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [allYears, yearSpecific] = await Promise.all([
-          getDebtDataForAllYears(organizationId),
-          getDebtDataForYear(organizationId, currentYear),
-        ]);
-
-        setAllYearsData(allYears);
-        setYearData(yearSpecific);
-      } catch (err) {
-        console.error("Erro ao carregar dados dos gráficos:", err);
-        setError("Erro ao carregar gráficos");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [organizationId, currentYear]);
-
-  if (loading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <div className="h-6 bg-muted rounded w-48 mb-2 animate-pulse" />
-              <div className="h-4 bg-muted rounded w-32 animate-pulse" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-[200px] flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-red-600">{error}</div>
-        </CardContent>
-      </Card>
-    );
-  }
+    if (selectedYear && selectedYear !== data.year) {
+      startTransition(async () => {
+        const newData = await getFinancialDebtChartsData(organizationId, selectedYear);
+        setData(newData);
+      });
+    }
+  }, [organizationId, selectedYear, data.year]);
 
   return (
     <DebtPieChart
-      data={allYearsData}
-      title="Distribuição de Dívidas Bancárias"
+      data={data.allYearsData}
+      title={`Distribuição de Dívidas Bancárias${isPending ? ' (Atualizando...)' : ''}`}
       description="Distribuição total entre custeio e investimentos"
       organizationId={organizationId}
     />

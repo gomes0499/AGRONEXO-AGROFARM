@@ -30,7 +30,8 @@ export interface FinancialData {
 export async function getAreaPlantadaChart(
   organizationId: string,
   propertyIds?: string[],
-  cultureIds?: string[]
+  cultureIds?: string[],
+  projectionId?: string
 ): Promise<CultureAreaData[]> {
   try {
     const supabase = await createClient();
@@ -55,8 +56,9 @@ export async function getAreaPlantadaChart(
     const safras = allSafras.filter(safra => safra.ano_inicio <= 2029);
     
     // 2. Buscar todas as áreas de plantio com a estrutura JSONB
+    const tableName = projectionId ? "areas_plantio_projections" : "areas_plantio";
     let areasQuery = supabase
-      .from("areas_plantio")
+      .from(tableName)
       .select(`
         areas_por_safra,
         cultura:cultura_id(id, nome),
@@ -65,8 +67,13 @@ export async function getAreaPlantadaChart(
       .eq("organizacao_id", organizationId)
       .not("areas_por_safra", "eq", "{}");
     
-    // Aplicar filtro de propriedades se fornecido
-    if (propertyIds && propertyIds.length > 0) {
+    // Adicionar filtro de projection_id se usando tabela de projeções
+    if (projectionId) {
+      areasQuery = areasQuery.eq("projection_id", projectionId);
+    }
+    
+    // Aplicar filtro de propriedades se fornecido (apenas para tabela principal)
+    if (propertyIds && propertyIds.length > 0 && !projectionId) {
       areasQuery = areasQuery.in("propriedade_id", propertyIds);
     }
     
@@ -262,7 +269,8 @@ export async function getCulturaColors(organizationId: string): Promise<Record<s
 export async function getProdutividadeChart(
   organizationId: string,
   propertyIds?: string[],
-  cultureIds?: string[]
+  cultureIds?: string[],
+  projectionId?: string
 ): Promise<ProductivityData[]> {
   try {
     const supabase = await createClient();
@@ -287,8 +295,9 @@ export async function getProdutividadeChart(
     const safras = allSafras.filter(safra => safra.ano_inicio <= 2029);
     
     // 2. Buscar todas as produtividades com formato JSONB
+    const tableName = projectionId ? "produtividades_projections" : "produtividades";
     let produtividadeQuery = supabase
-      .from("produtividades")
+      .from(tableName)
       .select(`
         produtividades_por_safra,
         cultura:cultura_id(id, nome),
@@ -296,9 +305,22 @@ export async function getProdutividadeChart(
       `)
       .eq("organizacao_id", organizationId)
       .not("produtividades_por_safra", "eq", "{}");
+    
+    // Adicionar filtro de projection_id se usando tabela de projeções
+    if (projectionId) {
+      produtividadeQuery = produtividadeQuery.eq("projection_id", projectionId);
+    }
       
-    // Aplicar filtro de propriedades se necessário
-    if (propertyIds && propertyIds.length > 0) {
+    // Debug: verificar filtros aplicados
+    console.log("getProdutividadeChart - Filtros:", {
+      propertyIdsCount: propertyIds?.length || 0,
+      cultureIdsCount: cultureIds?.length || 0,
+      aplicarFiltroPropriedades: propertyIds && propertyIds.length > 0,
+      aplicarFiltroCulturas: cultureIds && cultureIds.length > 0
+    });
+    
+    // Aplicar filtro de propriedades se necessário (apenas para tabela principal)
+    if (propertyIds && propertyIds.length > 0 && !projectionId) {
       produtividadeQuery = produtividadeQuery.in("propriedade_id", propertyIds);
     }
     
@@ -314,6 +336,37 @@ export async function getProdutividadeChart(
       return [];
     }
     
+    // Debug: log dos dados encontrados
+    console.log("getProdutividadeChart - Dados encontrados:", {
+      tableName,
+      projectionId,
+      totalProdutividades: produtividades?.length || 0,
+      primeiraProdutividade: produtividades?.[0]
+    });
+    
+    // Se não encontrou dados, tentar buscar sem filtros para debug
+    if (!produtividades || produtividades.length === 0) {
+      console.log("Nenhuma produtividade encontrada. Tentando buscar sem filtros...");
+      
+      let debugQuery = supabase
+        .from(tableName)
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .limit(5);
+      
+      if (projectionId) {
+        debugQuery = debugQuery.eq("projection_id", projectionId);
+      }
+      
+      const { data: debugData, error: debugError } = await debugQuery;
+      
+      console.log("Debug - Dados sem filtros:", {
+        totalEncontrado: debugData?.length || 0,
+        primeiroRegistro: debugData?.[0],
+        erro: debugError
+      });
+    }
+    
     // 3. Para cada safra, processar dados de produtividade
     const chartData: ProductivityData[] = [];
     
@@ -327,6 +380,17 @@ export async function getProdutividadeChart(
         
         // Se não houver valor para esta safra, pular
         if (!prodSafra) return;
+        
+        // Debug: log do formato dos dados
+        if (safra.nome === safras[0]?.nome) { // Log apenas para primeira safra
+          console.log("Formato de dados de produtividade:", {
+            safraId: safra.id,
+            safraNome: safra.nome,
+            prodSafra,
+            tipoProdSafra: typeof prodSafra,
+            isProjection: tableName === "produtividades_projections"
+          });
+        }
         
         // Extrair valor de produtividade (pode ser número direto ou objeto)
         let produtividadeValue: number;
@@ -396,10 +460,19 @@ export async function getProdutividadeChart(
 export async function getReceitaChart(
   organizationId: string,
   propertyIds?: string[],
-  cultureIds?: string[]
+  cultureIds?: string[],
+  projectionId?: string
 ): Promise<RevenueData[]> {
   try {
     const supabase = await createClient();
+    
+    // Debug log
+    console.log("getReceitaChart - Parâmetros:", {
+      organizationId,
+      projectionId,
+      propertyIdsCount: propertyIds?.length || 0,
+      cultureIdsCount: cultureIds?.length || 0
+    });
     
     // 1. Buscar todas as safras da organização
     const { data: allSafras, error: safrasError } = await supabase
@@ -421,18 +494,38 @@ export async function getReceitaChart(
     const safras = allSafras.filter(safra => safra.ano_inicio <= 2029);
     
     // 2. Buscar preços de commodities com formato JSONB precos_por_ano
-    const { data: commodityPrices, error: commodityPricesError } = await supabase
+    // IMPORTANTE: Esta tabela TEM projection_id - precisamos filtrar corretamente
+    let commodityPricesQuery = supabase
       .from("commodity_price_projections")
       .select("*")
       .eq("organizacao_id", organizationId);
+    
+    // Se temos um projectionId, filtrar por ele
+    // Se não temos (cenário base), buscar apenas registros SEM projection_id
+    if (projectionId) {
+      commodityPricesQuery = commodityPricesQuery.eq("projection_id", projectionId);
+    } else {
+      // Para cenário base, buscar APENAS registros sem projection_id
+      commodityPricesQuery = commodityPricesQuery.is("projection_id", null);
+    }
+    
+    const { data: commodityPrices, error: commodityPricesError } = await commodityPricesQuery;
     
     if (commodityPricesError) {
       console.error("Erro ao buscar preços de commodities:", commodityPricesError);
     }
     
+    // Debug log para preços
+    console.log("getReceitaChart - Preços de commodities:", {
+      totalPrecos: commodityPrices?.length || 0,
+      projectionId,
+      primeiroPreco: commodityPrices?.[0]
+    });
+    
     // 3. Buscar todas as áreas de plantio com formato JSONB
+    const areasTableName = projectionId ? "areas_plantio_projections" : "areas_plantio";
     let areasQuery = supabase
-      .from("areas_plantio")
+      .from(areasTableName)
       .select(`
         areas_por_safra,
         cultura_id,
@@ -444,8 +537,20 @@ export async function getReceitaChart(
       .eq("organizacao_id", organizationId)
       .not("areas_por_safra", "eq", "{}");
     
-    // Aplicar filtro de propriedades se fornecido
-    if (propertyIds && propertyIds.length > 0) {
+    // Adicionar filtro de projection_id se usando tabela de projeções
+    if (projectionId) {
+      areasQuery = areasQuery.eq("projection_id", projectionId);
+    }
+    
+    // Debug: log da query
+    console.log("getReceitaChart - Query de áreas:", {
+      tableName: areasTableName,
+      hasProjectionId: !!projectionId,
+      projectionId
+    });
+    
+    // Aplicar filtro de propriedades se fornecido (apenas para tabela principal)
+    if (propertyIds && propertyIds.length > 0 && !projectionId) {
       areasQuery = areasQuery.in("propriedade_id", propertyIds);
     }
     
@@ -461,9 +566,17 @@ export async function getReceitaChart(
       return [];
     }
     
+    // Debug log
+    console.log("getReceitaChart - Áreas encontradas:", {
+      tableName: areasTableName,
+      totalAreas: areas?.length || 0,
+      primeiraArea: areas?.[0]
+    });
+    
     // 4. Buscar todas as produtividades com formato JSONB
+    const produtividadesTableName = projectionId ? "produtividades_projections" : "produtividades";
     let produtividadesQuery = supabase
-      .from("produtividades")
+      .from(produtividadesTableName)
       .select(`
         produtividades_por_safra,
         cultura_id,
@@ -473,6 +586,11 @@ export async function getReceitaChart(
       `)
       .eq("organizacao_id", organizationId)
       .not("produtividades_por_safra", "eq", "{}");
+    
+    // Adicionar filtro de projection_id se usando tabela de projeções
+    if (projectionId) {
+      produtividadesQuery = produtividadesQuery.eq("projection_id", projectionId);
+    }
       
     // Aplicar filtro de culturas se fornecido
     if (cultureIds && cultureIds.length > 0) {
@@ -575,6 +693,21 @@ export async function getReceitaChart(
       // Se não há dados para esta safra, pular
       if (combinacoesCulturasSistemas.size === 0) continue;
       
+      // Debug log para combinações encontradas
+      if (safra.nome === "2024/25" || safra.nome === "2025/26") {
+        console.log(`Combinações para ${safra.nome}:`, {
+          totalCombinacoes: combinacoesCulturasSistemas.size,
+          projectionId,
+          combinacoes: Array.from(combinacoesCulturasSistemas.entries()).map(([key, combo]) => ({
+            key,
+            cultura: combo.culturaNome,
+            sistema: combo.sistemaNome,
+            area: combo.area,
+            produtividade: combo.produtividade
+          }))
+        });
+      }
+      
       // Calcular receita por cultura
       const culturaReceita = new Map<string, number>();
       let totalSafra = 0;
@@ -636,6 +769,22 @@ export async function getReceitaChart(
         const producaoCultura = combo.area * combo.produtividade;
         const receitaCultura = producaoCultura * preco;
         
+        // Debug log para valores escancarados
+        if (receitaCultura > 1000000000) { // Se receita maior que 1 bilhão
+          console.log("VALOR ALTO DETECTADO:", {
+            safra: safra.nome,
+            cultura: culturaNome,
+            sistema: sistemaNome,
+            area: combo.area,
+            produtividade: combo.produtividade,
+            preco,
+            producao: producaoCultura,
+            receita: receitaCultura,
+            commodityType,
+            projectionId
+          });
+        }
+        
         // Criar chave para exibição no gráfico
         let chaveExibicao = culturaNome;
         if (sistemaNome && sistemaNome.toLowerCase() !== 'sequeiro') {
@@ -682,7 +831,8 @@ export async function getReceitaChart(
 export async function getFinancialChart(
   organizationId: string,
   propertyIds?: string[],
-  cultureIds?: string[]
+  cultureIds?: string[],
+  projectionId?: string
 ): Promise<FinancialData[]> {
   try {
     const supabase = await createClient();
@@ -707,18 +857,28 @@ export async function getFinancialChart(
     const safras = allSafras.filter(safra => safra.ano_inicio <= 2029);
     
     // 2. Buscar preços de commodities com formato JSONB precos_por_ano
-    const { data: commodityPrices, error: commodityPricesError } = await supabase
+    let commodityPricesQuery = supabase
       .from("commodity_price_projections")
       .select("*")
       .eq("organizacao_id", organizationId);
+    
+    // Adicionar filtro de projection_id
+    if (projectionId) {
+      commodityPricesQuery = commodityPricesQuery.eq("projection_id", projectionId);
+    } else {
+      commodityPricesQuery = commodityPricesQuery.is("projection_id", null);
+    }
+    
+    const { data: commodityPrices, error: commodityPricesError } = await commodityPricesQuery;
     
     if (commodityPricesError) {
       console.error("Erro ao buscar preços de commodities:", commodityPricesError);
     }
     
     // 3. Buscar áreas de plantio com formato JSONB
+    const areasTableName = projectionId ? "areas_plantio_projections" : "areas_plantio";
     let areasQuery = supabase
-      .from("areas_plantio")
+      .from(areasTableName)
       .select(`
         areas_por_safra,
         cultura_id,
@@ -730,8 +890,13 @@ export async function getFinancialChart(
       .eq("organizacao_id", organizationId)
       .not("areas_por_safra", "eq", "{}");
     
-    // Aplicar filtro de propriedades se fornecido
-    if (propertyIds && propertyIds.length > 0) {
+    // Adicionar filtro de projection_id se usando tabela de projeções
+    if (projectionId) {
+      areasQuery = areasQuery.eq("projection_id", projectionId);
+    }
+    
+    // Aplicar filtro de propriedades se fornecido (apenas para tabela principal)
+    if (propertyIds && propertyIds.length > 0 && !projectionId) {
       areasQuery = areasQuery.in("propriedade_id", propertyIds);
     }
     
@@ -748,8 +913,9 @@ export async function getFinancialChart(
     }
     
     // 4. Buscar produtividades com formato JSONB
+    const produtividadesTableName = projectionId ? "produtividades_projections" : "produtividades";
     let produtividadesQuery = supabase
-      .from("produtividades")
+      .from(produtividadesTableName)
       .select(`
         produtividades_por_safra,
         cultura_id,
@@ -759,6 +925,11 @@ export async function getFinancialChart(
       `)
       .eq("organizacao_id", organizationId)
       .not("produtividades_por_safra", "eq", "{}");
+    
+    // Adicionar filtro de projection_id se usando tabela de projeções
+    if (projectionId) {
+      produtividadesQuery = produtividadesQuery.eq("projection_id", projectionId);
+    }
       
     // Aplicar filtro de culturas se fornecido
     if (cultureIds && cultureIds.length > 0) {
@@ -773,8 +944,9 @@ export async function getFinancialChart(
     }
     
     // 5. Buscar custos de produção com formato JSONB
+    const custosTableName = projectionId ? "custos_producao_projections" : "custos_producao";
     let custosQuery = supabase
-      .from("custos_producao")
+      .from(custosTableName)
       .select(`
         custos_por_safra,
         categoria,
@@ -785,6 +957,11 @@ export async function getFinancialChart(
       `)
       .eq("organizacao_id", organizationId)
       .not("custos_por_safra", "eq", "{}");
+    
+    // Adicionar filtro de projection_id se usando tabela de projeções
+    if (projectionId) {
+      custosQuery = custosQuery.eq("projection_id", projectionId);
+    }
       
     // Aplicar filtro de culturas se fornecido
     if (cultureIds && cultureIds.length > 0) {

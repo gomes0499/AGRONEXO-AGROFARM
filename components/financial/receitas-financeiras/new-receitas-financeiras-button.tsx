@@ -35,28 +35,31 @@ export function NewReceitasFinanceirasButton({
         onClick={() => setIsOpen(true)}
         variant={variant}
         size={size}
+        className="bg-white text-black hover:bg-white/90"
       >
         <Plus className="h-4 w-4 mr-2" />
         Nova Receita
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Nova Receita Financeira</DialogTitle>
             <DialogDescription>
               Adicione uma nova receita financeira para controle
             </DialogDescription>
           </DialogHeader>
-          <ReceitasFinanceirasForm
-            organizationId={organizationId}
-            safras={safras}
-            onSuccess={() => {
-              setIsOpen(false);
-              onSuccess?.();
-            }}
-            onCancel={() => setIsOpen(false)}
-          />
+          <div className="flex-1 overflow-y-auto px-1">
+            <ReceitasFinanceirasForm
+              organizationId={organizationId}
+              safras={safras}
+              onSuccess={() => {
+                setIsOpen(false);
+                onSuccess?.();
+              }}
+              onCancel={() => setIsOpen(false)}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </>

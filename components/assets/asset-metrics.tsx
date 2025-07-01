@@ -280,7 +280,7 @@ export function AssetMetrics({
           <div className="relative">
             <KpiItem
               title="Patrimônio Total"
-              value={formatCurrency(metrics.totalPatrimonio)}
+              value={formatCurrency(metrics.totalPatrimonio, 0)}
               change="Valor de todos os ativos"
               isPositive={true}
               icon={<TrendingUp className="h-5 w-5 text-white" />}
@@ -293,7 +293,7 @@ export function AssetMetrics({
           <div className="relative">
             <KpiItem
               title="Valor Propriedades"
-              value={formatCurrency(metrics.totalPropriedades)}
+              value={formatCurrency(metrics.totalPropriedades, 0)}
               change={`${metrics.numeroPropriedades} propriedade${metrics.numeroPropriedades !== 1 ? 's' : ''}`}
               isPositive={true}
               icon={<Home className="h-5 w-5 text-white" />}
@@ -318,7 +318,7 @@ export function AssetMetrics({
           <div>
             <KpiItem
               title="Equipamentos"
-              value={formatCurrency(metrics.totalEquipamentos)}
+              value={formatCurrency(metrics.totalEquipamentos, 0)}
               change={`${metrics.numeroEquipamentos} unidade${metrics.numeroEquipamentos !== 1 ? 's' : ''}`}
               isPositive={true}
               icon={<Wrench className="h-5 w-5 text-white" />}
@@ -341,7 +341,7 @@ export function AssetMetrics({
           <div className="relative">
             <KpiItem
               title="Investimentos"
-              value={formatCurrency(metrics.totalInvestimentos)}
+              value={formatCurrency(metrics.totalInvestimentos, 0)}
               change="Realizados"
               isPositive={true}
               icon={<TrendingUp className="h-5 w-5 text-white" />}
@@ -353,7 +353,7 @@ export function AssetMetrics({
           <div className="relative">
             <KpiItem
               title="Benfeitorias"
-              value={formatCurrency(metrics.totalBenfeitorias)}
+              value={formatCurrency(metrics.totalBenfeitorias, 0)}
               change={`${Array.isArray(improvements) ? improvements.length : 0} item${Array.isArray(improvements) && improvements.length !== 1 ? 's' : ''}`}
               isPositive={true}
               icon={<Building2 className="h-5 w-5 text-white" />}
@@ -366,7 +366,7 @@ export function AssetMetrics({
             <KpiItem
               title="Alienados"
               value={`${metrics.equipamentosAlienados}`}
-              change={`${metrics.totalPatrimonio > 0 ? formatPercent((metrics.equipamentosAlienados / metrics.numeroEquipamentos) * 100) : '0%'} dos equipamentos`}
+              change={`${metrics.numeroEquipamentos > 0 ? formatPercent((metrics.equipamentosAlienados / metrics.numeroEquipamentos) * 100) : '0%'} dos equipamentos`}
               isPositive={metrics.equipamentosAlienados === 0}
               icon={<Info className="h-5 w-5 text-white" />}
             />

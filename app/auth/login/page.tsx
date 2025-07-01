@@ -6,11 +6,18 @@ export const metadata: Metadata = {
   description: "Acesse sua conta na plataforma SR-Consultoria",
 };
 
+interface LoginPageProps {
+  searchParams: Promise<{
+    email?: string;
+    invite_token?: string;
+    token?: string;
+    redirectAfterLogin?: string;
+  }>;
+}
+
 export default async function LoginPage({
   searchParams,
-}: {
-  searchParams: any;
-}) {
+}: LoginPageProps) {
   // Aguardar o searchParams ser resolvido
   const resolvedParams = await Promise.resolve(searchParams);
 

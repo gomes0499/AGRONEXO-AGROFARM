@@ -60,7 +60,7 @@ export default async function PropertyDetailsPage({
 
         {/* Tabs Navigation - logo abaixo do site header */}
         <Tabs defaultValue={activeTab}>
-          <div className="bg-muted/50 border-b">
+          <div className="border-b">
             <div className="container max-w-full px-4 md:px-6 py-2">
               <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start w-full">
                 <TabsTrigger
@@ -92,7 +92,7 @@ export default async function PropertyDetailsPage({
 
             <TabsContent value="leases" className="space-y-4">
               <LeaseList
-                leases={leases || []}
+                initialLeases={leases || []}
                 propertyId={propertyId}
                 organizationId={session.organizationId}
               />

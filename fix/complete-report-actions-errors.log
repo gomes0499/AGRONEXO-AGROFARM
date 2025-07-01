@@ -1,0 +1,11 @@
+lib/actions/complete-report-actions.ts(89,28): error TS18048: 'productivity.length' is possibly 'undefined'.
+lib/actions/complete-report-actions.ts(90,9): error TS18047: 'productivity' is possibly 'null'.
+lib/actions/complete-report-actions.ts(90,76): error TS18047: 'productivity' is possibly 'null'.
+lib/actions/complete-report-actions.ts(94,35): error TS7006: Parameter 'c' implicitly has an 'any' type.
+lib/actions/complete-report-actions.ts(143,30): error TS2339: Property 'receitas' does not exist on type 'DREData'.
+lib/actions/complete-report-actions.ts(143,68): error TS2339: Property 'resultado' does not exist on type 'DREData'.
+lib/actions/complete-report-actions.ts(144,38): error TS2339: Property 'receitas' does not exist on type 'DREData'.
+lib/actions/complete-report-actions.ts(145,43): error TS2339: Property 'custo_total' does not exist on type '{ agricola: Record<string, number>; pecuaria: Record<string, number>; total: Record<string, number>; }'.
+lib/actions/complete-report-actions.ts(146,35): error TS2339: Property 'resultado' does not exist on type 'DREData'.
+lib/actions/complete-report-actions.ts(204,9): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+lib/actions/complete-report-actions.ts(209,9): error TS2322: Type '{ nome: string; areaTotal: number; valorAtual: number; cidade: string | null; estado: string | null; }[]' is not assignable to type '{ nome: string; areaTotal: number; valorAtual: number; cidade: string; estado: string; }[]'.

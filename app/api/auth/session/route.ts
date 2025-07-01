@@ -25,7 +25,7 @@ export async function GET() {
     return new Response(
       JSON.stringify({ 
         error: "Erro ao obter sessão",
-        message: error instanceof Error ? error.message : "Erro desconhecido" 
+        message: "Ocorreu um erro interno. Por favor, tente novamente." 
       }),
       {
         status: 500,

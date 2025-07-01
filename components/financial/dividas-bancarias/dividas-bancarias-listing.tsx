@@ -1,8 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useTransition, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, Building2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  PlusIcon,
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  FileSpreadsheet,
+  Loader2,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -13,390 +20,337 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { DividasBancariasForm } from "./dividas-bancarias-form";
-import { deleteDividaBancaria } from "@/lib/actions/financial-actions/dividas-bancarias";
+import {
+  deleteDividaBancaria,
+  getDividasBancarias,
+} from "@/lib/actions/financial-actions/dividas-bancarias";
 import { DividasBancariasRowActions } from "./dividas-bancarias-row-actions";
 import { DividasBancariasPopoverEditor } from "./dividas-bancarias-popover-editor";
+import { DividasBancariasImportDialog } from "./dividas-bancarias-import-dialog";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
-import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { FinancialPagination } from "../common/financial-pagination";
-import { useFinancialFilters } from "@/hooks/use-financial-filters";
 import { CurrencyBadge } from "../common/currency-badge";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { DividasBancariasSafraDetail } from "./dividas-bancarias-safra-detail";
+import { EmptyState } from "@/components/shared/empty-state";
 
 interface DividasBancariasListingProps {
   organization: { id: string; nome: string };
   initialDividasBancarias: any[];
   safras?: any[];
+  error?: string;
 }
 
 export function DividasBancariasListing({
   organization,
   initialDividasBancarias,
   safras = [],
+  error: initialError,
 }: DividasBancariasListingProps) {
   const [dividasBancarias, setDividasBancarias] = useState<any[]>(
-    initialDividasBancarias.map(divida => ({
+    initialDividasBancarias.map((divida) => ({
       ...divida,
-      isExpanded: false
+      isExpanded: false,
     }))
   );
+  const [error, setError] = useState<string | null>(initialError || null);
+  const [isPending, startTransition] = useTransition();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingDivida, setEditingDivida] = useState<any | null>(null);
 
-  const {
-    filteredItems: filteredDividas,
-    paginatedItems: paginatedData,
-    searchTerm,
-    filters,
-    filterOptions,
-    handleSearchChange,
-    handleFilterChange,
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    handlePageChange,
-    handleItemsPerPageChange,
-    totalItems: totalDividas,
-    filteredCount
-  } = useFinancialFilters(dividasBancarias, {
-    searchFields: ['nome'],
-    categoriaField: 'categoria',
-    moedaField: 'moeda'
-  });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Adicionar nova dívida
-  const handleAddDivida = (newDivida: any) => {
-    // Adicionar isExpanded: false ao novo objeto
-    setDividasBancarias([{ ...newDivida, isExpanded: false }, ...dividasBancarias]);
+  // Refresh data when needed
+  const refreshData = useCallback(() => {
+    startTransition(async () => {
+      try {
+        const newDividas = await getDividasBancarias(organization.id);
+        setDividasBancarias(
+          newDividas.map((divida) => ({
+            ...divida,
+            isExpanded: false,
+          }))
+        );
+        setError(null);
+      } catch (err) {
+        console.error("❌ Erro ao atualizar dívidas bancárias:", err);
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Erro desconhecido ao carregar dados";
+        setError(`Erro ao buscar dívidas bancárias: ${errorMessage}`);
+      }
+    });
+  }, [organization.id]);
+
+  const handleAddDivida = useCallback(() => {
+    setEditingDivida(null);
+    setIsAddModalOpen(true);
+  }, []);
+
+  const handleEditDivida = useCallback((divida: any) => {
+    setEditingDivida(divida);
+    setIsAddModalOpen(true);
+  }, []);
+
+  const handleDeleteDivida = useCallback(
+    async (id: string) => {
+      try {
+        await deleteDividaBancaria(id, organization.id);
+        toast.success("Dívida bancária excluída com sucesso!");
+        refreshData();
+      } catch (error) {
+        console.error("Erro ao excluir dívida bancária:", error);
+        toast.error("Erro ao excluir dívida bancária. Tente novamente.");
+      }
+    },
+    [refreshData, organization.id]
+  );
+
+  const handleSaveDivida = useCallback(() => {
     setIsAddModalOpen(false);
-    toast.success("Dívida bancária adicionada com sucesso.");
-  };
+    setEditingDivida(null);
+    refreshData();
+  }, [refreshData]);
 
-  // Atualizar dívida existente
-  const handleUpdateDivida = (updatedDivida: any) => {
-    setDividasBancarias(
-      dividasBancarias.map((divida) =>
-        divida.id === updatedDivida.id 
-          ? { ...updatedDivida, isExpanded: divida.isExpanded } 
+  const handleImportSuccess = useCallback(() => {
+    setIsImportModalOpen(false);
+    refreshData();
+    toast.success("Dívidas bancárias importadas com sucesso!");
+  }, [refreshData]);
+
+  const toggleExpansion = useCallback((id: string) => {
+    setDividasBancarias((prev) =>
+      prev.map((divida) =>
+        divida.id === id
+          ? { ...divida, isExpanded: !divida.isExpanded }
           : divida
       )
     );
-    setEditingDivida(null);
-    toast.success("Dívida bancária atualizada com sucesso.");
-  };
+  }, []);
 
-  // Excluir dívida
-  const handleDeleteDivida = async (id: string) => {
-    try {
-      await deleteDividaBancaria(id, organization.id);
-      setDividasBancarias(dividasBancarias.filter((divida) => divida.id !== id));
-      toast.success("Dívida bancária excluída com sucesso.");
-    } catch (error) {
-      toast.error("Erro ao excluir dívida bancária");
-    }
-  };
-  
-  // Function to calculate total from valores_por_safra
-  const calculateTotal = (divida: any) => {
-    // Se já tem o total calculado, usar ele
-    if (divida.total !== undefined) {
-      return divida.total;
-    }
-    
-    let total = 0;
-    
-    // Tentar valores_por_safra primeiro (compatibilidade), depois valores_por_ano
-    const valores = divida.valores_por_safra || divida.valores_por_ano;
-    
-    if (valores) {
-      if (typeof valores === 'string') {
-        try {
-          const parsedValues = JSON.parse(valores);
-          total = Object.values(parsedValues).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
-        } catch (e) {
-          console.error("Erro ao processar valores:", e);
-        }
-      } else {
-        total = Object.values(valores).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
-      }
-    }
-    
-    return total;
-  };
+  // Paginação
+  const totalItems = dividasBancarias.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDividas = dividasBancarias.slice(startIndex, endIndex);
 
-  // Get exchange rate for a divida
-  const getExchangeRate = (divida: any) => {
-    // First check if there's a specific contratacao rate
-    if (divida.taxa_cambio_contratacao) {
-      return divida.taxa_cambio_contratacao;
-    }
-    
-    // Then check if there's a safra with exchange rate
-    if (divida.safra?.taxa_cambio_usd) {
-      return divida.safra.taxa_cambio_usd;
-    }
-    
-    // Try to find safra from the values_por_safra keys
-    if (divida.valores_por_safra && safras.length > 0) {
-      const safraIds = Object.keys(divida.valores_por_safra);
-      const firstSafraId = safraIds[0];
-      const safra = safras.find(s => s.id === firstSafraId);
-      if (safra?.taxa_cambio_usd) {
-        return safra.taxa_cambio_usd;
-      }
-    }
-    
-    // Default exchange rate
-    return 5.00;
-  };
+  const calculateTotal = useCallback((divida: any) => {
+    const valores =
+      divida.fluxo_pagamento_anual || divida.valores_por_ano || {};
+    return Object.values(valores).reduce(
+      (sum: number, value) => sum + (Number(value) || 0),
+      0
+    );
+  }, []);
 
-  return (
-    <Card className="shadow-sm border-muted/80">
-      <CardHeaderPrimary
-        icon={<Building2 className="h-5 w-5" />}
-        title="Dívidas Bancárias"
-        description="Controle das dívidas contraídas junto a instituições bancárias"
+  if (error) {
+    return (
+      <EmptyState
+        icon={<Building2 className="h-10 w-10 text-destructive" />}
+        title="Erro ao carregar dívidas bancárias"
+        description={error}
         action={
-          <Button
-            variant="outline"
-            size="default"
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            <PlusIcon className="h-4 w-4" />
-            Nova Dívida
+          <Button onClick={refreshData} disabled={isPending}>
+            {isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            Tentar novamente
           </Button>
         }
-        className="mb-4"
       />
-      <CardContent>
-        <div className="space-y-4">
-          <FinancialFilterBar
-            searchTerm={searchTerm}
-            onSearchChange={handleSearchChange}
-            filters={filters}
-            onFiltersChange={handleFilterChange}
-            filterOptions={filterOptions}
-            searchPlaceholder="Buscar por nome..."
-          />
-          
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Mostrando {paginatedData.length} de {totalDividas} dívidas bancárias
-            </p>
-          </div>
+    );
+  }
 
-          {dividasBancarias.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground space-y-4">
-              <div>Nenhuma dívida bancária cadastrada.</div>
-              <Button 
-                onClick={() => setIsAddModalOpen(true)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+  return (
+    <div className="space-y-6 relative">
+      {isPending && (
+        <div className="absolute top-2 right-2 z-10">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        </div>
+      )}
+
+      <Card>
+        <CardHeaderPrimary
+          icon={<Building2 className="h-4 w-4" />}
+          title="Dívidas Bancárias"
+          description="Gerencie os empréstimos e financiamentos bancários"
+          action={
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setIsImportModalOpen(true)}
+                variant="outline"
+                className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
               >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Adicionar Primeira Dívida
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Importar Excel
+              </Button>
+              <Button
+                onClick={handleAddDivida}
+                variant="outline"
+                className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
+              >
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Nova Dívida
               </Button>
             </div>
-          ) : paginatedData.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              <div>Nenhuma dívida encontrada para os filtros aplicados.</div>
-            </div>
+          }
+        />
+        <CardContent>
+          {dividasBancarias.length === 0 ? (
+            <EmptyState
+              icon={<Building2 className="h-10 w-10 text-muted-foreground" />}
+              title="Nenhuma dívida bancária cadastrada"
+              description="Comece adicionando seus empréstimos e financiamentos bancários."
+              action={
+                <Button onClick={handleAddDivida}>
+                  <PlusIcon className="mr-2 h-4 w-4" />
+                  Adicionar Dívida Bancária
+                </Button>
+              }
+            />
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-medium text-primary-foreground rounded-tl-md">Nome</TableHead>
-                    <TableHead className="font-medium text-primary-foreground">Tipo</TableHead>
-                    <TableHead className="font-medium text-primary-foreground">Modalidade</TableHead>
-                    <TableHead className="font-medium text-primary-foreground">Indexador</TableHead>
-                    <TableHead className="font-medium text-primary-foreground">Taxa</TableHead>
-                    <TableHead className="font-medium text-primary-foreground w-[180px]">Valor Total</TableHead>
-                    <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedData.map((divida) => {
-                    // Não podemos usar hooks dentro de loops/condições
-                    // Vamos usar um objeto para controlar o estado de expansão
-                    return (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]"></TableHead>
+                      <TableHead>Instituição Bancária</TableHead>
+                      <TableHead>Modalidade</TableHead>
+                      <TableHead>Ano</TableHead>
+                      <TableHead>Indexador</TableHead>
+                      <TableHead>Taxa Real</TableHead>
+                      <TableHead>Moeda</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="w-[50px]">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedDividas.map((divida) => (
                       <React.Fragment key={divida.id}>
-                        <TableRow 
-                          className={divida.isExpanded ? "bg-muted/30 hover:bg-muted/30" : ""}
-                        >
+                        <TableRow className="cursor-pointer hover:bg-muted/50">
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleExpansion(divida.id)}
+                            >
+                              {divida.isExpanded ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Button 
-                                variant="ghost"
-                                size="sm"
-                                className="p-0 h-6 w-6"
-                                onClick={() => {
-                                  setDividasBancarias(
-                                    dividasBancarias.map(d => 
-                                      d.id === divida.id 
-                                        ? { ...d, isExpanded: !d.isExpanded } 
-                                        : d
-                                    )
-                                  );
-                                }}
-                              >
-                                {divida.isExpanded ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </Button>
-                              {divida.nome || divida.instituicao_bancaria}
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">
+                                {divida.instituicao_bancaria}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="default" className="font-normal">
-                              {divida.tipo_instituicao || divida.tipo || "-"}
+                            <Badge
+                              variant={
+                                divida.modalidade === "CUSTEIO"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {divida.modalidade}
                             </Badge>
                           </TableCell>
+                          <TableCell>{divida.ano_contratacao || "-"}</TableCell>
                           <TableCell>
-                            <Badge variant="default" className="font-normal">
-                              {divida.modalidade || "-"}
+                            <span className="text-sm">{divida.indexador}</span>
+                          </TableCell>
+                          <TableCell>
+                            {divida.taxa_real ? `${divida.taxa_real}%` : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                divida.moeda === "BRL" ? "default" : "secondary"
+                              }
+                            >
+                              {divida.moeda}
                             </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="default" className="font-normal">
-                              {divida.indexador || "-"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {divida.taxa_real ? (
-                              <Badge variant="default" className="font-normal">
-                                {divida.taxa_real}%
-                              </Badge>
-                            ) : "-"}
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-right">
-                              <div className="font-medium text-sm">
-                                {formatGenericCurrency(calculateTotal(divida), divida.moeda || "BRL")}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {divida.moeda === "USD" 
-                                  ? formatGenericCurrency(calculateTotal(divida) * getExchangeRate(divida), "BRL")
-                                  : formatGenericCurrency(calculateTotal(divida) / getExchangeRate(divida), "USD")
-                                }
-                              </div>
-                            </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {/* Editor de Valores por Safra via Popover */}
-                              <DividasBancariasPopoverEditor
-                                divida={divida}
-                                organizationId={organization.id}
-                                onUpdate={handleUpdateDivida}
-                              />
-                              
-                              {/* Botões de Editar/Excluir */}
-                              <DividasBancariasRowActions
-                                dividaBancaria={divida}
-                                onEdit={() => setEditingDivida(divida)}
-                                onDelete={() => handleDeleteDivida(divida.id)}
-                              />
-                            </div>
+                            {formatGenericCurrency(
+                              calculateTotal(divida),
+                              divida.moeda || "BRL"
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <DividasBancariasRowActions
+                              dividaBancaria={divida}
+                              onEdit={() => handleEditDivida(divida)}
+                              onDelete={() => handleDeleteDivida(divida.id)}
+                            />
                           </TableCell>
                         </TableRow>
+
                         {divida.isExpanded && (
-                          <TableRow className="bg-muted/10 hover:bg-muted/10">
-                            <TableCell colSpan={7} className="p-0">
-                              <div className="px-4 pb-4">
-                                <DividasBancariasSafraDetail 
-                                  divida={divida}
-                                  organizacaoId={organization.id}
-                                />
-                              </div>
+                          <TableRow>
+                            <TableCell colSpan={9} className="bg-muted/20 p-0">
+                              <DividasBancariasSafraDetail
+                                divida={divida}
+                                organizacaoId={organization.id}
+                                initialSafras={safras}
+                              />
                             </TableCell>
                           </TableRow>
                         )}
                       </React.Fragment>
-                    );
-                  })}
-                  
-                  {/* Total row */}
-                  {paginatedData.length > 0 && (
-                    <TableRow className="bg-muted/20 font-medium">
-                      <TableCell colSpan={5} className="text-right">
-                        Total
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-right">
-                          <div className="font-medium text-sm">
-                            {formatGenericCurrency(
-                              paginatedData.reduce((sum, divida) => {
-                                const total = calculateTotal(divida);
-                                // Converter para BRL se necessário
-                                if (divida.moeda === "USD") {
-                                  return sum + (total * getExchangeRate(divida));
-                                }
-                                return sum + total;
-                              }, 0), 
-                              "BRL"
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatGenericCurrency(
-                              paginatedData.reduce((sum, divida) => {
-                                const total = calculateTotal(divida);
-                                // Converter para USD se necessário
-                                if (divida.moeda === "BRL") {
-                                  return sum + (total / getExchangeRate(divida));
-                                }
-                                return sum + total;
-                              }, 0), 
-                              "USD"
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell />
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              
-              <div className="mt-8">
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Paginação */}
+              {totalPages > 1 && (
                 <FinancialPagination
                   currentPage={currentPage}
                   totalPages={totalPages}
-                  onPageChange={handlePageChange}
                   itemsPerPage={itemsPerPage}
-                  onItemsPerPageChange={handleItemsPerPageChange}
-                  totalItems={totalDividas}
+                  totalItems={totalItems}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
                 />
-              </div>
-            </div>
+              )}
+            </>
           )}
-          
-        </div>
-      </CardContent>
+        </CardContent>
+      </Card>
 
-      {/* Modal para adicionar nova dívida */}
+      {/* Modais */}
       <DividasBancariasForm
-        open={isAddModalOpen}
-        onOpenChange={setIsAddModalOpen}
+        open={isAddModalOpen || !!editingDivida}
+        onOpenChange={(open) => {
+          setIsAddModalOpen(open);
+          if (!open) setEditingDivida(null);
+        }}
+        onSubmit={handleSaveDivida}
         organizationId={organization.id}
-        onSubmit={handleAddDivida}
+        existingDivida={editingDivida}
+        initialSafras={safras}
       />
 
-      {/* Modal para editar dívida existente */}
-      {editingDivida && (
-        <DividasBancariasForm
-          open={!!editingDivida}
-          onOpenChange={() => setEditingDivida(null)}
-          organizationId={organization.id}
-          existingDivida={editingDivida}
-          onSubmit={handleUpdateDivida}
-        />
-      )}
-    </Card>
+      <DividasBancariasImportDialog
+        isOpen={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        onSuccess={handleImportSuccess}
+        organizationId={organization.id}
+      />
+    </div>
   );
 }

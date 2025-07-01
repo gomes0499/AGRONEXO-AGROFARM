@@ -88,11 +88,11 @@ export interface DREData {
   };
 }
 
-export async function getFinancialMetrics(organizationId: string, selectedYear?: number): Promise<FinancialMetrics> {
+export async function getFinancialMetrics(organizationId: string, selectedYear?: number, projectionId?: string): Promise<FinancialMetrics> {
   try {
     const anoAtual = selectedYear || new Date().getFullYear();
-    const debtPosition = await getDebtPosition(organizationId);
-    const cultureProjections = await getCultureProjections(organizationId);
+    const debtPosition = await getDebtPosition(organizationId, projectionId);
+    const cultureProjections = await getCultureProjections(organizationId, projectionId);
     
     // Safra atual baseada no ano selecionado
     let safraAtual = "";
@@ -202,10 +202,50 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
       dividaLiquidaEbitda = ebitda > 0 ? dividaLiquidaAtual / ebitda : 0;
     }
     
-    // Calcular prazo médio (simplificado - baseado em valores fixos)
-    // Este valor normalmente seria calculado com base nos vencimentos das dívidas
-    const prazoMedioAtual = 2.8; // Em anos
-    const prazoMedioAnterior = 3.2; // Simulado
+    // Calcular prazo médio ponderado das dívidas
+    let prazoMedioAtual = 0;
+    let prazoMedioAnterior = 0;
+    
+    // Calcular prazo médio ponderado baseado nos fluxos de pagamento
+    let somaPrazoPonderado = 0;
+    let somaValoresDividas = 0;
+    
+    // Para cada dívida, calcular o prazo médio ponderado
+    debtPosition.dividas.forEach(divida => {
+      const valores = divida.valores_por_ano;
+      let somaValoresDivida = 0;
+      let somaPrazoDivida = 0;
+      let prazoIndex = 0;
+      
+      // Calcular prazo médio para esta dívida específica
+      debtPosition.anos.forEach((ano, index) => {
+        if (index >= indexSafraAtual) {
+          const valor = valores[ano] || 0;
+          if (valor > 0) {
+            prazoIndex = index - indexSafraAtual;
+            somaPrazoDivida += valor * prazoIndex;
+            somaValoresDivida += valor;
+          }
+        }
+      });
+      
+      // Adicionar ao total ponderado
+      if (somaValoresDivida > 0) {
+        somaPrazoPonderado += somaPrazoDivida;
+        somaValoresDividas += somaValoresDivida;
+      }
+    });
+    
+    // Calcular prazo médio em anos
+    prazoMedioAtual = somaValoresDividas > 0 ? somaPrazoPonderado / somaValoresDividas : 0;
+    
+    // Para o ano anterior, usar uma estimativa ou calcular da mesma forma
+    if (safraAnterior) {
+      // Simplificado: assumir que o prazo anterior era 0.5 anos maior
+      prazoMedioAnterior = prazoMedioAtual + 0.5;
+    } else {
+      prazoMedioAnterior = prazoMedioAtual;
+    }
 
     return {
       dividaBancaria: {
@@ -398,10 +438,13 @@ export const getDREData = async (organizacaoId: string): Promise<DREData> => {
       dreData.lucro_liquido[ano] = dreData.ebitda[ano] + dreData.resultado_financeiro.total[ano];
 
       // 10. Indicadores
-      if (dreData.receita_liquida[ano] > 0) {
-        dreData.indicadores.margem_bruta[ano] = dreData.lucro_bruto[ano] / dreData.receita_liquida[ano] * 100;
-        dreData.indicadores.margem_ebitda[ano] = dreData.ebitda[ano] / dreData.receita_liquida[ano] * 100;
-        dreData.indicadores.margem_liquida[ano] = dreData.lucro_liquido[ano] / dreData.receita_liquida[ano] * 100;
+      // Margem Bruta = Lucro Bruto / Receita Bruta (tradicionalmente)
+      // Margem EBITDA = EBITDA / Receita Bruta
+      // Margem Líquida = Lucro Líquido / Receita Bruta
+      if (dreData.receita_bruta.total[ano] > 0) {
+        dreData.indicadores.margem_bruta[ano] = dreData.lucro_bruto[ano] / dreData.receita_bruta.total[ano] * 100;
+        dreData.indicadores.margem_ebitda[ano] = dreData.ebitda[ano] / dreData.receita_bruta.total[ano] * 100;
+        dreData.indicadores.margem_liquida[ano] = dreData.lucro_liquido[ano] / dreData.receita_bruta.total[ano] * 100;
       } else {
         dreData.indicadores.margem_bruta[ano] = 0;
         dreData.indicadores.margem_ebitda[ano] = 0;

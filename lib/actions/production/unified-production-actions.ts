@@ -1,0 +1,178 @@
+import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
+
+// Import existing production actions
+import {
+  getCultures,
+  getSystems,
+  getCycles,
+  getSafras,
+  getPlantingAreas,
+  getProductivities,
+  getProductionCosts,
+} from "@/lib/actions/production-actions";
+
+import {
+  getProductionStats,
+} from "@/lib/actions/production-stats-actions";
+
+import {
+  getAreaPlantadaChartData,
+} from "@/lib/actions/area-plantada-chart-actions";
+
+import {
+  getProdutividadeChartData,
+} from "@/lib/actions/produtividade-chart-actions";
+
+import {
+  getReceitaChartData,
+} from "@/lib/actions/receita-chart-actions";
+
+export interface ProductionFilters {
+  safraId?: string;
+  culturaId?: string;
+  sistemaId?: string;
+  cicloId?: string;
+  propriedadeId?: string;
+  propertyIds?: string[];
+  page?: number;
+  limit?: number;
+}
+
+export interface ProductionPageData {
+  // Configuration data
+  cultures: Awaited<ReturnType<typeof getCultures>>;
+  systems: Awaited<ReturnType<typeof getSystems>>;
+  cycles: Awaited<ReturnType<typeof getCycles>>;
+  safras: Awaited<ReturnType<typeof getSafras>>;
+  
+  // Main data
+  plantingAreas: Awaited<ReturnType<typeof getPlantingAreas>>;
+  productivities: Awaited<ReturnType<typeof getProductivities>>;
+  productionCosts: Awaited<ReturnType<typeof getProductionCosts>>;
+  
+  // Stats
+  productionStats: Awaited<ReturnType<typeof getProductionStats>>;
+  
+  // Chart data
+  areaPlantadaChart: Awaited<ReturnType<typeof getAreaPlantadaChartData>>;
+  produtividadeChart: Awaited<ReturnType<typeof getProdutividadeChartData>>;
+  receitaChart: Awaited<ReturnType<typeof getReceitaChartData>>;
+  
+  // Applied filters
+  filters: ProductionFilters;
+}
+
+/**
+ * Fetch all production page data in a single call
+ * Uses React cache to avoid duplicate queries
+ */
+export const fetchProductionPageData = cache(
+  async (
+    organizationId: string,
+    filters?: ProductionFilters
+  ): Promise<ProductionPageData> => {
+    // Set default filters
+    const appliedFilters = {
+      page: filters?.page || 1,
+      limit: filters?.limit || 20,
+      ...filters,
+    };
+
+    // Convert single propriedadeId to array for functions that expect arrays
+    const propertyIds = appliedFilters.propriedadeId 
+      ? [appliedFilters.propriedadeId] 
+      : appliedFilters.propertyIds;
+
+    const safraIds = appliedFilters.safraId 
+      ? [appliedFilters.safraId] 
+      : undefined;
+
+    // Fetch all data in parallel
+    const [
+      // Configuration data
+      cultures,
+      systems,
+      cycles,
+      safras,
+      
+      // Main data
+      plantingAreas,
+      productivities,
+      productionCosts,
+      
+      // Stats
+      productionStats,
+      
+      // Chart data
+      areaPlantadaChart,
+      produtividadeChart,
+      receitaChart,
+    ] = await Promise.all([
+      // Configuration data
+      getCultures(organizationId),
+      getSystems(organizationId),
+      getCycles(organizationId),
+      getSafras(organizationId),
+      
+      // Main data with pagination
+      getPlantingAreas(organizationId),
+      getProductivities(organizationId),
+      getProductionCosts(organizationId),
+      
+      // Stats
+      getProductionStats(organizationId, propertyIds),
+      
+      // Chart data
+      getAreaPlantadaChartData(organizationId, safraIds),
+      getProdutividadeChartData(organizationId, safraIds),
+      getReceitaChartData(organizationId, safraIds),
+    ]);
+
+    return {
+      // Configuration data
+      cultures,
+      systems,
+      cycles,
+      safras,
+      
+      // Main data
+      plantingAreas,
+      productivities,
+      productionCosts,
+      
+      // Stats
+      productionStats,
+      
+      // Chart data
+      areaPlantadaChart,
+      produtividadeChart,
+      receitaChart,
+      
+      // Applied filters
+      filters: appliedFilters,
+    };
+  }
+);
+
+/**
+ * Fetch form data for production entities
+ * Includes cultures, systems, cycles, safras
+ */
+export const fetchProductionFormData = cache(
+  async (organizationId: string) => {
+    const [cultures, systems, cycles, safras] = await Promise.all([
+      getCultures(organizationId),
+      getSystems(organizationId),
+      getCycles(organizationId),
+      getSafras(organizationId),
+    ]);
+
+    return {
+      cultures,
+      systems,
+      cycles,
+      safras,
+    };
+  }
+);

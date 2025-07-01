@@ -5,7 +5,7 @@ import { StatsCard } from "./stats-card";
 import { StatsGroup } from "./stats-group";
 import { DashboardCharts } from "./dashboard-charts";
 import { PropertyFilterClient } from "@/components/production/property-filter-client";
-import { ProductionKpiCards } from "./production-kpi-cards";
+import { ProductionKPICardsClient as ProductionKpiCards } from "./production-kpi-cards";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { formatCompactCurrency, formatCompactNumber } from "@/lib/utils";
 import { LandPlot, LineChart, Beef, DollarSign, Warehouse } from "lucide-react";
@@ -127,6 +127,10 @@ export function ProductionStatsDashboard({
           organizationId={organizationId}
           propertyIds={defaultSelectedPropertyIds}
           safraId={safraId}
+          cultures={cultures}
+          safras={[]}
+          initialStats={{}}
+          defaultCultureIds={cultures.map(c => c.id)}
         />
       </Suspense>
 

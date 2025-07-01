@@ -445,11 +445,11 @@ export function LeaseDetail({ lease, propertyId, organizationId }: LeaseDetailPr
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">
                     Safra Base
                   </h3>
-                  {lease.safra ? (
+                  {(lease as any).safra ? (
                     <div>
-                      <p className="font-medium">{lease.safra.nome}</p>
+                      <p className="font-medium">{(lease as any).safra.nome}</p>
                       <p className="text-sm text-muted-foreground">
-                        {lease.safra.ano_inicio}/{lease.safra.ano_fim}
+                        {(lease as any).safra.ano_inicio}/{(lease as any).safra.ano_fim}
                       </p>
                     </div>
                   ) : (

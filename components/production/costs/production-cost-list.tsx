@@ -41,9 +41,7 @@ import { MultiSafraProductionCostForm } from "./multi-safra-cost-form";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
-import { ProductionTableFilter } from "../common/production-table-filter";
 import { ProductionTablePagination } from "../common/production-table-pagination";
-import { useProductionTable } from "@/hooks/use-production-table";
 import { ProductionCost, Culture, System, Harvest } from "@/schemas/production";
 
 // Define interface for the property entity
@@ -86,24 +84,24 @@ export function ProductionCostList({
   const [isMultiSafraModalOpen, setIsMultiSafraModalOpen] = useState<boolean>(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
-  // Hook para gerenciar filtros e paginação
-  const {
-    searchTerm,
-    filters,
-    currentPage,
-    pageSize,
-    paginatedData,
-    totalPages,
-    totalItems,
-    setSearchTerm,
-    setFilters,
-    setCurrentPage,
-    setPageSize,
-  } = useProductionTable({
-    data: costs,
-    searchFields: ["categoria"], // Campos para busca textual
-    initialPageSize: 20,
-  });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  
+  const totalPages = Math.ceil(costs.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedData = costs.slice(startIndex, startIndex + pageSize);
+  const totalItems = costs.length;
+  
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1);
+  };
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -153,29 +151,6 @@ export function ProductionCostList({
   // Função para abrir modal de múltiplas safras
   const handleOpenMultiSafra = () => {
     setIsMultiSafraModalOpen(true);
-  };
-
-  // Criar opções para filtros
-  const categoriaOptions = [
-    { value: "CALCARIO", label: "Calcário" },
-    { value: "FERTILIZANTE", label: "Fertilizante" },
-    { value: "SEMENTES", label: "Sementes" },
-    { value: "TRATAMENTO_SEMENTES", label: "Tratamento de Sementes" },
-    { value: "HERBICIDA", label: "Herbicida" },
-    { value: "INSETICIDA", label: "Inseticida" },
-    { value: "FUNGICIDA", label: "Fungicida" },
-    { value: "OUTROS", label: "Outros" },
-    { value: "BENEFICIAMENTO", label: "Beneficiamento" },
-    { value: "SERVICOS", label: "Serviços" },
-    { value: "ADMINISTRATIVO", label: "Administrativo" },
-  ];
-
-  const filterOptions = {
-    safras: harvests.filter(h => h.id).map(h => ({ value: h.id!, label: h.nome })),
-    culturas: cultures.filter(c => c.id).map(c => ({ value: c.id!, label: c.nome })),
-    sistemas: systems.filter(s => s.id).map(s => ({ value: s.id!, label: s.nome })),
-    propriedades: properties.filter(p => p.id).map(p => ({ value: p.id!, label: p.nome })),
-    categorias: categoriaOptions,
   };
 
   // Ordenar itens paginados por safra, categoria e cultura
@@ -253,20 +228,6 @@ export function ProductionCostList({
         className="mb-4"
       />
       <CardContent>
-        {/* Filtros e busca */}
-        <ProductionTableFilter
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          filters={filters}
-          onFiltersChange={setFilters}
-          safras={filterOptions.safras}
-          culturas={filterOptions.culturas}
-          sistemas={filterOptions.sistemas}
-          propriedades={filterOptions.propriedades}
-          categorias={filterOptions.categorias}
-          showCategoriaFilter={true}
-        />
-
         {costs.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhum registro de custo cadastrado.</div>
@@ -278,20 +239,9 @@ export function ProductionCostList({
               Novo Custo
             </Button>
           </div>
-        ) : totalItems === 0 ? (
-          <div className="text-center py-10 text-muted-foreground space-y-4">
-            <div>Nenhum registro de custo encontrado com os filtros aplicados.</div>
-            <Button 
-              onClick={handleOpenMultiSafra}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Custo
-            </Button>
-          </div>
         ) : (
           <>
-            <div className="rounded-md border">
+            <div className="rounded-md border mt-4">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
@@ -380,8 +330,8 @@ export function ProductionCostList({
               totalPages={totalPages}
               totalItems={totalItems}
               pageSize={pageSize}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
             />
           </>
         )}

@@ -1,7 +1,7 @@
 "use client"
 
 import { TrendingUp } from "lucide-react"
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, LabelList } from "recharts"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { createClient } from "@/lib/supabase/server"
@@ -54,10 +54,14 @@ async function PropertyValueChartContent({ organizationId }: PropertyValueChartP
       );
     }
 
+    // Limitar a quantidade de propriedades mostradas para melhor visualização
+    const maxProperties = 30;
+    const displayProperties = properties.slice(0, maxProperties);
+    
     // Preparar dados para o gráfico
-    const chartData = properties.map(property => ({
-      nome: property.nome.length > 15 
-        ? property.nome.substring(0, 15) + "..." 
+    const chartData = displayProperties.map(property => ({
+      nome: property.nome.length > 10 
+        ? property.nome.substring(0, 10) + "..." 
         : property.nome,
       nomeCompleto: property.nome,
       valor: property.valor_atual,
@@ -73,17 +77,21 @@ async function PropertyValueChartContent({ organizationId }: PropertyValueChartP
           <CardTitle>Valor por Propriedade</CardTitle>
           <CardDescription>Ranking patrimonial das propriedades</CardDescription>
         </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig}>
+        <CardContent className="pl-2 pr-2">
+          <ChartContainer config={chartConfig} className="h-[350px] w-full overflow-x-auto">
             <BarChart 
               accessibilityLayer 
               data={chartData}
+              width={Math.max(800, chartData.length * 40)}
+              height={350}
               margin={{
-                top: 20,
+                top: 35,
                 right: 30,
                 left: 20,
                 bottom: 5,
               }}
+              barGap={2}
+              barCategoryGap="30%"
             >
               <CartesianGrid vertical={false} />
               <XAxis
@@ -116,7 +124,28 @@ async function PropertyValueChartContent({ organizationId }: PropertyValueChartP
                 dataKey="valor" 
                 fill="var(--color-valor)" 
                 radius={[4, 4, 0, 0]}
-              />
+              >
+                <LabelList
+                  dataKey="valor"
+                  position="top"
+                  formatter={(value: number) => {
+                    // Formatar valores em milhões com 2 casas decimais
+                    if (value >= 1000000) {
+                      const millions = value / 1000000;
+                      return `${millions.toFixed(2)}M`;
+                    }
+                    if (value >= 1000) {
+                      const thousands = value / 1000;
+                      return `${thousands.toFixed(0)}K`;
+                    }
+                    return value.toFixed(0);
+                  }}
+                  className="fill-primary"
+                  fontSize={12}
+                  fontWeight="bold"
+                  offset={8}
+                />
+              </Bar>
             </BarChart>
           </ChartContainer>
         </CardContent>

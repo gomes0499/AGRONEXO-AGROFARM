@@ -26,64 +26,140 @@ import {
   ChartContainer,
 } from "@/components/ui/chart";
 import { ChartLegendMultirow } from "@/components/ui/chart-legend-multirow";
-import { useEffect, useState } from "react";
-import {
-  getFinancialChart,
-  type FinancialData,
-} from "@/lib/actions/production-chart-actions";
+import { useState, useTransition, useEffect } from "react";
+import type { FinancialData as ProductionFinancialData } from "@/lib/actions/production-chart-actions";
+import type { FinancialChartData } from "@/lib/actions/financial-chart-actions";
+import { getFinancialChartData } from "@/lib/actions/financial-chart-actions";
+import { useScenario } from "@/contexts/scenario-context-v2";
+import { useChartColors } from "@/contexts/chart-colors-context";
 
-interface FinancialChartProps {
+interface FinancialChartClientProps {
   organizationId: string;
   propertyIds?: string[];
-  cultureIds?: string[]; // Add support for cultureIds
+  cultureIds?: string[];
+  projectionId?: string;
+  initialData: FinancialChartData;
 }
 
-export function FinancialChart({
+// Formatar valor monetário
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    notation: Math.abs(value) >= 1000000 ? 'compact' : 'standard',
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+export function FinancialChartClient({
   organizationId,
   propertyIds,
-}: FinancialChartProps) {
-  const [data, setData] = useState<FinancialData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  cultureIds,
+  projectionId,
+  initialData,
+}: FinancialChartClientProps) {
+  const [data, setData] = useState<ProductionFinancialData[]>(initialData?.chartData || []);
+  const [isPending, startTransition] = useTransition();
+  const { currentScenario, getProjectedValue } = useScenario();
+  const { colors } = useChartColors();
 
-  // Configuração das linhas do gráfico - Variações da cor da marca #1B124E
+  // Configuração das linhas do gráfico - Usando cores do contexto
   const chartConfig: ChartConfig = {
     receitaTotal: {
       label: "Receita Total",
-      color: "#1B124E", // Cor original da marca - mais escura
+      color: colors.color1,
     },
     custoTotal: {
       label: "Custo Total",
-      color: "#3F2C88", // Variação média-escura
+      color: colors.color2,
     },
     ebitda: {
       label: "EBITDA",
-      color: "#6346C2", // Variação média-clara
+      color: colors.color3,
     },
     lucroLiquido: {
       label: "Lucro Líquido",
-      color: "#8760FC", // Variação mais clara
+      color: colors.color4,
     },
   };
 
+  // Apply scenario adjustments when scenario changes
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        setError(null);
+    let processedData = initialData?.chartData || [];
+    
+    if (currentScenario && currentScenario.cultureData) {
+      processedData = (initialData?.chartData || []).map((item) => {
+        // Encontrar a safra correspondente
+        const safra = initialData?.safras?.find((s) => s.nome === item.safra);
+        if (!safra) {
+          return item; // Sem dados de cenário para esta safra
+        }
 
-        const chartData = await getFinancialChart(organizationId, propertyIds);
-        setData(chartData);
-      } catch (err) {
-        console.error("Erro ao carregar gráfico financeiro:", err);
-        setError("Erro ao carregar dados do gráfico");
-      } finally {
-        setLoading(false);
-      }
+        // Calcular receita e custo projetados baseados nos dados de cultura
+        let receitaProjetada = item.receitaTotal;
+        let custoProjetado = item.custoTotal;
+        
+        if (currentScenario.cultureData[safra.id]) {
+          // Se temos dados de projeção para esta safra
+          const safraProjections = currentScenario.cultureData[safra.id];
+          
+          if (safraProjections.length > 0) {
+            // Por simplificação, vamos usar as projeções agregadas
+            // Em uma implementação completa, isso calcularia baseado em preços reais
+            receitaProjetada = (getProjectedValue as any)(
+              item.receitaTotal,
+              safra.id,
+              'revenue',
+              currentScenario
+            );
+            
+            custoProjetado = (getProjectedValue as any)(
+              item.custoTotal,
+              safra.id,
+              'cost',
+              currentScenario
+            );
+          }
+        }
+        
+        // Aplicar taxa de câmbio se definida
+        if ((currentScenario as any).harvestData?.[safra.id]?.dollar_rate) {
+          const dollarRate = (currentScenario as any).harvestData[safra.id].dollar_rate;
+          // Aplicar taxa de câmbio à receita (simplificado - assumindo parte da receita em dólar)
+          receitaProjetada = receitaProjetada * (1 + (dollarRate - 5.0) * 0.1); // 10% de impacto por real de variação
+        }
+
+        const adjustedItem: ProductionFinancialData = {
+          safra: item.safra,
+          receitaTotal: receitaProjetada,
+          custoTotal: custoProjetado,
+          ebitda: receitaProjetada - custoProjetado,
+          lucroLiquido: (receitaProjetada - custoProjetado) * 0.8, // 80% do EBITDA como aproximação
+        };
+        
+        return adjustedItem;
+      });
     }
+    
+    setData(processedData);
+  }, [currentScenario, initialData?.chartData, initialData?.safras, getProjectedValue]);
 
-    fetchData();
-  }, [organizationId, propertyIds]);
+  // Refresh data when filters change
+  useEffect(() => {
+    startTransition(async () => {
+      try {
+        const newData = await getFinancialChartData(
+          organizationId,
+          propertyIds,
+          cultureIds,
+          projectionId
+        );
+        setData(newData.chartData);
+      } catch (error) {
+        console.error("Erro ao atualizar dados do gráfico:", error);
+      }
+    });
+  }, [organizationId, propertyIds, cultureIds, projectionId]);
 
   // Calcular médias das margens por período
   const calcularMediasMargens = () => {
@@ -151,17 +227,7 @@ export function FinancialChart({
     };
   };
 
-  // Formatar valor monetário
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      notation: Math.abs(value) >= 1000000 ? 'compact' : 'standard',
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  if (loading) {
+  if (data.length === 0) {
     return (
       <Card>
         <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
@@ -175,36 +241,7 @@ export function FinancialChart({
                   Evolução Financeira
                 </CardTitle>
                 <CardDescription className="text-white/80">
-                  Carregando dados financeiros...
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <div className="w-full h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">Carregando gráfico...</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || data.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full p-2 bg-white/20">
-                <LineChartIcon className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-white">
-                  Evolução Financeira
-                </CardTitle>
-                <CardDescription className="text-white/80">
-                  {error || "Nenhum dado financeiro encontrado"}
+                  Nenhum dado financeiro encontrado
                 </CardDescription>
               </div>
             </div>
@@ -213,7 +250,7 @@ export function FinancialChart({
         <CardContent className="px-2 sm:px-6">
           <div className="w-full h-[350px] sm:h-[400px] flex items-center justify-center">
             <div className="text-muted-foreground">
-              {error || "Cadastre dados de produção e custos para visualizar o gráfico"}
+              Cadastre dados de produção e custos para visualizar o gráfico
             </div>
           </div>
         </CardContent>
@@ -233,11 +270,13 @@ export function FinancialChart({
             </div>
             <div>
               <CardTitle className="text-white">
-                Evolução Financeira
+                Evolução Financeira{currentScenario && " - Projeção"}
+                {isPending && " (Atualizando...)"}
               </CardTitle>
               <CardDescription className="text-white/80">
-                Receita, Custo, EBITDA e Lucro Líquido por safra ({data[0]?.safra} -{" "}
-                {data[data.length - 1]?.safra})
+                {currentScenario 
+                  ? `Cenário: ${currentScenario.scenarioName} - Indicadores financeiros projetados`
+                  : `Receita, Custo, EBITDA e Lucro Líquido por safra (${data[0]?.safra} - ${data[data.length - 1]?.safra})`}
               </CardDescription>
             </div>
           </div>
@@ -287,6 +326,13 @@ export function FinancialChart({
                   dot={{ fill: chartConfig.receitaTotal.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
                   name={chartConfig.receitaTotal.label as string}
+                  label={{
+                    position: "top",
+                    fill: chartConfig.receitaTotal.color,
+                    fontSize: 11,
+                    offset: 10,
+                    formatter: (value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)
+                  }}
                 />
                 
                 {/* Custo Total */}
@@ -298,6 +344,13 @@ export function FinancialChart({
                   dot={{ fill: chartConfig.custoTotal.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
                   name={chartConfig.custoTotal.label as string}
+                  label={{
+                    position: "bottom",
+                    fill: chartConfig.custoTotal.color,
+                    fontSize: 11,
+                    offset: 10,
+                    formatter: (value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)
+                  }}
                 />
                 
                 {/* EBITDA */}
@@ -309,6 +362,13 @@ export function FinancialChart({
                   dot={{ fill: chartConfig.ebitda.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
                   name={chartConfig.ebitda.label as string}
+                  label={{
+                    position: "top",
+                    fill: chartConfig.ebitda.color,
+                    fontSize: 11,
+                    offset: 10,
+                    formatter: (value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)
+                  }}
                 />
                 
                 {/* Lucro Líquido */}
@@ -320,23 +380,30 @@ export function FinancialChart({
                   dot={{ fill: chartConfig.lucroLiquido.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
                   name={chartConfig.lucroLiquido.label as string}
+                  label={{
+                    position: "bottom",
+                    fill: chartConfig.lucroLiquido.color,
+                    fontSize: 11,
+                    offset: 10,
+                    formatter: (value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </ChartContainer>
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4 bg-muted/30">
+      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-xs">
           {/* Período Realizado 2021-2024 */}
           <div className="space-y-1">
             <div className="font-medium text-muted-foreground">Realizado (2021-2024)</div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#6346C2" }}></div>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
               <span>EBITDA: {mediasMargens.ebitdaRealizado}%</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#8760FC" }}></div>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
               <span>Lucro Líquido: {mediasMargens.lucroRealizado}%</span>
             </div>
           </div>
@@ -345,18 +412,20 @@ export function FinancialChart({
           <div className="space-y-1">
             <div className="font-medium text-muted-foreground">Projetado (2025-2030)</div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#6346C2" }}></div>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
               <span>EBITDA: {mediasMargens.ebitdaProjetado}%</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#8760FC" }}></div>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
               <span>Lucro Líquido: {mediasMargens.lucroProjetado}%</span>
             </div>
           </div>
         </div>
         
         <div className="leading-none text-muted-foreground text-xs pt-2 border-t border-muted-foreground/20 w-full">
-          Margens médias calculadas sobre a receita total por período
+          {currentScenario 
+            ? `Projeção baseada no cenário "${currentScenario.scenarioName}" - Safras ${data[0]?.safra} a ${data[data.length - 1]?.safra}`
+            : "Margens médias calculadas sobre a receita total por período"}
         </div>
       </CardFooter>
     </Card>

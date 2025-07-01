@@ -1,0 +1,6 @@
+components/projections/scenario-comparison.tsx(85,25): error TS2345: Argument of type '{ harvestComparison: any[]; cultureComparison: any[]; metricsComparison: { name: any; "Receita Total": any; "\u00C1rea Total": any; "R$/ha": any; "D\u00F3lar M\u00E9dio": any; }[]; }' is not assignable to parameter of type 'SetStateAction<any[]>'.
+components/projections/scenario-comparison.tsx(200,55): error TS2339: Property 'metricsComparison' does not exist on type 'any[]'.
+components/projections/scenario-comparison.tsx(211,52): error TS2339: Property 'metricsComparison' does not exist on type 'any[]'.
+components/projections/scenario-comparison.tsx(224,52): error TS2339: Property 'metricsComparison' does not exist on type 'any[]'.
+components/projections/scenario-comparison.tsx(243,48): error TS2339: Property 'harvestComparison' does not exist on type 'any[]'.
+components/projections/scenario-comparison.tsx(271,48): error TS2339: Property 'cultureComparison' does not exist on type 'any[]'.

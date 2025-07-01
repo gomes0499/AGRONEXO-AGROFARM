@@ -37,10 +37,10 @@ export function TradingDebtListing({
   // Processar tradingDebts para garantir que fluxo_pagamento_anual é um objeto
   const [tradingDebts, setTradingDebts] = useState<TradingDebt[]>(() => {
     // Processar cada dívida para garantir que fluxo_pagamento_anual é um objeto
-    return initialTradingDebts.map(debt => {
+    return initialTradingDebts.map((debt) => {
       // Converter fluxo_pagamento_anual para objeto se for string
       let fluxo_pagamento_anual = debt.fluxo_pagamento_anual;
-      if (typeof fluxo_pagamento_anual === 'string' && fluxo_pagamento_anual) {
+      if (typeof fluxo_pagamento_anual === "string" && fluxo_pagamento_anual) {
         try {
           fluxo_pagamento_anual = JSON.parse(fluxo_pagamento_anual);
         } catch (e) {
@@ -48,10 +48,10 @@ export function TradingDebtListing({
           fluxo_pagamento_anual = {};
         }
       }
-      
+
       return {
         ...debt,
-        fluxo_pagamento_anual
+        fluxo_pagamento_anual,
       };
     });
   });
@@ -72,18 +72,18 @@ export function TradingDebtListing({
     handlePageChange,
     handleItemsPerPageChange,
     totalItems: totalTradingDebts,
-    filteredCount
+    filteredCount,
   } = useFinancialFilters(tradingDebts, {
-    searchFields: ['empresa_trading', 'indexador'],
-    modalidadeField: 'modalidade',
-    moedaField: 'moeda'
+    searchFields: ["empresa_trading", "indexador"],
+    modalidadeField: "modalidade",
+    moedaField: "moeda",
   });
 
   // Adicionar nova dívida
   const handleAddDebt = (newDebt: TradingDebt) => {
     // Garantir que fluxo_pagamento_anual é um objeto
     let fluxo_pagamento_anual = newDebt.fluxo_pagamento_anual;
-    if (typeof fluxo_pagamento_anual === 'string' && fluxo_pagamento_anual) {
+    if (typeof fluxo_pagamento_anual === "string" && fluxo_pagamento_anual) {
       try {
         fluxo_pagamento_anual = JSON.parse(fluxo_pagamento_anual);
       } catch (e) {
@@ -91,12 +91,12 @@ export function TradingDebtListing({
         fluxo_pagamento_anual = {};
       }
     }
-    
+
     const processedDebt = {
       ...newDebt,
-      fluxo_pagamento_anual
+      fluxo_pagamento_anual,
     };
-    
+
     setTradingDebts([processedDebt, ...tradingDebts]);
     setIsAddModalOpen(false);
   };
@@ -105,7 +105,7 @@ export function TradingDebtListing({
   const handleUpdateDebt = (updatedDebt: TradingDebt) => {
     // Garantir que fluxo_pagamento_anual é um objeto
     let fluxo_pagamento_anual = updatedDebt.fluxo_pagamento_anual;
-    if (typeof fluxo_pagamento_anual === 'string' && fluxo_pagamento_anual) {
+    if (typeof fluxo_pagamento_anual === "string" && fluxo_pagamento_anual) {
       try {
         fluxo_pagamento_anual = JSON.parse(fluxo_pagamento_anual);
       } catch (e) {
@@ -113,12 +113,12 @@ export function TradingDebtListing({
         fluxo_pagamento_anual = {};
       }
     }
-    
+
     const processedDebt = {
       ...updatedDebt,
-      fluxo_pagamento_anual
+      fluxo_pagamento_anual,
     };
-    
+
     setTradingDebts(
       tradingDebts.map((debt) =>
         debt.id === processedDebt.id ? processedDebt : debt
@@ -141,25 +141,27 @@ export function TradingDebtListing({
   // Função para calcular o valor total de uma dívida a partir do fluxo de pagamento
   const calculateTotal = (debt: TradingDebt) => {
     let total = 0;
-    
+
     if (debt.fluxo_pagamento_anual) {
       // Se for uma string, tentar fazer parse para objeto
       let flowData = debt.fluxo_pagamento_anual;
-      if (typeof flowData === 'string') {
+      if (typeof flowData === "string") {
         try {
           flowData = JSON.parse(flowData);
         } catch (e) {
           console.error("Erro ao fazer parse do JSON:", e);
         }
       }
-      
+
       // Agora calcular o total
-      if (typeof flowData === 'object' && flowData !== null) {
-        total = Object.values(flowData as Record<string, number>)
-          .reduce((acc, val) => acc + (typeof val === 'number' ? val : 0), 0);
+      if (typeof flowData === "object" && flowData !== null) {
+        total = Object.values(flowData as Record<string, number>).reduce(
+          (acc, val) => acc + (typeof val === "number" ? val : 0),
+          0
+        );
       }
     }
-    
+
     return total;
   };
 
@@ -171,7 +173,6 @@ export function TradingDebtListing({
         description="Controle das dívidas contraídas com empresas de trading"
         action={
           <Button
-            variant="outline"
             size="default"
             className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
             onClick={() => setIsAddModalOpen(true)}
@@ -191,79 +192,94 @@ export function TradingDebtListing({
           filterOptions={filterOptions}
           searchPlaceholder="Buscar por empresa trading ou indexador..."
         />
-        
+
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Mostrando {paginatedData.length} de {totalTradingDebts} dívidas com trading
+            Mostrando {paginatedData.length} de {totalTradingDebts} dívidas com
+            trading
           </p>
         </div>
 
         <Card>
           <CardContent className="p-0">
-          {tradingDebts.length === 0 ? (
-            <EmptyState
-              title="Nenhuma dívida com trading cadastrada"
-              description="Clique no botão acima para adicionar uma nova dívida com empresa trading."
-              action={
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                  Adicionar Dívida
-                </Button>
-              }
-            />
-          ) : paginatedData.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">Nenhuma dívida encontrada para os filtros aplicados</p>
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Empresa Trading</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Modalidade</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Indexador</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Taxa Real</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground rounded-tr-md w-24">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedData.map((debt) => (
-                    <TableRow key={debt.id}>
-                      <TableCell>{debt.empresa_trading}</TableCell>
-                      <TableCell>{debt.modalidade}</TableCell>
-                      <TableCell>{debt.indexador || "-"}</TableCell>
-                      <TableCell>
-                        {debt.taxa_real ? `${debt.taxa_real}%` : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {formatGenericCurrency(
-                          calculateTotal(debt),
-                          debt.moeda || "BRL"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <TradingDebtRowActions
-                          tradingDebt={debt}
-                          onEdit={() => setEditingDebt(debt)}
-                          onDelete={() => handleDeleteDebt(debt.id!)}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
-              <FinancialPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                itemsPerPage={itemsPerPage}
-                onItemsPerPageChange={handleItemsPerPageChange}
-                totalItems={totalTradingDebts}
+            {tradingDebts.length === 0 ? (
+              <EmptyState
+                title="Nenhuma dívida com trading cadastrada"
+                description="Clique no botão acima para adicionar uma nova dívida com empresa trading."
+                action={
+                  <Button onClick={() => setIsAddModalOpen(true)}>
+                    Adicionar Dívida
+                  </Button>
+                }
               />
-            </>
-          )}
+            ) : paginatedData.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">
+                  Nenhuma dívida encontrada para os filtros aplicados
+                </p>
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-primary hover:bg-primary">
+                      <TableHead className="font-semibold text-primary-foreground rounded-tl-md">
+                        Empresa Trading
+                      </TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">
+                        Modalidade
+                      </TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">
+                        Indexador
+                      </TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">
+                        Taxa Real
+                      </TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">
+                        Valor Total
+                      </TableHead>
+                      <TableHead className="font-semibold text-primary-foreground rounded-tr-md w-24">
+                        Ações
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedData.map((debt) => (
+                      <TableRow key={debt.id}>
+                        <TableCell>{debt.empresa_trading}</TableCell>
+                        <TableCell>{debt.modalidade}</TableCell>
+                        <TableCell>{debt.indexador || "-"}</TableCell>
+                        <TableCell>
+                          {debt.taxa_real ? `${debt.taxa_real}%` : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {formatGenericCurrency(
+                            calculateTotal(debt),
+                            debt.moeda || "BRL"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <TradingDebtRowActions
+                            tradingDebt={debt}
+                            onEdit={() => setEditingDebt(debt)}
+                            onDelete={() => handleDeleteDebt(debt.id!)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                <FinancialPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  itemsPerPage={itemsPerPage}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                  totalItems={totalTradingDebts}
+                />
+              </>
+            )}
           </CardContent>
         </Card>
       </CardContent>

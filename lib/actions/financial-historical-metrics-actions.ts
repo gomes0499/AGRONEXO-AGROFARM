@@ -27,7 +27,8 @@ export type FinancialMetricType = 'dividaReceita' | 'dividaEbitda' | 'dividaLiqu
 
 export async function getFinancialHistoricalMetricData(
   organizationId: string,
-  metricType: FinancialMetricType
+  metricType: FinancialMetricType,
+  projectionId?: string
 ): Promise<FinancialHistoricalMetricsResponse> {
   try {
     const supabase = await createClient();
@@ -70,7 +71,7 @@ export async function getFinancialHistoricalMetricData(
     // em vez de fazer múltiplas chamadas separadas por safra
     try {
       const { getDebtPosition } = await import("./debt-position-actions");
-      const debtPosition = await getDebtPosition(organizationId);
+      const debtPosition = await getDebtPosition(organizationId, projectionId);
       
       // Mapear safras para usar os dados pré-calculados de debtPosition
       for (const safra of safras) {

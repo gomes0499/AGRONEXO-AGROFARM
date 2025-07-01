@@ -1,4 +1,4 @@
-import { MapPin, Hash, Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   FormControl,
@@ -17,6 +17,7 @@ import {
 import { FormattedInput } from "@/components/shared/formatted-input";
 import type { UseFormReturn } from "react-hook-form";
 import type { OrganizationFormValues } from "../schemas/organization-form-schema";
+import { Textarea } from "@/components/ui/textarea";
 
 interface AddressStepProps {
   form: UseFormReturn<OrganizationFormValues>;
@@ -39,10 +40,7 @@ export function AddressStep({
           name="cep"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                CEP
-              </FormLabel>
+              <FormLabel>CEP</FormLabel>
               <div className="relative">
                 <FormControl>
                   <FormattedInput
@@ -73,10 +71,7 @@ export function AddressStep({
           name="cidade"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                Cidade
-              </FormLabel>
+              <FormLabel>Cidade</FormLabel>
               <FormControl>
                 <Input {...field} placeholder="Cidade" />
               </FormControl>
@@ -90,10 +85,7 @@ export function AddressStep({
           name="estado"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                Estado
-              </FormLabel>
+              <FormLabel>Estado</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -142,10 +134,7 @@ export function AddressStep({
           name="endereco"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                Logradouro
-              </FormLabel>
+              <FormLabel>Logradouro</FormLabel>
               <FormControl>
                 <Input placeholder="Rua, Avenida, Estrada..." {...field} />
               </FormControl>
@@ -159,10 +148,7 @@ export function AddressStep({
           name="bairro"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                Bairro
-              </FormLabel>
+              <FormLabel>Bairro</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -176,10 +162,7 @@ export function AddressStep({
           name="numero"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                Número
-              </FormLabel>
+              <FormLabel>Número</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -193,10 +176,7 @@ export function AddressStep({
           name="complemento"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                Complemento
-              </FormLabel>
+              <FormLabel>Complemento</FormLabel>
               <FormControl>
                 <Input placeholder="Apto, Sala..." {...field} />
               </FormControl>
@@ -204,6 +184,67 @@ export function AddressStep({
             </FormItem>
           )}
         />
+      </div>
+
+      {/* Seção de Localização */}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Roteiro de Acesso</h3>
+          <p className="text-xs text-muted-foreground">
+            Instruções para chegar ao escritório...
+          </p>
+        </div>
+
+        <FormField
+          control={form.control}
+          name="roteiro"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder="Descreva o roteiro para chegar ao escritório (especialmente útil para escritórios em fazendas)."
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="latitude"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Latitude</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Ex: -15.7801" type="text" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="longitude"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Longitude</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Ex: -47.9292" type="text" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Dica: Você pode encontrar coordenadas no Google Maps clicando com
+          botão direito e selecionando "O que há aqui?"
+        </p>
       </div>
     </div>
   );

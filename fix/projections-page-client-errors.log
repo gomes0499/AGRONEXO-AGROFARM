@@ -1,0 +1,2 @@
+components/projections/projections-page-client.tsx(99,15): error TS2322: Type '{ organizationId: string; dreData: any; }' is not assignable to type 'IntrinsicAttributes & DRETableProps'.
+components/projections/projections-page-client.tsx(106,15): error TS2322: Type '{ organizationId: string; balanceData: any; }' is not assignable to type 'IntrinsicAttributes & BalancoPatrimonialTableProps'.

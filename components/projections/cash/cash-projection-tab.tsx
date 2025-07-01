@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CashProjectionListing } from "./cash-projection-listing";
-import { getProjecoesCaixa } from "@/lib/actions/projections-actions";
+import { getProjecoesCaixa } from "@/lib/actions/projections-actions/index";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface CashProjectionTabProps {

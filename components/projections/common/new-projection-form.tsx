@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProjecaoConfigFormValues, projecaoConfigFormSchema } from "@/schemas/projections";
-import { createProjecaoConfig } from "@/lib/actions/projections-actions";
+import { createProjecaoConfig } from "@/lib/actions/projections-actions/index";
 import { toast } from "sonner";
 
 const WIZARD_STEPS = [

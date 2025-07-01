@@ -91,29 +91,33 @@ export function ReceitasFinanceirasRowActions({
 
       {/* Dialog de Edição */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Editar Receita Financeira</DialogTitle>
             <DialogDescription>
               Faça as alterações necessárias na receita financeira
             </DialogDescription>
           </DialogHeader>
-          <ReceitasFinanceirasForm
-            organizationId={organizationId}
-            safras={safras}
-            receitaId={receita.id}
-            defaultValues={{
-              nome: receita.nome,
-              categoria: receita.categoria,
-              valores_por_safra: receita.valores_por_safra || {},
-              descricao: receita.descricao,
-            }}
-            onSuccess={() => {
-              setIsEditOpen(false);
-              onUpdate?.();
-            }}
-            onCancel={() => setIsEditOpen(false)}
-          />
+          <div className="flex-1 overflow-y-auto px-1">
+            <ReceitasFinanceirasForm
+              organizationId={organizationId}
+              safras={safras}
+              receitaId={receita.id}
+              defaultValues={{
+                descricao: receita.descricao,
+                categoria: receita.categoria,
+                valor: receita.valor,
+                moeda: receita.moeda || "BRL",
+                nome: receita.nome,
+                valores_por_safra: receita.valores_por_safra || {},
+              }}
+              onSuccess={() => {
+                setIsEditOpen(false);
+                onUpdate?.();
+              }}
+              onCancel={() => setIsEditOpen(false)}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -20,9 +20,7 @@ import { PlantingAreaRowActions } from "./planting-area-row-actions";
 import { formatArea } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { FormModal } from "../common/form-modal";
-import { ProductionTableFilter } from "../common/production-table-filter";
 import { ProductionTablePagination } from "../common/production-table-pagination";
-import { useProductionTable } from "@/hooks/use-production-table";
 import {
   PlantingArea,
   Culture,
@@ -73,24 +71,14 @@ export function PlantingAreaList({
   const [isMultiSafraModalOpen, setIsMultiSafraModalOpen] =
     useState<boolean>(false);
   const [deletingAreaId, setDeletingAreaId] = useState<string | null>(null);
-  // Hook para gerenciar filtros e paginação
-  const {
-    searchTerm,
-    filters,
-    currentPage,
-    pageSize,
-    paginatedData,
-    totalPages,
-    totalItems,
-    setSearchTerm,
-    setFilters,
-    setCurrentPage,
-    setPageSize,
-  } = useProductionTable({
-    data: plantingAreas,
-    searchFields: ["cultura_id", "sistema_id"], // Campos para busca textual
-    initialPageSize: 20,
-  });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  
+  const totalPages = Math.ceil(plantingAreas.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedData = plantingAreas.slice(startIndex, startIndex + pageSize);
+  const totalItems = plantingAreas.length;
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -130,21 +118,6 @@ export function PlantingAreaList({
     setIsMultiSafraModalOpen(true);
   };
 
-  // Criar opções para filtros
-  const filterOptions = {
-    safras: harvests
-      .filter((h) => h.id)
-      .map((h) => ({ value: h.id!, label: h.nome })),
-    culturas: cultures
-      .filter((c) => c.id)
-      .map((c) => ({ value: c.id!, label: c.nome })),
-    sistemas: systems
-      .filter((s) => s.id)
-      .map((s) => ({ value: s.id!, label: s.nome })),
-    propriedades: properties
-      .filter((p) => p.id)
-      .map((p) => ({ value: p.id!, label: p.nome })),
-  };
 
   // Ordenar áreas paginadas por safra, cultura e sistema
   const sortedAreas = [...paginatedData].sort((a, b) => {
@@ -186,7 +159,7 @@ export function PlantingAreaList({
       cycle: cycles.find((c) => c.id === area.ciclo_id)?.nome || "Desconhecido",
       harvest:
         // Get the first safra from the areas_por_safra keys
-        harvests.find((h) => h.id === Object.keys(area.areas_por_safra || {})[0])?.nome || "Desconhecida",
+        harvests.find((h) => h.id === Object.keys(area.areas_por_safra || {})[0])?.nome || "N/A",
     };
   };
 
@@ -208,8 +181,8 @@ export function PlantingAreaList({
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant="secondary"
-            className="gap-1"
+            variant="outline"
+            className="gap-1 bg-white text-black hover:bg-gray-100"
             onClick={handleOpenMultiSafra}
           >
             <PlusIcon className="h-4 w-4" />
@@ -219,23 +192,6 @@ export function PlantingAreaList({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Filtros e busca */}
-          <ProductionTableFilter
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            filters={filters}
-            onFiltersChange={setFilters}
-            safras={filterOptions.safras}
-            culturas={filterOptions.culturas}
-            sistemas={filterOptions.sistemas}
-            propriedades={filterOptions.propriedades}
-          />
-          
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Mostrando {paginatedData.length} de {totalItems} áreas de plantio
-            </p>
-          </div>
 
           {plantingAreas.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground space-y-4">
@@ -253,7 +209,7 @@ export function PlantingAreaList({
               <div>Nenhuma área de plantio encontrada para os filtros aplicados.</div>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border mt-4">
               <Table>
                 <TableHeader className="bg-primary rounded-t-md">
                   <TableRow className="border-b-0 hover:bg-primary">

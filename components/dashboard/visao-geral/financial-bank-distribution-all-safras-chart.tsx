@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useTransition, useEffect, useMemo } from "react";
 import { TrendingUp, Building2 } from "lucide-react";
 import {
   Bar,
@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
   ResponsiveContainer,
+  LabelList,
 } from "recharts";
 import {
   Card,
@@ -23,123 +24,16 @@ import {
   ChartTooltip,
   ChartContainer,
 } from "@/components/ui/chart";
-import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Loader2 } from "lucide-react";
-import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
+import { useChartColors } from "@/contexts/chart-colors-context";
+import type { BankDistributionAllSafrasData, BankData } from "@/lib/actions/bank-distribution-all-safras-actions";
+import { getBankDistributionAllSafrasData } from "@/lib/actions/bank-distribution-all-safras-actions";
 
 interface FinancialBankDistributionAllSafrasChartProps {
   organizationId: string;
-}
-
-interface BankData {
-  banco: string;
-  valor: number;
-  percentual: number;
-  rank: number;
-}
-
-// Cor padrão caso não haja cores personalizadas
-const DEFAULT_BAR_COLOR = "#1B124E";
-
-async function getBankDistributionAllSafrasData(
-  organizationId: string
-): Promise<{ data: BankData[] }> {
-  const supabase = createClient();
-
-  // Busca todas as dívidas bancárias
-  const { data: dividasBancarias } = await supabase
-    .from("dividas_bancarias")
-    .select("*")
-    .eq("organizacao_id", organizationId);
-
-  if (!dividasBancarias || dividasBancarias.length === 0) {
-    return { data: [] };
-  }
-
-  // Agrupar por banco
-  const bankTotals: Record<string, number> = {};
-
-  // Processar cada dívida bancária
-  dividasBancarias.forEach((divida) => {
-    const banco = divida.instituicao_bancaria || "BANCO NÃO INFORMADO";
-
-    // Verifica se valores_por_ano existe e processa
-    let valores = divida.valores_por_ano;
-    if (typeof valores === "string") {
-      try {
-        valores = JSON.parse(valores);
-      } catch (e) {
-        console.error("Erro ao parsear valores_por_ano:", e);
-        valores = {};
-      }
-    }
-
-    // Soma todos os valores de todas as safras para este banco
-    let valorTotal = 0;
-
-    if (valores && typeof valores === "object") {
-      // Somar todos os valores de todas as safras
-      Object.values(valores).forEach((valor) => {
-        if (typeof valor === "number" && valor > 0) {
-          valorTotal += valor;
-        }
-      });
-    }
-
-    // Se não encontrou nenhum valor mas tem valor_total, usa ele
-    if (valorTotal === 0 && divida.valor_total) {
-      valorTotal = divida.valor_total;
-    }
-
-    // Acumula o valor no banco correspondente se for maior que zero
-    if (valorTotal > 0) {
-      bankTotals[banco] = (bankTotals[banco] || 0) + valorTotal;
-    }
-  });
-
-  // Calcular total geral
-  const totalGeral = Object.values(bankTotals).reduce(
-    (sum, valor) => sum + valor,
-    0
-  );
-
-  if (totalGeral === 0) {
-    return { data: [] };
-  }
-
-  // Criar array ordenado de bancos
-  const allBanks = Object.entries(bankTotals)
-    .filter(([_, valor]) => valor > 0)
-    .map(([banco, valor]) => ({
-      banco,
-      valor,
-      percentual: (valor / totalGeral) * 100,
-      rank: 0,
-    }))
-    .sort((a, b) => b.valor - a.valor)
-    .map((bank, index) => ({ ...bank, rank: index + 1 }));
-
-  // Pegar os top 8 e agrupar o resto em "OUTROS"
-  const top8 = allBanks.slice(0, 8);
-  const outros = allBanks.slice(8);
-
-  const banks: BankData[] = [...top8];
-
-  // Se há mais de 8 bancos, criar categoria "OUTROS"
-  if (outros.length > 0) {
-    const valorOutros = outros.reduce((sum, bank) => sum + bank.valor, 0);
-    const percentualOutros = (valorOutros / totalGeral) * 100;
-
-    banks.push({
-      banco: `OUTROS (${outros.length})`,
-      valor: valorOutros,
-      percentual: percentualOutros,
-      rank: 9,
-    });
-  }
-
-  return { data: banks };
+  initialData: BankDistributionAllSafrasData;
+  projectionId?: string;
 }
 
 function CustomTooltip({ active, payload, label }: any) {
@@ -184,108 +78,39 @@ function CustomTooltip({ active, payload, label }: any) {
 
 export function FinancialBankDistributionAllSafrasChart({
   organizationId,
+  initialData,
+  projectionId,
 }: FinancialBankDistributionAllSafrasChartProps) {
-  const [data, setData] = useState<BankData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<BankDistributionAllSafrasData>(initialData);
+  const [isPending, startTransition] = useTransition();
   
-  const { palette } = useOrganizationColors(organizationId);
+  // Usar cores customizadas
+  const { colors } = useChartColors();
   
-  // Criar configuração dinâmica do gráfico com cores da organização
+  // Criar configuração do gráfico com cor customizada
   const chartConfig = useMemo(() => ({
     valor: {
       label: "Valor da Dívida",
-      color: palette[0] || DEFAULT_BAR_COLOR,
+      color: colors.color1,
     },
-  } satisfies ChartConfig), [palette]);
+  } satisfies ChartConfig), [colors]);
 
-  // Efeito para carregar dados quando a organização mudar
+  // Update data when filters change
   useEffect(() => {
-    const loadData = async () => {
+    startTransition(async () => {
       try {
-        setLoading(true);
-        setError(null);
-
-        const result = await getBankDistributionAllSafrasData(organizationId);
-
-        const { data: bankData } = result;
-
-        setData(bankData);
-      } catch (err) {
-        console.error("Erro ao carregar dados de distribuição bancária:", err);
-        setError("Erro ao carregar gráfico de distribuição bancária");
-      } finally {
-        setLoading(false);
+        const newData = await getBankDistributionAllSafrasData(
+          organizationId,
+          projectionId
+        );
+        setData(newData);
+      } catch (error) {
+        console.error("Erro ao atualizar dados de distribuição bancária:", error);
       }
-    };
+    });
+  }, [organizationId, projectionId]);
 
-    loadData();
-  }, [organizationId]);
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full p-2 bg-white/20">
-                <Building2 className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-white">
-                  Endividamento por Banco
-                </CardTitle>
-                <CardDescription className="text-white/80">
-                  Carregando distribuição bancária...
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <div className="h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">
-              <div className="flex items-center">
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                Carregando dados bancários...
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full p-2 bg-white/20">
-                <Building2 className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-white">
-                  Endividamento por Banco
-                </CardTitle>
-                <CardDescription className="text-white/80">
-                  {error}
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <div className="h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">{error}</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || data.length === 0) {
+  if (!data.data || data.data.length === 0) {
     return (
       <Card>
         <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
@@ -321,9 +146,9 @@ export function FinancialBankDistributionAllSafrasChart({
   }
 
   // Calcular estatísticas para o footer
-  const total = data.reduce((sum, item) => sum + item.valor, 0);
-  const topBank = data[0];
-  const concentracaoTop3 = data
+  const total = data.data.reduce((sum, item) => sum + item.valor, 0);
+  const topBank = data.data[0];
+  const concentracaoTop3 = data.data
     .slice(0, 3)
     .reduce((sum, bank) => sum + bank.percentual, 0);
 
@@ -338,6 +163,7 @@ export function FinancialBankDistributionAllSafrasChart({
             <div>
               <CardTitle className="text-white">
                 Endividamento por Banco (Consolidado)
+                {isPending && " (Atualizando...)"}
               </CardTitle>
               <CardDescription className="text-white/80">
                 Top 8 bancos + outros - Ranking por valor de dívida
@@ -351,8 +177,8 @@ export function FinancialBankDistributionAllSafrasChart({
           <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={data}
-                margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                data={data.data}
+                margin={{ top: 30, right: 10, left: 0, bottom: 20 }}
               >
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis
@@ -391,13 +217,23 @@ export function FinancialBankDistributionAllSafrasChart({
                   dataKey="valor"
                   fill="var(--color-valor)"
                   radius={[4, 4, 0, 0]}
-                />
+                >
+                  <LabelList
+                    dataKey="valor"
+                    position="top"
+                    formatter={(value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)}
+                    fill="var(--color-valor)"
+                    fontSize={11}
+                    fontWeight="600"
+                    offset={8}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartContainer>
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4 bg-muted/30">
+      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4">
         <div className="flex gap-2 font-medium leading-none dark:text-white">
           🏆 <span className="font-semibold">{topBank.banco}</span> lidera com{" "}
           {topBank.percentual.toFixed(1)}% do endividamento

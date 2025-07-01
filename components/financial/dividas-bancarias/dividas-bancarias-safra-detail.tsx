@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useTransition } from "react";
 import {
   Table,
   TableBody,
@@ -11,52 +11,44 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { getSafras } from "@/lib/actions/production-actions";
 import { getCotacoesCambio } from "@/lib/actions/financial-actions/cotacoes-cambio-actions";
 
+interface SafraData {
+  id: string;
+  nome: string;
+}
+
+interface CotacaoData {
+  safra_id: string;
+  tipo_moeda: string;
+  cotacao_atual: number;
+  cotacoes_por_ano?: any;
+}
+
 interface DividasBancariasSafraDetailProps {
   divida: any;
   organizacaoId: string;
+  // Novos props para dados pré-carregados (opcional para lazy loading)
+  initialSafras?: SafraData[];
+  initialCotacoes?: CotacaoData[];
 }
 
 export function DividasBancariasSafraDetail({
   divida,
   organizacaoId,
+  initialSafras,
+  initialCotacoes,
 }: DividasBancariasSafraDetailProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [safras, setSafras] = useState<any[]>([]);
-  const [cotacoes, setCotacoes] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Carregar safras e cotações ao expandir
-  useEffect(() => {
-    if (isExpanded && safras.length === 0 && !isLoading) {
-      setIsLoading(true);
-      
-      const loadData = async () => {
-        try {
-          const [safrasData, cotacoesData] = await Promise.all([
-            getSafras(organizacaoId),
-            getCotacoesCambio(organizacaoId)
-          ]);
-          setSafras(safrasData || []);
-          setCotacoes(cotacoesData || []);
-        } catch (error) {
-          console.error("Erro ao carregar dados:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      loadData();
-    }
-  }, [isExpanded, safras.length, organizacaoId, isLoading]);
+  const [safras, setSafras] = useState<SafraData[]>(initialSafras || []);
+  const [cotacoes, setCotacoes] = useState<CotacaoData[]>(initialCotacoes || []);
+  const [isPending, startTransition] = useTransition();
   
   // Obter valores por safra
   const getValoresPorSafra = () => {
-    // Aceitar tanto valores_por_safra (campo virtual) quanto valores_por_ano (campo real)
     const valores = divida.valores_por_safra || divida.valores_por_ano || {};
     
     if (typeof valores === 'string') {
@@ -87,19 +79,17 @@ export function DividasBancariasSafraDetail({
   // Obter nome da safra pelo ID
   const getSafraName = (safraId: string) => {
     const safra = safras.find(s => s.id === safraId);
-    return safra ? safra.nome : `Safra ${safraId.substring(0, 8)}`;
+    return safra ? safra.nome : "N/A";
   };
   
   // Obter cotação de câmbio para uma safra específica
   const getExchangeRateForSafra = (safraId: string): number => {
-    // Buscar cotação de DOLAR_FECHAMENTO para a safra
     const cotacao = cotacoes.find(c => 
       c.safra_id === safraId && 
       c.tipo_moeda === "DOLAR_FECHAMENTO"
     );
     
     if (cotacao && cotacao.cotacoes_por_ano) {
-      // Se tem cotações por ano, pegar a cotação para o safraId
       const cotacoesPorAno = typeof cotacao.cotacoes_por_ano === 'string' 
         ? JSON.parse(cotacao.cotacoes_por_ano)
         : cotacao.cotacoes_por_ano;
@@ -107,7 +97,27 @@ export function DividasBancariasSafraDetail({
       return cotacoesPorAno[safraId] || cotacao.cotacao_atual || 5.7;
     }
     
-    return cotacao?.cotacao_atual || 5.7; // Default 5.7 como no CSV
+    return cotacao?.cotacao_atual || 5.7;
+  };
+
+  // Função para expandir e carregar dados se necessário
+  const handleExpand = async () => {
+    if (!isExpanded && safras.length === 0 && !initialSafras) {
+      // Lazy load apenas se não temos dados iniciais
+      startTransition(async () => {
+        try {
+          const [safrasData, cotacoesData] = await Promise.all([
+            getSafras(organizacaoId),
+            getCotacoesCambio(organizacaoId)
+          ]);
+          setSafras(safrasData || []);
+          setCotacoes(cotacoesData || []);
+        } catch (error) {
+          console.error("Erro ao carregar dados:", error);
+        }
+      });
+    }
+    setIsExpanded(!isExpanded);
   };
   
   return (
@@ -115,7 +125,8 @@ export function DividasBancariasSafraDetail({
       <Button
         variant="ghost"
         className="flex items-center justify-between w-full mb-2 border"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleExpand}
+        disabled={isPending}
       >
         <span className="text-sm font-medium">
           Pagamentos por Safra
@@ -127,7 +138,9 @@ export function DividasBancariasSafraDetail({
               {divida.moeda || "BRL"}
             </span>
           </span>
-          {isExpanded ? (
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isExpanded ? (
             <ChevronUp className="h-4 w-4" />
           ) : (
             <ChevronDown className="h-4 w-4" />
@@ -138,7 +151,7 @@ export function DividasBancariasSafraDetail({
       {isExpanded && (
         <Card className="mt-2 border-dashed">
           <CardContent className="p-3">
-            {isLoading ? (
+            {isPending || safras.length === 0 ? (
               <div className="text-sm text-muted-foreground py-4 text-center">
                 Carregando dados das safras...
               </div>

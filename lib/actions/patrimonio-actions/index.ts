@@ -1153,5 +1153,65 @@ export async function createLandPlansBatch(landPlans: any[]) {
   }
 }
 
+// Multi-safra investment creation
+export async function createMultiSafraInvestments(
+  organizationId: string,
+  data: {
+    categoria: string;
+    tipo: string;
+    investimentos_por_safra: Record<string, { quantidade: number; valor_unitario: number }>;
+  }
+) {
+  try {
+    if (!organizationId || organizationId === "undefined" || organizationId === "null") {
+      throw new Error(`ID da organização é obrigatório. Recebido: ${organizationId}`);
+    }
+
+    const supabase = await createClient();
+    
+    // Get safra details to determine years
+    const safraIds = Object.keys(data.investimentos_por_safra);
+    const { data: safras, error: safrasError } = await supabase
+      .from("safras")
+      .select("id, nome, ano_inicio")
+      .in("id", safraIds);
+
+    if (safrasError) throw safrasError;
+
+    // Create individual investment records for each safra
+    const investmentRecords = Object.entries(data.investimentos_por_safra).map(([safraId, investment]) => {
+      const safra = safras?.find(s => s.id === safraId);
+      const ano = safra?.ano_inicio || new Date().getFullYear();
+      const valorTotal = investment.quantidade * investment.valor_unitario;
+
+      return {
+        organizacao_id: organizationId,
+        categoria: data.categoria,
+        tipo: data.tipo,
+        safra_id: safraId,
+        ano,
+        quantidade: investment.quantidade,
+        valor_unitario: investment.valor_unitario,
+        valor_total: valorTotal,
+      };
+    });
+
+    const { data: results, error } = await supabase
+      .from("investimentos")
+      .insert(investmentRecords)
+      .select();
+
+    if (error) {
+      console.error("Erro ao inserir investimentos multi-safra:", error);
+      throw error;
+    }
+
+    return results || [];
+  } catch (error) {
+    console.error("Erro ao criar investimentos multi-safra:", error);
+    throw error;
+  }
+}
+
 // Tipos exportados para compatibilidade
 export type { Investment, AssetSale, LandAcquisition };

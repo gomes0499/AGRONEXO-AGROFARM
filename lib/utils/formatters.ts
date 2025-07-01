@@ -6,14 +6,16 @@ import { ptBR } from 'date-fns/locale';
 
 // Formata moeda em reais (R$) com feedback visual melhorado
 export function formatCurrency(value: number | null | undefined, decimals: number = 2): string {
-  if (value === null || value === undefined) return 'R$ 0,00';
+  if (value === null || value === undefined) {
+    return decimals === 0 ? 'R$ 0' : 'R$ 0,00';
+  }
   
   // Detecta se é um valor negativo para aplicar cor vermelha em componentes UI
   const isNegative = value < 0;
   const absValue = Math.abs(value);
   
   // Garante que decimals está dentro do intervalo válido (0-20)
-  const validDecimals = Math.max(0, Math.min(20, decimals || 2));
+  const validDecimals = Math.max(0, Math.min(20, decimals ?? 2));
   
   // Formata com símbolo de moeda, separador de milhar e com casas decimais conforme especificado
   const formatted = new Intl.NumberFormat('pt-BR', {
@@ -36,7 +38,7 @@ export function formatUsdCurrency(value: number | null | undefined, decimals: nu
   const absValue = Math.abs(value);
   
   // Garante que decimals está dentro do intervalo válido (0-20)
-  const validDecimals = Math.max(0, Math.min(20, decimals || 2));
+  const validDecimals = Math.max(0, Math.min(20, decimals ?? 2));
   
   // Formata com símbolo de moeda, separador de milhar e com casas decimais
   const formatted = new Intl.NumberFormat('en-US', {
@@ -64,7 +66,7 @@ export function formatEurCurrency(value: number | null | undefined, decimals: nu
   const absValue = Math.abs(value);
   
   // Garante que decimals está dentro do intervalo válido (0-20)
-  const validDecimals = Math.max(0, Math.min(20, decimals || 2));
+  const validDecimals = Math.max(0, Math.min(20, decimals ?? 2));
   
   // Formata com símbolo de moeda, separador de milhar e com casas decimais conforme especificado
   const formatted = new Intl.NumberFormat('de-DE', {
@@ -182,6 +184,13 @@ export function formatNumber(value: number | null | undefined, decimals: number 
 export function formatPercent(value: number | null | undefined, decimals: number = 2): string {
   if (value === null || value === undefined) return '0%';
   
+  // Se o valor já está em porcentagem (ex: 50 para 50%), não usar style: 'percent'
+  // que multiplicaria por 100 novamente
+  if (value >= 1) {
+    return `${value.toFixed(decimals)}%`;
+  }
+  
+  // Se o valor está em decimal (ex: 0.5 para 50%), usar style: 'percent'
   return value.toLocaleString('pt-BR', {
     style: 'percent',
     minimumFractionDigits: decimals,

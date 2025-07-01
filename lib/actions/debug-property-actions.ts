@@ -64,7 +64,7 @@ export async function debugPropertiesQuery() {
       .single();
       
     if (!rlsError && rlsCheck) {
-      debugInfo.database.rlsEnabled = rlsCheck;
+      (debugInfo.database as any).rlsEnabled = rlsCheck;
     }
     
   } catch (error) {

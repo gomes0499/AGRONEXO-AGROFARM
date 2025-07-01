@@ -67,7 +67,7 @@ export function FinancialPagination({
           {totalItems === 0 ? (
             "Nenhum item encontrado"
           ) : (
-            `${totalItems} ${totalItems === 1 ? "item" : "itens"} no total`
+            ""
           )}
         </div>
         <div className="flex items-center space-x-2">
@@ -95,7 +95,6 @@ export function FinancialPagination({
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-4 px-4 bg-gray-50 dark:bg-gray-800 rounded-md">
       <div className="text-sm font-medium text-gray-700 dark:text-gray-200">
-        Mostrando {startItem} a {endItem} de {totalItems} {totalItems === 1 ? "item" : "itens"}
       </div>
 
       <div className="flex flex-col md:flex-row items-center gap-6">

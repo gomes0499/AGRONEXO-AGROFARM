@@ -15,12 +15,17 @@ export const metadata: Metadata = {
   description: "Gerenciamento de benfeitorias e melhorias da propriedade.",
 };
 
+interface ImprovementsPageProps {
+  params: Promise<{
+    id: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[]>>;
+}
+
 export default async function ImprovementsPage({
   params,
-}: {
-  params: any;
-  searchParams?: any;
-}) {
+}: ImprovementsPageProps) {
+  const resolvedParams = await params;
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
   
@@ -32,8 +37,8 @@ export default async function ImprovementsPage({
 
   try {
     const [property, improvements] = await Promise.all([
-      getPropertyById(params.id),
-      getImprovements(session.organizationId, params.id),
+      getPropertyById(resolvedParams.id),
+      getImprovements(session.organizationId, resolvedParams.id),
     ]);
 
     // Verificar se a propriedade pertence à organização atual
@@ -46,7 +51,7 @@ export default async function ImprovementsPage({
         <SiteHeader 
           title={`Benfeitorias: ${property.nome}`} 
           showBackButton 
-          backUrl={`/dashboard/properties/${params.id}`} 
+          backUrl={`/dashboard/properties/${resolvedParams.id}`} 
           backLabel="Voltar à Propriedade"
         />
         <div className="flex flex-col gap-6 p-6">
@@ -61,7 +66,7 @@ export default async function ImprovementsPage({
           <Separator />
           <ImprovementList
             improvements={improvements}
-            propertyId={params.id}
+            propertyId={resolvedParams.id}
             organizationId={session.organizationId}
           />
         </div>

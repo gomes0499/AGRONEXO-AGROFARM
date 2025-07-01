@@ -1,0 +1,3 @@
+lib/actions/production-wrapper-actions.ts(32,10): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any>>'.
+lib/actions/production-wrapper-actions.ts(37,10): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any>>'.
+lib/actions/production-wrapper-actions.ts(48,39): error TS7006: Parameter 's' implicitly has an 'any' type.

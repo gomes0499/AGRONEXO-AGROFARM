@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronsUpDown, PlusCircle } from "lucide-react";
 import { useOrganization } from "@/components/auth/organization-provider";
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { OrganizationFormContainer } from "@/components/organization/organization/form/organization-form-container";
+import { OrganizationFormModal } from "@/components/organization/organization/form/organization-form-modal";
 
 interface Organization {
   id: string;
@@ -74,7 +75,7 @@ export function OrganizationSwitcher() {
         // Para usuários normais, buscar apenas organizações associadas
         const { data, error } = await supabase
           .from("associacoes")
-          .select("*, organizacao:organizacao_id(id, nome, slug, logo)")
+          .select("*, organizacao:organizacoes!associacoes_organizacao_id_fkey(id, nome, slug, logo)")
           .eq("usuario_id", user.id);
 
         if (error) throw error;
@@ -125,7 +126,7 @@ export function OrganizationSwitcher() {
       const supabase = createClient();
 
       // Atualizar nos user_metadata para que o backend possa acessar
-      await supabase.auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         data: {
           organizacao: {
             id: org.id,
@@ -134,6 +135,10 @@ export function OrganizationSwitcher() {
           },
         },
       });
+      
+      if (updateError) {
+        console.error("Erro ao atualizar user metadata:", updateError);
+      }
 
       // Atualizar também o último login para esta organização
       await supabase
@@ -145,9 +150,17 @@ export function OrganizationSwitcher() {
       // Fechar popover
       setOpen(false);
 
-      // Forçar uma navegação completa para atualizar a página inteira
-      // Isso garante que os componentes do servidor serão renderizados com a nova organização
-      window.location.href = "/dashboard";
+      // Aguardar um pouco para garantir que o metadata foi atualizado no servidor
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Fazer um refresh soft usando router para atualizar os server components
+      // sem causar uma navegação completa
+      router.refresh();
+      
+      // Force a hard reload to ensure organization switching works
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     } catch (error) {
       console.error("Erro ao trocar de organização:", error);
     }
@@ -175,31 +188,27 @@ export function OrganizationSwitcher() {
   };
 
 
-  // Obtem iniciais para avatar - usando React.useMemo para garantir consistência entre servidor e cliente
-  const getInitials = React.useMemo(() => {
-    // Inicializamos com um valor memorizado para evitar problemas de hidratação
-    const cache: Record<string, string> = {};
+  // Função para obter iniciais sem cache para evitar problemas de hidratação
+  const getInitials = (name: string | null | undefined): string => {
+    if (!name || name.trim() === "") return "OR";
 
-    return (name: string): string => {
-      // Se já calculamos antes, retorna do cache
-      if (cache[name]) return cache[name];
+    const initials = name
+      .trim()
+      .split(" ")
+      .map((part) => (part && part.length > 0 ? part[0] : ""))
+      .filter(Boolean)
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
 
-      if (!name || name.trim() === "") return "OR";
+    return initials || "OR";
+  };
 
-      // Calculamos e armazenamos em cache
-      const initials =
-        name
-          .trim()
-          .split(" ")
-          .map((part) => (part && part.length > 0 ? part[0] : ""))
-          .filter(Boolean)
-          .join("")
-          .toUpperCase()
-          .substring(0, 2) || "OR";
+  // Estado para evitar problemas de hidratação
+  const [mounted, setMounted] = React.useState(false);
 
-      cache[name] = initials;
-      return initials;
-    };
+  React.useEffect(() => {
+    setMounted(true);
   }, []);
 
   return (
@@ -211,14 +220,14 @@ export function OrganizationSwitcher() {
               <SidebarMenuButton className="flex w-full justify-between bg-muted/50 h-10">
                 <div className="flex items-center gap-2">
                   <Avatar className="h-7 w-7 rounded-md">
-                    {organization && organization.logo ? (
+                    {mounted && organization?.logo && (
                       <AvatarImage
                         src={organization.logo}
                         alt={organization.nome || ""}
                       />
-                    ) : null}
+                    )}
                     <AvatarFallback className="rounded-md bg-primary text-xs text-foreground">
-                      {organization && organization.nome
+                      {mounted && organization?.nome
                         ? getInitials(organization.nome)
                         : "OR"}
                     </AvatarFallback>
@@ -251,11 +260,11 @@ export function OrganizationSwitcher() {
                         className="text-sm"
                       >
                         <Avatar className="mr-2 h-6 w-6 rounded-md">
-                          {org.logo ? (
+                          {mounted && org.logo && (
                             <AvatarImage src={org.logo} alt={org.nome || ""} />
-                          ) : null}
+                          )}
                           <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">
-                            {org.nome ? getInitials(org.nome) : "OR"}
+                            {mounted && org.nome ? getInitials(org.nome) : "OR"}
                           </AvatarFallback>
                         </Avatar>
                         <span>{org.nome}</span>
@@ -289,7 +298,7 @@ export function OrganizationSwitcher() {
 
       {/* Form de Nova Organização */}
       {showNewOrgForm && user && (
-        <OrganizationFormContainer
+        <OrganizationFormModal
           userId={user.id}
           isOpen={showNewOrgForm}
           onClose={handleCloseNewOrgForm}

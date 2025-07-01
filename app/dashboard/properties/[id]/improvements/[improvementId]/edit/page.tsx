@@ -11,12 +11,18 @@ export const metadata: Metadata = {
   description: "Edite os dados de uma benfeitoria ou melhoria.",
 };
 
+interface EditImprovementPageProps {
+  params: Promise<{
+    id: string;
+    improvementId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[]>>;
+}
+
 export default async function EditImprovementPage({
   params,
-}: {
-  params: any;
-  searchParams?: any;
-}) {
+}: EditImprovementPageProps) {
+  const resolvedParams = await params;
   const session = await getSession();
   
   if (!session?.organizationId) {
@@ -25,14 +31,14 @@ export default async function EditImprovementPage({
   
   try {
     const [property, improvement] = await Promise.all([
-      getPropertyById(params.id),
-      getImprovementById(params.improvementId)
+      getPropertyById(resolvedParams.id),
+      getImprovementById(resolvedParams.improvementId)
     ]);
     
     // Verificar se a propriedade e a benfeitoria pertencem à organização atual
     if (property.organizacao_id !== session.organizationId || 
         improvement.organizacao_id !== session.organizationId ||
-        improvement.propriedade_id !== params.id) {
+        improvement.propriedade_id !== resolvedParams.id) {
       notFound();
     }
     
@@ -41,7 +47,7 @@ export default async function EditImprovementPage({
         <SiteHeader 
           title="Editar Benfeitoria" 
           showBackButton 
-          backUrl={`/dashboard/properties/${params.id}/improvements`} 
+          backUrl={`/dashboard/properties/${resolvedParams.id}/improvements`} 
           backLabel="Voltar para Benfeitorias"
         />
         <div className="flex flex-col gap-6 p-6">
@@ -54,7 +60,7 @@ export default async function EditImprovementPage({
           <Separator />
           <ImprovementForm 
             improvement={improvement}
-            propertyId={params.id} 
+            propertyId={resolvedParams.id} 
             organizationId={session.organizationId} 
           />
         </div>

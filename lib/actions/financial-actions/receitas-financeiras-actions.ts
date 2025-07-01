@@ -151,7 +151,7 @@ export async function getReceitasFinanceirasBySafra(
   
   // Calcular total por categoria para a safra específica
   const totaisPorCategoria = receitas.reduce((acc, receita) => {
-    const valor = receita.valores_por_safra?.[safraId] || 0;
+    const valor = (receita.valores_por_safra as any)?.[safraId] || 0;
     if (!acc[receita.categoria]) {
       acc[receita.categoria] = 0;
     }
@@ -178,10 +178,45 @@ export async function getTotalReceitasFinanceirasBySafra(
   // Calcular totais por safra
   const totaisPorSafra = safraIds.reduce((acc, safraId) => {
     acc[safraId] = receitas.reduce((sum, receita) => {
-      return sum + (receita.valores_por_safra?.[safraId] || 0);
+      return sum + ((receita.valores_por_safra as any)?.[safraId] || 0);
     }, 0);
     return acc;
   }, {} as Record<string, number>);
 
   return totaisPorSafra;
+}
+
+/**
+ * Cria múltiplas receitas financeiras em lote
+ */
+export async function createReceitasFinanceirasBatch(
+  items: Array<{
+    organizacao_id: string;
+    categoria: string;
+    descricao: string;
+    moeda: string;
+    valor: number;
+    safra_id?: string;
+    data_receita?: string;
+  }>
+) {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("receitas_financeiras")
+      .insert(items)
+      .select();
+
+    if (error) {
+      console.error("Erro ao criar itens em lote:", error);
+      return { error: "Não foi possível importar as receitas financeiras." };
+    }
+
+    revalidatePath("/dashboard/financial");
+    return { data };
+  } catch (error) {
+    console.error("Erro ao processar importação:", error);
+    return { error: "Erro ao processar importação de receitas financeiras." };
+  }
 }

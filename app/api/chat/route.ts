@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     return result.toDataStreamResponse()
   } catch (error) {
     console.error("Erro na API de chat (Groq):", error)
-    return new Response(JSON.stringify({ error: "Erro ao processar a solicitação", details: (error as Error).message }), {
+    return new Response(JSON.stringify({ error: "Erro ao processar a solicitação", message: "Ocorreu um erro interno. Por favor, tente novamente." }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     })

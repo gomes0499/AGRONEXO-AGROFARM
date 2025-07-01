@@ -18,7 +18,7 @@ export function DebugPanel() {
       setDebugInfo(info);
     } catch (error) {
       console.error("Erro ao executar debug:", error);
-      setDebugInfo({ error: error.message });
+      setDebugInfo({ error: (error as Error).message });
     } finally {
       setLoading(false);
     }

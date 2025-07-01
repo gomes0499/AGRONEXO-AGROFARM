@@ -12,7 +12,6 @@ import {
   CreditCard,
   FileText,
   Users,
-  Palette,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,6 @@ import {
 import { InfoField } from "../common/data-display/info-field";
 import { CardHeaderPrimary } from "../common/data-display/card-header-primary";
 import { CorporateStructureDiagram } from "./corporate-structure-diagram";
-import { BrandingColorsDisplay } from "./branding-colors-display";
 
 type OrganizationDetailInfoProps = {
   organization: any;
@@ -195,23 +193,6 @@ export function OrganizationDetailInfo({
           <CorporateStructureDiagram
             organizationName={organization.nome}
             socios={organization.estrutura_societaria || []}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Cores de Branding */}
-      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
-        <CardHeaderPrimary
-          icon={<Palette className="h-4 w-4" />}
-          title="Identidade Visual"
-          description="Cores personalizadas da marca e preview de aplicação"
-        />
-        <CardContent className="mt-4">
-          <BrandingColorsDisplay
-            corPrimaria={organization.cor_primaria}
-            corSecundaria={organization.cor_secundaria}
-            corFundo={organization.cor_fundo}
-            corTexto={organization.cor_texto}
           />
         </CardContent>
       </Card>

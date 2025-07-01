@@ -134,7 +134,7 @@ export function OrganizationDetailInvites({
             organizationId={organizationId}
             organizationName={organizationName || ""}
             trigger={
-              <Button variant="secondary" className="gap-1" size="default">
+              <Button variant="outline" className="gap-1 bg-white text-black hover:bg-gray-100" size="default">
                 <UserPlus className="h-4 w-4 mr-1" />
                 Convidar Membro
               </Button>
@@ -272,7 +272,7 @@ export function OrganizationDetailInvites({
               organizationId={organizationId}
               organizationName={organizationName || ""}
               trigger={
-                <Button>
+                <Button variant="outline" className="bg-white text-black hover:bg-gray-100">
                   <UserPlus className="mr-2 h-4 w-4" />
                   Convidar Membros
                 </Button>

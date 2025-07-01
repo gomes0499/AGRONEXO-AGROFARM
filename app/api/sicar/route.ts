@@ -72,7 +72,7 @@ interface InfoSimplesImovelResponse {
     status: string;
     tipo: string;
   }>;
-  errors: any[];
+  errors: unknown[];
 }
 
 interface InfoSimplesDemonstrativoResponse {
@@ -109,7 +109,7 @@ interface InfoSimplesDemonstrativoResponse {
       area_legal_proposta: number;
       area_legal_declarada: number;
     };
-    restricoes: any[];
+    restricoes: unknown[];
     situacao: string;
     solo: {
       area_nativa: number;
@@ -118,7 +118,7 @@ interface InfoSimplesDemonstrativoResponse {
     };
     site_receipt: string;
   }>;
-  errors: any[];
+  errors: unknown[];
 }
 
 export async function GET(request: Request) {
@@ -254,7 +254,7 @@ export async function GET(request: Request) {
     
     // Função para calcular área cultivável seguindo a fórmula:
     // Área de cultivo ≈ Área total - (RL + APP + Uso Restrito + Vegetação Nativa)
-    function calcularAreaCultivavel(estatisticas: any): number {
+    function calcularAreaCultivavel(estatisticas: Estatisticas | undefined): number {
       try {
         if (!estatisticas) return 0;
         
@@ -287,7 +287,7 @@ export async function GET(request: Request) {
 
     // Função para criar um polígono aproximado da área cultivável
     // Como não temos o polígono real, vamos criar uma aproximação
-    function criarPoligonoAreaCultivavel(geometrias: any, estatisticas: any): any {
+    function criarPoligonoAreaCultivavel(geometrias: Geometrias | undefined, estatisticas: Estatisticas | undefined): object | null {
       try {
         if (!geometrias || !geometrias.geometria_total) {
           return null;
@@ -421,7 +421,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Erro ao buscar dados do SICAR:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    const errorStack = error instanceof Error ? error.stack : '';
+    // const errorStack = error instanceof Error ? error.stack : '';
     
     // Verificar se o erro é de conexão (API indisponível)
     if (error instanceof TypeError && errorMessage.includes('fetch')) {
@@ -437,8 +437,8 @@ export async function GET(request: Request) {
     
     return new Response(JSON.stringify({ 
       error: 'Erro ao processar a requisição',
-      message: errorMessage,
-      stack: process.env.NODE_ENV === 'development' ? errorStack : undefined 
+      message: "Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente.",
+      // Nunca expor stack trace, mesmo em desenvolvimento 
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -461,7 +461,7 @@ function calcularCentroPoligono(coords: number[][]): [number, number] {
 }
 
 // Função auxiliar segura para calcular o centro com verificações
-function calcularCentroPoligonoSeguro(geometria: any): [number, number] {
+function calcularCentroPoligonoSeguro(geometria: Geometria | undefined): [number, number] {
   try {
     if (!geometria) {
       return [0, 0];

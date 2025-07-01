@@ -134,133 +134,21 @@ export async function deleteOrganization(formData: FormData) {
       }
     }
     
-    try {
-      // Desativar temporariamente os triggers de auditoria para evitar conflitos
-      await supabase.rpc('desativar_triggers_auditoria');
-      
-      // Excluir todos os dados relacionados à organização em ordem para evitar violações de chave estrangeira
-      // 1. Primeiro excluir registros de auditoria existentes
-      await supabase
-        .from("auditoria")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-      
-      // 2. Excluir convites pendentes
-      await supabase
-        .from("convites")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      // 3. Excluir dados de produção (área de plantio, produtividade, custos, rebanho, operações)
-      await supabase
-        .from("area_plantio")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("produtividade")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("custo_producao")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("rebanho")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("operacao_pecuaria")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      // 4. Excluir configurações (culturas, sistemas, ciclos, safras)
-      await supabase
-        .from("culturas")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("sistemas")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("ciclos")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("safras")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      // 5. Excluir dados comerciais (preços, vendas)
-      await supabase
-        .from("precos")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("venda_sementes")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("venda_pecuaria")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      // 6. Excluir propriedades e relacionados
-      await supabase
-        .from("arrendamentos")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("benfeitorias")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      await supabase
-        .from("propriedades")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      // 7. Excluir as associações de membros
-      await supabase
-        .from("associacoes")
-        .delete()
-        .eq("organizacao_id", organizacaoId);
-        
-      // 8. Por fim, excluir a organização
-      const { error: deleteError } = await supabase
-        .from("organizacoes")
-        .delete()
-        .eq("id", organizacaoId);
-        
-      if (deleteError) {
-        throw new Error(`Erro ao excluir organização: ${deleteError.message}`);
-      }
-      
-      // Reativar os triggers de auditoria
-      await supabase.rpc('ativar_triggers_auditoria');
-      
-      // Retornar sucesso e o caminho para redirecionamento
-      return { success: true, redirect: "/dashboard" };
-    } catch (innerError) {
-      // Em caso de erro, garantir que os triggers sejam reativados
-      try {
-        await supabase.rpc('ativar_triggers_auditoria');
-      } catch (e) {
-        console.error("Erro ao reativar triggers:", e);
-      }
-      
-      throw innerError; // Relançar o erro para ser tratado pelo catch externo
+    // Usar a função SQL cascade que não tenta desabilitar triggers
+    console.log("Excluindo organização usando função SQL cascade...");
+    
+    const { error: deleteError } = await supabase.rpc('delete_organization_cascade', { org_id: organizacaoId });
+    
+    if (deleteError) {
+      console.error("Erro ao excluir organização:", deleteError);
+      return { error: `Erro ao excluir organização: ${deleteError.message}` };
     }
+    
+    console.log("Organização excluída com sucesso");
+    
+    // Retornar sucesso e o caminho para redirecionamento
+    return { success: true, redirect: "/dashboard" };
+    
   } catch (error) {
     console.error("Erro ao excluir organização:", error);
     // Verifica se o erro é de redirecionamento do Next.js
@@ -268,7 +156,7 @@ export async function deleteOrganization(formData: FormData) {
       // Este é um redirecionamento intencional, não um erro
       throw error; // Relançar para que o Next.js possa processar o redirecionamento
     }
-    return { error: "Erro ao processar a solicitação de exclusão" };
+    return { error: "Erro ao processar a solicitação" };
   }
 }
 

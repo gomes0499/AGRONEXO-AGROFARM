@@ -4,19 +4,25 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { UserRole } from "@/lib/auth/roles";
 import { formatCPF, formatRG, formatPhone } from "@/lib/utils/formatters";
-import { 
-  MailIcon, 
-  User, 
-  Phone, 
-  MapPin, 
+import {
+  MailIcon,
+  User,
+  Phone,
+  MapPin,
   FileText,
   Calendar,
   CreditCard,
   Clock,
-  X
+  X,
+  Shield,
+  UserCheck,
+  Home,
+  Heart,
+  Building,
+  Activity,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTriggerPrimary } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
@@ -75,11 +81,11 @@ export function MemberDetailsModal({
 
   const fetchMemberData = async () => {
     if (!memberId) return;
-    
+
     setLoading(true);
     try {
       const result = await getMemberDetails(memberId, organizationId);
-      
+
       if (result.success && result.data) {
         setMember(result.data);
       } else {
@@ -140,21 +146,27 @@ export function MemberDetailsModal({
   };
 
   // Campo de informação reutilizável
-  const InfoField = ({ 
-    icon: Icon, 
-    label, 
-    value 
-  }: { 
-    icon: any; 
-    label: string; 
-    value: string | undefined 
+  const InfoField = ({
+    icon: Icon,
+    label,
+    value,
+    className = "",
+  }: {
+    icon: any;
+    label: string;
+    value: string | undefined;
+    className?: string;
   }) => (
-    <div className="space-y-2">
-      <div className="flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+    <div
+      className={`group relative bg-card rounded-lg p-4 hover:bg-accent/50 transition-colors border ${className}`}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <div className="p-1.5 rounded-md bg-background group-hover:bg-primary/10 transition-colors">
+          <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+        </div>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
       </div>
-      <p className="text-sm ml-5">{value || "Não informado"}</p>
+      <p className="text-sm font-medium pl-8">{value || "Não informado"}</p>
     </div>
   );
 
@@ -167,223 +179,327 @@ export function MemberDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[95%] md:max-w-[90%] lg:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex flex-row items-center space-y-0 pb-4">
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            Detalhes do Membro
+      <DialogContent className="sm:max-w-[95%] md:max-w-[90%] lg:max-w-5xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="px-6 py-4 border-b bg-card">
+          <DialogTitle className="flex items-center gap-3 text-lg">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <UserCheck className="h-4 w-4 text-primary" />
+            </div>
+            Informações do Membro
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto pr-2">
+        <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="flex flex-col items-center justify-center h-64 gap-3">
+              <div className="animate-spin rounded-full h-10 w-10 border-2 border-muted border-t-primary"></div>
+              <p className="text-sm text-muted-foreground">
+                Carregando informações...
+              </p>
             </div>
           ) : member ? (
-            <div className="space-y-6">
+            <div className="p-6 space-y-6">
               {/* Header com informações básicas */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 rounded-md">
-                    <AvatarImage
-                      src={userData?.imagem || ""}
-                      alt={userData?.nome || ""}
-                    />
-                    <AvatarFallback className="text-lg">
-                      {getInitials(userData)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="text-xl font-bold">
-                      {userData?.nome || userData?.email?.split("@")[0] || "Usuário"}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <MailIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground text-sm">
-                        {userData?.email || "email@exemplo.com"}
+              <div className="relative overflow-hidden bg-card rounded-xl p-6 border">
+                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Avatar className="h-20 w-20 ring-4 ring-background shadow-xl">
+                        <AvatarImage
+                          src={userData?.imagem || ""}
+                          alt={userData?.nome || ""}
+                        />
+                        <AvatarFallback className="text-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                          {getInitials(userData)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div
+                        className={`absolute -bottom-1 -right-1 p-1.5 rounded-full ${getRoleBadgeColor(
+                          member.funcao
+                        )} shadow-lg`}
+                      >
+                        <Shield className="h-3 w-3 text-white" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold">
+                        {userData?.nome ||
+                          userData?.email?.split("@")[0] ||
+                          "Usuário"}
+                      </h3>
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-1.5">
+                          <MailIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground text-sm">
+                            {userData?.email || "email@exemplo.com"}
+                          </span>
+                        </div>
+                        {userData?.telefone && (
+                          <>
+                            <span className="text-muted-foreground">•</span>
+                            <div className="flex items-center gap-1.5">
+                              <Phone className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground text-sm">
+                                {formatPhone(userData.telefone)}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge
+                      variant="default"
+                      className="px-4 py-1.5 text-sm shadow-sm"
+                    >
+                      {getRoleDisplay(member.funcao)}
+                    </Badge>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Activity className="h-3 w-3" />
+                      <span>
+                        {member.ultimo_login
+                          ? `Ativo ${formatDate(member.ultimo_login)}`
+                          : "Nunca acessou"}
                       </span>
                     </div>
                   </div>
                 </div>
-                <Badge variant="default" className="w-fit">
-                  {getRoleDisplay(member.funcao)}
-                </Badge>
               </div>
 
               {/* Tabs com informações detalhadas */}
               <Tabs defaultValue="personal" className="w-full">
-                <div className="bg-muted/50 border-b mb-4">
-                  <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
-                    <TabsTrigger 
-                      value="personal"
-                      className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-                    >
+                <div className="border-b">
+                  <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start mb-2">
+                    <TabsTriggerPrimary value="personal">
                       Pessoais
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="contact"
-                      className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-                    >
+                    </TabsTriggerPrimary>
+                    <TabsTriggerPrimary value="contact">
                       Contato
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="documents"
-                      className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-                    >
+                    </TabsTriggerPrimary>
+                    <TabsTriggerPrimary value="documents">
                       Documentos
-                    </TabsTrigger>
+                    </TabsTriggerPrimary>
                   </TabsList>
                 </div>
 
                 {/* Dados Pessoais */}
-                <TabsContent value="personal" className="space-y-4 p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InfoField 
-                      icon={User} 
-                      label="Nome Completo" 
-                      value={userData?.nome || metadata.name} 
-                    />
-                    <InfoField 
-                      icon={Calendar} 
-                      label="Data de Nascimento" 
-                      value={formatDate(metadata.dataNascimento)} 
-                    />
-                    <InfoField 
-                      icon={MapPin} 
-                      label="Naturalidade" 
-                      value={metadata.naturalidade} 
-                    />
-                    <InfoField 
-                      icon={User} 
-                      label="Estado Civil" 
-                      value={metadata.estadoCivil} 
-                    />
+                <TabsContent value="personal" className="mt-6 space-y-6">
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-primary rounded-full" />
+                      Informações Pessoais
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <InfoField
+                        icon={User}
+                        label="Nome Completo"
+                        value={userData?.nome || metadata.name}
+                      />
+                      <InfoField
+                        icon={Calendar}
+                        label="Data de Nascimento"
+                        value={formatDate(metadata.dataNascimento)}
+                      />
+                      <InfoField
+                        icon={Building}
+                        label="Naturalidade"
+                        value={metadata.naturalidade}
+                      />
+                      <InfoField
+                        icon={Heart}
+                        label="Estado Civil"
+                        value={metadata.estadoCivil}
+                      />
+                    </div>
                   </div>
 
                   {/* Dados do cônjuge se casado */}
-                  {(metadata.estadoCivil === "CASADO" || metadata.estadoCivil === "UNIAO_ESTAVEL") && (
-                    <>
-                      <Separator className="my-4" />
-                      <h4 className="text-md font-semibold mb-3">Dados do Cônjuge</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <InfoField 
-                          icon={User} 
-                          label="Nome do Cônjuge" 
-                          value={metadata.nomeConjuge} 
+                  {(metadata.estadoCivil === "CASADO" ||
+                    metadata.estadoCivil === "UNIAO_ESTAVEL") && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <div className="w-1 h-4 bg-primary rounded-full" />
+                        Dados do Cônjuge
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <InfoField
+                          icon={User}
+                          label="Nome do Cônjuge"
+                          value={metadata.nomeConjuge}
                         />
-                        <InfoField 
-                          icon={Calendar} 
-                          label="Data de Nascimento" 
-                          value={formatDate(metadata.dataNascimentoConjuge)} 
+                        <InfoField
+                          icon={Calendar}
+                          label="Data de Nascimento"
+                          value={formatDate(metadata.dataNascimentoConjuge)}
                         />
-                        <InfoField 
-                          icon={CreditCard} 
-                          label="CPF do Cônjuge" 
-                          value={metadata.cpfConjuge ? formatCPF(metadata.cpfConjuge) : undefined} 
+                        <InfoField
+                          icon={CreditCard}
+                          label="CPF do Cônjuge"
+                          value={
+                            metadata.cpfConjuge
+                              ? formatCPF(metadata.cpfConjuge)
+                              : undefined
+                          }
                         />
-                        <InfoField 
-                          icon={FileText} 
-                          label="RG do Cônjuge" 
-                          value={metadata.rgConjuge ? `${formatRG(metadata.rgConjuge)}${metadata.orgaoEmissorConjuge ? ` - ${metadata.orgaoEmissorConjuge}` : ""}` : undefined} 
+                        <InfoField
+                          icon={FileText}
+                          label="RG do Cônjuge"
+                          value={
+                            metadata.rgConjuge
+                              ? `${formatRG(metadata.rgConjuge)}${
+                                  metadata.orgaoEmissorConjuge
+                                    ? ` - ${metadata.orgaoEmissorConjuge}`
+                                    : ""
+                                }`
+                              : undefined
+                          }
                         />
                       </div>
-                    </>
+                    </div>
                   )}
 
-                  <Separator className="my-4" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InfoField 
-                      icon={Calendar} 
-                      label="Membro desde" 
-                      value={formatDate(member.data_adicao || member.created_at)} 
-                    />
-                    <InfoField 
-                      icon={Clock} 
-                      label="Último acesso" 
-                      value={formatDate(member.ultimo_login)} 
-                    />
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-primary rounded-full" />
+                      Informações da Conta
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <InfoField
+                        icon={Calendar}
+                        label="Membro desde"
+                        value={formatDate(
+                          member.data_adicao || member.created_at
+                        )}
+                      />
+                      <InfoField
+                        icon={Clock}
+                        label="Último acesso"
+                        value={formatDate(member.ultimo_login)}
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
                 {/* Contato e Endereço */}
-                <TabsContent value="contact" className="space-y-4 p-4">
-                  <h4 className="text-md font-semibold mb-3">Contato</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InfoField 
-                      icon={MailIcon} 
-                      label="Email" 
-                      value={userData?.email} 
-                    />
-                    <InfoField 
-                      icon={Phone} 
-                      label="Telefone" 
-                      value={userData?.telefone || metadata.telefone ? formatPhone(userData?.telefone || metadata.telefone) : undefined} 
-                    />
+                <TabsContent value="contact" className="mt-6 space-y-6">
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-primary rounded-full" />
+                      Informações de Contato
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <InfoField
+                        icon={MailIcon}
+                        label="Email"
+                        value={userData?.email}
+                      />
+                      <InfoField
+                        icon={Phone}
+                        label="Telefone"
+                        value={
+                          userData?.telefone || metadata.telefone
+                            ? formatPhone(
+                                userData?.telefone || metadata.telefone
+                              )
+                            : undefined
+                        }
+                      />
+                    </div>
                   </div>
 
-                  <Separator className="my-4" />
-
-                  <h4 className="text-md font-semibold mb-3">Endereço</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InfoField 
-                      icon={MapPin} 
-                      label="CEP" 
-                      value={metadata.cep} 
-                    />
-                    <InfoField 
-                      icon={MapPin} 
-                      label="Logradouro" 
-                      value={metadata.endereco} 
-                    />
-                    <InfoField 
-                      icon={MapPin} 
-                      label="Número" 
-                      value={metadata.numero} 
-                    />
-                    <InfoField 
-                      icon={MapPin} 
-                      label="Complemento" 
-                      value={metadata.complemento} 
-                    />
-                    <InfoField 
-                      icon={MapPin} 
-                      label="Bairro" 
-                      value={metadata.bairro} 
-                    />
-                    <InfoField 
-                      icon={MapPin} 
-                      label="Cidade/UF" 
-                      value={metadata.cidade ? `${metadata.cidade}${metadata.estado ? `/${metadata.estado}` : ""}` : undefined} 
-                    />
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-primary rounded-full" />
+                      Endereço
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <InfoField
+                        icon={MapPin}
+                        label="CEP"
+                        value={metadata.cep}
+                      />
+                      <InfoField
+                        icon={MapPin}
+                        label="Logradouro"
+                        value={metadata.endereco}
+                      />
+                      <InfoField
+                        icon={MapPin}
+                        label="Número"
+                        value={metadata.numero}
+                      />
+                      <InfoField
+                        icon={MapPin}
+                        label="Complemento"
+                        value={metadata.complemento}
+                      />
+                      <InfoField
+                        icon={MapPin}
+                        label="Bairro"
+                        value={metadata.bairro}
+                      />
+                      <InfoField
+                        icon={MapPin}
+                        label="Cidade/UF"
+                        value={
+                          metadata.cidade
+                            ? `${metadata.cidade}${
+                                metadata.estado ? `/${metadata.estado}` : ""
+                              }`
+                            : undefined
+                        }
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
                 {/* Documentos */}
-                <TabsContent value="documents" className="space-y-4 p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InfoField 
-                      icon={CreditCard} 
-                      label="CPF" 
-                      value={metadata.cpf ? formatCPF(metadata.cpf) : undefined} 
-                    />
-                    <InfoField 
-                      icon={FileText} 
-                      label="RG" 
-                      value={metadata.rg ? `${formatRG(metadata.rg)}${metadata.orgaoEmissor ? ` - ${metadata.orgaoEmissor}` : ""}` : undefined} 
-                    />
-                    <InfoField 
-                      icon={FileText} 
-                      label="Inscrição de Produtor Rural" 
-                      value={metadata.inscricaoProdutorRural} 
-                    />
+                <TabsContent value="documents" className="mt-6 space-y-6">
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-primary rounded-full" />
+                      Documentação
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <InfoField
+                        icon={CreditCard}
+                        label="CPF"
+                        value={
+                          metadata.cpf ? formatCPF(metadata.cpf) : undefined
+                        }
+                      />
+                      <InfoField
+                        icon={FileText}
+                        label="RG"
+                        value={
+                          metadata.rg
+                            ? `${formatRG(metadata.rg)}${
+                                metadata.orgaoEmissor
+                                  ? ` - ${metadata.orgaoEmissor}`
+                                  : ""
+                              }`
+                            : undefined
+                        }
+                      />
+                      <InfoField
+                        icon={FileText}
+                        label="Inscrição de Produtor Rural"
+                        value={metadata.inscricaoProdutorRural}
+                      />
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Membro não encontrado</p>
+            <div className="flex flex-col items-center justify-center h-64 gap-3">
+              <div className="p-4 rounded-full bg-muted/50">
+                <User className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium">
+                Membro não encontrado
+              </p>
             </div>
           )}
         </div>

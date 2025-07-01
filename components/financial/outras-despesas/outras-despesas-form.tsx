@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -12,7 +12,6 @@ import { createOutraDespesa, updateOutraDespesa } from "@/lib/actions/financial-
 import { OutrasDespesasListItem, OutrasDespesasFormValues, outrasDespesasFormSchema } from "@/schemas/financial/outras_despesas";
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { toast } from "sonner";
-import { getSafras } from "@/lib/actions/production-actions";
 import { 
   Select,
   SelectContent,
@@ -21,12 +20,13 @@ import {
   SelectValue
 } from "@/components/ui/select";
 
-interface OutrasDespesasFormProps {
+interface OutrasDespesasFormRefactoredProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   existingItem?: OutrasDespesasListItem;
   onSubmit: (data: OutrasDespesasListItem) => void;
+  initialSafras: any[];
 }
 
 export function OutrasDespesasForm({
@@ -35,94 +35,13 @@ export function OutrasDespesasForm({
   organizationId,
   existingItem,
   onSubmit,
-}: OutrasDespesasFormProps) {
+  initialSafras,
+}: OutrasDespesasFormRefactoredProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [safras, setSafras] = useState<any[]>([]);
-  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
-
-  // Carregar safras quando o modal abrir
-  useEffect(() => {
-    if (open && organizationId) {
-      loadSafras();
-    }
-  }, [open, organizationId]);
-  
-  const loadSafras = async () => {
-    try {
-      setIsLoadingSafras(true);
-      const safrasData = await getSafras(organizationId);
-      setSafras(safrasData);
-    } catch (error) {
-      console.error("Erro ao carregar safras:", error);
-      toast.error("Erro ao carregar safras");
-    } finally {
-      setIsLoadingSafras(false);
-    }
-  };
-
-  const form = useForm<OutrasDespesasFormValues>({
-    resolver: zodResolver(outrasDespesasFormSchema),
-    defaultValues: {
-      nome: existingItem?.nome || "",
-      categoria: existingItem?.categoria || "OUTROS",
-      moeda: existingItem?.moeda || "BRL",
-      valores_por_safra: existingItem?.valores_por_safra || {},
-    },
-  });
-
-  useEffect(() => {
-    if (open && existingItem) {
-      form.reset({
-        nome: existingItem.nome,
-        categoria: existingItem.categoria,
-        moeda: existingItem.moeda || "BRL",
-        valores_por_safra: existingItem.valores_por_safra || {},
-      });
-    } else if (open && !existingItem) {
-      form.reset({
-        nome: "",
-        categoria: "OUTROS",
-        moeda: "BRL",
-        valores_por_safra: {},
-      });
-    }
-  }, [open, existingItem, form]);
-
-  const handleFormSubmit = async (data: OutrasDespesasFormValues) => {
-    setIsLoading(true);
-    try {
-      let result;
-      
-      if (existingItem) {
-        // Atualizar item existente
-        result = await updateOutraDespesa(existingItem.id, data, organizationId);
-      } else {
-        // Criar novo item
-        result = await createOutraDespesa(data, organizationId);
-      }
-      
-      onSubmit(result);
-      onOpenChange(false);
-    } catch (error: any) {
-      console.error("Erro ao salvar despesa:", error);
-      
-      // Exibir mensagem de erro mais específica se disponível
-      if (error.message && (
-          error.message.includes("Já existe uma despesa com a categoria") || 
-          error.message.includes("categoria") ||
-          error.message.includes("não é válida")
-        )) {
-        toast.error(error.message);
-      } else {
-        toast.error("Erro ao salvar despesa");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [isPending, startTransition] = useTransition();
 
   // Categorias disponíveis - alinhadas com o enum do banco de dados
-  const categorias = [
+  const categorias = useMemo(() => [
     { value: "TRIBUTARIAS", label: "Impostos e Taxas" },
     { value: "PRO_LABORE", label: "Pró-Labore" },
     { value: "OUTRAS_OPERACIONAIS", label: "Outras Operacionais" },
@@ -141,8 +60,37 @@ export function OutrasDespesasForm({
     { value: "VIAGENS", label: "Viagens" },
     { value: "MATERIAL_ESCRITORIO", label: "Material de Escritório" },
     { value: "OUTROS", label: "Outros" }
-  ];
-  
+  ], []);
+
+  const form = useForm<OutrasDespesasFormValues>({
+    resolver: zodResolver(outrasDespesasFormSchema) as any,
+    defaultValues: {
+      nome: existingItem?.nome || "",
+      categoria: existingItem?.categoria || "OUTROS",
+      moeda: existingItem?.moeda || "BRL",
+      valores_por_safra: existingItem?.valores_por_safra || {},
+    },
+  });
+
+  // Form reset when modal opens - no data fetching useEffect needed!
+  useEffect(() => {
+    if (open && existingItem) {
+      form.reset({
+        nome: existingItem.nome,
+        categoria: existingItem.categoria,
+        moeda: existingItem.moeda || "BRL",
+        valores_por_safra: existingItem.valores_por_safra || {},
+      });
+    } else if (open && !existingItem) {
+      form.reset({
+        nome: "",
+        categoria: "OUTROS",
+        moeda: "BRL",
+        valores_por_safra: {},
+      });
+    }
+  }, [open, existingItem, form]);
+
   // Estado para rastrear se a categoria atual é "OUTROS"
   const currentCategory = form.watch("categoria");
   const isOutrosCategory = currentCategory === "OUTROS";
@@ -160,6 +108,42 @@ export function OutrasDespesasForm({
       }
     }
   }, [isOutrosCategory, existingItem, open, form]);
+
+  const handleFormSubmit = async (data: OutrasDespesasFormValues) => {
+    setIsLoading(true);
+    
+    startTransition(async () => {
+      try {
+        let result;
+        
+        if (existingItem) {
+          // Atualizar item existente
+          result = await updateOutraDespesa(existingItem.id, data, organizationId);
+        } else {
+          // Criar novo item
+          result = await createOutraDespesa(data, organizationId);
+        }
+        
+        onSubmit(result);
+        onOpenChange(false);
+      } catch (error: any) {
+        console.error("Erro ao salvar despesa:", error);
+        
+        // Exibir mensagem de erro mais específica se disponível
+        if (error.message && (
+            error.message.includes("Já existe uma despesa com a categoria") || 
+            error.message.includes("categoria") ||
+            error.message.includes("não é válida")
+          )) {
+          toast.error(error.message);
+        } else {
+          toast.error("Erro ao salvar despesa");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -181,9 +165,9 @@ export function OutrasDespesasForm({
         
         <div className="px-6 py-2 max-h-[70vh] overflow-y-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleFormSubmit as any)} className="space-y-4">
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="nome"
                 render={({ field }) => (
                   <FormItem>
@@ -197,7 +181,7 @@ export function OutrasDespesasForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="categoria"
                 render={({ field }) => (
                   <FormItem>
@@ -225,7 +209,7 @@ export function OutrasDespesasForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="moeda"
                 render={({ field }) => (
                   <FormItem>
@@ -250,7 +234,7 @@ export function OutrasDespesasForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
@@ -260,7 +244,7 @@ export function OutrasDespesasForm({
                         organizacaoId={organizationId}
                         values={field.value}
                         onChange={field.onChange}
-                        safras={safras}
+                        safras={initialSafras}
                         currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>
@@ -274,12 +258,12 @@ export function OutrasDespesasForm({
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
+                  disabled={isLoading || isPending}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Salvando..." : existingItem ? "Atualizar" : "Adicionar"}
+                <Button type="submit" disabled={isLoading || isPending}>
+                  {isLoading || isPending ? "Salvando..." : existingItem ? "Atualizar" : "Adicionar"}
                 </Button>
               </div>
             </form>

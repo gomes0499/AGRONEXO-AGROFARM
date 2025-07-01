@@ -26,145 +26,240 @@ import {
   ChartContainer,
 } from "@/components/ui/chart";
 import { ChartLegendMultirow } from "@/components/ui/chart-legend-multirow";
-import { useEffect, useState } from "react";
-import {
-  getProdutividadeChart,
-  getCulturaColors,
-  type ProductivityData,
-} from "@/lib/actions/production-chart-actions";
+import { useState, useTransition, useEffect } from "react";
+import type { ProductivityData } from "@/lib/actions/production-chart-actions";
+import type { ProdutividadeChartData } from "@/lib/actions/produtividade-chart-actions";
+import { getProdutividadeChartData } from "@/lib/actions/produtividade-chart-actions";
+import { useScenario } from "@/contexts/scenario-context-v2";
+import { useProductionScenarioData } from "@/hooks/use-production-scenario-data";
+import { useChartColors } from "@/contexts/chart-colors-context";
 
-interface ProdutividadeChartProps {
+interface ProdutividadeChartClientProps {
   organizationId: string;
   propertyIds?: string[];
   cultureIds?: string[];
+  projectionId?: string;
+  initialData: ProdutividadeChartData;
 }
 
-export function ProdutividadeChart({
+// Função helper para ajustar brilho das cores
+function adjustColorBrightness(color: string, percent: number): string {
+  const num = parseInt(color.replace("#", ""), 16);
+  const amt = Math.round(2.55 * percent * 100);
+  const R = (num >> 16) + amt;
+  const G = (num >> 8 & 0x00FF) + amt;
+  const B = (num & 0x0000FF) + amt;
+  return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+    (B < 255 ? B < 1 ? 0 : B : 255))
+    .toString(16).slice(1);
+}
+
+export function ProdutividadeChartClient({
   organizationId,
   propertyIds,
   cultureIds,
-}: ProdutividadeChartProps) {
-  const [data, setData] = useState<ProductivityData[]>([]);
+  projectionId,
+  initialData,
+}: ProdutividadeChartClientProps) {
+  const [data, setData] = useState<ProductivityData[]>(initialData?.chartData || []);
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const { currentScenario, getProjectedValue } = useScenario();
+  const { activeScenario, mappedData, hasActiveScenario } = useProductionScenarioData(organizationId);
+  const { colors } = useChartColors();
 
+  // Process chart configuration based on data and colors
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        setError(null);
+    const config: ChartConfig = {};
+    
+    // Usar cores do contexto
+    const colorArray = Object.values(colors);
+    const variacoesCores = [
+      ...colorArray,
+      // Adicionar variações das cores do contexto
+      ...colorArray.map(c => adjustColorBrightness(c, 0.2)),
+      ...colorArray.map(c => adjustColorBrightness(c, -0.2)),
+      ...colorArray.map(c => adjustColorBrightness(c, 0.4)),
+      ...colorArray.map(c => adjustColorBrightness(c, -0.4)),
+    ];
 
-        const [chartData, cores] = await Promise.all([
-          getProdutividadeChart(organizationId, propertyIds, cultureIds),
-          getCulturaColors(organizationId),
-        ]);
+    // Extrair todas as culturas únicas dos dados
+    const culturasUnicas = new Set<string>();
+    data.forEach((item) => {
+      Object.keys(item).forEach((key) => {
+        if (key !== "safra") {
+          culturasUnicas.add(key);
+        }
+      });
+    });
 
-        setData(chartData);
+    // Configurar cada cultura
+    let corIndex = 0;
+    culturasUnicas.forEach((cultura) => {
+      const chaveNormalizada = cultura.toUpperCase().replace(/\s+/g, "");
+      const cor =
+        initialData?.culturaColors?.[chaveNormalizada] ||
+        variacoesCores[corIndex % variacoesCores.length];
 
-        // Criar configuração do gráfico baseada nas culturas encontradas
-        const config: ChartConfig = {};
-
-        // Paleta expandida baseada no tom da marca como fallback
-        const variacoesCores = [
-          // Tons primários da marca
-          "#1B124E", "#2D1F6B", "#3F2C88", "#5139A5",
-          // Tons secundários
-          "#6346C2", "#7553DF", "#8760FC", "#9A6DFF",
-          // Tons terciários
-          "#AC7AFF", "#BE87FF", "#D094FF", "#E2A1FF",
-          // Tons complementares
-          "#1E3A8A", "#3B82F6", "#60A5FA", "#93C5FD",
-          // Tons análogos
-          "#7C3AED", "#A855F7", "#C084FC", "#E879F9",
-          // Tons neutros
-          "#475569", "#64748B", "#94A3B8", "#CBD5E1",
-          // Tons de destaque
-          "#059669", "#10B981", "#34D399", "#6EE7B7",
-          // Tons adicionais
-          "#EA580C", "#F97316", "#FB923C", "#FDD3A5",
-          // Tons finais
-          "#DC2626", "#EF4444", "#F87171", "#FCA5A5",
-        ];
-
-        // Extrair todas as culturas únicas dos dados
-        const culturasUnicas = new Set<string>();
-        chartData.forEach((item) => {
-          Object.keys(item).forEach((key) => {
-            if (key !== "safra") {
-              culturasUnicas.add(key);
-            }
-          });
+      // Lista de palavras que devem ser capitalizadas individualmente
+      const culturas = ["soja", "milho", "algodao", "arroz", "trigo", "feijao", "cafe", "sorgo", "girassol", "canola"];
+      const tipos = ["sequeiro", "irrigado", "safrinha", "primeira", "segunda", "terceira"];
+      const palavrasEspeciais = [...culturas, ...tipos];
+      
+      // 1. Primeiro, quebramos a string em CamelCase
+      let label = cultura
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .toLowerCase()
+        .trim();
+      
+      // 2. Identificar e capitalizar todas as palavras especiais
+      palavrasEspeciais.forEach(palavra => {
+        const regex = new RegExp(`\\b${palavra}\\b`, "gi");
+        const palavraCapitalizada = palavra.charAt(0).toUpperCase() + palavra.slice(1);
+        label = label.replace(regex, palavraCapitalizada);
+      });
+      
+      // 3. Garantir que termos compostos sejam separados corretamente
+      culturas.forEach(cultura => {
+        const culturaCapitalizada = cultura.charAt(0).toUpperCase() + cultura.slice(1);
+        
+        tipos.forEach(tipo => {
+          const tipoCapitalizado = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+          
+          const padraoJunto = new RegExp(`\\b${culturaCapitalizada}${tipoCapitalizado}\\b`, "g");
+          label = label.replace(padraoJunto, `${culturaCapitalizada} ${tipoCapitalizado}`);
+          
+          const padraoSafrinha = new RegExp(`\\b${culturaCapitalizada}Safrinha${tipoCapitalizado}\\b`, "g");
+          label = label.replace(padraoSafrinha, `${culturaCapitalizada} Safrinha ${tipoCapitalizado}`);
         });
+      });
+      
+      // 4. Garantir a primeira letra maiúscula para toda a string
+      label = label.replace(/^./, (char) => char.toUpperCase());
 
-        // Configurar cada cultura
-        let corIndex = 0;
-        culturasUnicas.forEach((cultura) => {
-          const chaveNormalizada = cultura.toUpperCase().replace(/\s+/g, "");
-          const cor =
-            cores[chaveNormalizada] ||
-            variacoesCores[corIndex % variacoesCores.length];
+      config[cultura] = {
+        label: label,
+        color: cor,
+      };
 
-          // Lista de palavras que devem ser capitalizadas individualmente
-          const culturas = ["soja", "milho", "algodao", "arroz", "trigo", "feijao", "cafe", "sorgo", "girassol", "canola"];
-          const tipos = ["sequeiro", "irrigado", "safrinha", "primeira", "segunda", "terceira"];
-          const palavrasEspeciais = [...culturas, ...tipos];
-          
-          // 1. Primeiro, quebramos a string em CamelCase
-          let label = cultura
-            .replace(/([a-z])([A-Z])/g, '$1 $2') // Adiciona espaço entre minúscula e maiúscula
-            .toLowerCase() // Converte tudo para minúsculo para padronização
-            .trim();
-          
-          // 2. Identificar e capitalizar todas as palavras especiais
-          palavrasEspeciais.forEach(palavra => {
-            // Regex que encontra a palavra como uma palavra completa, não parte de outra
-            const regex = new RegExp(`\\b${palavra}\\b`, "gi");
-            const palavraCapitalizada = palavra.charAt(0).toUpperCase() + palavra.slice(1);
-            label = label.replace(regex, palavraCapitalizada);
-          });
-          
-          // 3. Garantir que termos compostos como "SojaIrrigado" sejam separados corretamente
-          // Primeiro identificamos padrões de cultura+tipo que podem estar juntos
-          culturas.forEach(cultura => {
-            const culturaCapitalizada = cultura.charAt(0).toUpperCase() + cultura.slice(1);
+      corIndex++;
+    });
+
+    setChartConfig(config);
+  }, [data, colors, initialData?.culturaColors]);
+
+  // Apply scenario adjustments when scenario changes
+  useEffect(() => {
+    let processedData = initialData?.chartData || [];
+    
+    // Primeiro, tentar usar o cenário de produtividade (novo sistema)
+    if (hasActiveScenario && mappedData && Object.keys(mappedData).length > 0) {
+      processedData = (initialData?.chartData || []).map((item) => {
+        const safra = initialData?.safras?.find((s) => s.nome === item.safra);
+        if (!safra) return item;
+        
+        const adjustedItem: ProductivityData = {
+          safra: item.safra,
+        };
+        
+        // Para cada cultura no item original
+        Object.keys(item).forEach((key) => {
+          if (key !== 'safra') {
+            let projectedValue = item[key] as number;
             
-            tipos.forEach(tipo => {
-              const tipoCapitalizado = tipo.charAt(0).toUpperCase() + tipo.slice(1);
-              
-              // Padrão: "CulturaTipo" -> "Cultura Tipo"
-              const padraoJunto = new RegExp(`\\b${culturaCapitalizada}${tipoCapitalizado}\\b`, "g");
-              label = label.replace(padraoJunto, `${culturaCapitalizada} ${tipoCapitalizado}`);
-              
-              // Caso especial para "Safrinha" que pode estar entre cultura e tipo
-              // Ex: "MilhoSafrinhaIrrigado" -> "Milho Safrinha Irrigado"
-              const padraoSafrinha = new RegExp(`\\b${culturaCapitalizada}Safrinha${tipoCapitalizado}\\b`, "g");
-              label = label.replace(padraoSafrinha, `${culturaCapitalizada} Safrinha ${tipoCapitalizado}`);
-            });
-          });
-          
-          // 4. Garantir a primeira letra maiúscula para toda a string
-          label = label.replace(/^./, (char) => char.toUpperCase());
+            // Verificar se temos dados do cenário para esta cultura/sistema
+            if (mappedData[key] && mappedData[key][safra.id]) {
+              projectedValue = mappedData[key][safra.id].produtividade;
+            }
+            
+            adjustedItem[key] = projectedValue;
+          }
+        });
+        
+        return adjustedItem;
+      });
+    }
+    // Se não houver cenário de produtividade, usar o sistema antigo
+    else if (currentScenario && currentScenario.cultureData) {
+      processedData = (initialData?.chartData || []).map((item) => {
+        // Encontrar a safra correspondente
+        const safra = initialData?.safras?.find((s) => s.nome === item.safra);
+        if (!safra || !currentScenario.cultureData[safra.id]) {
+          return item; // Sem dados de cenário para esta safra
+        }
 
-          config[cultura] = {
-            label: label,
-            color: cor,
-          };
+        const adjustedItem: ProductivityData = {
+          safra: item.safra,
+        };
 
-          corIndex++;
+        // Para cada cultura no item original
+        Object.keys(item).forEach((key) => {
+          if (key !== 'safra') {
+            // Tentar encontrar projeção para esta cultura
+            let projectedProductivity = item[key] as number;
+            
+            // Buscar nos dados do cenário
+            const safraProjections = currentScenario.cultureData[safra.id];
+            if (safraProjections && safraProjections.length > 0) {
+              // Tentar match exato primeiro
+              for (const proj of safraProjections) {
+                const cultureName = proj.culture_name || '';
+                const systemName = proj.system_name || '';
+                
+                // Criar chave similar à usada no chart
+                let projKey = cultureName;
+                if (systemName && systemName !== 'SEQUEIRO') {
+                  projKey = `${cultureName} ${systemName}`;
+                }
+                
+                // Normalizar para comparação
+                const normalizedProjKey = projKey
+                  .toUpperCase()
+                  .replace(/\s+/g, '')
+                  .replace(/[ÃÁÀÂ]/g, 'A')
+                  .replace(/[ÕÓÒÔ]/g, 'O')
+                  .replace(/[ÇC]/g, 'C')
+                  .replace(/[ÉÈÊ]/g, 'E')
+                  .replace(/[ÍÌÎ]/g, 'I')
+                  .replace(/[ÚÙÛ]/g, 'U');
+                
+                const normalizedKey = key.toUpperCase().replace(/\s+/g, '');
+                
+                if (normalizedProjKey === normalizedKey || projKey === key) {
+                  projectedProductivity = proj.productivity;
+                  break;
+                }
+              }
+            }
+            
+            adjustedItem[key] = projectedProductivity;
+          }
         });
 
-        setChartConfig(config);
-      } catch (err) {
-        console.error("Erro ao carregar gráfico de produtividade:", err);
-        setError("Erro ao carregar dados do gráfico");
-      } finally {
-        setLoading(false);
-      }
+        return adjustedItem;
+      });
     }
 
-    fetchData();
-  }, [organizationId, propertyIds, cultureIds]);
+    setData(processedData);
+  }, [currentScenario, hasActiveScenario, mappedData, initialData?.chartData, initialData?.safras]);
+
+  // Refresh data when filters change
+  useEffect(() => {
+    startTransition(async () => {
+      try {
+        const newData = await getProdutividadeChartData(
+          organizationId,
+          propertyIds,
+          cultureIds,
+          projectionId
+        );
+        setData(newData.chartData);
+      } catch (error) {
+        console.error("Erro ao atualizar dados do gráfico:", error);
+      }
+    });
+  }, [organizationId, propertyIds, cultureIds, projectionId]);
 
   // Calcular crescimento médio
   const calcularCrescimentoMedio = () => {
@@ -191,7 +286,7 @@ export function ProdutividadeChart({
     return crescimentoMedio.toFixed(1);
   };
 
-  if (loading) {
+  if (data.length === 0) {
     return (
       <Card>
         <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
@@ -205,36 +300,7 @@ export function ProdutividadeChart({
                   Evolução da Produtividade por Cultura
                 </CardTitle>
                 <CardDescription className="text-white/80">
-                  Carregando dados de produtividade...
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <div className="w-full h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">Carregando gráfico...</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || data.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full p-2 bg-white/20">
-                <BarChart3 className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-white">
-                  Evolução da Produtividade por Cultura
-                </CardTitle>
-                <CardDescription className="text-white/80">
-                  {error || "Nenhum dado de produtividade encontrado"}
+                  Nenhum dado de produtividade encontrado
                 </CardDescription>
               </div>
             </div>
@@ -243,7 +309,7 @@ export function ProdutividadeChart({
         <CardContent className="px-2 sm:px-6">
           <div className="w-full h-[350px] sm:h-[400px] flex items-center justify-center">
             <div className="text-muted-foreground">
-              {error || "Cadastre dados de produtividade para visualizar o gráfico"}
+              Cadastre dados de produtividade para visualizar o gráfico
             </div>
           </div>
         </CardContent>
@@ -264,11 +330,15 @@ export function ProdutividadeChart({
             </div>
             <div>
               <CardTitle className="text-white">
-                Evolução da Produtividade por Cultura
+                Evolução da Produtividade por Cultura{(currentScenario || activeScenario) && " - Projeção"}
+                {isPending && " (Atualizando...)"}
               </CardTitle>
               <CardDescription className="text-white/80">
-                Produtividade média por cultura ({data[0]?.safra} -{" "}
-                {data[data.length - 1]?.safra})
+                {activeScenario
+                  ? `Cenário de Produtividade: ${activeScenario.nome}`
+                  : currentScenario 
+                  ? `Cenário: ${currentScenario.scenarioName} - Produtividade projetada por cultura`
+                  : `Produtividade média por cultura (${data[0]?.safra} - ${data[data.length - 1]?.safra})`}
               </CardDescription>
             </div>
           </div>
@@ -326,6 +396,13 @@ export function ProdutividadeChart({
                       dot={{ fill: cor, strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6, strokeWidth: 2 }}
                       name={String(chartConfig[cultura]?.label || cultura)}
+                      label={{
+                        position: "top",
+                        fill: cor,
+                        fontSize: 12,
+                        offset: 10,
+                        formatter: (value: number) => value ? value.toLocaleString() : ""
+                      }}
                     />
                   );
                 })}
@@ -334,7 +411,7 @@ export function ProdutividadeChart({
           </ChartContainer>
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4 bg-muted/30">
+      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4">
         <div className="flex gap-2 font-medium leading-none">
           {Number(crescimentoMedio) >= 0 ? (
             <>
@@ -349,8 +426,11 @@ export function ProdutividadeChart({
           )}
         </div>
         <div className="leading-none text-muted-foreground text-xs">
-          Mostrando evolução da produtividade média por cultura entre {data[0]?.safra}{" "}
-          e {data[data.length - 1]?.safra}
+          {activeScenario
+            ? `Projeção baseada no cenário de produtividade "${activeScenario.nome}" - Safras ${data[0]?.safra} a ${data[data.length - 1]?.safra}`
+            : currentScenario 
+            ? `Projeção baseada no cenário "${currentScenario.scenarioName}" - Safras ${data[0]?.safra} a ${data[data.length - 1]?.safra}`
+            : `Mostrando evolução da produtividade média por cultura entre ${data[0]?.safra} e ${data[data.length - 1]?.safra}`}
         </div>
       </CardFooter>
     </Card>

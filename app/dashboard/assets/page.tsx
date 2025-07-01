@@ -1,11 +1,9 @@
 import { getSession, getOrganizationId } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { AssetsPageContent } from "@/components/assets/assets-page-content";
+import { fetchAssetsPageData } from "@/lib/actions/assets/unified-assets-actions";
 import { getProperties, getImprovements } from "@/lib/actions/property-actions";
-import { getEquipments, getInvestments, getAssetSales, getLandPlans } from "@/lib/actions/patrimonio-actions";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { getEquipments } from "@/lib/actions/patrimonio-actions";
+import { AssetsPageClient } from "@/components/assets/assets-page-client";
 
 export default async function AssetsPage() {
   const session = await getSession();
@@ -15,56 +13,39 @@ export default async function AssetsPage() {
     redirect("/auth/login");
   }
 
-  // Fetch data for metrics with error handling
-  const [
-    properties,
-    equipmentsResult,
-    investmentsResult,
-    improvements,
-    assetSalesResult,
-    landPlansResult,
-  ] = await Promise.all([
+  // Fetch all assets data with the unified action
+  const assetsData = await fetchAssetsPageData(organizationId);
+
+  // Fetch additional data that's not in the unified action yet
+  const [properties, improvements, equipmentResult] = await Promise.all([
     getProperties(organizationId).catch((err) => {
       console.error("Erro ao buscar propriedades:", err);
       return [];
-    }),
-    getEquipments(organizationId).catch((err) => {
-      console.error("Erro ao buscar equipamentos:", err);
-      return { data: [] };
-    }),
-    getInvestments(organizationId).catch((err) => {
-      console.error("Erro ao buscar investimentos:", err);
-      return { data: [] };
     }),
     getImprovements(organizationId).catch((err) => {
       console.error("Erro ao buscar benfeitorias:", err);
       return [];
     }),
-    getAssetSales(organizationId).catch((err) => {
-      console.error("Erro ao buscar vendas de ativos:", err);
-      return { data: [] };
-    }),
-    getLandPlans(organizationId).catch((err) => {
-      console.error("Erro ao buscar planos de aquisição:", err);
+    getEquipments(organizationId).catch((err) => {
+      console.error("Erro ao buscar lista de equipamentos:", err);
       return { data: [] };
     }),
   ]);
 
-  // Extract data from results
-  const equipments = 'data' in equipmentsResult ? equipmentsResult.data : [];
-  const investments = 'data' in investmentsResult ? investmentsResult.data : [];
-  const assetSales = 'data' in assetSalesResult ? assetSalesResult.data : [];
-  const landPlans = 'data' in landPlansResult ? landPlansResult.data : [];
+  // Extract equipment data
+  const equipmentList = Array.isArray(equipmentResult)
+    ? equipmentResult
+    : "data" in equipmentResult
+      ? equipmentResult.data
+      : [];
 
   return (
-    <AssetsPageContent
+    <AssetsPageClient
       organizationId={organizationId}
       properties={properties}
-      equipments={equipments}
-      investments={investments}
       improvements={improvements}
-      assetSales={assetSales}
-      landPlans={landPlans}
+      equipmentList={equipmentList}
+      initialData={assetsData}
     />
   );
 }

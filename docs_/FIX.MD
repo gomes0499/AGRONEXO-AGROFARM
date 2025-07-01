@@ -1,8 +1,0 @@
-- [ ] CUD de Arrendamento
-- [ ] CUD de Precos e cotações
-- [ ] PEGAR ORG ID N POR SESSION.
-- [ ] IMPLEMENTAR API MERCADO FINANCEIRO
-- [ ] IMPLEMENTAR DRE E BALANÇO
-
-- [ ] GERAR RELATORIO PDF E ENVIAR POR EMAIL
-- [ ] ENTREGA

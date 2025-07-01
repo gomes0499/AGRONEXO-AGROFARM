@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Edit2Icon, Trash2, MoreHorizontal, TrendingUp, Plus } from "lucide-react";
-import { ProductionTableFilter } from "../common/production-table-filter";
 import { ProductionTablePagination } from "../common/production-table-pagination";
-import { useProductionTable } from "@/hooks/use-production-table";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -87,24 +85,23 @@ export function ProductivityList({
   const [isMultiSafraModalOpen, setIsMultiSafraModalOpen] = useState<boolean>(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
-  // Hook para gerenciar filtros e paginação
-  const {
-    searchTerm,
-    filters,
-    currentPage,
-    pageSize,
-    paginatedData,
-    totalPages,
-    totalItems,
-    setSearchTerm,
-    setFilters,
-    setCurrentPage,
-    setPageSize,
-  } = useProductionTable({
-    data: productivities,
-    searchFields: ["cultura_id", "sistema_id"],
-    initialPageSize: 20,
-  });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  
+  const totalPages = Math.ceil(productivities.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedData = productivities.slice(startIndex, startIndex + pageSize);
+  const totalItems = productivities.length;
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1);
+  };
 
   // Atualizar o estado local sempre que os dados do servidor mudarem
   useEffect(() => {
@@ -157,14 +154,6 @@ export function ProductivityList({
   // Função para abrir modal de múltiplas safras
   const handleOpenMultiSafra = () => {
     setIsMultiSafraModalOpen(true);
-  };
-
-  // Criar opções para filtros
-  const filterOptions = {
-    safras: harvests.filter(h => h.id).map(h => ({ value: h.id!, label: h.nome })),
-    culturas: cultures.filter(c => c.id).map(c => ({ value: c.id!, label: c.nome })),
-    sistemas: systems.filter(s => s.id).map(s => ({ value: s.id!, label: s.nome })),
-    propriedades: properties.filter(p => p.id).map(p => ({ value: p.id!, label: p.nome })),
   };
 
   // Ordenar itens paginados por safra e cultura
@@ -220,18 +209,6 @@ export function ProductivityList({
         className="mb-4"
       />
       <CardContent>
-        {/* Filtros e busca */}
-        <ProductionTableFilter
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          filters={filters}
-          onFiltersChange={setFilters}
-          safras={filterOptions.safras}
-          culturas={filterOptions.culturas}
-          sistemas={filterOptions.sistemas}
-          propriedades={filterOptions.propriedades}
-        />
-
         {productivities.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhum registro de produtividade cadastrado.</div>
@@ -243,20 +220,9 @@ export function ProductivityList({
               Nova Produtividade
             </Button>
           </div>
-        ) : totalItems === 0 ? (
-          <div className="text-center py-10 text-muted-foreground space-y-4">
-            <div>Nenhum registro de produtividade encontrado com os filtros aplicados.</div>
-            <Button 
-              onClick={handleOpenMultiSafra}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Produtividade
-            </Button>
-          </div>
         ) : (
           <>
-            <div className="rounded-md border">
+            <div className="rounded-md border mt-4">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
@@ -348,8 +314,8 @@ export function ProductivityList({
               totalPages={totalPages}
               totalItems={totalItems}
               pageSize={pageSize}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
             />
           </>
         )}

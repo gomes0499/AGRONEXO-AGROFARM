@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CurrencyViewToggle } from "@/components/financial/currency-config/currency-view-toggle";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { convertCurrency } from "@/lib/utils/currency-converter";
 import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
@@ -47,7 +47,7 @@ export function FinancialTableWithCurrency({
     const taxaCambio = item.taxa_cambio_contratacao || item.taxa_cambio_safra || 5.00;
     
     if (displayMode === item.moeda) {
-      return formatCurrency(item.valor, item.moeda);
+      return formatGenericCurrency(item.valor, item.moeda);
     }
 
     if (displayMode === "BOTH") {
@@ -57,10 +57,10 @@ export function FinancialTableWithCurrency({
       return (
         <div className="space-y-1">
           <div className={item.moeda === "BRL" ? "font-medium" : "text-muted-foreground text-sm"}>
-            {formatCurrency(valorBRL, "BRL")}
+            {formatGenericCurrency(valorBRL, "BRL")}
           </div>
           <div className={item.moeda === "USD" ? "font-medium" : "text-muted-foreground text-sm"}>
-            {formatCurrency(valorUSD, "USD")}
+            {formatGenericCurrency(valorUSD, "USD")}
           </div>
         </div>
       );
@@ -74,13 +74,13 @@ export function FinancialTableWithCurrency({
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex items-center gap-1">
-              {formatCurrency(valorConvertido, displayMode)}
+              {formatGenericCurrency(valorConvertido, displayMode)}
               <Info className="h-3 w-3 text-muted-foreground" />
             </span>
           </TooltipTrigger>
           <TooltipContent>
             <div className="space-y-1 text-xs">
-              <p>Valor original: {formatCurrency(item.valor, item.moeda)}</p>
+              <p>Valor original: {formatGenericCurrency(item.valor, item.moeda)}</p>
               <p>Taxa de câmbio: US$ 1,00 = R$ {taxaCambio.toFixed(2)}</p>
               {item.safra_nome && <p>Safra: {item.safra_nome}</p>}
               {item.taxa_cambio_contratacao && (
@@ -160,12 +160,12 @@ export function FinancialTableWithCurrency({
               Total
             </TableCell>
             <TableCell className="text-right">
-              {displayMode === "BRL" && formatCurrency(totais.BRL, "BRL")}
-              {displayMode === "USD" && formatCurrency(totais.USD, "USD")}
+              {displayMode === "BRL" && formatGenericCurrency(totais.BRL, "BRL")}
+              {displayMode === "USD" && formatGenericCurrency(totais.USD, "USD")}
               {displayMode === "BOTH" && (
                 <div className="space-y-1">
-                  <div>{formatCurrency(totais.BRL, "BRL")}</div>
-                  <div>{formatCurrency(totais.USD, "USD")}</div>
+                  <div>{formatGenericCurrency(totais.BRL, "BRL")}</div>
+                  <div>{formatGenericCurrency(totais.USD, "USD")}</div>
                 </div>
               )}
             </TableCell>

@@ -7,8 +7,9 @@ import { getCultureProjections } from "../culture-projections-actions";
 import { getOutrasDespesas } from "../financial-actions/outras-despesas";
 import { getReceitasFinanceiras } from "../financial-actions/receitas-financeiras-actions";
 import { DREData } from "@/components/projections/dre/dre-table";
+import { calculateSalesTaxes, calculateIncomeTaxes } from "@/lib/config/tax-rates";
 
-export async function getDREDataUpdated(organizacaoId: string): Promise<DREData> {
+export async function getDREDataUpdated(organizacaoId: string, projectionId?: string): Promise<DREData> {
   const session = await getSession();
 
   if (!session) {
@@ -19,7 +20,7 @@ export async function getDREDataUpdated(organizacaoId: string): Promise<DREData>
 
   try {
     // Buscar apenas os anos do fluxo de caixa
-    const fluxoCaixaData = await getFluxoCaixaSimplificado(organizacaoId);
+    const fluxoCaixaData = await getFluxoCaixaSimplificado(organizacaoId, projectionId);
     const anos = fluxoCaixaData.anos;
 
     // Filtrar anos para remover 2030/31 e 2031/32
@@ -31,6 +32,12 @@ export async function getDREDataUpdated(organizacaoId: string): Promise<DREData>
       receita_bruta: {
         agricola: {},
         pecuaria: {},
+        total: {},
+      },
+      impostos_vendas: {
+        icms: {},
+        pis: {},
+        cofins: {},
         total: {},
       },
       receita_liquida: {},
@@ -84,7 +91,7 @@ export async function getDREDataUpdated(organizacaoId: string): Promise<DREData>
     }, {} as Record<string, string>);
 
     // 1. Buscar receitas agrícolas das projeções de culturas
-    const cultureProjections = await getCultureProjections(organizacaoId);
+    const cultureProjections = await getCultureProjections(organizacaoId, projectionId);
     
     // 2. Buscar receitas pecuárias (por enquanto zerado, será implementado)
     
@@ -96,12 +103,26 @@ export async function getDREDataUpdated(organizacaoId: string): Promise<DREData>
 
     // Preencher dados para cada ano
     anosFiltrados.forEach(ano => {
-      // Receita Bruta Agrícola
+      // Receita Bruta Agrícola e cálculo de impostos por cultura
       let receitaAgricolaAno = 0;
+      let totalImpostosVendas = {
+        icms: 0,
+        pis: 0,
+        cofins: 0,
+        total: 0
+      };
+      
       [...cultureProjections.projections, ...cultureProjections.sementes].forEach(projection => {
         const dadosAno = projection.projections_by_year[ano];
-        if (dadosAno) {
-          receitaAgricolaAno += dadosAno.receita || 0;
+        if (dadosAno && dadosAno.receita) {
+          receitaAgricolaAno += dadosAno.receita;
+          
+          // Calcular impostos sobre vendas para cada cultura
+          const impostos = calculateSalesTaxes(dadosAno.receita, projection.cultura_nome);
+          totalImpostosVendas.icms += impostos.icms;
+          totalImpostosVendas.pis += impostos.pis;
+          totalImpostosVendas.cofins += impostos.cofins;
+          totalImpostosVendas.total += impostos.totalTaxes;
         }
       });
       dreData.receita_bruta.agricola[ano] = receitaAgricolaAno;
@@ -112,8 +133,14 @@ export async function getDREDataUpdated(organizacaoId: string): Promise<DREData>
       // Receita Bruta Total
       dreData.receita_bruta.total[ano] = receitaAgricolaAno + dreData.receita_bruta.pecuaria[ano];
 
-      // Receita Líquida (por enquanto igual à bruta, depois deduzir impostos sobre vendas)
-      dreData.receita_liquida[ano] = dreData.receita_bruta.total[ano];
+      // Impostos sobre Vendas
+      dreData.impostos_vendas!.icms[ano] = totalImpostosVendas.icms;
+      dreData.impostos_vendas!.pis[ano] = totalImpostosVendas.pis;
+      dreData.impostos_vendas!.cofins[ano] = totalImpostosVendas.cofins;
+      dreData.impostos_vendas!.total[ano] = totalImpostosVendas.total;
+
+      // Receita Líquida (bruta menos impostos sobre vendas)
+      dreData.receita_liquida[ano] = dreData.receita_bruta.total[ano] - totalImpostosVendas.total;
 
       // Custos Agrícolas
       let custoAgricolaAno = 0;
@@ -201,7 +228,7 @@ export async function getDREDataUpdated(organizacaoId: string): Promise<DREData>
       
       // Margem EBITDA
       dreData.margem_ebitda[ano] = dreData.receita_bruta.total[ano] > 0 
-        ? (dreData.ebitda[ano] / dreData.receita_bruta.total[ano]) * 100 
+        ? (dreData.ebitda[ano] / dreData.receita_bruta.total[ano])
         : 0;
 
       // Depreciação e Amortização
@@ -223,7 +250,7 @@ export async function getDREDataUpdated(organizacaoId: string): Promise<DREData>
       let receitasFinanceirasAno = 0;
       if (safraId) {
         receitasFinanceiras.forEach(receita => {
-          receitasFinanceirasAno += receita.valores_por_safra?.[safraId] || 0;
+          receitasFinanceirasAno += (receita.valores_por_safra as any)?.[safraId] || 0;
         });
       }
       dreData.resultado_financeiro.receitas_financeiras[ano] = receitasFinanceirasAno;
@@ -249,15 +276,20 @@ export async function getDREDataUpdated(organizacaoId: string): Promise<DREData>
       // Lucro Antes do IR
       dreData.lucro_antes_ir[ano] = dreData.ebit[ano] + dreData.resultado_financeiro.total[ano];
 
-      // Imposto de Renda e CSLL
+      // Imposto de Renda e CSLL - Calcular com base no lucro antes do IR
+      // Usar valores tributários manuais inseridos pelo usuário em "outras despesas"
       let impostosLucro = 0;
+      
       if (safraId) {
         outrasDespesas.forEach(despesa => {
           if (despesa.categoria === "TRIBUTARIAS") {
+            // Somar todos os impostos manuais da categoria TRIBUTARIAS
             impostosLucro += despesa.valores_por_safra?.[safraId] || 0;
           }
         });
       }
+      
+      console.log(`📊 Impostos sobre lucro (valores manuais): R$ ${impostosLucro.toFixed(2)}`);
       dreData.impostos_sobre_lucro[ano] = impostosLucro;
 
       // Lucro Líquido
@@ -265,7 +297,7 @@ export async function getDREDataUpdated(organizacaoId: string): Promise<DREData>
 
       // Margem Líquida
       dreData.margem_liquida[ano] = dreData.receita_bruta.total[ano] > 0
-        ? (dreData.lucro_liquido[ano] / dreData.receita_bruta.total[ano]) * 100
+        ? (dreData.lucro_liquido[ano] / dreData.receita_bruta.total[ano])
         : 0;
     });
 
@@ -286,6 +318,12 @@ function generateZeroDREData(): DREData {
     receita_bruta: {
       agricola: {},
       pecuaria: {},
+      total: {},
+    },
+    impostos_vendas: {
+      icms: {},
+      pis: {},
+      cofins: {},
       total: {},
     },
     receita_liquida: {},
@@ -326,6 +364,12 @@ function generateZeroDREData(): DREData {
     zeroData.receita_bruta.agricola[ano] = 0;
     zeroData.receita_bruta.pecuaria[ano] = 0;
     zeroData.receita_bruta.total[ano] = 0;
+
+    // Impostos sobre Vendas
+    zeroData.impostos_vendas!.icms[ano] = 0;
+    zeroData.impostos_vendas!.pis[ano] = 0;
+    zeroData.impostos_vendas!.cofins[ano] = 0;
+    zeroData.impostos_vendas!.total[ano] = 0;
 
     // Receita Líquida
     zeroData.receita_liquida[ano] = 0;

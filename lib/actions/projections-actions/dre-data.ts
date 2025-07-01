@@ -52,6 +52,7 @@ export async function getDREData(organizacaoId: string): Promise<DREData> {
       resultado_financeiro: {
         receitas_financeiras: {},
         despesas_financeiras: {},
+        variacao_cambial: {},
         total: {},
       },
       lucro_antes_ir: {},
@@ -80,7 +81,11 @@ export async function getDREData(organizacaoId: string): Promise<DREData> {
 
       // Despesas Operacionais
       dreData.despesas_operacionais.administrativas[ano] = 0;
-      dreData.despesas_operacionais.comerciais[ano] = 0;
+      // Ensure comerciais property exists
+      if (!(dreData.despesas_operacionais as any).comerciais) {
+        (dreData.despesas_operacionais as any).comerciais = {};
+      }
+      (dreData.despesas_operacionais as any).comerciais[ano] = 0;
       dreData.despesas_operacionais.pessoal[ano] = 0;
       dreData.despesas_operacionais.arrendamentos[ano] = 0;
       dreData.despesas_operacionais.total[ano] = 0;
@@ -143,11 +148,13 @@ function generateZeroDREData(): DREData {
     lucro_bruto: {},
     despesas_operacionais: {
       administrativas: {},
-      comerciais: {},
       pessoal: {},
       arrendamentos: {},
+      tributarias: {},
+      manutencao_seguros: {},
+      outros: {},
       total: {},
-    },
+    } as any,
     ebitda: {},
     margem_ebitda: {},
     depreciacao_amortizacao: {},
@@ -155,6 +162,7 @@ function generateZeroDREData(): DREData {
     resultado_financeiro: {
       receitas_financeiras: {},
       despesas_financeiras: {},
+      variacao_cambial: {},
       total: {},
     },
     lucro_antes_ir: {},
@@ -183,7 +191,11 @@ function generateZeroDREData(): DREData {
 
     // Despesas Operacionais
     zeroData.despesas_operacionais.administrativas[ano] = 0;
-    zeroData.despesas_operacionais.comerciais[ano] = 0;
+    // Ensure comerciais property exists
+    if (!(zeroData.despesas_operacionais as any).comerciais) {
+      (zeroData.despesas_operacionais as any).comerciais = {};
+    }
+    (zeroData.despesas_operacionais as any).comerciais[ano] = 0;
     zeroData.despesas_operacionais.pessoal[ano] = 0;
     zeroData.despesas_operacionais.arrendamentos[ano] = 0;
     zeroData.despesas_operacionais.total[ano] = 0;

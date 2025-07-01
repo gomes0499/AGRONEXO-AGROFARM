@@ -234,3 +234,42 @@ export async function getTotalGeral(organizacaoId: string, safraId?: string) {
   // Se não, somar todos os totais
   return items.reduce((total, item) => total + (item.total || 0), 0);
 }
+
+/**
+ * Cria múltiplos itens de financeiras em lote
+ */
+export async function createFinanceirasBatch(
+  items: Array<{
+    organizacao_id: string;
+    nome: string;
+    categoria: string;
+    valores_por_ano?: any;
+  }>
+) {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("financeiras")
+      .insert(items)
+      .select();
+
+    if (error) {
+      console.error("Erro ao criar itens em lote:", error);
+      return { error: "Não foi possível importar as operações financeiras." };
+    }
+
+    revalidatePath("/dashboard/financial");
+    
+    // Adicionar campos para compatibilidade
+    const dataWithCompat = data.map(item => ({
+      ...item,
+      valores_por_safra: item.valores_por_ano
+    }));
+    
+    return { data: dataWithCompat };
+  } catch (error) {
+    console.error("Erro ao processar importação:", error);
+    return { error: "Erro ao processar importação de operações financeiras." };
+  }
+}

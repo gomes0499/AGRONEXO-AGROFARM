@@ -29,7 +29,8 @@ export async function getHistoricalMetricData(
   organizationId: string,
   metricType: MetricType,
   propertyIds?: string[],
-  cultureIds?: string[]
+  cultureIds?: string[],
+  projectionId?: string
 ): Promise<HistoricalMetricsResponse> {
   try {
     const supabase = await createClient();
@@ -74,16 +75,16 @@ export async function getHistoricalMetricData(
 
       switch (metricType) {
         case 'area':
-          valor = await calculateAreaPlantada(supabase, organizationId, safra.id, propertyIds, cultureIds);
+          valor = await calculateAreaPlantada(supabase, organizationId, safra.id, propertyIds, cultureIds, projectionId);
           break;
         case 'produtividade':
-          valor = await calculateProdutividadeMedia(supabase, organizationId, safra.id, cultureIds);
+          valor = await calculateProdutividadeMedia(supabase, organizationId, safra.id, cultureIds, projectionId);
           break;
         case 'receita':
-          valor = await calculateReceita(supabase, organizationId, safra.id, propertyIds, cultureIds);
+          valor = await calculateReceita(supabase, organizationId, safra.id, propertyIds, cultureIds, projectionId);
           break;
         case 'ebitda':
-          valor = await calculateEbitda(supabase, organizationId, safra.id, propertyIds, cultureIds);
+          valor = await calculateEbitda(supabase, organizationId, safra.id, propertyIds, cultureIds, projectionId);
           break;
         default:
           valor = 0;
@@ -175,21 +176,28 @@ async function calculateAreaPlantada(
   organizationId: string,
   safraId: string,
   propertyIds?: string[],
-  cultureIds?: string[]
+  cultureIds?: string[],
+  projectionId?: string
 ): Promise<number> {
+  const tableName = projectionId ? "areas_plantio_projections" : "areas_plantio";
+  
   let query = supabase
-    .from("areas_plantio")
+    .from(tableName)
     .select("areas_por_safra")
     .eq("organizacao_id", organizationId)
     .not("areas_por_safra", "is", null)
     .not("areas_por_safra", "eq", "{}");
 
-  if (propertyIds && propertyIds.length > 0) {
+  if (!projectionId && propertyIds && propertyIds.length > 0) {
     query = query.in("propriedade_id", propertyIds);
   }
   
   if (cultureIds && cultureIds.length > 0) {
     query = query.in("cultura_id", cultureIds);
+  }
+  
+  if (projectionId) {
+    query = query.eq("projection_id", projectionId);
   }
 
   const { data, error } = await query;
@@ -208,10 +216,13 @@ async function calculateProdutividadeMedia(
   supabase: any,
   organizationId: string,
   safraId: string,
-  cultureIds?: string[]
+  cultureIds?: string[],
+  projectionId?: string
 ): Promise<number> {
+  const tableName = projectionId ? "produtividades_projections" : "produtividades";
+  
   let query = supabase
-    .from("produtividades")
+    .from(tableName)
     .select("produtividades_por_safra, cultura_id")
     .eq("organizacao_id", organizationId)
     .not("produtividades_por_safra", "is", null)
@@ -219,6 +230,10 @@ async function calculateProdutividadeMedia(
     
   if (cultureIds && cultureIds.length > 0) {
     query = query.in("cultura_id", cultureIds);
+  }
+  
+  if (projectionId) {
+    query = query.eq("projection_id", projectionId);
   }
 
   const { data, error } = await query;
@@ -254,7 +269,8 @@ async function calculateReceita(
   organizationId: string,
   safraId: string,
   propertyIds?: string[],
-  cultureIds?: string[]
+  cultureIds?: string[],
+  projectionId?: string
 ): Promise<number> {
   // Buscar a safra específica para determinar o ano
   const { data: safra } = await supabase
@@ -266,8 +282,10 @@ async function calculateReceita(
   if (!safra) return 0;
 
   // Buscar áreas de plantio com novo formato JSONB
+  const areasTableName = projectionId ? "areas_plantio_projections" : "areas_plantio";
+  
   let areasQuery = supabase
-    .from("areas_plantio")
+    .from(areasTableName)
     .select(`
       *,
       cultura_id,
@@ -280,29 +298,49 @@ async function calculateReceita(
     .not("areas_por_safra", "is", null)
     .not("areas_por_safra", "eq", "{}");
 
-  if (propertyIds && propertyIds.length > 0) {
+  if (!projectionId && propertyIds && propertyIds.length > 0) {
     areasQuery = areasQuery.in("propriedade_id", propertyIds);
   }
   
   if (cultureIds && cultureIds.length > 0) {
     areasQuery = areasQuery.in("cultura_id", cultureIds);
   }
+  
+  if (projectionId) {
+    areasQuery = areasQuery.eq("projection_id", projectionId);
+  }
 
   const { data: areas } = await areasQuery;
 
   // Buscar produtividades com novo formato JSONB
-  const { data: productivity } = await supabase
-    .from("produtividades")
+  const prodTableName = projectionId ? "produtividades_projections" : "produtividades";
+  
+  let prodQuery = supabase
+    .from(prodTableName)
     .select("*")
     .eq("organizacao_id", organizationId)
     .not("produtividades_por_safra", "is", null)
     .not("produtividades_por_safra", "eq", "{}");
+  
+  if (projectionId) {
+    prodQuery = prodQuery.eq("projection_id", projectionId);
+  }
+  
+  const { data: productivity } = await prodQuery;
 
   // Buscar preços com formato JSONB (precos_por_ano)
-  const { data: commodityPrices } = await supabase
-    .from("commodity_price_projections")
+  const pricesTableName = projectionId ? "commodity_price_projections_projections" : "commodity_price_projections";
+  
+  let pricesQuery = supabase
+    .from(pricesTableName)
     .select("*")
     .eq("organizacao_id", organizationId);
+  
+  if (projectionId) {
+    pricesQuery = pricesQuery.eq("projection_id", projectionId);
+  }
+  
+  const { data: commodityPrices } = await pricesQuery;
 
   if (!areas || !productivity) return 0;
 
@@ -447,7 +485,8 @@ async function calculateEbitda(
   organizationId: string,
   safraId: string,
   propertyIds?: string[],
-  cultureIds?: string[]
+  cultureIds?: string[],
+  projectionId?: string
 ): Promise<number> {
   try {
     // Buscar a safra específica para determinar o ano
@@ -458,11 +497,13 @@ async function calculateEbitda(
       .single();
       
     // Calcular receita (já atualizado para JSONB)
-    const receita = await calculateReceita(supabase, organizationId, safraId, propertyIds, cultureIds);
+    const receita = await calculateReceita(supabase, organizationId, safraId, propertyIds, cultureIds, projectionId);
 
     // Buscar custos com novo formato JSONB
+    const costsTableName = projectionId ? "custos_producao_projections" : "custos_producao";
+    
     let costsQuery = supabase
-      .from("custos_producao")
+      .from(costsTableName)
       .select("*, cultura_id, sistema_id")
       .eq("organizacao_id", organizationId)
       .not("custos_por_safra", "is", null)
@@ -472,22 +513,32 @@ async function calculateEbitda(
       costsQuery = costsQuery.in("cultura_id", cultureIds);
     }
     
+    if (projectionId) {
+      costsQuery = costsQuery.eq("projection_id", projectionId);
+    }
+    
     const { data: costs } = await costsQuery;
 
     // Buscar áreas para calcular custo total com novo formato JSONB
+    const areasTableName = projectionId ? "areas_plantio_projections" : "areas_plantio";
+    
     let areasQuery = supabase
-      .from("areas_plantio")
+      .from(areasTableName)
       .select("*, cultura_id, sistema_id")
       .eq("organizacao_id", organizationId)
       .not("areas_por_safra", "is", null)
       .not("areas_por_safra", "eq", "{}");
 
-    if (propertyIds && propertyIds.length > 0) {
+    if (!projectionId && propertyIds && propertyIds.length > 0) {
       areasQuery = areasQuery.in("propriedade_id", propertyIds);
     }
     
     if (cultureIds && cultureIds.length > 0) {
       areasQuery = areasQuery.in("cultura_id", cultureIds);
+    }
+    
+    if (projectionId) {
+      areasQuery = areasQuery.eq("projection_id", projectionId);
     }
 
     const { data: areas } = await areasQuery;

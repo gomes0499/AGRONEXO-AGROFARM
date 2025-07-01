@@ -23,8 +23,8 @@ export async function getCashPolicyConfig(organizacaoId: string): Promise<CashPo
     .single();
   
   if (error) {
-    // Se não encontrar, retorna configuração padrão
-    if (error.code === "PGRST116") {
+    // Se não encontrar ou tabela não existir, retorna configuração padrão
+    if (error.code === "PGRST116" || error.code === "42P01") {
       return {
         organizacao_id: organizacaoId,
         enabled: false,
@@ -33,7 +33,10 @@ export async function getCashPolicyConfig(organizacaoId: string): Promise<CashPo
         priority: "cash"
       };
     }
-    console.error("Erro ao buscar configuração de política de caixa:", error);
+    // Apenas log de erro se não for erro esperado
+    if (error.code !== "42P01") {
+      console.error("Erro ao buscar configuração de política de caixa:", error);
+    }
     return null;
   }
   

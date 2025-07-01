@@ -193,8 +193,8 @@ export function OrganizationDetailMembers({
         description="Pessoas com acesso à organização"
         action={
           <Button
-            variant="secondary"
-            className="gap-1"
+            variant="outline"
+            className="gap-1 bg-white text-black hover:bg-gray-100"
             size="default"
             onClick={() => setIsMemberDrawerOpen(true)}
           >

@@ -43,7 +43,6 @@ export function UnifiedPlantingAreaListing({
   cycles = [],
   organizationId = ""
 }: UnifiedPlantingAreaListingProps) {
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedArea, setSelectedArea] = useState<PlantingArea | null>(null);
   const [showEditDrawer, setShowEditDrawer] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -64,16 +63,8 @@ export function UnifiedPlantingAreaListing({
     })
     .sort((a, b) => a.ano_inicio - b.ano_inicio);
 
-  // Filtrar áreas de plantio baseado no termo de busca
-  const filteredPlantingAreas = plantingAreas.filter(area => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      area.propriedades?.nome?.toLowerCase().includes(searchLower) ||
-      area.culturas?.nome?.toLowerCase().includes(searchLower) ||
-      area.sistemas?.nome?.toLowerCase().includes(searchLower) ||
-      area.ciclos?.nome?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Usar diretamente as áreas de plantio sem filtro
+  const filteredPlantingAreas = plantingAreas;
 
   // Inicializar estado de edição para uma área de plantio
   const initAreaEditState = (area: PlantingArea) => {
@@ -200,8 +191,8 @@ export function UnifiedPlantingAreaListing({
           </div>
         </div>
         <Button 
-          variant="secondary" 
-          className="gap-1" 
+          variant="outline" 
+          className="gap-1 bg-white text-black hover:bg-gray-100" 
           size="default"
           onClick={() => setIsCreateModalOpen(true)}
         >
@@ -210,19 +201,8 @@ export function UnifiedPlantingAreaListing({
         </Button>
       </CardHeader>
       <CardContent>
-        {/* Search and Filter */}
-        <div className="mt-4 mb-6">
-          <input
-            type="text"
-            placeholder="Buscar por propriedade, cultura, sistema ou ciclo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md text-sm"
-          />
-        </div>
-
         {/* Table Container with Scroll */}
-        <div className="border rounded-lg">
+        <div className="border rounded-lg mt-4">
           <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="bg-primary sticky top-0 z-10">
@@ -362,7 +342,7 @@ export function UnifiedPlantingAreaListing({
 
         {filteredPlantingAreas.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
-            {searchTerm ? "Nenhuma área encontrada para o termo pesquisado." : "Nenhuma área de plantio cadastrada."}
+            Nenhuma área de plantio cadastrada.
           </div>
         )}
 

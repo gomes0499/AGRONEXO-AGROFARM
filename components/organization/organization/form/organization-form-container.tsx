@@ -14,9 +14,9 @@ import { useFormSteps } from "./hooks/use-form-steps";
 import { useCepLookup } from "./hooks/use-cep-lookup";
 import { BasicInfoStep } from "./steps/basic-info-step";
 import { AddressStep } from "./steps/address-step";
-import { LocationStep } from "./steps/location-step";
 import { PartnershipStep } from "./steps/partnership-step";
 import { BrandingStep } from "./steps/branding-step";
+import { ChartColorsStep } from "./steps/chart-colors-step";
 import { StepProgress } from "./components/step-progress";
 import { StepNavigation } from "./components/step-navigation";
 import type { OrganizationFormProps } from "./schemas/organization-form-schema";
@@ -43,7 +43,6 @@ export function OrganizationFormContainer({
     isLoading,
     logoUrl,
     setLogoUrl,
-    generateSlug,
     onSubmit,
     resetForm,
   } = useOrganizationForm({
@@ -67,11 +66,11 @@ export function OrganizationFormContainer({
     steps,
   } = useFormSteps(formValues);
 
-  const { cepLoading, cepSuccess, handleAddressFound } = useCepLookup(form);
+  const { cepLoading, cepSuccess, handleAddressFound } = useCepLookup(form as any);
 
   const handleFormSubmit = async (values: any) => {
     const result = await onSubmit(values);
-    if (result?.shouldReturnToStep1) {
+    if ((result as any)?.shouldReturnToStep1) {
       setCurrentStep(1);
     }
   };
@@ -89,29 +88,28 @@ export function OrganizationFormContainer({
       case 1:
         return (
           <BasicInfoStep
-            form={form}
+            form={form as any}
             entityType={entityType}
             logoUrl={logoUrl}
             onLogoSuccess={setLogoUrl}
             onLogoRemove={() => setLogoUrl(null)}
-            onGenerateSlug={generateSlug}
           />
         );
       case 2:
         return (
           <AddressStep
-            form={form}
+            form={form as any}
             cepLoading={cepLoading}
             cepSuccess={cepSuccess}
             onAddressFound={handleAddressFound}
           />
         );
       case 3:
-        return <LocationStep form={form} />;
+        return <PartnershipStep form={form as any} />;
       case 4:
-        return <PartnershipStep form={form} />;
+        return <BrandingStep form={form as any} />;
       case 5:
-        return <BrandingStep form={form} />;
+        return <ChartColorsStep form={form as any} />;
       default:
         return null;
     }

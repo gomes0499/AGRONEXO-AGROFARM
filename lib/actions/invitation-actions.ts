@@ -441,41 +441,32 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const loginUrl = `${baseUrl}/auth/login`;
     
-    // Vamos implementar uma abordagem mais simples e direta para o envio de email
-    setTimeout(async () => {
-      try {
-        
-        // Importamos os módulos necessários
-        const { Resend } = await import('resend');
-        const MemberAccountEmail = (await import('@/emails/templates/member-account')).default;
-        
-        // Cria uma nova instância do Resend diretamente
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        
-        // Nome da empresa para exibição nos emails
-        const COMPANY_NAME = 'SR-Consultoria';
-        const DEFAULT_FROM_EMAIL = `${COMPANY_NAME} <noreply@byteconta.com.br>`;
-        
-        // Envia o email diretamente
-        const data = await resend.emails.send({
-          from: DEFAULT_FROM_EMAIL,
-          to: email,
-          subject: `Sua conta na ${organization.nome} foi criada`,
-          react: MemberAccountEmail({
-            organizationName: organization.nome,
-            userEmail: email,
-            password: password,
-            loginUrl: loginUrl,
-            userName: nome || email.split('@')[0]
-          }),
-        });
-        
-      } catch (emailError) {
-        console.error("Erro ao enviar email de boas-vindas:", emailError);
-        // Não lançamos erro aqui para não impedir a criação do usuário
-        // O usuário foi criado com sucesso, apenas o email falhou
+    // Envia o email diretamente (sem setTimeout)
+    try {
+      console.log('Attempting to send member account email to:', email);
+      
+      const emailResult = await sendEmail({
+        to: email,
+        subject: `Sua conta na ${organization.nome} foi criada`,
+        html: MemberAccountEmail({
+          organizationName: organization.nome,
+          userEmail: email,
+          password: password,
+          loginUrl: loginUrl,
+          userName: nome || email.split('@')[0]
+        }),
+      } as any);
+      
+      if (!emailResult.success) {
+        console.error('Failed to send member account email:', (emailResult as any).error);
+      } else {
+        console.log('Member account email sent successfully to:', email);
       }
-    }, 500); // Um pequeno delay para garantir que todas as operações anteriores foram concluídas
+    } catch (emailError) {
+      console.error("Erro ao enviar email de boas-vindas:", emailError);
+      // Não lançamos erro aqui para não impedir a criação do usuário
+      // O usuário foi criado com sucesso, apenas o email falhou
+    }
     
     // Revalida a página de membros
     revalidatePath(`/dashboard/organization/${organizacaoId}`);

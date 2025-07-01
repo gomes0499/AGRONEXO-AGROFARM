@@ -84,12 +84,12 @@ const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
 
 function getWeatherIcon(code: number) {
   if (code >= 200 && code < 300)
-    return <CloudLightning className="text-yellow-400" />;
-  if (code >= 300 && code < 600) return <CloudRain className="text-blue-400" />;
-  if (code >= 600 && code < 700) return <CloudSnow className="text-blue-200" />;
-  if (code === 800) return <Sun className="text-yellow-500" />;
-  if (code > 800) return <Cloud className="text-gray-500" />;
-  return <Cloud className="text-gray-500" />;
+    return <CloudLightning className="text-yellow-400 dark:text-yellow-300" />;
+  if (code >= 300 && code < 600) return <CloudRain className="text-blue-400 dark:text-blue-300" />;
+  if (code >= 600 && code < 700) return <CloudSnow className="text-blue-200 dark:text-blue-100" />;
+  if (code === 800) return <Sun className="text-yellow-500 dark:text-yellow-400" />;
+  if (code > 800) return <Cloud className="text-gray-500 dark:text-gray-400" />;
+  return <Cloud className="text-gray-500 dark:text-gray-400" />;
 }
 
 interface ForecastDay {
@@ -181,6 +181,10 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
           background-color: #f9fafb;
           border-left: 1px solid #e5e7eb;
         }
+        .dark .ticker-container {
+          background-color: #0a0a0a;
+          border-left: 1px solid #27272a;
+        }
         .ticker-wrapper {
           position: absolute;
           top: 0;
@@ -214,6 +218,9 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
           white-space: nowrap;
           font-size: 0.875rem;
         }
+        .dark .ticker-item {
+          border-right: 1px solid #27272a;
+        }
         .ticker-divider {
           position: absolute;
           right: 0;
@@ -222,6 +229,9 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
           width: 1px;
           background-color: #e5e7eb;
           z-index: 10;
+        }
+        .dark .ticker-divider {
+          background-color: #27272a;
         }
         .ticker-fade {
           position: absolute;
@@ -232,9 +242,15 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
           background: linear-gradient(to right, transparent, #f9fafb);
           z-index: 5;
         }
+        .dark .ticker-fade {
+          background: linear-gradient(to right, transparent, #0a0a0a);
+        }
         .ticker-prefix {
           color: #6b7280;
           margin-right: 0.5rem;
+        }
+        .dark .ticker-prefix {
+          color: #a1a1aa;
         }
         .ticker-value {
           font-weight: 600;
@@ -266,11 +282,11 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
       `}</style>
       <div className="ticker-container">
         {loading ? (
-          <div className="h-full flex items-center px-4 text-muted-foreground animate-pulse">
+          <div className="h-full flex items-center px-4 text-muted-foreground dark:text-gray-400 animate-pulse">
             Carregando...
           </div>
         ) : error ? (
-          <div className="h-full flex items-center px-4 text-red-500">
+          <div className="h-full flex items-center px-4 text-red-500 dark:text-red-400">
             {error}
           </div>
         ) : (
@@ -289,11 +305,11 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
                     {getWeatherIcon(item.icon)}
 
                     <div className="ticker-minmax">
-                      <div className="ticker-minmax-item text-orange-500">
+                      <div className="ticker-minmax-item text-orange-500 dark:text-orange-400">
                         <ArrowUp className="h-3 w-3 mr-1" />
                         <span>{Math.round(item.max)}°</span>
                       </div>
-                      <div className="ticker-minmax-item text-blue-500">
+                      <div className="ticker-minmax-item text-blue-500 dark:text-blue-400">
                         <ArrowDown className="h-3 w-3 mr-1" />
                         <span>{Math.round(item.min)}°</span>
                       </div>
@@ -321,7 +337,7 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
                         </Tooltip>
                       </TooltipProvider>
                     )}
-                    <span className="text-xs text-muted-foreground ml-2">
+                    <span className="text-xs text-muted-foreground dark:text-gray-400 ml-2">
                       {item.desc}
                     </span>
                   </div>

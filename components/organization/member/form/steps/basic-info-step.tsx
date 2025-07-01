@@ -1,8 +1,6 @@
-import { User, Mail, Phone, CalendarIcon } from "lucide-react";
+import { User, Mail, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DatePicker } from "@/components/shared/datepicker";
 import { Separator } from "@/components/ui/separator";
 import {
   FormControl,
@@ -11,13 +9,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FormattedInput } from "@/components/shared/formatted-input";
 import { RoleSelector } from "../components/role-selector";
 import { MaritalStatusSelector } from "../components/marital-status-selector";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import type { UseFormReturn } from "react-hook-form";
 import type { MemberFormValues } from "../schemas/member-form-schema";
 
@@ -27,16 +21,8 @@ interface BasicInfoStepProps {
 
 export function BasicInfoStep({ form }: BasicInfoStepProps) {
   return (
-    <div className="space-y-6">
-      <Alert>
-        <User className="h-4 w-4" />
-        <AlertDescription>
-          Um email de convite será enviado para o novo membro com instruções
-          para criar a conta.
-        </AlertDescription>
-      </Alert>
-
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+    <div className="space-y-6 ">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 ">
         <FormField
           control={form.control}
           name="nome"
@@ -106,38 +92,13 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Data de Nascimento</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: ptBR })
-                      ) : (
-                        <span>Selecione uma data</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <DatePicker
+                  date={field.value}
+                  onSelect={field.onChange}
+                  placeholder="Selecione a data de nascimento"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -147,12 +108,13 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
       </div>
 
       {/* Spouse Information */}
-      {(form.watch("estadoCivil") === "CASADO" || form.watch("estadoCivil") === "UNIAO_ESTAVEL") && (
+      {(form.watch("estadoCivil") === "CASADO" ||
+        form.watch("estadoCivil") === "UNIAO_ESTAVEL") && (
         <>
           <Separator />
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Informações do Cônjuge</h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -161,7 +123,10 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
                   <FormItem>
                     <FormLabel>Nome do Cônjuge</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome completo do cônjuge" {...field} />
+                      <Input
+                        placeholder="Nome completo do cônjuge"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -219,38 +184,13 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Data de Nascimento do Cônjuge</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: ptBR })
-                          ) : (
-                            <span>Selecione uma data</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <DatePicker
+                      date={field.value}
+                      onSelect={field.onChange}
+                      placeholder="Selecione a data de nascimento"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

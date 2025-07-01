@@ -102,7 +102,7 @@ export function LeaseForm({
     mode: "onSubmit", // Só validar quando o usuário submeter o formulário
     defaultValues: {
       propriedade_id: propertyId,
-      safra_id: lease?.safra_id || "",
+      ...((lease as any)?.safra_id ? { safra_id: (lease as any).safra_id } : {}),
       numero_arrendamento: lease?.numero_arrendamento || "",
       area_fazenda: lease?.area_fazenda || 0,
       area_arrendada: lease?.area_arrendada || 0,
@@ -410,7 +410,7 @@ export function LeaseForm({
                     {/* Dropdown de Seleção de Safra */}
                     <FormField
                       control={form.control}
-                      name="safra_id"
+                      name={"safra_id" as any}
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Safra *</FormLabel>

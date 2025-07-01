@@ -11,14 +11,7 @@ export const partnerSchema = z.object({
 // Schema de validação para o formulário de organização
 export const organizationSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  slug: z
-    .string()
-    .min(3, "Identificador deve ter pelo menos 3 caracteres")
-    .max(30, "Identificador deve ter no máximo 30 caracteres")
-    .regex(
-      /^[a-z0-9-]+$/,
-      "Identificador deve conter apenas letras minúsculas, números e hifens"
-    ),
+  slug: z.string().optional().or(z.literal("")), // Removido validações pois o slug é gerado automaticamente
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   telefone: z.string().optional().or(z.literal("")),
   website: z.string().optional().or(z.literal("")),
@@ -37,11 +30,13 @@ export const organizationSchema = z.object({
   latitude: z.string().optional().or(z.literal("")),
   longitude: z.string().optional().or(z.literal("")),
   // Novos campos
-  estrutura_societaria: z.array(partnerSchema).optional().default([]),
-  cor_primaria: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor inválida").default("#0066FF"),
-  cor_secundaria: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor inválida").default("#FF6B00"),
-  cor_fundo: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor inválida").default("#FFFFFF"),
-  cor_texto: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor inválida").default("#000000"),
+  estrutura_societaria: z.array(partnerSchema),
+  // Cores personalizadas
+  cor_primaria: z.string().optional(),
+  cor_secundaria: z.string().optional(),
+  cor_fundo: z.string().optional(),
+  cor_texto: z.string().optional(),
+  chart_colors: z.any().optional(),
 });
 
 export type OrganizationFormValues = z.infer<typeof organizationSchema>;

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { DollarSign, TrendingUp, Wheat, BarChart3 } from "lucide-react";
-import Script from "next/script";
+import { fetchAllMarketData } from "@/lib/services/market-data-service";
 
 // Definição dos tipos para os dados financeiros
 interface TickerItem {
@@ -10,7 +9,7 @@ interface TickerItem {
   value: number;
   previousValue: number;
   unit: string;
-  category: "currency" | "commodity" | "interest";
+  category: "currency" | "commodity" | "interest" | "stock" | "index";
   code: string;
 }
 
@@ -22,12 +21,16 @@ interface CepeaWidgetData {
   unidade: string;
 }
 
-// Configuração dos indicadores CEPEA
+// Configuração dos indicadores CEPEA (IDs do widget oficial)
 const CEPEA_INDICATORS = [
-  { id: 12, name: "Soja - PR", unit: "R$/sc" },
-  { id: 305, name: "Ovino - BA", unit: "R$/kg" },
+  { id: 54, name: "Algodão", unit: "R$/@" },
+  { id: 91, name: "Trigo", unit: "R$/sc" },
   { id: 2, name: "Boi Gordo", unit: "R$/@" },
-  { id: 76, name: "Milho", unit: "R$/sc" },
+  { id: 23, name: "Soja ESALQ/PR", unit: "R$/sc" },
+  { id: "381-56", name: "Feijão", unit: "R$/sc" },
+  { id: 77, name: "Milho", unit: "R$/sc" },
+  { id: 178, name: "Suíno", unit: "R$/kg" },
+  { id: 12, name: "Soja Paranaguá", unit: "R$/sc" },
 ];
 
 interface MarketTickerProps {
@@ -59,311 +62,263 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
     // Função para receber dados do widget do CEPEA
     // Esta função será chamada pelo script do CEPEA
     window.onCepeaWidgetData = (data: CepeaWidgetData[]) => {
+      console.log("Dados recebidos do CEPEA:", data);
       setCepeaData(data);
       cepeaLoaded.current = true;
     };
+
+    // Função alternativa para capturar dados do CEPEA
+    // Alguns widgets usam window.cepeaData ao invés de callback
+    // Aumentando o intervalo para 5 segundos para evitar polling excessivo
+    const checkCepeaData = setInterval(() => {
+      if ((window as any).cepeaData && !cepeaLoaded.current) {
+        console.log("Dados CEPEA encontrados em window.cepeaData:", (window as any).cepeaData);
+        setCepeaData((window as any).cepeaData);
+        cepeaLoaded.current = true;
+        clearInterval(checkCepeaData);
+      }
+    }, 5000); // Mudado de 1000ms para 5000ms
+    
+    // Timeout para parar de verificar após 30 segundos
+    setTimeout(() => {
+      clearInterval(checkCepeaData);
+    }, 30000);
 
     return () => {
       // Limpar a função quando o componente for desmontado
       // Usar undefined em vez de delete para evitar erros de TypeScript
       window.onCepeaWidgetData = undefined as any;
+      clearInterval(checkCepeaData);
     };
   }, []);
+
+  // Função para buscar dados do CEPEA
+  const fetchCepeaData = async (): Promise<TickerItem[]> => {
+    try {
+      // Se temos dados do widget CEPEA, usamos eles
+      if (cepeaLoaded.current && cepeaData.length > 0) {
+        return cepeaData.map((item) => {
+          // Extrair o nome do produto e limpar (Ex: "Soja - PR" -> "Soja")
+          const nameParts = item.produto.split("-");
+          const cleanName = nameParts[0].trim();
+
+          // Procurar a unidade na configuração
+          const indicatorConfig = CEPEA_INDICATORS.find((indicator) => {
+            // Comparar por nome parcial ou ID se disponível
+            const indicatorName = indicator.name.toLowerCase();
+            const productName = item.produto.toLowerCase();
+            
+            return (
+              productName.includes(indicatorName) ||
+              indicatorName.includes(cleanName.toLowerCase()) ||
+              (nameParts[1] && indicatorName.includes(nameParts[1].trim().toLowerCase()))
+            );
+          });
+
+          // Determinar a unidade correta com base no produto
+          let unit = item.unidade || "R$";
+
+          // Se encontramos na configuração, usamos aquela unidade
+          if (indicatorConfig) {
+            unit = indicatorConfig.unit;
+          } else {
+            // Inferir unidade baseado no nome do produto
+            if (item.produto.toLowerCase().includes("algodão") || 
+                item.produto.toLowerCase().includes("boi")) {
+              unit = "R$/@";
+            } else if (item.produto.toLowerCase().includes("suíno")) {
+              unit = "R$/kg";
+            } else if (item.produto.toLowerCase().includes("soja") || 
+                       item.produto.toLowerCase().includes("milho") ||
+                       item.produto.toLowerCase().includes("trigo") ||
+                       item.produto.toLowerCase().includes("feijão")) {
+              unit = "R$/sc";
+            }
+          }
+
+          // Nome formatado para exibição
+          let displayName = cleanName;
+          
+          // Para soja, adicionar identificação da praça
+          if (item.produto.toLowerCase().includes("soja")) {
+            if (item.produto.toLowerCase().includes("paranaguá")) {
+              displayName = "Soja Paranaguá";
+            } else if (item.produto.toLowerCase().includes("esalq") || item.produto.toLowerCase().includes("pr")) {
+              displayName = "Soja PR";
+            } else {
+              displayName = "Soja";
+            }
+          }
+          
+          // Log para debug dos valores de soja
+          if (item.produto.toLowerCase().includes("soja")) {
+            console.log(`CEPEA - ${item.produto}: R$ ${item.valor} ${unit}`);
+          }
+
+          // Criar um objeto TickerItem com os dados do CEPEA
+          return {
+            name: displayName,
+            value: item.valor,
+            previousValue: item.valor * 0.995, // Estimativa da variação (valor anterior ~0.5% menor)
+            unit,
+            category: "commodity" as const,
+            code: cleanName.toUpperCase().replace(" ", "_").replace("-", "_"),
+          };
+        });
+      }
+
+      // Fallback para valores de mercado atuais se não temos dados do CEPEA
+      const marketValues: Record<string | number, number> = {
+        54: 385.50,  // Algodão
+        91: 86.00,   // Trigo
+        2: 318.00,   // Boi Gordo
+        23: 158.50,  // Soja ESALQ/PR
+        "381-56": 285.00, // Feijão
+        77: 68.50,   // Milho
+        178: 7.85,   // Suíno
+        12: 161.00,  // Soja Paranaguá
+      };
+
+      return CEPEA_INDICATORS.map((indicator) => {
+        const value = marketValues[indicator.id] || 100;
+        return {
+          name: indicator.name,
+          value: value,
+          previousValue: value * 0.995, // ~0.5% de variação
+          unit: indicator.unit,
+          category: "commodity" as const,
+          code: indicator.name.toUpperCase().replace(/[\s-]/g, "_"),
+        };
+      });
+    } catch (error) {
+      console.error("Erro ao buscar dados do CEPEA:", error);
+      return [];
+    }
+  };
 
   useEffect(() => {
     const fetchMarketData = async () => {
       try {
         setLoading(true);
 
-        // 1. Buscar dados de moedas da Awesome API
-        const currencyResponse = await fetch(
-          "https://economia.awesomeapi.com.br/json/all/USD-BRL,EUR-BRL"
-        );
-        const currencyData = await currencyResponse.json();
-
-        // 2. Buscar dados do CEPEA para soja, milho e boi gordo
+        // 1. Buscar dados de todas as APIs integradas (moedas e taxas)
+        const apiMarketData = await fetchAllMarketData();
+        
+        // 2. Sempre buscar dados do CEPEA para commodities brasileiras
         const cepeaTickerItems = await fetchCepeaData();
+        
+        // 3. Buscar dados de moedas da Awesome API como fallback
+        let currencyData: Record<string, any> = {};
+        if (!apiMarketData.some(item => item.code === "USD")) {
+          try {
+            const currencyResponse = await fetch(
+              "https://economia.awesomeapi.com.br/json/all/USD-BRL,EUR-BRL"
+            );
+            currencyData = await currencyResponse.json();
+          } catch (e) {
+            console.error("Erro ao buscar moedas:", e);
+          }
+        }
 
         // Processar dados de moedas
-        const dolarData: TickerItem = {
-          name: "Dólar",
-          value:
-            commercialPrices?.dolar_fechamento ||
-            parseFloat(currencyData["USD"]["bid"]),
-          previousValue:
-            parseFloat(currencyData["USD"]["bid"]) -
-            parseFloat(currencyData["USD"]["varBid"]),
-          unit: "R$",
-          category: "currency",
-          code: "USD",
-        };
+        let dolarData: TickerItem | null = null;
+        let euroData: TickerItem | null = null;
+        
+        if (currencyData && currencyData["USD"]) {
+          const usdBid = parseFloat(currencyData["USD"]["bid"]);
+          const usdVarBid = parseFloat(currencyData["USD"]["varBid"]);
+          dolarData = {
+            name: "Dólar",
+            value:
+              commercialPrices?.dolar_fechamento ||
+              usdBid,
+            previousValue: usdBid - usdVarBid,
+            unit: "R$",
+            category: "currency",
+            code: "USD",
+          };
+        }
 
-        const euroData: TickerItem = {
-          name: "Euro",
-          value: parseFloat(currencyData["EUR"]["bid"]),
-          previousValue:
-            parseFloat(currencyData["EUR"]["bid"]) -
-            parseFloat(currencyData["EUR"]["varBid"]),
-          unit: "R$",
-          category: "currency",
-          code: "EUR",
-        };
+        if (currencyData && currencyData["EUR"]) {
+          const eurBid = parseFloat(currencyData["EUR"]["bid"]);
+          const eurVarBid = parseFloat(currencyData["EUR"]["varBid"]);
+          euroData = {
+            name: "Euro",
+            value: eurBid,
+            previousValue: eurBid - eurVarBid,
+            unit: "R$",
+            category: "currency",
+            code: "EUR",
+          };
+        }
 
-        // Dados de taxas de juros (simulados - não mudam frequentemente)
+        // Dados de taxas de juros (fallback caso a API não retorne)
         const selicData: TickerItem = {
           name: "SELIC",
-          value: 10.75,
-          previousValue: 10.75,
-          unit: "%",
+          value: 15.00,
+          previousValue: 15.00,
+          unit: "% a.a.",
           category: "interest",
           code: "SELIC",
         };
 
         const cdiData: TickerItem = {
           name: "CDI",
-          value: 10.65,
-          previousValue: 10.63,
-          unit: "%",
+          value: 14.90,
+          previousValue: 14.90,
+          unit: "% a.a.",
           category: "interest",
           code: "CDI",
         };
 
         // Array para armazenar todos os itens
-        const allTickerItems: TickerItem[] = [
-          dolarData,
-          euroData,
-          selicData,
-          cdiData,
-        ];
+        const allTickerItems: TickerItem[] = [];
 
-        // Adicionar dados do CEPEA, mas filtrar para evitar duplicação com preços comerciais
-        const cepeaFiltered = commercialPrices
-          ? cepeaTickerItems.filter((item) => {
-              // Filtrar itens que já temos no commercial prices
-              if (item.name.includes("Soja") && commercialPrices.preco_soja_brl)
-                return false;
-              if (item.name.includes("Milho") && commercialPrices.preco_milho)
-                return false;
-              if (
-                (item.name.includes("Boi") || item.name.includes("Bovino")) &&
-                commercialPrices.outros_precos?.["boi_gordo"]
-              )
-                return false;
-              if (
-                item.name.includes("Algodão") &&
-                commercialPrices.preco_algodao_bruto
-              )
-                return false;
-              return true;
-            })
-          : cepeaTickerItems;
-
-        allTickerItems.push(...cepeaFiltered);
-
-        // Adicionar preços comerciais se disponíveis
-        if (commercialPrices) {
-          // Soja
-          if (commercialPrices.preco_soja_brl) {
-            allTickerItems.push({
-              name: "Soja",
-              value: commercialPrices.preco_soja_brl,
-              previousValue: commercialPrices.preco_soja_brl * 0.995, // Estimativa
-              unit: "R$/sc",
-              category: "commodity",
-              code: "SOJA",
-            });
+        // Adicionar dados da API integrada primeiro
+        apiMarketData.forEach(item => {
+          // Converter formato do serviço para formato do ticker
+          const tickerItem: TickerItem = {
+            name: item.name,
+            value: item.value,
+            previousValue: item.previousValue,
+            unit: item.unit,
+            category: item.category,
+            code: item.code
+          };
+          
+          // Evitar duplicatas - verificar se já existe um item com o mesmo código
+          const existingIndex = allTickerItems.findIndex(existing => existing.code === item.code);
+          if (existingIndex === -1) {
+            allTickerItems.push(tickerItem);
           }
+        });
 
-          // Milho
-          if (commercialPrices.preco_milho) {
-            allTickerItems.push({
-              name: "Milho",
-              value: commercialPrices.preco_milho,
-              previousValue: commercialPrices.preco_milho * 0.995, // Estimativa
-              unit: "R$/sc",
-              category: "commodity",
-              code: "MILHO",
-            });
-          }
+        // Adicionar dados locais se não foram adicionados pela API
+        if (!allTickerItems.some(item => item.code === "USD") && dolarData) {
+          allTickerItems.push(dolarData);
+        }
+        if (!allTickerItems.some(item => item.code === "EUR") && euroData) {
+          allTickerItems.push(euroData);
+        }
+        if (!allTickerItems.some(item => item.code === "SELIC")) {
+          allTickerItems.push(selicData);
+        }
+        if (!allTickerItems.some(item => item.code === "CDI")) {
+          allTickerItems.push(cdiData);
+        }
 
-          // Algodão
-          if (commercialPrices.preco_algodao_bruto) {
-            allTickerItems.push({
-              name: "Algodão",
-              value: commercialPrices.preco_algodao_bruto,
-              previousValue: commercialPrices.preco_algodao_bruto * 0.995, // Estimativa
-              unit: "R$/@",
-              category: "commodity",
-              code: "ALGODAO",
-            });
-          }
-
-          // Adicionar dados de pluma, caroço e capulho de algodão
-          if (commercialPrices.preco_algodao) {
-            allTickerItems.push({
-              name: "Algodão (US$/Lb)",
-              value: commercialPrices.preco_algodao,
-              previousValue: commercialPrices.preco_algodao * 0.995, // Estimativa
-              unit: "US$/Lb",
-              category: "commodity",
-              code: "ALGODAO_USD",
-            });
-          }
-
-          if (commercialPrices.preco_caroco_algodao) {
-            allTickerItems.push({
-              name: "Caroço (R$/Ton)",
-              value: commercialPrices.preco_caroco_algodao,
-              previousValue: commercialPrices.preco_caroco_algodao * 0.995, // Estimativa
-              unit: "R$/Ton",
-              category: "commodity",
-              code: "CAROCO_ALGODAO",
-            });
-          }
-
-          if (commercialPrices.preco_unitario_caroco_algodao) {
-            allTickerItems.push({
-              name: "Caroço (R$/@)",
-              value: commercialPrices.preco_unitario_caroco_algodao,
-              previousValue:
-                commercialPrices.preco_unitario_caroco_algodao * 0.995, // Estimativa
-              unit: "R$/@",
-              category: "commodity",
-              code: "CAROCO_ALGODAO_ARROBA",
-            });
-          }
-
-          // Dólares específicos para commodities
-          if (commercialPrices.dolar_algodao) {
-            allTickerItems.push({
-              name: "Dólar Algodão",
-              value: commercialPrices.dolar_algodao,
-              previousValue: commercialPrices.dolar_algodao * 0.995, // Estimativa
-              unit: "R$",
-              category: "currency",
-              code: "USD_ALGODAO",
-            });
-          }
-
-          if (commercialPrices.dolar_milho) {
-            allTickerItems.push({
-              name: "Dólar Milho",
-              value: commercialPrices.dolar_milho,
-              previousValue: commercialPrices.dolar_milho * 0.995, // Estimativa
-              unit: "R$",
-              category: "currency",
-              code: "USD_MILHO",
-            });
-          }
-
-          if (commercialPrices.dolar_soja) {
-            allTickerItems.push({
-              name: "Dólar Soja",
-              value: commercialPrices.dolar_soja,
-              previousValue: commercialPrices.dolar_soja * 0.995, // Estimativa
-              unit: "R$",
-              category: "currency",
-              code: "USD_SOJA",
-            });
-          }
-
-          // Outros preços
-          if (commercialPrices.outros_precos) {
-            // Lista de commodities específicas que queremos exibir do mock data
-            const specificCommodities = [
-              { key: "millet", name: "Milheto", unit: "R$/sc" },
-              { key: "sorghum", name: "Sorgo", unit: "R$/sc" },
-              { key: "beanGurutuba", name: "Feijão Gurutuba", unit: "R$/sc" },
-              { key: "beanCarioca", name: "Feijão Carioca", unit: "R$/sc" },
-              { key: "castor", name: "Mamona", unit: "R$/kg" },
-              { key: "pastureSeed", name: "Sem. Pastagem", unit: "R$/kg" },
-              { key: "coffee", name: "Café", unit: "R$/sc" },
-              { key: "wheat", name: "Trigo", unit: "R$/sc" },
-            ];
-
-            // Verificar e adicionar cada commodity específica
-            specificCommodities.forEach(({ key, name, unit }) => {
-              // Primeiro verificamos usando a key exata
-              if (commercialPrices.outros_precos?.[key] !== undefined) {
-                const value = commercialPrices.outros_precos[key];
-                allTickerItems.push({
-                  name,
-                  value,
-                  previousValue: value * 0.995, // Estimativa
-                  unit,
-                  category: "commodity",
-                  code: key.toUpperCase(),
-                });
-              }
-              // Depois verificamos usando underscore para compatibilidade
-              else {
-                const underscoreKey = key
-                  .replace(/([A-Z])/g, "_$1")
-                  .toLowerCase();
-                if (
-                  commercialPrices.outros_precos?.[underscoreKey] !== undefined
-                ) {
-                  const value = commercialPrices.outros_precos[underscoreKey];
-                  allTickerItems.push({
-                    name,
-                    value,
-                    previousValue: value * 0.995, // Estimativa
-                    unit,
-                    category: "commodity",
-                    code: key.toUpperCase(),
-                  });
-                }
-              }
-            });
-
-            // Processa outras commodities não especificadas acima
-            Object.entries(commercialPrices.outros_precos).forEach(
-              ([key, value]) => {
-                // Verificar se a key já está em specificCommodities (para não duplicar)
-                const isSpecificCommodity = specificCommodities.some(
-                  (c) =>
-                    c.key === key ||
-                    c.key.replace(/([A-Z])/g, "_$1").toLowerCase() === key
-                );
-
-                if (value && !isSpecificCommodity) {
-                  // Formatar nome da commodity
-                  const name = key
-                    .replace(/_/g, " ")
-                    .split(" ")
-                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(" ");
-
-                  // Determinar unidade apropriada
-                  let unit = "R$";
-                  if (key.includes("soja") || key.includes("milho"))
-                    unit = "R$/sc";
-                  if (key.includes("boi") || key.includes("bovino"))
-                    unit = "R$/@";
-                  if (key.includes("algodao")) unit = "R$/@";
-                  if (key.includes("cafe")) unit = "R$/sc";
-                  if (
-                    key.includes("trigo") ||
-                    key.includes("sorgo") ||
-                    key.includes("milheto")
-                  )
-                    unit = "R$/sc";
-                  if (key.includes("feijao")) unit = "R$/sc";
-                  if (key.includes("mamona") || key.includes("pastagem"))
-                    unit = "R$/kg";
-
-                  allTickerItems.push({
-                    name,
-                    value,
-                    previousValue: value * 0.995, // Estimativa
-                    unit,
-                    category: "commodity",
-                    code: key.toUpperCase(),
-                  });
-                }
-              }
+        // Adicionar dados do CEPEA para commodities brasileiras (se disponível)
+        if (cepeaTickerItems.length > 0) {
+          // Evitar duplicatas com dados do CEPEA
+          cepeaTickerItems.forEach(cepeaItem => {
+            const existingIndex = allTickerItems.findIndex(item => 
+              item.name.toLowerCase().includes(cepeaItem.name.toLowerCase()) ||
+              cepeaItem.name.toLowerCase().includes(item.name.toLowerCase())
             );
-          }
+            if (existingIndex === -1) {
+              allTickerItems.push(cepeaItem);
+            }
+          });
         }
 
         // Atualizar dados do ticker
@@ -381,7 +336,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
             value: 5.12,
             previousValue: 5.1,
             unit: "R$",
-            category: "currency",
+            category: "currency" as const,
             code: "USD",
           },
           {
@@ -389,7 +344,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
             value: 158.8,
             previousValue: 157.9,
             unit: "R$/sc",
-            category: "commodity",
+            category: "commodity" as const,
             code: "SOJA",
           },
           {
@@ -397,7 +352,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
             value: 67.6,
             previousValue: 67.0,
             unit: "R$/sc",
-            category: "commodity",
+            category: "commodity" as const,
             code: "MILHO",
           },
           {
@@ -405,98 +360,29 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
             value: 252.5,
             previousValue: 251.0,
             unit: "R$/@",
-            category: "commodity",
+            category: "commodity" as const,
             code: "BOI",
           },
           {
             name: "SELIC",
-            value: 10.75,
-            previousValue: 10.75,
-            unit: "%",
-            category: "interest",
+            value: 15.00,
+            previousValue: 15.00,
+            unit: "% a.a.",
+            category: "interest" as const,
             code: "SELIC",
           },
-        ] as TickerItem[];
+        ];
 
         setTickerData(fallbackData);
       }
     };
 
-    // Função para buscar dados do CEPEA
-    const fetchCepeaData = async (): Promise<TickerItem[]> => {
-      try {
-        // Se temos dados do widget CEPEA, usamos eles
-        if (cepeaLoaded.current && cepeaData.length > 0) {
-          return cepeaData.map((item) => {
-            // Extrair o nome do produto e limpar (Ex: "Soja - PR" -> "Soja")
-            const nameParts = item.produto.split("-");
-            const cleanName = nameParts[0].trim();
-
-            // Procurar a unidade na configuração
-            const indicatorConfig = CEPEA_INDICATORS.find(
-              (indicator) =>
-                indicator.name.includes(cleanName) ||
-                (nameParts[1] && indicator.name.includes(nameParts[1].trim()))
-            );
-
-            // Determinar a unidade correta com base no produto
-            let unit = item.unidade || "R$";
-
-            // Se encontramos na configuração, usamos aquela unidade
-            if (indicatorConfig) {
-              unit = indicatorConfig.unit;
-            }
-
-            // Criar um objeto TickerItem com os dados do CEPEA
-            return {
-              name: cleanName,
-              value: item.valor,
-              previousValue: item.valor * 0.995, // Estimativa da variação (valor anterior ~0.5% menor)
-              unit,
-              category: "commodity" as const,
-              code: cleanName.toUpperCase().replace(" ", "_"),
-            };
-          });
-        }
-
-        // Fallback para valores simulados se não temos dados do CEPEA
-        return CEPEA_INDICATORS.map((indicator) => {
-          const name = indicator.name.split("-")[0].trim();
-          return {
-            name,
-            value: Math.random() * 100 + 100, // Valor aleatório entre 100 e 200
-            previousValue: Math.random() * 100 + 98, // Um pouco menor que o valor atual
-            unit: indicator.unit,
-            category: "commodity" as const,
-            code: name.toUpperCase().replace(" ", "_"),
-          };
-        });
-      } catch (error) {
-        console.error("Erro ao buscar dados do CEPEA:", error);
-        return [];
-      }
-    };
-
-    // Buscar dados imediatamente e depois a cada 5 minutos
+    // Buscar dados imediatamente e depois a cada 1 hora
     fetchMarketData();
-    const interval = setInterval(fetchMarketData, 300000); // 5 minutos
+    const interval = setInterval(fetchMarketData, 3600000); // 1 hora (60 * 60 * 1000)
 
     return () => clearInterval(interval);
   }, [cepeaData, commercialPrices]);
-
-  // Função para renderizar o ícone apropriado com base na categoria
-  const renderIcon = (item: TickerItem) => {
-    switch (item.category) {
-      case "currency":
-        return <DollarSign className="h-4 w-4 text-muted-foreground" />;
-      case "commodity":
-        return <Wheat className="h-4 w-4 text-muted-foreground" />;
-      case "interest":
-        return <BarChart3 className="h-4 w-4 text-muted-foreground" />;
-      default:
-        return <TrendingUp className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
 
   // Cálculo da variação percentual
   const calculateVariation = (current: number, previous: number) => {
@@ -515,16 +401,8 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
 
   return (
     <div className="w-full relative">
-      {/* Script do CEPEA para carregar os dados - invisível para o usuário */}
-      <div className="hidden">
-        <Script
-          id="cepea-widget-script"
-          src={`https://www.cepea.org.br/br/widgetproduto.js.php?fonte=arial&tamanho=10&largura=400px&corfundo=dbd6b2&cortexto=333333&corlinha=ede7bf${CEPEA_INDICATORS.map(
-            (indicator) => `&id_indicador%5B%5D=${indicator.id}`
-          ).join("")}`}
-          strategy="lazyOnload"
-        />
-      </div>
+      {/* Widget CEPEA - Por enquanto desabilitado devido a problemas de CORS/CSP */}
+      {/* TODO: Implementar backend para buscar dados do CEPEA */}
 
       <style jsx global>{`
         .market-ticker-container {
@@ -646,8 +524,10 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
                 : "market-value-negative";
               const valueWithUnit =
                 item.unit === "R$"
-                  ? `R$ ${item.value.toFixed(1)}`
-                  : `${item.value.toFixed(2)}${item.unit}`;
+                  ? `R$ ${item.value.toFixed(2)}`
+                  : item.unit === "% a.a."
+                  ? `${item.value.toFixed(2)}% a.a.`
+                  : `${item.value.toFixed(2)} ${item.unit}`;
 
               return (
                 <div key={`${item.code}-${index}`} className="market-ticker-item">
@@ -673,8 +553,10 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
                 : "market-value-negative";
               const valueWithUnit =
                 item.unit === "R$"
-                  ? `R$ ${item.value.toFixed(1)}`
-                  : `${item.value.toFixed(2)}${item.unit}`;
+                  ? `R$ ${item.value.toFixed(2)}`
+                  : item.unit === "% a.a."
+                  ? `${item.value.toFixed(2)}% a.a.`
+                  : `${item.value.toFixed(2)} ${item.unit}`;
 
               return (
                 <div key={`${item.code}-dup-${index}`} className="market-ticker-item">
@@ -700,8 +582,10 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
                 : "market-value-negative";
               const valueWithUnit =
                 item.unit === "R$"
-                  ? `R$ ${item.value.toFixed(1)}`
-                  : `${item.value.toFixed(2)}${item.unit}`;
+                  ? `R$ ${item.value.toFixed(2)}`
+                  : item.unit === "% a.a."
+                  ? `${item.value.toFixed(2)}% a.a.`
+                  : `${item.value.toFixed(2)} ${item.unit}`;
 
               return (
                 <div key={`${item.code}-dup2-${index}`} className="market-ticker-item">

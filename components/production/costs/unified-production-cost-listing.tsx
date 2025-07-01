@@ -73,7 +73,6 @@ export function UnifiedProductionCostListing({
   systems,
   organizationId
 }: UnifiedProductionCostListingProps) {
-  const [searchTerm, setSearchTerm] = useState("");
   const [editingCost, setEditingCost] = useState<ProductionCost | null>(null);
   const [editingValues, setEditingValues] = useState<Record<string, number>>({});
   const [isUpdating, setIsUpdating] = useState(false);
@@ -88,16 +87,8 @@ export function UnifiedProductionCostListing({
     })
     .sort((a, b) => a.ano_inicio - b.ano_inicio);
 
-  // Filtrar custos baseado no termo de busca
-  const filteredCosts = productionCosts.filter(cost => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      cost.propriedades?.nome?.toLowerCase().includes(searchLower) ||
-      cost.culturas?.nome?.toLowerCase().includes(searchLower) ||
-      cost.sistemas?.nome?.toLowerCase().includes(searchLower) ||
-      CATEGORY_LABELS[cost.categoria]?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Usar diretamente os custos de produção sem filtro
+  const filteredCosts = productionCosts;
 
   const getCombinationBadge = (cost: ProductionCost) => {
     return `${cost.culturas?.nome} - ${cost.sistemas?.nome}`;
@@ -220,8 +211,8 @@ export function UnifiedProductionCostListing({
           </div>
         </div>
         <NewProductionCostButton 
-          variant="secondary" 
-          className="gap-1" 
+          variant="outline" 
+          className="gap-1 bg-white text-black hover:bg-gray-100" 
           size="default"
           cultures={cultures}
           systems={systems}
@@ -231,19 +222,8 @@ export function UnifiedProductionCostListing({
         />
       </CardHeader>
       <CardContent>
-        {/* Search and Filter */}
-        <div className="mt-4 mb-6">
-          <input
-            type="text"
-            placeholder="Buscar por propriedade, cultura, sistema ou categoria..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md text-sm"
-          />
-        </div>
-
         {/* Table Container with Scroll */}
-        <div className="border rounded-lg">
+        <div className="border rounded-lg mt-4">
           <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="bg-primary sticky top-0 z-10">
@@ -390,7 +370,7 @@ export function UnifiedProductionCostListing({
 
         {filteredCosts.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
-            {searchTerm ? "Nenhum custo encontrado para o termo pesquisado." : "Nenhum custo de produção cadastrado."}
+            Nenhum custo de produção cadastrado.
           </div>
         )}
       </CardContent>

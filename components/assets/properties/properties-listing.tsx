@@ -1,21 +1,11 @@
 "use client";
 
 import type React from "react";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Property, PropertyType } from "@/schemas/properties";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
   PlusIcon,
-  Search,
-  XIcon,
   MapPinIcon,
   EditIcon,
   Trash2Icon,
@@ -27,13 +17,11 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { PropertyFormModal } from "@/components/properties/property-form-modal";
-import { PropertyImportDialog } from "./property-import-dialog";
 import { formatCurrency, formatArea } from "@/lib/utils/formatters";
 import {
   Table,
@@ -78,8 +66,6 @@ export function PropertiesListing({
   properties,
   organizationId,
 }: PropertiesListingProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState<PropertyType | "ALL">("ALL");
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletingPropertyId, setDeletingPropertyId] = useState<string | null>(
@@ -88,58 +74,19 @@ export function PropertiesListing({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const router = useRouter();
 
-  const clearFilters = useCallback(() => {
-    setSearchTerm("");
-    setTypeFilter("ALL");
-    setCurrentPage(1);
-  }, []);
-
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchTerm(e.target.value);
-      setCurrentPage(1);
-    },
-    []
-  );
-
-  const handleTypeFilterChange = useCallback((value: string) => {
-    setTypeFilter(value as PropertyType | "ALL");
-    setCurrentPage(1);
-  }, []);
 
   const handleItemsPerPageChange = useCallback((value: string) => {
     setItemsPerPage(Number(value));
     setCurrentPage(1);
   }, []);
 
-  const filteredProperties = useMemo(() => {
-    let filtered = properties;
-
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (property) =>
-          property.nome.toLowerCase().includes(search) ||
-          property.cidade.toLowerCase().includes(search) ||
-          property.proprietario.toLowerCase().includes(search)
-      );
-    }
-
-    if (typeFilter !== "ALL") {
-      filtered = filtered.filter((property) => property.tipo === typeFilter);
-    }
-
-    return filtered;
-  }, [properties, searchTerm, typeFilter]);
-
-  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
+  const totalPages = Math.ceil(properties.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentProperties = filteredProperties.slice(startIndex, endIndex);
+  const currentProperties = properties.slice(startIndex, endIndex);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -151,15 +98,9 @@ export function PropertiesListing({
     setDeleteError(null);
 
     try {
-      const result = await deleteProperty(propertyId);
-
-      if (result.error) {
-        setDeleteError(result.error);
-        toast.error(result.error);
-      } else {
-        toast.success("Propriedade excluída com sucesso!");
-        router.refresh();
-      }
+      await deleteProperty(propertyId);
+      toast.success("Propriedade excluída com sucesso!");
+      router.refresh();
     } catch (error) {
       const errorMessage = "Erro ao excluir propriedade";
       setDeleteError(errorMessage);
@@ -170,16 +111,12 @@ export function PropertiesListing({
     }
   };
 
-  const handleEdit = (property: Property) => {
+  const handleEdit = useCallback((property: Property) => {
     setEditingProperty(property);
-  };
+    setIsModalOpen(true);
+  }, []);
 
-  const handleImportSuccess = () => {
-    setIsImportDialogOpen(false);
-    router.refresh();
-  };
 
-  const hasActiveFilters = searchTerm !== "" || typeFilter !== "ALL";
 
   const typeStyles: Record<
     PropertyType,
@@ -187,8 +124,7 @@ export function PropertiesListing({
   > = {
     PROPRIO: { variant: "default" },
     ARRENDADO: { variant: "secondary" },
-    PARCERIA: { variant: "outline" },
-    COMODATO: { variant: "outline" },
+    PARCERIA_AGRICOLA: { variant: "outline" },
   };
 
   return (
@@ -199,109 +135,48 @@ export function PropertiesListing({
           icon={<MapPinIcon className="h-5 w-5" />}
           description="Gestão de propriedades rurais"
           action={
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsImportDialogOpen(true)}
-                className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Importar Excel
-              </Button>
-              <Button
-                onClick={() => setIsModalOpen(true)}
-                className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-              >
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Nova Propriedade
-              </Button>
-            </div>
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+            >
+              <PlusIcon className="mr-2 h-4 w-4" />
+              Nova Propriedade
+            </Button>
           }
         />
 
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, cidade ou proprietário..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                className="pl-9"
-              />
-            </div>
-
-            <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Todos</SelectItem>
-                <SelectItem value="PROPRIO">Próprio</SelectItem>
-                <SelectItem value="ARRENDADO">Arrendado</SelectItem>
-                <SelectItem value="PARCERIA">Parceria</SelectItem>
-                <SelectItem value="COMODATO">Comodato</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="h-9 px-2"
-              >
-                <XIcon className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
 
         <CardContent className="p-0">
           {currentProperties.length === 0 ? (
             <div className="p-8">
               <EmptyState
                 icon={<MapPinIcon className="h-8 w-8" />}
-                title={
-                  hasActiveFilters
-                    ? "Nenhuma propriedade encontrada"
-                    : "Nenhuma propriedade cadastrada"
-                }
-                description={
-                  hasActiveFilters
-                    ? "Tente ajustar os filtros para encontrar propriedades."
-                    : "Comece cadastrando sua primeira propriedade."
-                }
+                title="Nenhuma propriedade cadastrada"
+                description="Comece cadastrando sua primeira propriedade."
                 action={
-                  hasActiveFilters ? (
-                    <Button variant="outline" onClick={clearFilters}>
-                      Limpar filtros
-                    </Button>
-                  ) : (
-                    <Button onClick={() => setIsModalOpen(true)}>
-                      <PlusIcon className="mr-2 h-4 w-4" />
-                      Cadastrar Propriedade
-                    </Button>
-                  )
+                  <Button onClick={() => setIsModalOpen(true)}>
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    Cadastrar Propriedade
+                  </Button>
                 }
               />
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto mt-4">
                 <Table>
-                  <TableHeader className="bg-primary/5">
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Localização</TableHead>
-                      <TableHead className="text-right">Área Total</TableHead>
-                      <TableHead className="text-right">
+                  <TableHeader className="rounded-t-md overflow-hidden">
+                    <TableRow className="bg-primary hover:bg-primary">
+                      <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Nome</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Tipo</TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Localização</TableHead>
+                      <TableHead className="text-right font-semibold text-primary-foreground">Área Total</TableHead>
+                      <TableHead className="text-right font-semibold text-primary-foreground">
                         Área Cultivada
                       </TableHead>
-                      <TableHead>Proprietário</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">Proprietário</TableHead>
+                      <TableHead className="text-right font-semibold text-primary-foreground">Valor</TableHead>
+                      <TableHead className="w-[50px] rounded-tr-md"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -352,7 +227,9 @@ export function PropertiesListing({
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => handleEdit(property)}
+                                onSelect={() => {
+                                  handleEdit(property);
+                                }}
                               >
                                 <EditIcon className="mr-2 h-4 w-4" />
                                 Editar
@@ -390,7 +267,7 @@ export function PropertiesListing({
                                       Cancelar
                                     </AlertDialogCancel>
                                     <AlertDialogAction
-                                      onClick={() => handleDelete(property.id)}
+                                      onClick={() => property.id && handleDelete(property.id)}
                                       disabled={
                                         isDeleting &&
                                         deletingPropertyId === property.id
@@ -421,26 +298,7 @@ export function PropertiesListing({
 
               {/* Paginação */}
               <div className="flex items-center justify-between px-4 py-4 border-t">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Mostrando {startIndex + 1} a{" "}
-                    {Math.min(endIndex, filteredProperties.length)} de{" "}
-                    {filteredProperties.length} propriedades
-                  </span>
-                  <Select
-                    value={String(itemsPerPage)}
-                    onValueChange={handleItemsPerPageChange}
-                  >
-                    <SelectTrigger className="w-[70px] h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5</SelectItem>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="20">20</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="text-sm text-muted-foreground">
                 </div>
 
                 {totalPages > 1 && (
@@ -495,10 +353,10 @@ export function PropertiesListing({
       </Card>
 
       <PropertyFormModal
-        open={isModalOpen || !!editingProperty}
+        open={isModalOpen}
         onOpenChange={(open) => {
+          setIsModalOpen(open);
           if (!open) {
-            setIsModalOpen(false);
             setEditingProperty(null);
           }
         }}
@@ -512,12 +370,6 @@ export function PropertiesListing({
         }}
       />
 
-      <PropertyImportDialog
-        isOpen={isImportDialogOpen}
-        onOpenChange={setIsImportDialogOpen}
-        organizationId={organizationId}
-        onSuccess={handleImportSuccess}
-      />
     </>
   );
 }

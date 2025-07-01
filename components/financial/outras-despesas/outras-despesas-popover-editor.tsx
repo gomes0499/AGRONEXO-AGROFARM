@@ -118,6 +118,7 @@ export function OutrasDespesasPopoverEditor({
         {
           nome: despesa.nome,
           categoria: despesa.categoria,
+          moeda: despesa.moeda || "BRL",
           valores_por_safra: validValues,
         },
         organizationId

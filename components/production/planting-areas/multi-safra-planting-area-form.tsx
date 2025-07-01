@@ -80,12 +80,12 @@ export function MultiSafraPlantingAreaForm({
   const onSubmit = async (values: MultiSafraPlantingAreaFormValues) => {
     setIsSubmitting(true);
     try {
-      // Se selecionou "all", passar undefined para propriedade_id
-      const propriedadeId = values.propriedade_id === "all" ? undefined : values.propriedade_id;
+      // Se selecionou "all", passar string vazia que será convertida para null no servidor
+      const propriedadeId = values.propriedade_id === "all" ? "" : values.propriedade_id;
       
       const formData = {
         ...values,
-        propriedade_id: propriedadeId || '',
+        propriedade_id: propriedadeId,
       };
       
       const newAreas = await createMultiSafraPlantingAreas(
@@ -102,6 +102,7 @@ export function MultiSafraPlantingAreaForm({
         // Convert string dates to Date objects to match expected type
         onSuccess([{
           ...newAreas,
+          propriedade_id: newAreas.propriedade_id || '', // Ensure it's never undefined
           created_at: newAreas.created_at ? new Date(newAreas.created_at) : undefined,
           updated_at: newAreas.updated_at ? new Date(newAreas.updated_at) : undefined,
         }]);

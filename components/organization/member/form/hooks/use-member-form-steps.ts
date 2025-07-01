@@ -28,6 +28,7 @@ export function useMemberFormSteps(form: any) {
 
   const goToNextStep = () => {
     if (currentStep < 2 && isStepValid(currentStep)) {
+      console.log('Going to next step:', currentStep + 1);
       setCurrentStep(currentStep + 1);
     }
   };

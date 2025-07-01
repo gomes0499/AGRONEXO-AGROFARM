@@ -12,17 +12,17 @@ interface NewOrganizationButtonProps {
   className?: string;
 }
 
-export function NewOrganizationButton({ 
-  userId, 
+export function NewOrganizationButton({
+  userId,
   variant = "default",
   size = "default",
-  className 
+  className,
 }: NewOrganizationButtonProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
     <>
-      <Button 
+      <Button
         onClick={() => setDrawerOpen(true)}
         variant={variant}
         size={size}

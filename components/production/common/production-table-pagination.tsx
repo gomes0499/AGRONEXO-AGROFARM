@@ -73,9 +73,6 @@ export function ProductionTablePagination({
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
       {/* Informações de paginação */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>
-          Mostrando {startItem} a {endItem} de {totalItems} registros
-        </span>
       </div>
 
       <div className="flex items-center gap-2">

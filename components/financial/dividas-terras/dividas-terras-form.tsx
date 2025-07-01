@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import { DividasTerrasListItem, DividasTerrasFormValues, dividasTerrasFormSchema
 import { PropertySelector } from "../property-debts/property-selector";
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { toast } from "sonner";
-import { getSafras } from "@/lib/actions/production-actions";
 import { 
   Select,
   SelectContent,
@@ -22,12 +22,13 @@ import {
   SelectValue
 } from "@/components/ui/select";
 
-interface DividasTerrasFormProps {
+interface DividasTerrasFormRefactoredProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   existingDivida?: DividasTerrasListItem;
   onSubmit: (data: DividasTerrasListItem) => void;
+  initialSafras: any[];
 }
 
 export function DividasTerrasForm({
@@ -36,33 +37,13 @@ export function DividasTerrasForm({
   organizationId,
   existingDivida,
   onSubmit,
-}: DividasTerrasFormProps) {
+  initialSafras,
+}: DividasTerrasFormRefactoredProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [safras, setSafras] = useState<any[]>([]);
-  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
-
-  // Carregar safras quando o modal abrir
-  useEffect(() => {
-    if (open && organizationId) {
-      loadSafras();
-    }
-  }, [open, organizationId]);
-  
-  const loadSafras = async () => {
-    try {
-      setIsLoadingSafras(true);
-      const safrasData = await getSafras(organizationId);
-      setSafras(safrasData);
-    } catch (error) {
-      console.error("Erro ao carregar safras:", error);
-      toast.error("Erro ao carregar safras");
-    } finally {
-      setIsLoadingSafras(false);
-    }
-  };
+  const [isPending, startTransition] = useTransition();
 
   const form = useForm<DividasTerrasFormValues>({
-    resolver: zodResolver(dividasTerrasFormSchema),
+    resolver: zodResolver(dividasTerrasFormSchema) as any,
     defaultValues: {
       nome: existingDivida?.nome || "",
       propriedade_id: existingDivida?.propriedade_id || undefined,
@@ -71,6 +52,7 @@ export function DividasTerrasForm({
     },
   });
 
+  // Form reset when modal opens - no data fetching useEffect needed!
   useEffect(() => {
     if (open && existingDivida) {
       form.reset({
@@ -91,30 +73,34 @@ export function DividasTerrasForm({
 
   const handleFormSubmit = async (data: DividasTerrasFormValues) => {
     setIsLoading(true);
-    try {
-      let result;
-      
-      if (existingDivida) {
-        // Atualizar dívida existente
-        result = await updateDividaTerra(existingDivida.id, data, organizationId);
-      } else {
-        // Criar nova dívida
-        result = await createDividaTerra(data, organizationId);
+    
+    startTransition(async () => {
+      try {
+        let result;
+        
+        if (existingDivida) {
+          // Atualizar dívida existente
+          result = await updateDividaTerra(existingDivida.id!, data, organizationId);
+        } else {
+          // Criar nova dívida
+          result = await createDividaTerra(data, organizationId);
+        }
+        
+        onSubmit(result);
+        onOpenChange(false);
+      } catch (error: any) {
+        console.error("Erro ao salvar dívida de terra:", error);
+        
+        // Exibir mensagem de erro mais específica se disponível
+        if (error.message && error.message.includes("required error")) {
+          toast.error("Por favor, preencha todos os campos obrigatórios");
+        } else {
+          toast.error("Erro ao salvar dívida de terra");
+        }
+      } finally {
+        setIsLoading(false);
       }
-      
-      const formattedResult: DividasTerrasListItem = {
-        ...result,
-        propriedade_nome: result.propriedades?.nome,
-      };
-      
-      onSubmit(formattedResult);
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Erro ao salvar dívida de terra:", error);
-      toast.error("Erro ao salvar dívida de terra");
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   return (
@@ -137,15 +123,15 @@ export function DividasTerrasForm({
         
         <div className="px-6 py-2 max-h-[70vh] overflow-y-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleFormSubmit as any)} className="space-y-4">
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome</FormLabel>
+                    <FormLabel>Nome/Descrição</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome da dívida" {...field} />
+                      <Input placeholder="Nome ou descrição da dívida" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -153,7 +139,7 @@ export function DividasTerrasForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="propriedade_id"
                 render={({ field }) => (
                   <FormItem>
@@ -163,7 +149,6 @@ export function DividasTerrasForm({
                         organizationId={organizationId}
                         value={field.value}
                         onChange={field.onChange}
-                        label=""
                       />
                     </FormControl>
                     <FormMessage />
@@ -172,7 +157,7 @@ export function DividasTerrasForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="moeda"
                 render={({ field }) => (
                   <FormItem>
@@ -197,7 +182,7 @@ export function DividasTerrasForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
@@ -207,7 +192,7 @@ export function DividasTerrasForm({
                         organizacaoId={organizationId}
                         values={field.value}
                         onChange={field.onChange}
-                        safras={safras}
+                        safras={initialSafras}
                         currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>
@@ -221,12 +206,12 @@ export function DividasTerrasForm({
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
+                  disabled={isLoading || isPending}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Salvando..." : existingDivida ? "Atualizar" : "Adicionar"}
+                <Button type="submit" disabled={isLoading || isPending}>
+                  {isLoading || isPending ? "Salvando..." : existingDivida ? "Atualizar" : "Adicionar"}
                 </Button>
               </div>
             </form>

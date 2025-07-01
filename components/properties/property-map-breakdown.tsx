@@ -173,14 +173,15 @@ function PropertyMapBreakdownContent({
     );
   }
 
-  if (error || !geoStats) {
+  if (error || !geoStats || geoStats.estadosData.length === 0) {
     return (
       <div className="space-y-6">
         {/* KPI Cards no topo */}
         <PropertyKpiCardsFull organizationId={organizationId} />
 
-        {/* Segunda linha - Mapa e Breakdown */}
+        {/* Segunda linha - Mapa e Breakdown com empty states */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Mapa do Brasil - Empty State */}
           <Card>
             <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
               <div className="flex items-center justify-between">
@@ -189,11 +190,11 @@ function PropertyMapBreakdownContent({
                     <Map className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-white flex items-center gap-2">
+                    <CardTitle className="text-white">
                       Mapa do Brasil
                     </CardTitle>
                     <CardDescription className="text-white/80">
-                      Visualização geográfica das propriedades
+                      {error ? "Erro ao carregar dados" : "Nenhuma propriedade cadastrada"}
                     </CardDescription>
                   </div>
                 </div>
@@ -211,11 +212,16 @@ function PropertyMapBreakdownContent({
                 </Tooltip>
               </div>
             </CardHeader>
-            <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
-              {error || "Nenhuma propriedade cadastrada"}
+            <CardContent>
+              <div className="w-full h-[350px] flex items-center justify-center">
+                <div className="text-muted-foreground">
+                  {error ? "Erro ao carregar dados geográficos" : "Cadastre propriedades para visualizar o mapa"}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
+          {/* Breakdown por Estado - Empty State */}
           <Card>
             <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
               <div className="flex items-center justify-between">
@@ -224,11 +230,11 @@ function PropertyMapBreakdownContent({
                     <BarChart3 className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-white flex items-center gap-2">
+                    <CardTitle className="text-white">
                       Resumo por Estado
                     </CardTitle>
                     <CardDescription className="text-white/80">
-                      Análise detalhada por estado
+                      {error ? "Erro ao carregar dados" : "Nenhuma propriedade cadastrada"}
                     </CardDescription>
                   </div>
                 </div>
@@ -246,95 +252,12 @@ function PropertyMapBreakdownContent({
                 </Tooltip>
               </div>
             </CardHeader>
-            <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
-              Nenhum dado disponível
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Terceira linha - Valor por Propriedade + Próprias vs Arrendadas */}
-        <div className="grid grid-cols-1 gap-6">
-          <PropertyOwnershipBreakdown organizationId={organizationId} />
-        </div>
-      </div>
-    );
-  }
-
-  if (geoStats.estadosData.length === 0) {
-    return (
-      <div className="space-y-6">
-        {/* KPI Cards no topo */}
-        <PropertyKpiCardsFull organizationId={organizationId} />
-
-        {/* Segunda linha - Mapa e Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full p-2 bg-white/20">
-                    <Map className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      Mapa do Brasil
-                    </CardTitle>
-                    <CardDescription className="text-white/80">
-                      Visualização geográfica das propriedades
-                    </CardDescription>
-                  </div>
+            <CardContent>
+              <div className="w-full h-[350px] flex items-center justify-center">
+                <div className="text-muted-foreground">
+                  {error ? "Erro ao carregar análise por estado" : "Cadastre propriedades para visualizar a análise"}
                 </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Visualização geográfica das propriedades por estado
-                      brasileiro, mostrando distribuição territorial e
-                      concentração patrimonial.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
               </div>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
-              Nenhuma propriedade cadastrada
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full p-2 bg-white/20">
-                    <BarChart3 className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      Resumo por Estado
-                    </CardTitle>
-                    <CardDescription className="text-white/80">
-                      Análise detalhada por estado
-                    </CardDescription>
-                  </div>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Análise detalhada por estado mostrando área total, valor
-                      patrimonial e distribuição entre propriedades próprias e
-                      arrendadas.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
-              Nenhum dado disponível
             </CardContent>
           </Card>
         </div>

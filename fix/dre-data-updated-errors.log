@@ -1,0 +1,11 @@
+lib/actions/projections-actions/dre-data-updated.ts(99,67): error TS2554: Expected 1 arguments, but got 2.
+lib/actions/projections-actions/dre-data-updated.ts(102,77): error TS2554: Expected 1 arguments, but got 2.
+lib/actions/projections-actions/dre-data-updated.ts(137,7): error TS18048: 'dreData.impostos_vendas' is possibly 'undefined'.
+lib/actions/projections-actions/dre-data-updated.ts(138,7): error TS18048: 'dreData.impostos_vendas' is possibly 'undefined'.
+lib/actions/projections-actions/dre-data-updated.ts(139,7): error TS18048: 'dreData.impostos_vendas' is possibly 'undefined'.
+lib/actions/projections-actions/dre-data-updated.ts(140,7): error TS18048: 'dreData.impostos_vendas' is possibly 'undefined'.
+lib/actions/projections-actions/dre-data-updated.ts(253,37): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'string | Record<string, number>'.
+lib/actions/projections-actions/dre-data-updated.ts(369,5): error TS18048: 'zeroData.impostos_vendas' is possibly 'undefined'.
+lib/actions/projections-actions/dre-data-updated.ts(370,5): error TS18048: 'zeroData.impostos_vendas' is possibly 'undefined'.
+lib/actions/projections-actions/dre-data-updated.ts(371,5): error TS18048: 'zeroData.impostos_vendas' is possibly 'undefined'.
+lib/actions/projections-actions/dre-data-updated.ts(372,5): error TS18048: 'zeroData.impostos_vendas' is possibly 'undefined'.

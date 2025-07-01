@@ -184,6 +184,66 @@ export async function getTotalDividasTerras(organizacaoId: string, safraId?: str
   }
 }
 
+// Criar múltiplas dívidas de terras em lote
+export async function createDividasTerrasBatch(
+  items: Array<{
+    organizacao_id: string;
+    propriedade_id: string | null;
+    credor: string;
+    data_aquisicao: string;
+    data_vencimento: string;
+    moeda: string;
+    valor_total: number;
+    fluxo_pagamento_anual?: any;
+  }>
+) {
+  const supabase = await createClient();
+  
+  try {
+    // Preparar dados para inserção
+    const dividasData = items.map(item => ({
+      organizacao_id: item.organizacao_id,
+      propriedade_id: item.propriedade_id,
+      credor: item.credor,
+      data_aquisicao: item.data_aquisicao,
+      data_vencimento: item.data_vencimento,
+      moeda: item.moeda,
+      valor_total: item.valor_total,
+      fluxo_pagamento_anual: item.fluxo_pagamento_anual || {},
+    }));
+    
+    const { data, error } = await supabase
+      .from("dividas_imoveis")
+      .insert(dividasData)
+      .select(`
+        *,
+        propriedades (
+          id,
+          nome
+        )
+      `);
+    
+    if (error) {
+      console.error("Erro ao criar dívidas de terras em lote:", error);
+      return { error: "Não foi possível importar as dívidas de terras" };
+    }
+    
+    // Formatar dados para compatibilidade
+    const formattedData = (data || []).map(item => ({
+      ...item,
+      nome: item.credor,
+      propriedade_nome: item.propriedades?.nome,
+      valores_por_safra: item.fluxo_pagamento_anual || {},
+      total: item.valor_total,
+    }));
+    
+    return { data: formattedData };
+  } catch (error) {
+    console.error("Erro ao processar importação:", error);
+    return { error: "Erro ao processar importação de dívidas de terras" };
+  }
+}
+
 // Obter total por propriedade
 export async function getTotalDividasTerrasPorPropriedade(
   organizacaoId: string,

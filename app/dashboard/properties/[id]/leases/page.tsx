@@ -55,7 +55,7 @@ export default async function LeasesPage({
           </div>
           <Separator />
           <LeaseList 
-            leases={leases} 
+            initialLeases={leases} 
             propertyId={params.id} 
             organizationId={session.organizationId}
           />

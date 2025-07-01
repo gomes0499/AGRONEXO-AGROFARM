@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { DividasFornecedoresListItem } from "@/schemas/financial/dividas_fornecedores";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, BuildingIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { PlusIcon, BuildingIcon, ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,69 +19,53 @@ import { DividasFornecedoresRowActions } from "./dividas-fornecedores-row-action
 import { DividasFornecedoresPopoverEditor } from "./dividas-fornecedores-popover-editor";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
-import { FinancialFilterBar } from "../common/financial-filter-bar";
 import { FinancialPagination } from "../common/financial-pagination";
-import { useFinancialFilters } from "@/hooks/use-financial-filters";
 import { CurrencyBadge } from "../common/currency-badge";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { DividasFornecedoresSafraDetail } from "./dividas-fornecedores-safra-detail";
-import { useEffect } from "react";
-import { getCotacoesCambio } from "@/lib/actions/financial-actions/cotacoes-cambio-actions";
+import { DividasFornecedoresImportDialog } from "./dividas-fornecedores-import-dialog";
 
 interface DividasFornecedoresListingProps {
   organization: { id: string; nome: string };
   initialDividasFornecedores: DividasFornecedoresListItem[];
+  initialExchangeRate?: number;
+  initialCotacoes?: any[];
 }
 
 export function DividasFornecedoresListing({
   organization,
   initialDividasFornecedores,
+  initialExchangeRate = 5.0,
+  initialCotacoes = [],
 }: DividasFornecedoresListingProps) {
   const [dividasFornecedores, setDividasFornecedores] = useState<
     (DividasFornecedoresListItem & { isExpanded?: boolean })[]
-  >(initialDividasFornecedores.map((d) => ({ ...d, isExpanded: false })));
+  >((initialDividasFornecedores || []).map((d) => ({ ...d, isExpanded: false })));
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingDivida, setEditingDivida] =
     useState<DividasFornecedoresListItem | null>(null);
-  const [exchangeRate, setExchangeRate] = useState(5.7); // Taxa de câmbio padrão
+  
+  // Use the initial exchange rate from server - no useEffect needed!
+  const exchangeRate = initialExchangeRate;
 
-  const {
-    filteredItems: filteredDividas,
-    paginatedItems: paginatedData,
-    searchTerm,
-    filters,
-    filterOptions,
-    handleSearchChange,
-    handleFilterChange,
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    handlePageChange,
-    handleItemsPerPageChange,
-    totalItems: totalDividas,
-    filteredCount,
-  } = useFinancialFilters(dividasFornecedores, {
-    searchFields: ["nome"],
-    categoriaField: "categoria",
-    moedaField: "moeda",
-  });
-
-  // Carregar taxa de câmbio
-  useEffect(() => {
-    const loadExchangeRate = async () => {
-      try {
-        const cotacoes = await getCotacoesCambio(organization.id);
-        const dolarFechamento = cotacoes.find(c => c.tipo_moeda === "DOLAR_FECHAMENTO");
-        if (dolarFechamento) {
-          setExchangeRate(dolarFechamento.cotacao_atual || 5.7);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar taxa de câmbio:", error);
-      }
-    };
-    loadExchangeRate();
-  }, [organization.id]);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  const totalPages = Math.ceil(dividasFornecedores.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedData = dividasFornecedores.slice(startIndex, startIndex + itemsPerPage);
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   // Adicionar nova dívida
   const handleAddDivida = (newDivida: DividasFornecedoresListItem) => {
@@ -91,6 +75,13 @@ export function DividasFornecedoresListing({
     ]);
     setIsAddModalOpen(false);
     toast.success("Dívida de fornecedor adicionada com sucesso.");
+  };
+
+  // Importar dívidas via Excel
+  const handleImportSuccess = (importedDividas: DividasFornecedoresListItem[]) => {
+    const dividasWithExpanded = importedDividas.map(d => ({ ...d, isExpanded: false }));
+    setDividasFornecedores([...dividasWithExpanded, ...dividasFornecedores]);
+    setIsImportModalOpen(false);
   };
 
   // Atualizar dívida existente
@@ -120,7 +111,7 @@ export function DividasFornecedoresListing({
   };
 
   // Function to calculate total from valores_por_safra
-  const calculateTotal = (divida: DividasFornecedoresListItem) => {
+  const calculateTotal = useMemo(() => (divida: DividasFornecedoresListItem) => {
     let total = 0;
 
     if (divida.valores_por_safra) {
@@ -143,7 +134,7 @@ export function DividasFornecedoresListing({
     }
 
     return total;
-  };
+  }, []);
 
   // Toggle expanded state for a debt
   const toggleExpanded = (id: string) => {
@@ -172,28 +163,31 @@ export function DividasFornecedoresListing({
         title="Dívidas de Fornecedores"
         description="Controle das dívidas com fornecedores de insumos e serviços"
         action={
-          <Button
-            variant="outline"
-            size="default"
-            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            <PlusIcon className="h-4 w-4" />
-            Nova Dívida
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="default"
+              className="bg-card hover:bg-accent text-card-foreground border border-border gap-1"
+              onClick={() => setIsImportModalOpen(true)}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Importar Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="default"
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 gap-1"
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              <PlusIcon className="h-4 w-4" />
+              Nova Dívida
+            </Button>
+          </div>
         }
         className="mb-4"
       />
       <CardContent>
         <div className="space-y-4">
-          <FinancialFilterBar
-            searchTerm={searchTerm}
-            onSearchChange={handleSearchChange}
-            filters={filters}
-            onFiltersChange={handleFilterChange}
-            filterOptions={filterOptions}
-            searchPlaceholder="Buscar por nome do fornecedor..."
-          />
 
           {dividasFornecedores.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground space-y-4">
@@ -341,7 +335,7 @@ export function DividasFornecedoresListing({
                   onPageChange={handlePageChange}
                   itemsPerPage={itemsPerPage}
                   onItemsPerPageChange={handleItemsPerPageChange}
-                  totalItems={totalDividas}
+                  totalItems={dividasFornecedores.length}
                 />
               </div>
             </div>
@@ -367,6 +361,14 @@ export function DividasFornecedoresListing({
           onSubmit={handleUpdateDivida}
         />
       )}
+
+      {/* Modal para importar via Excel */}
+      <DividasFornecedoresImportDialog
+        isOpen={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        organizationId={organization.id}
+        onSuccess={handleImportSuccess}
+      />
     </Card>
   );
 }

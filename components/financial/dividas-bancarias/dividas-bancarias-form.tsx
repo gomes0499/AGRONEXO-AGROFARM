@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Building2 } from "lucide-react";
@@ -12,8 +11,7 @@ import { createDividaBancaria, updateDividaBancaria } from "@/lib/actions/financ
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { CurrencySelector } from "../common/currency-selector";
 import { toast } from "sonner";
-import { getSafras } from "@/lib/actions/production-actions";
-import { parseFormattedNumber } from "@/lib/utils/formatters";
+import { type Safra } from "@/lib/actions/financial-forms-data-actions";
 import { 
   Select,
   SelectContent,
@@ -22,12 +20,13 @@ import {
   SelectValue
 } from "@/components/ui/select";
 
-interface DividasBancariasFormProps {
+interface DividasBancariasFormClientProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   existingDivida?: any;
   onSubmit: (data: any) => void;
+  initialSafras: Safra[];
 }
 
 export function DividasBancariasForm({
@@ -36,44 +35,9 @@ export function DividasBancariasForm({
   organizationId,
   existingDivida,
   onSubmit,
-}: DividasBancariasFormProps) {
+  initialSafras,
+}: DividasBancariasFormClientProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [safras, setSafras] = useState<any[]>([]);
-  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
-  
-  // Carregar safras quando o modal abrir
-  useEffect(() => {
-    if (open && organizationId) {
-      loadSafras();
-    }
-  }, [open, organizationId]);
-  
-  const loadSafras = async () => {
-    try {
-      setIsLoadingSafras(true);
-      const safrasData = await getSafras(organizationId);
-      setSafras(safrasData);
-    } catch (error) {
-      console.error("Erro ao carregar safras:", error);
-      toast.error("Erro ao carregar safras");
-    } finally {
-      setIsLoadingSafras(false);
-    }
-  };
-
-  // Basic form schema for dividas bancarias
-  const formSchema = {
-    nome: {
-      required: "Nome é obrigatório",
-    },
-    categoria: {
-      required: "Categoria é obrigatória",
-    },
-    moeda: {
-      required: "Moeda é obrigatória",
-    },
-    valores_por_safra: {},
-  };
 
   const form = useForm({
     defaultValues: {
@@ -87,6 +51,7 @@ export function DividasBancariasForm({
     },
   });
 
+  // Reset form when modal opens/closes or existing data changes
   useEffect(() => {
     if (open && existingDivida) {
       form.reset({
@@ -332,7 +297,7 @@ export function DividasBancariasForm({
                       organizacaoId={organizationId}
                       values={field.value || {}}
                       onChange={field.onChange}
-                      safras={safras}
+                      safras={initialSafras}
                     />
                   </FormControl>
                   <FormMessage />

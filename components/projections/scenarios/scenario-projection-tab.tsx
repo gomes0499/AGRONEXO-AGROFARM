@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ScenarioListing } from "./scenario-listing";
-import { getProjecoesCenarios } from "@/lib/actions/projections-actions";
+import { getProjecoesCenarios } from "@/lib/actions/projections-actions/index";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ScenarioProjectionTabProps {

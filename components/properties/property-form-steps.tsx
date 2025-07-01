@@ -79,7 +79,7 @@ export function PropertyFormSteps({
   const renderContent = () => {
     // Se já temos dados iniciais no modo de edição, não precisamos verificar a tabela
     if (shouldSkipTableCheck) {
-      return null; // Continue para o formulário
+      // Não retornar null, continuar para renderizar o formulário
     }
 
     // Se a tabela não estiver pronta, exibir o helper de migração
@@ -202,7 +202,7 @@ export function PropertyFormSteps({
                         ]
                       : [];
 
-                  form.trigger(fieldsToValidate).then((isValid) => {
+                  form.trigger(fieldsToValidate).then((isValid: boolean) => {
                     if (isValid) {
                       setCurrentStep(Math.min(STEPS.length, currentStep + 1));
                     }
@@ -234,11 +234,6 @@ export function PropertyFormSteps({
     );
   };
 
-  // Se devemos pular a verificação da tabela ou se a tabela está pronta, renderizar o formulário
-  if (shouldSkipTableCheck || tableReady) {
-    return renderContent();
-  }
-
-  // Caso contrário, renderizar o conteúdo baseado no estado da tabela
+  // Sempre renderizar o conteúdo
   return renderContent();
 }

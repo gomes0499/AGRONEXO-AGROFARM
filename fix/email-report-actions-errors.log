@@ -1,0 +1,2 @@
+lib/actions/email-report-actions.ts(6,43): error TS2307: Cannot find module '@/lib/services/pdf-report-enhanced-service' or its corresponding type declarations.
+lib/actions/email-report-actions.ts(20,32): error TS2554: Expected 0 arguments, but got 1.

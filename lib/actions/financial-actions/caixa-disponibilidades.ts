@@ -7,15 +7,44 @@ import { CaixaDisponibilidades, CaixaDisponibilidadesFormValues } from "@/schema
 /**
  * Obtém a lista de caixa e disponibilidades para uma organização
  */
-export async function getCaixaDisponibilidades(organizacaoId: string) {
+export async function getCaixaDisponibilidades(organizacaoId: string, projectionId?: string) {
   const supabase = await createClient();
 
   try {
-    const { data, error } = await supabase
-      .from("caixa_disponibilidades")
-      .select("*")
-      .eq("organizacao_id", organizacaoId)
-      .order("categoria", { ascending: true });
+    let data = null;
+    let error = null;
+    
+    // Try projection table first if projectionId is provided
+    if (projectionId) {
+      const projectionTableName = "caixa_disponibilidades_projections";
+      const projectionQuery = supabase
+        .from(projectionTableName)
+        .select("*")
+        .eq("organizacao_id", organizacaoId)
+        .eq("projection_id", projectionId)
+        .order("categoria", { ascending: true });
+      
+      const projectionResult = await projectionQuery;
+      
+      // If projection table doesn't exist or has no data, fall back to base table
+      if (!projectionResult.error && projectionResult.data?.length > 0) {
+        data = projectionResult.data;
+        error = projectionResult.error;
+      }
+    }
+    
+    // If no projection data found or no projectionId, use base table
+    if (!data || data.length === 0) {
+      const baseQuery = supabase
+        .from("caixa_disponibilidades")
+        .select("*")
+        .eq("organizacao_id", organizacaoId)
+        .order("categoria", { ascending: true });
+      
+      const baseResult = await baseQuery;
+      data = baseResult.data;
+      error = baseResult.error;
+    }
 
     if (error) {
       console.error("Erro ao buscar caixa e disponibilidades:", error);
@@ -233,4 +262,43 @@ export async function getTotalGeral(organizacaoId: string, safraId?: string) {
   
   // Se não, somar todos os totais
   return items.reduce((total, item) => total + (item.total || 0), 0);
+}
+
+/**
+ * Cria múltiplos itens de caixa e disponibilidades em lote
+ */
+export async function createCaixaDisponibilidadesBatch(
+  items: Array<{
+    organizacao_id: string;
+    nome: string;
+    categoria: string;
+    valores_por_ano?: any;
+  }>
+) {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("caixa_disponibilidades")
+      .insert(items)
+      .select();
+
+    if (error) {
+      console.error("Erro ao criar itens em lote:", error);
+      return { error: "Não foi possível importar os itens de caixa e disponibilidades." };
+    }
+
+    revalidatePath("/dashboard/financial");
+    
+    // Adicionar campos para compatibilidade
+    const dataWithCompat = data.map(item => ({
+      ...item,
+      valores_por_safra: item.valores_por_ano
+    }));
+    
+    return { data: dataWithCompat };
+  } catch (error) {
+    console.error("Erro ao processar importação:", error);
+    return { error: "Erro ao processar importação de caixa e disponibilidades." };
+  }
 }

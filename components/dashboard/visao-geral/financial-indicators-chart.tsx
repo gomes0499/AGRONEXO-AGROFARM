@@ -27,85 +27,50 @@ import {
   ChartContainer,
 } from "@/components/ui/chart";
 import { ChartLegendMultirow } from "@/components/ui/chart-legend-multirow";
-import { useEffect, useState, useMemo } from "react";
-import {
-  getFinancialIndicatorsChart,
-  getFinancialIndicatorsBenchmarks,
-  type FinancialIndicatorData,
-} from "@/lib/actions/financial-indicators-actions";
-import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
+import { useMemo } from "react";
+import { type FinancialIndicatorData } from "@/lib/actions/financial-indicators-actions";
+import { useChartColors } from "@/contexts/chart-colors-context";
 
-interface FinancialIndicatorsChartProps {
+interface FinancialIndicatorsChartClientProps {
   organizationId: string;
+  initialData: FinancialIndicatorData[];
+  initialBenchmarks: any;
 }
 
-// Cores padrão caso não haja cores personalizadas
-const DEFAULT_CHART_COLORS = {
-  dividaReceita: "#DC2626", // Tom final da paleta (vermelho)
-  dividaEbitda: "#1B124E", // Tom primário da marca
-  dividaLucroLiquido: "#059669", // Tom de destaque (verde)
-};
-
-export function FinancialIndicatorsChart({
+export function FinancialIndicatorsChartClient({
   organizationId,
-}: FinancialIndicatorsChartProps) {
-  const [data, setData] = useState<FinancialIndicatorData[]>([]);
-  const [benchmarks, setBenchmarks] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  initialData,
+  initialBenchmarks,
+}: FinancialIndicatorsChartClientProps) {
+  // Usar cores customizadas
+  const { colors } = useChartColors();
   
-  const { palette } = useOrganizationColors(organizationId);
-  
-  // Criar configuração dinâmica do gráfico com cores da organização
+  // Criar configuração do gráfico com cores customizadas
   const chartConfig = useMemo(() => ({
     dividaReceita: {
       label: "Dívida/Receita",
-      color: palette[4] || DEFAULT_CHART_COLORS.dividaReceita, // Usar uma cor mais distante na paleta
+      color: colors.color1,
     },
     dividaEbitda: {
       label: "Dívida/EBITDA",
-      color: palette[0] || DEFAULT_CHART_COLORS.dividaEbitda, // Cor primária
+      color: colors.color2,
     },
     dividaLucroLiquido: {
       label: "Dívida/Lucro Líquido",
-      color: palette[2] || DEFAULT_CHART_COLORS.dividaLucroLiquido, // Terceira cor
+      color: colors.color3,
     },
-  } satisfies ChartConfig), [palette]);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [chartData, benchmarkData] = await Promise.all([
-          getFinancialIndicatorsChart(organizationId),
-          getFinancialIndicatorsBenchmarks(),
-        ]);
-
-        setData(chartData);
-        setBenchmarks(benchmarkData);
-      } catch (err) {
-        console.error("Erro ao carregar gráfico de indicadores:", err);
-        setError("Erro ao carregar dados do gráfico");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-  }, [organizationId]);
+  } satisfies ChartConfig), [colors]);
 
   // Calcular tendências
   const calcularTendencias = () => {
-    if (data.length < 2) return {
+    if (initialData.length < 2) return {
       dividaReceita: "0.0",
       dividaEbitda: "0.0", 
       dividaLucroLiquido: "0.0"
     };
 
-    const primeiro = data[0];
-    const ultimo = data[data.length - 1];
+    const primeiro = initialData[0];
+    const ultimo = initialData[initialData.length - 1];
 
     const calcularVariacao = (inicial: number | null, final: number | null) => {
       if (!inicial || !final || inicial === 0) return "0.0";
@@ -121,28 +86,28 @@ export function FinancialIndicatorsChart({
 
   // Avaliar nível de risco baseado nos benchmarks
   const avaliarRisco = () => {
-    if (!data.length || !benchmarks) return "BAIXO";
+    if (!initialData.length || !initialBenchmarks) return "BAIXO";
     
-    const ultimoAno = data[data.length - 1];
+    const ultimoAno = initialData[initialData.length - 1];
     let nivelRisco = "BAIXO";
 
     // Verificar cada indicador
-    if (ultimoAno.dividaReceita && ultimoAno.dividaReceita > benchmarks.dividaReceita.critico) {
+    if (ultimoAno.dividaReceita && ultimoAno.dividaReceita > initialBenchmarks.dividaReceita.critico) {
       nivelRisco = "CRÍTICO";
-    } else if (ultimoAno.dividaEbitda && ultimoAno.dividaEbitda > benchmarks.dividaEbitda.critico) {
+    } else if (ultimoAno.dividaEbitda && ultimoAno.dividaEbitda > initialBenchmarks.dividaEbitda.critico) {
       nivelRisco = "CRÍTICO";
-    } else if (ultimoAno.dividaLucroLiquido && ultimoAno.dividaLucroLiquido > benchmarks.dividaLucroLiquido.critico) {
+    } else if (ultimoAno.dividaLucroLiquido && ultimoAno.dividaLucroLiquido > initialBenchmarks.dividaLucroLiquido.critico) {
       nivelRisco = "CRÍTICO";
     } else if (
-      (ultimoAno.dividaReceita && ultimoAno.dividaReceita > benchmarks.dividaReceita.aceitavel) ||
-      (ultimoAno.dividaEbitda && ultimoAno.dividaEbitda > benchmarks.dividaEbitda.aceitavel) ||
-      (ultimoAno.dividaLucroLiquido && ultimoAno.dividaLucroLiquido > benchmarks.dividaLucroLiquido.aceitavel)
+      (ultimoAno.dividaReceita && ultimoAno.dividaReceita > initialBenchmarks.dividaReceita.aceitavel) ||
+      (ultimoAno.dividaEbitda && ultimoAno.dividaEbitda > initialBenchmarks.dividaEbitda.aceitavel) ||
+      (ultimoAno.dividaLucroLiquido && ultimoAno.dividaLucroLiquido > initialBenchmarks.dividaLucroLiquido.aceitavel)
     ) {
       nivelRisco = "ALTO";
     } else if (
-      (ultimoAno.dividaReceita && ultimoAno.dividaReceita > benchmarks.dividaReceita.ideal) ||
-      (ultimoAno.dividaEbitda && ultimoAno.dividaEbitda > benchmarks.dividaEbitda.ideal) ||
-      (ultimoAno.dividaLucroLiquido && ultimoAno.dividaLucroLiquido > benchmarks.dividaLucroLiquido.ideal)
+      (ultimoAno.dividaReceita && ultimoAno.dividaReceita > initialBenchmarks.dividaReceita.ideal) ||
+      (ultimoAno.dividaEbitda && ultimoAno.dividaEbitda > initialBenchmarks.dividaEbitda.ideal) ||
+      (ultimoAno.dividaLucroLiquido && ultimoAno.dividaLucroLiquido > initialBenchmarks.dividaLucroLiquido.ideal)
     ) {
       nivelRisco = "MÉDIO";
     }
@@ -150,7 +115,8 @@ export function FinancialIndicatorsChart({
     return nivelRisco;
   };
 
-  if (loading) {
+  // Empty state
+  if (initialData.length === 0) {
     return (
       <Card>
         <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
@@ -164,36 +130,7 @@ export function FinancialIndicatorsChart({
                   Indicadores de Endividamento
                 </CardTitle>
                 <CardDescription className="text-white/80">
-                  Carregando indicadores financeiros...
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <div className="w-full h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">Carregando gráfico...</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || data.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full p-2 bg-white/20">
-                <AlertTriangle className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-white">
-                  Indicadores de Endividamento
-                </CardTitle>
-                <CardDescription className="text-white/80">
-                  {error || "Nenhum dado de indicadores encontrado"}
+                  Nenhum dado de indicadores encontrado
                 </CardDescription>
               </div>
             </div>
@@ -202,7 +139,7 @@ export function FinancialIndicatorsChart({
         <CardContent className="px-2 sm:px-6">
           <div className="w-full h-[350px] sm:h-[400px] flex items-center justify-center">
             <div className="text-muted-foreground">
-              {error || "Cadastre dados financeiros para visualizar os indicadores"}
+              Cadastre dados financeiros para visualizar os indicadores
             </div>
           </div>
         </CardContent>
@@ -226,8 +163,8 @@ export function FinancialIndicatorsChart({
                 Indicadores de Endividamento
               </CardTitle>
               <CardDescription className="text-white/80">
-                Evolução dos indicadores financeiros ({data[0]?.ano} -{" "}
-                {data[data.length - 1]?.ano})
+                Evolução dos indicadores financeiros ({initialData[0]?.ano} -{" "}
+                {initialData[initialData.length - 1]?.ano})
               </CardDescription>
             </div>
           </div>
@@ -238,7 +175,7 @@ export function FinancialIndicatorsChart({
           <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={data}
+                data={initialData}
                 margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -276,17 +213,17 @@ export function FinancialIndicatorsChart({
                 <ChartLegend content={<ChartLegendMultirow itemsPerRow={2} className="dark:text-gray-300" />} />
                 
                 {/* Linhas de referência para benchmarks */}
-                {benchmarks && (
+                {initialBenchmarks && (
                   <>
                     <ReferenceLine 
-                      y={benchmarks.dividaReceita.critico} 
-                      stroke="#DC2626" 
+                      y={initialBenchmarks.dividaReceita.critico} 
+                      stroke={colors.color1} 
                       strokeDasharray="2 2" 
                       opacity={0.3}
                     />
                     <ReferenceLine 
-                      y={benchmarks.dividaEbitda.critico} 
-                      stroke="#1B124E" 
+                      y={initialBenchmarks.dividaEbitda.critico} 
+                      stroke={colors.color2} 
                       strokeDasharray="2 2" 
                       opacity={0.3}
                     />
@@ -329,7 +266,7 @@ export function FinancialIndicatorsChart({
           </ChartContainer>
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4 bg-muted/30">
+      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-xs">
           {/* Nível de Risco */}
           <div className="space-y-1">
@@ -356,8 +293,8 @@ export function FinancialIndicatorsChart({
           <div className="space-y-1">
             <div className="font-medium text-muted-foreground dark:text-gray-400">Benchmarks (Críticos)</div>
             <div className="text-xs space-y-1 dark:text-gray-300">
-              <div>Dívida/Receita: &lt; {benchmarks?.dividaReceita.critico}x</div>
-              <div>Dívida/EBITDA: &lt; {benchmarks?.dividaEbitda.critico}x</div>
+              <div>Dívida/Receita: &lt; {initialBenchmarks?.dividaReceita.critico}x</div>
+              <div>Dívida/EBITDA: &lt; {initialBenchmarks?.dividaEbitda.critico}x</div>
             </div>
           </div>
         </div>

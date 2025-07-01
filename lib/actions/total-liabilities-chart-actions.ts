@@ -1,0 +1,251 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+
+export interface LiabilityData {
+  safra: string;
+  bancos_tradings: number;
+  outros: number;
+  total: number;
+  liquido: number;
+}
+
+export interface TotalLiabilitiesChartData {
+  data: LiabilityData[];
+  safraName?: string;
+}
+
+export async function getTotalLiabilitiesChartData(
+  organizationId: string,
+  yearOrSafraId?: number | string,
+  projectionId?: string
+): Promise<TotalLiabilitiesChartData> {
+  try {
+    const supabase = await createClient();
+
+    const { data: safras } = await supabase
+      .from("safras")
+      .select("id, nome, ano_inicio, ano_fim")
+      .eq("organizacao_id", organizationId)
+      .order("ano_inicio"); // Ordenar por ano de início em ordem crescente
+
+    if (!safras || safras.length === 0) {
+      return { data: [] };
+    }
+
+    // Filtramos safras a partir de 2020/2021 até o presente
+    // Queremos mostrar a evolução histórica completa dos passivos
+    const safrasFiltradas = safras.filter((safra) => {
+      // Pegar o ano de início da safra (primeiro número da string nome)
+      const anoInicio = parseInt(safra.nome.split("/")[0]);
+      return anoInicio >= 2020; // Incluir safras de 2020 em diante
+    });
+
+    // Usar todas as safras filtradas para o gráfico
+    const safrasParaAnalisar = safrasFiltradas.map((s) => s.id);
+
+    // Também identificamos a safra atualmente selecionada para destacar, se houver
+    let safraAtualNome: string | undefined;
+
+    if (typeof yearOrSafraId === "string" && yearOrSafraId.length >= 30) {
+      const safraEncontrada = safras.find((s) => s.id === yearOrSafraId);
+      if (safraEncontrada) {
+        safraAtualNome = safraEncontrada.nome;
+      }
+    } else if (
+      typeof yearOrSafraId === "number" &&
+      yearOrSafraId >= 2000 &&
+      yearOrSafraId <= 2100
+    ) {
+      const safraEncontrada = safras.find((s) => s.ano_inicio === yearOrSafraId);
+      if (safraEncontrada) {
+        safraAtualNome = safraEncontrada.nome;
+      }
+    }
+
+    // Determine table names based on projectionId
+    const dividasTable = projectionId ? "dividas_bancarias_projections" : "dividas_bancarias";
+    const caixaTable = projectionId ? "caixa_disponibilidades_projections" : "caixa_disponibilidades";
+
+    // Build queries
+    const dividasQuery = supabase
+      .from(dividasTable)
+      .select("*")
+      .eq("organizacao_id", organizationId);
+    
+    const caixaQuery = supabase
+      .from(caixaTable)
+      .select("*")
+      .eq("organizacao_id", organizationId);
+
+    if (projectionId) {
+      dividasQuery.eq("projection_id", projectionId);
+      caixaQuery.eq("projection_id", projectionId);
+    }
+
+    const [dividasBancariasResult, caixaDisponibilidadesResult] =
+      await Promise.all([dividasQuery, caixaQuery]);
+
+    const dividasBancarias = dividasBancariasResult.data || [];
+    const caixaDisponibilidades = caixaDisponibilidadesResult.data || [];
+
+    // Inicializar resultado
+    const resultado: LiabilityData[] = [];
+
+    // Inicializar estrutura para armazenar os valores por safra
+    const valoresPorSafra: Record<
+      string,
+      {
+        bancos: number;
+        outros: number;
+        caixa: number;
+        arrendamento: number;
+        fornecedores: number;
+        tradings: number;
+        estoqueCommodity: number;
+        estoqueInsumos: number;
+        ativoBiologico: number;
+      }
+    > = {};
+
+    // Inicializar o objeto para cada safra
+    for (const safraId of safrasParaAnalisar) {
+      valoresPorSafra[safraId] = {
+        bancos: 0,
+        outros: 0,
+        caixa: 0,
+        arrendamento: 0,
+        fornecedores: 0,
+        tradings: 0,
+        estoqueCommodity: 0,
+        estoqueInsumos: 0,
+        ativoBiologico: 0,
+      };
+    }
+
+    // Função auxiliar para extrair valores de um campo JSON
+    const extrairValorSafra = (
+      objeto: any,
+      safraId: string,
+      campoValores = "valores_por_safra"
+    ): number => {
+      try {
+        let valores = objeto[campoValores] || objeto.fluxo_pagamento_anual || objeto.valores_por_ano || {};
+
+        if (typeof valores === "string") {
+          valores = JSON.parse(valores);
+        }
+
+        if (valores && typeof valores === "object") {
+          return parseFloat(valores[safraId]) || 0;
+        }
+      } catch (e) {
+        console.warn("Erro ao extrair valor:", e);
+      }
+      return 0;
+    };
+
+    // Vamos buscar o total de dívidas global (bancos e outros)
+    let totalBancosTodos = 0;
+    let totalOutrosTodos = 0;
+
+    // Somar todos os valores de dívidas bancárias globalmente
+    for (const divida of dividasBancarias) {
+      // Para cada dívida, somar todos os valores de todas as safras
+      let valorTotal = 0;
+
+      // Verificar se é um objeto ou JSON
+      let valoresSafras =
+        divida.valores_por_safra || divida.fluxo_pagamento_anual || divida.valores_por_ano || {};
+      if (typeof valoresSafras === "string") {
+        try {
+          valoresSafras = JSON.parse(valoresSafras);
+        } catch (e) {
+          valoresSafras = {};
+        }
+      }
+
+      // Somar o valor total de todas as safras para esta dívida
+      if (valoresSafras && typeof valoresSafras === "object") {
+        for (const safraId in valoresSafras) {
+          const valor = parseFloat(valoresSafras[safraId]) || 0;
+          valorTotal += valor;
+        }
+      }
+
+      // Categorizar o valor total
+      if (valorTotal > 0) {
+        if (divida.tipo === "BANCO" || divida.tipo === "TRADING") {
+          totalBancosTodos += valorTotal;
+        } else if (divida.tipo === "OUTROS") {
+          totalOutrosTodos += valorTotal;
+        }
+      }
+    }
+
+    // Calcular o total global de passivos
+    const totalPassivosTodos = totalBancosTodos + totalOutrosTodos;
+
+    // Vamos agora calcular o total de caixas e disponibilidades por safra
+    // Isso é necessário para calcular a dívida líquida específica de cada safra
+    const caixasPorSafra: Record<string, number> = {};
+
+    // Inicializar o objeto para cada safra
+    for (const safraId of safrasParaAnalisar) {
+      caixasPorSafra[safraId] = 0;
+    }
+
+    // Calcular os totais de caixa para cada safra específica
+    for (const caixa of caixaDisponibilidades) {
+      // Verificar se é um objeto ou JSON
+      let valoresSafras = caixa.valores_por_safra || caixa.fluxo_pagamento_anual || caixa.valores_por_ano || {};
+      if (typeof valoresSafras === "string") {
+        try {
+          valoresSafras = JSON.parse(valoresSafras);
+        } catch (e) {
+          valoresSafras = {};
+        }
+      }
+
+      // Adicionar valor de caixa para cada safra específica
+      if (valoresSafras && typeof valoresSafras === "object") {
+        for (const safraId in valoresSafras) {
+          if (safrasParaAnalisar.includes(safraId)) {
+            const valor = parseFloat(valoresSafras[safraId]) || 0;
+            if (valor > 0) {
+              caixasPorSafra[safraId] += valor;
+            }
+          }
+        }
+      }
+    }
+
+    // Agora vamos criar uma entrada para cada safra
+    for (const safraId of safrasParaAnalisar) {
+      const safra = safras.find((s) => s.id === safraId);
+      if (!safra) continue;
+
+      // Obter o total de caixas desta safra específica
+      const totalCaixaSafra = caixasPorSafra[safraId] || 0;
+
+      // Calcular a dívida líquida específica desta safra:
+      // Dívida Líquida = Dívida Total - Caixas e Disponibilidades desta safra
+      const liquidoSafra = Math.max(0, totalPassivosTodos - totalCaixaSafra);
+
+      // Adicionar ao resultado: bancos/outros/total são globais, líquida é específica da safra
+      resultado.push({
+        safra: safra.nome,
+        bancos_tradings: totalBancosTodos,
+        outros: totalOutrosTodos,
+        total: totalPassivosTodos,
+        liquido: liquidoSafra,
+      });
+    }
+
+    // Como já buscamos em ordem crescente, as safras mais antigas já estarão à esquerda
+    return { data: resultado, safraName: safraAtualNome };
+  } catch (error) {
+    console.error("Erro ao buscar dados de passivos totais:", error);
+    return { data: [] };
+  }
+}

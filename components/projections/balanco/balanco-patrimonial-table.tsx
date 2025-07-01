@@ -23,13 +23,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { BalancoPatrimonialData } from "@/lib/actions/projections-actions/balanco-patrimonial-data";
+import { BalancoPatrimonialCorrigidoData } from "@/lib/actions/projections-actions/balanco-patrimonial-corrigido";
 
 interface BalancoPatrimonialTableProps {
-  data: BalancoPatrimonialData;
+  organizationId: string;
+  initialData: BalancoPatrimonialCorrigidoData;
 }
 
-export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) {
+export function BalancoPatrimonialTable({ organizationId, initialData }: BalancoPatrimonialTableProps) {
+  const data = initialData;
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   
   const toggleSection = (section: string) => {
@@ -75,14 +77,14 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary dark:bg-primary/90 dark:hover:bg-primary/90">
-                    <TableHead className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
+                    <TableHead className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
                       Balanço Patrimonial
                     </TableHead>
                     {data.anos.map((ano, index) => (
                       <TableHead 
                         key={ano} 
                         className={cn(
-                          "font-medium text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
+                          "font-semibold text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
                           index === data.anos.length - 1 && "rounded-tr-md"
                         )}
                       >
@@ -93,8 +95,8 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                 </TableHeader>
                 <TableBody>
                   {/* === SEÇÃO DE ATIVO === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 dark:bg-primary/90">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 dark:bg-primary/90">
+                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       <button
                         onClick={() => toggleSection('ativo')}
                         className="flex items-center gap-2 w-full text-left"
@@ -191,7 +193,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.adiantamentos_fornecedores?.[ano] || 0)}
+                                {formatCurrency(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -205,7 +207,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.emprestimos_terceiros?.[ano] || 0)}
+                                {formatCurrency(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -248,7 +250,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.estoques?.almoxarifado?.[ano] || 0)}
+                                {formatCurrency(data.ativo.circulante.estoques?.outros?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -276,7 +278,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.estoques?.sementes?.[ano] || 0)}
+                                {formatCurrency(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -340,7 +342,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.nao_circulante.imobilizado?.total?.[ano] || 0)}
+                                {formatCurrency(data.ativo.nao_circulante.total?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -354,7 +356,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.nao_circulante.imobilizado?.terras?.[ano] || 0)}
+                                {formatCurrency(data.ativo.nao_circulante.propriedades?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -472,7 +474,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.circulante.emprestimos_financiamentos_curto_prazo?.[ano] || 0)}
+                                {formatCurrency(data.passivo.circulante.dividas_bancarias_cp?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -486,7 +488,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.circulante.adiantamentos_clientes?.[ano] || 0)}
+                                {formatCurrency(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -500,7 +502,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.circulante.impostos_taxas?.[ano] || 0)}
+                                {formatCurrency(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -514,7 +516,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.circulante.outros_passivos_circulantes?.[ano] || 0)}
+                                {formatCurrency(data.passivo.circulante.outras_obrigacoes_cp?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -564,7 +566,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.nao_circulante.emprestimos_financiamentos_longo_prazo?.[ano] || 0)}
+                                {formatCurrency(data.passivo.nao_circulante.dividas_bancarias_lp?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -578,7 +580,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.nao_circulante.financiamentos_terras?.[ano] || 0)}
+                                {formatCurrency(data.passivo.nao_circulante.dividas_imoveis?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -592,7 +594,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.nao_circulante.arrendamentos?.[ano] || 0)}
+                                {formatCurrency(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -606,7 +608,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.nao_circulante.outros_passivos_nao_circulantes?.[ano] || 0)}
+                                {formatCurrency(data.passivo.nao_circulante.outras_obrigacoes_lp?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -621,7 +623,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                       Patrimônio Líquido
                     </TableCell>
                     {data.anos.map((ano) => {
-                      const valor = data.passivo.patrimonio_liquido?.total?.[ano] || 0;
+                      const valor = data.patrimonio_liquido?.total?.[ano] || 0;
                       return (
                         <TableCell 
                           key={ano} 
@@ -646,10 +648,10 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className={cn(
                           "text-center min-w-[120px] w-[120px]",
-                          (data.passivo.patrimonio_liquido?.capital_social?.[ano] || 0) < 0 ? "text-destructive" : ""
+                          (data.patrimonio_liquido?.capital_social?.[ano] || 0) < 0 ? "text-destructive" : ""
                         )}
                       >
-                        {formatCurrency(data.passivo.patrimonio_liquido?.capital_social?.[ano] || 0)}
+                        {formatCurrency(data.patrimonio_liquido?.capital_social?.[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -663,10 +665,10 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className={cn(
                           "text-center min-w-[120px] w-[120px]",
-                          (data.passivo.patrimonio_liquido?.reservas?.[ano] || 0) < 0 ? "text-destructive" : ""
+                          (data.patrimonio_liquido?.reservas?.[ano] || 0) < 0 ? "text-destructive" : ""
                         )}
                       >
-                        {formatCurrency(data.passivo.patrimonio_liquido?.reservas?.[ano] || 0)}
+                        {formatCurrency(data.patrimonio_liquido?.reservas?.[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -680,10 +682,10 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                         key={ano} 
                         className={cn(
                           "text-center min-w-[120px] w-[120px]",
-                          (data.passivo.patrimonio_liquido?.lucros_acumulados?.[ano] || 0) < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"
+                          (data.patrimonio_liquido?.lucros_acumulados?.[ano] || 0) < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"
                         )}
                       >
-                        {formatCurrency(data.passivo.patrimonio_liquido?.lucros_acumulados?.[ano] || 0)}
+                        {formatCurrency(data.patrimonio_liquido?.lucros_acumulados?.[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -696,7 +698,7 @@ export function BalancoPatrimonialTable({ data }: BalancoPatrimonialTableProps) 
                     {data.anos.map((ano) => {
                       const passivoCirculante = data.passivo.circulante.total?.[ano] || 0;
                       const passivoNaoCirculante = data.passivo.nao_circulante.total?.[ano] || 0;
-                      const patrimonioLiquido = data.passivo.patrimonio_liquido?.total?.[ano] || 0;
+                      const patrimonioLiquido = data.patrimonio_liquido?.total?.[ano] || 0;
                       const total = passivoCirculante + passivoNaoCirculante + patrimonioLiquido;
                       
                       return (

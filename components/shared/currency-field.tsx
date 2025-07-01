@@ -1,8 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { parseFormattedNumber, formatGenericCurrency, isNegativeValue } from "@/lib/utils/formatters";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  parseFormattedNumber,
+  formatGenericCurrency,
+  isNegativeValue,
+} from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils";
 import { useFormContext } from "react-hook-form";
 
@@ -41,21 +51,29 @@ export function CurrencyField({
 }: CurrencyFieldProps) {
   // Get form context if available
   const formContext = useFormContext();
-  
+
   // Check if we should use it as a form field or standalone component
   const isFormField = !!control && !!name;
-  
+
   // For standalone use
-  const [standaloneValue, setStandaloneValue] = useState<number | undefined>(defaultValue);
+  const [standaloneValue, setStandaloneValue] = useState<number | undefined>(
+    defaultValue
+  );
   const [standaloneIsFocused, setStandaloneIsFocused] = useState(false);
-  
+
   // Determine field label with cost/revenue indicators
-  const displayLabel = isCost ? `(-) ${label}` : isRevenue ? `(+) ${label}` : label;
-  
+  const displayLabel = isCost
+    ? `(-) ${label}`
+    : isRevenue
+    ? `(+) ${label}`
+    : label;
+
   // Get currency from form context if available
-  const formCurrency = formContext?.watch?.(currencyFieldName) as CurrencyType | undefined;
+  const formCurrency = formContext?.watch?.(currencyFieldName) as
+    | CurrencyType
+    | undefined;
   const activeCurrency = formCurrency || currency;
-  
+
   // Set placeholder based on currency
   let currencyPlaceholder = placeholder;
   if (activeCurrency === "USD") {
@@ -65,7 +83,7 @@ export function CurrencyField({
   } else if (activeCurrency === "SOJA") {
     currencyPlaceholder = "0 sc";
   }
-  
+
   // If using as standalone component
   if (!isFormField) {
     return (
@@ -76,7 +94,7 @@ export function CurrencyField({
           placeholder={currencyPlaceholder}
           disabled={disabled}
           className={cn(
-            "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+            "flex h-10 bg-input w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
             isNegativeValue(standaloneValue) && "text-red-600",
             className
           )}
@@ -84,13 +102,18 @@ export function CurrencyField({
             // Allow continuous typing by preserving the raw input
             const rawValue = e.target.value.replace(/[^\d.,\-]/g, "");
             const numericValue = parseFormattedNumber(rawValue);
-            setStandaloneValue(numericValue !== null ? numericValue : undefined);
+            setStandaloneValue(
+              numericValue !== null ? numericValue : undefined
+            );
             if (onChange) onChange(numericValue !== null ? numericValue : 0);
           }}
           onBlur={(e) => {
             setStandaloneIsFocused(false);
             if (standaloneValue !== undefined && standaloneValue !== null) {
-              e.target.value = formatGenericCurrency(standaloneValue, activeCurrency);
+              e.target.value = formatGenericCurrency(
+                standaloneValue,
+                activeCurrency
+              );
             }
           }}
           onFocus={(e) => {
@@ -108,14 +131,14 @@ export function CurrencyField({
                 ? String(Math.abs(standaloneValue))
                 : ""
               : standaloneValue !== undefined && standaloneValue !== null
-                ? formatGenericCurrency(standaloneValue, activeCurrency)
-                : ""
+              ? formatGenericCurrency(standaloneValue, activeCurrency)
+              : ""
           }
         />
       </div>
     );
   }
-  
+
   // If using as a form field
   return (
     <FormField
@@ -126,9 +149,11 @@ export function CurrencyField({
         const [isFocused, setIsFocused] = useState(false);
 
         // Get currency from form context if available
-        const formCurrency = formContext?.watch?.(currencyFieldName) as CurrencyType | undefined;
+        const formCurrency = formContext?.watch?.(currencyFieldName) as
+          | CurrencyType
+          | undefined;
         const activeCurrency = formCurrency || currency;
-        
+
         // Set placeholder based on currency
         let currencyPlaceholder = placeholder;
         if (activeCurrency === "USD") {
@@ -146,7 +171,7 @@ export function CurrencyField({
               <input
                 placeholder={currencyPlaceholder}
                 className={cn(
-                  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                  "flex h-10 w-full rounded-md border border-input bg-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
                   isNegativeValue(field.value) && "text-red-600"
                 )}
                 onChange={(e) => {
@@ -164,7 +189,10 @@ export function CurrencyField({
                   setIsFocused(false);
                   field.onBlur();
                   if (field.value !== undefined && field.value !== null) {
-                    e.target.value = formatGenericCurrency(field.value, activeCurrency);
+                    e.target.value = formatGenericCurrency(
+                      field.value,
+                      activeCurrency
+                    );
                   }
                 }}
                 onFocus={(e) => {

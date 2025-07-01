@@ -189,6 +189,65 @@ export async function getTotalDividasBancarias(organizacaoId: string, safraId?: 
   }
 }
 
+// Criar múltiplas dívidas bancárias em lote
+export async function createDividasBancariasBatch(
+  items: Array<{
+    organizacao_id: string;
+    nome: string;
+    modalidade: string;
+    instituicao_bancaria: string;
+    ano_contratacao: number;
+    indexador: string;
+    taxa_real: number;
+    moeda: string;
+    valor_total: number;
+    fluxo_pagamento_anual?: any;
+  }>
+) {
+  const supabase = await createClient();
+  
+  try {
+    // Preparar dados para inserção
+    const dividasData = items.map(item => ({
+      organizacao_id: item.organizacao_id,
+      instituicao_bancaria: item.instituicao_bancaria,
+      tipo: 'BANCO',
+      modalidade: item.modalidade,
+      ano_contratacao: item.ano_contratacao,
+      indexador: item.indexador,
+      taxa_real: item.taxa_real,
+      moeda: item.moeda,
+      fluxo_pagamento_anual: item.fluxo_pagamento_anual || {
+        [item.ano_contratacao]: item.valor_total
+      },
+    }));
+    
+    const { data, error } = await supabase
+      .from("dividas_bancarias")
+      .insert(dividasData)
+      .select();
+    
+    if (error) {
+      console.error("Erro ao criar dívidas bancárias em lote:", error);
+      return { error: "Não foi possível importar as dívidas bancárias" };
+    }
+    
+    // Adicionar campos para compatibilidade
+    const dataWithCompatibility = (data || []).map(item => ({
+      ...item,
+      nome: item.instituicao_bancaria,
+      valores_por_safra: item.fluxo_pagamento_anual || {},
+      valores_por_ano: item.fluxo_pagamento_anual || {},
+      total: Object.values(item.fluxo_pagamento_anual || {}).reduce((sum: number, value) => sum + Number(value || 0), 0)
+    }));
+    
+    return { data: dataWithCompatibility };
+  } catch (error) {
+    console.error("Erro ao processar importação:", error);
+    return { error: "Erro ao processar importação de dívidas bancárias" };
+  }
+}
+
 // Obter total por categoria
 export async function getTotalDividasBancariasPorCategoria(
   organizacaoId: string,

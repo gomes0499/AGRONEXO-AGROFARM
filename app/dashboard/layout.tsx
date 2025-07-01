@@ -1,12 +1,6 @@
 import React from "react";
 import { createClient } from "@/lib/supabase/server";
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
-import { UserProvider } from "@/components/auth/user-provider";
-import { OrganizationProvider } from "@/components/auth/organization-provider";
-import { DashboardProvider } from "./dashboard-provider";
-import { DashboardTickers } from "@/components/dashboard/dashboard-tickers";
 
 /**
  * Layout para todas as páginas do dashboard
@@ -90,20 +84,27 @@ export default async function DashboardLayout({
   };
 
   // Preços removidos - módulo comercial descontinuado
-  let latestPrice = null;
+  const latestPrice = null;
 
-  // Usar o componente wrapper do lado do cliente para evitar problemas com os Providers
-  const DashboardProvidersWrapper = React.lazy(() => import('@/components/dashboard/dashboard-providers-wrapper'));
+  // Import direto ao invés de lazy loading para evitar problemas de hidratação
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const DashboardProvidersWrapper = require("@/components/dashboard/dashboard-providers-wrapper").default;
+  
+  // Buscar cores do gráfico da organização
+  let chartColors = null;
+  if (organizationId) {
+    const { getOrganizationChartColors } = await import("@/lib/actions/organization-chart-colors-actions");
+    chartColors = await getOrganizationChartColors(organizationId);
+  }
 
   return (
-    <React.Suspense fallback={<div>Carregando...</div>}>
-      <DashboardProvidersWrapper
-        user={userWithProfile}
-        organization={userData?.organizacao || null}
-        commercialPrices={latestPrice}
-      >
-        {children}
-      </DashboardProvidersWrapper>
-    </React.Suspense>
+    <DashboardProvidersWrapper
+      user={userWithProfile}
+      organization={userData?.organizacao || null}
+      commercialPrices={latestPrice}
+      chartColors={chartColors}
+    >
+      {children}
+    </DashboardProvidersWrapper>
   );
 }

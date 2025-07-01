@@ -10,11 +10,13 @@ import { toast } from "sonner";
 interface NewOutrasDespesasButtonProps {
   organizationId: string;
   onItemCreated?: (item: OutrasDespesasListItem) => void;
+  safras?: any[];
 }
 
 export function NewOutrasDespesasButton({
   organizationId,
   onItemCreated,
+  safras = [],
 }: NewOutrasDespesasButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -40,6 +42,7 @@ export function NewOutrasDespesasButton({
         onOpenChange={setIsOpen}
         organizationId={organizationId}
         onSubmit={handleItemCreated}
+        initialSafras={safras}
       />
     </>
   );

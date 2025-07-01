@@ -12,12 +12,17 @@ export const metadata: Metadata = {
   description: "Edite os dados de uma propriedade rural.",
 };
 
+interface EditPropertyPageProps {
+  params: Promise<{
+    id: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[]>>;
+}
+
 export default async function EditPropertyPage({
   params,
-}: {
-  params: any;
-  searchParams?: any;
-}) {
+}: EditPropertyPageProps) {
+  const resolvedParams = await params;
   // Verificar se o usuário é superadmin
   await requireSuperAdmin();
   
@@ -28,7 +33,7 @@ export default async function EditPropertyPage({
   }
   
   try {
-    const property = await getPropertyById(params.id);
+    const property = await getPropertyById(resolvedParams.id);
     
     // Verificar se a propriedade pertence à organização atual
     if (property.organizacao_id !== session.organizationId) {
@@ -40,7 +45,7 @@ export default async function EditPropertyPage({
         <SiteHeader 
           title="Editar Propriedade" 
           showBackButton 
-          backUrl={`/dashboard/properties/${params.id}`} 
+          backUrl={`/dashboard/properties/${resolvedParams.id}`} 
           backLabel="Voltar para Detalhes"
         />
         <div className="flex flex-col gap-6 p-6">

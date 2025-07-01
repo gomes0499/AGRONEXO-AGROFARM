@@ -30,13 +30,19 @@ interface Member {
   };
 }
 
+interface ManageOrganizationPageProps {
+  params: Promise<{
+    id: string;
+  }>;
+  searchParams: Promise<{
+    tab?: string;
+  }>;
+}
+
 export default async function ManageOrganizationPage({
   params,
   searchParams,
-}: {
-  params: any;
-  searchParams: any;
-}) {
+}: ManageOrganizationPageProps) {
   // Verifica autenticação e obtém dados do usuário
   const user = await verifyUserPermission();
 
@@ -124,7 +130,16 @@ export default async function ManageOrganizationPage({
       // Criar um mapa para lookup rápido
       const authUsersMap = new Map();
       if (authUsers && authUsers.length > 0) {
-        authUsers.forEach((user: any) => {
+        interface AuthUser {
+          id: string;
+          email?: string;
+          raw_user_meta_data?: {
+            name?: string;
+            avatar_url?: string;
+          };
+        }
+        
+        authUsers.forEach((user: AuthUser) => {
           authUsersMap.set(user.id, user);
         });
       }
@@ -219,7 +234,7 @@ export default async function ManageOrganizationPage({
 
       {/* Tabs Navigation - logo abaixo do site header */}
       <Tabs defaultValue={activeTab}>
-        <div className="bg-muted/50 border-b sticky top-0 z-10 w-full">
+        <div className="bg-card border-b sticky top-0 z-10 w-full">
           <div className="w-full px-4 md:px-6 py-2">
             <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
               <TabsTrigger

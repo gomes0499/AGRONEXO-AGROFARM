@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
   PieChart,
   Pie,
@@ -18,222 +18,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
-import { Loader2 } from "lucide-react";
-import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
+import { useChartColors } from "@/contexts/chart-colors-context";
+import type { DebtTypeDistributionData, DebtTypeData } from "@/lib/actions/debt-type-distribution-actions";
+import { getDebtTypeDistributionData } from "@/lib/actions/debt-type-distribution-actions";
 
-interface FinancialDebtTypeDistributionProps {
+interface FinancialDebtTypeDistributionChartProps {
   organizationId: string;
+  initialData: DebtTypeDistributionData;
   selectedYear?: number | string;
-}
-
-interface DebtTypeData {
-  name: string;
-  value: number;
-  percentual: number;
-  color: string;
-}
-
-// Cores padrão caso não haja cores personalizadas
-const DEFAULT_COLORS = ["#1B124E", "#4338CA", "#6366F1", "#818CF8"];
-
-async function getDebtTypeDistributionData(
-  organizationId: string,
-  yearOrSafraId?: number | string,
-  colors: string[] = DEFAULT_COLORS
-): Promise<{ data: DebtTypeData[]; yearUsed: number; safraName?: string }> {
-  const supabase = createClient();
-
-  // Busca todas as dívidas bancárias
-  const { data: dividasBancarias } = await supabase
-    .from("dividas_bancarias")
-    .select("*")
-    .eq("organizacao_id", organizationId);
-
-  if (!dividasBancarias || dividasBancarias.length === 0) {
-    return { data: [], yearUsed: new Date().getFullYear() };
-  }
-
-  // Busca todas as safras disponíveis
-  const { data: safras } = await supabase
-    .from("safras")
-    .select("id, nome, ano_inicio, ano_fim")
-    .eq("organizacao_id", organizationId)
-    .order("ano_inicio", { ascending: false });
-
-  if (!safras || safras.length === 0) {
-    return { data: [], yearUsed: new Date().getFullYear() };
-  }
-
-  // Determinar qual safra usar
-  let safraAtualId: string | undefined;
-  let safraAtualNome: string | undefined;
-  let anoExibido: number = new Date().getFullYear();
-
-  // Se yearOrSafraId for uma string que não é um número e tem comprimento de UUID (36 caracteres)
-  if (typeof yearOrSafraId === "string" && yearOrSafraId.length >= 30) {
-    // É provavelmente um ID de safra
-    safraAtualId = yearOrSafraId;
-    const safraEncontrada = safras.find((s) => s.id === safraAtualId);
-    if (safraEncontrada) {
-      safraAtualNome = safraEncontrada.nome;
-      anoExibido = safraEncontrada.ano_inicio;
-    } else {
-      safraAtualId = safras[0].id;
-      safraAtualNome = safras[0].nome;
-      anoExibido = safras[0].ano_inicio;
-    }
-  }
-  // Se yearOrSafraId for um número válido (ano)
-  else if (
-    typeof yearOrSafraId === "number" &&
-    yearOrSafraId >= 2000 &&
-    yearOrSafraId <= 2100
-  ) {
-    // É um ano válido, buscar a safra correspondente
-    anoExibido = yearOrSafraId;
-    const safraEncontrada = safras.find((s) => s.ano_inicio === yearOrSafraId);
-    if (safraEncontrada) {
-      safraAtualId = safraEncontrada.id;
-      safraAtualNome = safraEncontrada.nome;
-    } else {
-      // Se não encontrou safra para este ano, usar a mais recente
-      safraAtualId = safras[0].id;
-      safraAtualNome = safras[0].nome;
-    }
-  } else {
-    safraAtualId = safras[0].id;
-    safraAtualNome = safras[0].nome;
-    anoExibido = safras[0].ano_inicio;
-  }
-
-  const safrasComDados = new Set<string>();
-
-  dividasBancarias.forEach((divida) => {
-    let valores = divida.valores_por_ano;
-    if (typeof valores === "string") {
-      try {
-        valores = JSON.parse(valores);
-      } catch (e) {
-        valores = {};
-      }
-    }
-
-    if (valores && typeof valores === "object") {
-      Object.keys(valores).forEach((chave) => {
-        if (valores[chave] > 0) {
-          safrasComDados.add(chave);
-        }
-      });
-    }
-  });
-
-  // Se a safra escolhida não tem dados, procurar outra safra
-  if (safraAtualId && !safrasComDados.has(safraAtualId)) {
-    // Verificar se alguma safra tem dados
-    if (safrasComDados.size > 0) {
-      const safraIdComDados = Array.from(safrasComDados)[0];
-      const safraComDados = safras.find((s) => s.id === safraIdComDados);
-
-      if (safraComDados) {
-        safraAtualId = safraComDados.id;
-        safraAtualNome = safraComDados.nome;
-        anoExibido = safraComDados.ano_inicio;
-      }
-    }
-  }
-
-  // Inicializar totais por modalidade
-  const totalPorModalidade: Record<string, number> = {
-    CUSTEIO: 0,
-    INVESTIMENTOS: 0,
-  };
-
-  // Processar cada dívida bancária
-  dividasBancarias.forEach((divida) => {
-    const modalidade = divida.modalidade || "OUTROS";
-
-    // Verifica se valores_por_ano existe e processa
-    let valores = divida.valores_por_ano;
-    if (typeof valores === "string") {
-      try {
-        valores = JSON.parse(valores);
-      } catch (e) {
-        console.error("Erro ao parsear valores_por_ano:", e);
-        valores = {};
-      }
-    }
-
-    // Busca o valor para a safra escolhida
-    let valorSafra = 0;
-
-    if (valores && typeof valores === "object" && safraAtualId) {
-      valorSafra = valores[safraAtualId] || 0;
-
-      // Se não encontrou pelo ID exato, tenta encontrar por algum ID que corresponda parcialmente
-      if (valorSafra === 0 && safraAtualId.length >= 8) {
-        const safraIdPrefix = safraAtualId.substring(0, 8); // Primeiros 8 caracteres
-
-        Object.keys(valores).forEach((chave) => {
-          if (chave.includes(safraIdPrefix) && valores[chave] > 0) {
-            valorSafra = valores[chave];
-          }
-        });
-      }
-    }
-
-    // Se ainda não encontrou valor, tenta usar o ano da safra como chave
-    if (valorSafra === 0 && anoExibido) {
-      const anoStr = anoExibido.toString();
-      if (valores && valores[anoStr] > 0) {
-        valorSafra = valores[anoStr];
-      }
-    }
-
-    // Se ainda não tem valor e há um campo de valor_total, usa o valor total
-    if (valorSafra === 0 && divida.valor_total) {
-      valorSafra = divida.valor_total;
-    }
-
-    // Acumula o valor na modalidade correspondente se for maior que zero
-    if (valorSafra > 0) {
-      if (modalidade === "CUSTEIO" || modalidade === "INVESTIMENTOS") {
-        totalPorModalidade[modalidade] += valorSafra;
-      } else {
-        // Para outras modalidades, considerar como INVESTIMENTOS
-        totalPorModalidade["INVESTIMENTOS"] += valorSafra;
-      }
-    }
-  });
-
-  // Calcular total geral
-  const totalGeral = Object.values(totalPorModalidade).reduce(
-    (sum, valor) => sum + valor,
-    0
-  );
-
-  if (totalGeral === 0) {
-    return { data: [], yearUsed: anoExibido, safraName: safraAtualNome };
-  }
-
-  // Criar array de dados para o gráfico com percentuais corretos
-  const data: DebtTypeData[] = [
-    {
-      name: "Custeio",
-      value: totalPorModalidade.CUSTEIO,
-      percentual: totalPorModalidade.CUSTEIO / totalGeral,
-      color: colors[0],
-    },
-    {
-      name: "Investimentos",
-      value: totalPorModalidade.INVESTIMENTOS,
-      percentual: totalPorModalidade.INVESTIMENTOS / totalGeral,
-      color: colors[1],
-    },
-  ].filter((item) => item.value > 0);
-
-  return { data, yearUsed: anoExibido, safraName: safraAtualNome };
+  projectionId?: string;
 }
 
 function CustomTooltip({ active, payload }: any) {
@@ -270,139 +64,39 @@ function CustomTooltip({ active, payload }: any) {
 
 export function FinancialDebtTypeDistributionChart({
   organizationId,
+  initialData,
   selectedYear,
-}: FinancialDebtTypeDistributionProps) {
-  const [data, setData] = useState<DebtTypeData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [displayYear, setDisplayYear] = useState<number>(
-    selectedYear && typeof selectedYear === "number"
-      ? selectedYear
-      : new Date().getFullYear()
-  );
-  const [displaySafra, setDisplaySafra] = useState<string | undefined>(
-    undefined
-  );
-  const [requestedYearOrSafraId, setRequestedYearOrSafraId] = useState<
-    number | string
-  >(selectedYear || new Date().getFullYear());
+  projectionId,
+}: FinancialDebtTypeDistributionChartProps) {
+  const [data, setData] = useState<DebtTypeDistributionData>(initialData);
+  const [isPending, startTransition] = useTransition();
   
-  const { palette } = useOrganizationColors(organizationId);
+  // Usar cores customizadas
+  const { colors } = useChartColors();
   
-  // Criar cores dinâmicas com base nas cores da organização
-  const colors = useMemo(() => {
-    if (palette.length >= 4) {
-      return palette.slice(0, 4);
-    }
-    return DEFAULT_COLORS;
-  }, [palette]);
+  // Mapear cores para os dados
+  const colorMapping = {
+    color1: colors.color1,
+    color2: colors.color2,
+  };
 
-  // Efeito para atualizar o valor solicitado quando o selectedYear mudar
+  // Update data when filters change
   useEffect(() => {
-    if (selectedYear) {
-      setRequestedYearOrSafraId(selectedYear);
-    } else {
-      setRequestedYearOrSafraId(new Date().getFullYear());
-    }
-  }, [selectedYear]);
-
-  // Efeito para carregar dados quando o valor solicitado ou organização mudar
-  useEffect(() => {
-    const loadData = async () => {
+    startTransition(async () => {
       try {
-        setLoading(true);
-        setError(null);
-
-        const result = await getDebtTypeDistributionData(
+        const newData = await getDebtTypeDistributionData(
           organizationId,
-          requestedYearOrSafraId,
-          colors
+          selectedYear,
+          projectionId
         );
-
-        // Usar o ano real e o nome da safra encontrados nos dados
-        const { data: typeData, yearUsed, safraName } = result;
-
-        setData(typeData);
-        setDisplayYear(yearUsed);
-        setDisplaySafra(safraName);
-      } catch (err) {
-        console.error(
-          "Erro ao carregar dados de distribuição por modalidade:",
-          err
-        );
-        setError("Erro ao carregar gráfico de distribuição por modalidade");
-      } finally {
-        setLoading(false);
+        setData(newData);
+      } catch (error) {
+        console.error("Erro ao atualizar dados de distribuição por tipo:", error);
       }
-    };
+    });
+  }, [organizationId, selectedYear, projectionId]);
 
-    loadData();
-  }, [organizationId, requestedYearOrSafraId, colors]);
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full p-2 bg-white/20">
-                <PercentIcon className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-white">
-                  Distribuição de Dívidas
-                </CardTitle>
-                <CardDescription className="text-white/80">
-                  Carregando dados...
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <div className="h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">
-              <div className="flex items-center">
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                Carregando dados...
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full p-2 bg-white/20">
-                <PercentIcon className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-white">
-                  Distribuição de Dívidas
-                </CardTitle>
-                <CardDescription className="text-white/80">
-                  {error}
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <div className="h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">{error}</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || data.length === 0) {
+  if (!data.data || data.data.length === 0) {
     return (
       <Card>
         <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
@@ -414,7 +108,7 @@ export function FinancialDebtTypeDistributionChart({
               <div>
                 <CardTitle className="text-white">
                   Distribuição de Dívidas{" "}
-                  {displaySafra ? `(${displaySafra})` : `(${displayYear})`}
+                  {data.safraName ? `(${data.safraName})` : `(${data.yearUsed})`}
                 </CardTitle>
                 <CardDescription className="text-white/80">
                   Custeio vs Investimentos
@@ -427,7 +121,7 @@ export function FinancialDebtTypeDistributionChart({
           <div className="h-[350px] sm:h-[400px] flex flex-col items-center justify-center">
             <div className="text-muted-foreground mb-4">
               Nenhuma dívida bancária encontrada para a safra{" "}
-              {displaySafra || displayYear}
+              {data.safraName || data.yearUsed}
             </div>
             <div className="text-center text-sm text-muted-foreground max-w-md">
               Para visualizar este gráfico, cadastre dívidas bancárias no módulo
@@ -440,11 +134,19 @@ export function FinancialDebtTypeDistributionChart({
   }
 
   // Calcular estatísticas
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  const maiorCategoria = data.reduce(
-    (maior, atual) => (atual.value > maior.value ? atual : maior),
-    data[0]
-  );
+  const total = data.data.reduce((sum, item) => sum + item.value, 0);
+
+  // Configuração do gráfico
+  const chartConfig: ChartConfig = {
+    custeio: {
+      label: "Custeio",
+      color: colors.color1,
+    },
+    investimentos: {
+      label: "Investimentos",
+      color: colors.color2,
+    },
+  };
 
   return (
     <Card>
@@ -457,7 +159,8 @@ export function FinancialDebtTypeDistributionChart({
             <div>
               <CardTitle className="text-white">
                 Dívidas: Custeio vs Investimentos{" "}
-                {displaySafra ? `(${displaySafra})` : `(${displayYear})`}
+                {data.safraName ? `(${data.safraName})` : `(${data.yearUsed})`}
+                {isPending && " (Atualizando...)"}
               </CardTitle>
               <CardDescription className="text-white/80">
                 Distribuição das dívidas bancárias por modalidade
@@ -472,7 +175,7 @@ export function FinancialDebtTypeDistributionChart({
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={data.data}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -483,10 +186,10 @@ export function FinancialDebtTypeDistributionChart({
                     `${name}: ${formatPercent(percent)}`
                   }
                 >
-                  {data.map((entry, index) => (
+                  {data.data.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={entry.color || COLORS[index % COLORS.length]}
+                      fill={colorMapping[entry.color as keyof typeof colorMapping] || colors.color1}
                     />
                   ))}
                 </Pie>
@@ -520,19 +223,19 @@ export function FinancialDebtTypeDistributionChart({
         </div>
       </CardContent>
       {/* Footer com estatísticas */}
-      <div className="p-4 bg-muted/30 rounded-b-lg text-sm">
+      <div className="p-4 border-t text-sm">
         <p className="text-center font-medium dark:text-white">
           Total de dívidas: {formatCurrency(total)}
           <span className="mx-2">•</span>
           <span>
             Custeio:{" "}
             {formatPercent(
-              data.find((d) => d.name === "Custeio")?.percentual || 0
+              data.data.find((d) => d.name === "Custeio")?.percentual || 0
             )}
             <span className="mx-1">-</span>
             Investimentos:{" "}
             {formatPercent(
-              data.find((d) => d.name === "Investimentos")?.percentual || 0
+              data.data.find((d) => d.name === "Investimentos")?.percentual || 0
             )}
           </span>
         </p>

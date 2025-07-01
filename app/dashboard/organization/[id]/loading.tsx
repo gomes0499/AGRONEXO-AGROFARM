@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function OrganizationDetailLoading() {
   return (
@@ -25,7 +25,7 @@ export default function OrganizationDetailLoading() {
         <Skeleton className="h-9 w-80 mb-6" />
 
         <Tabs defaultValue="info" className="">
-          <div className="bg-muted/50 border-b">
+          <div className="bg-card border-b">
             <div className="container mx-auto px-4">
               <div className="h-9 bg-transparent border-none rounded-none p-0 gap-0 flex">
                 <Skeleton className="h-9 w-24 rounded-md mr-2" />

@@ -67,7 +67,7 @@ export function AssetPagination({
           {totalItems === 0 ? (
             "Nenhum item encontrado"
           ) : (
-            `${totalItems} ${totalItems === 1 ? "item" : "itens"} no total`
+            ""
           )}
         </div>
         <div className="flex items-center space-x-2">
@@ -95,7 +95,6 @@ export function AssetPagination({
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
       <div className="text-sm text-muted-foreground">
-        Mostrando {startItem} a {endItem} de {totalItems} {totalItems === 1 ? "item" : "itens"}
       </div>
 
       <div className="flex items-center space-x-6 lg:space-x-8">

@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { getProjecoesCulturas } from "@/lib/actions/projections-actions";
+import { getProjecoesCulturas } from "@/lib/actions/projections-actions/index";
 import { useProjectionFiltersRead } from "@/hooks/use-projection-filters-read";
 import { BarChart3, ChartLine } from "lucide-react";
 

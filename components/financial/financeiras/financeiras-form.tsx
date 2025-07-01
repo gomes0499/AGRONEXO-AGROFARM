@@ -12,7 +12,7 @@ import { createFinanceiras, updateFinanceiras } from "@/lib/actions/financial-ac
 import { FinanceirasListItem, FinanceirasFormValues, financeirasFormSchema, financeirasCategoriasEnum } from "@/schemas/financial/financeiras";
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { toast } from "sonner";
-import { getSafras } from "@/lib/actions/production-actions";
+import { type Safra } from "@/lib/actions/financial-forms-data-actions";
 import { 
   Select,
   SelectContent,
@@ -21,12 +21,13 @@ import {
   SelectValue
 } from "@/components/ui/select";
 
-interface FinanceirasFormProps {
+interface FinanceirasFormClientProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   existingItem?: FinanceirasListItem;
   onSubmit: (data: FinanceirasListItem) => void;
+  initialSafras: Safra[];
 }
 
 export function FinanceirasForm({
@@ -35,36 +36,15 @@ export function FinanceirasForm({
   organizationId,
   existingItem,
   onSubmit,
-}: FinanceirasFormProps) {
+  initialSafras,
+}: FinanceirasFormClientProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [safras, setSafras] = useState<any[]>([]);
-  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
-
-  // Carregar safras quando o modal abrir
-  useEffect(() => {
-    if (open && organizationId) {
-      loadSafras();
-    }
-  }, [open, organizationId]);
-  
-  const loadSafras = async () => {
-    try {
-      setIsLoadingSafras(true);
-      const safrasData = await getSafras(organizationId);
-      setSafras(safrasData);
-    } catch (error) {
-      console.error("Erro ao carregar safras:", error);
-      toast.error("Erro ao carregar safras");
-    } finally {
-      setIsLoadingSafras(false);
-    }
-  };
 
   // Modify the schema to remove the safra_id requirement
   const formSchema = financeirasFormSchema.omit({ safra_id: true });
 
   const form = useForm<Omit<FinanceirasFormValues, "safra_id">>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       nome: existingItem?.nome || "",
       categoria: existingItem?.categoria || "OUTROS_CREDITOS",
@@ -149,9 +129,9 @@ export function FinanceirasForm({
         
         <div className="px-6 py-2 max-h-[70vh] overflow-y-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleFormSubmit as any)} className="space-y-4">
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="nome"
                 render={({ field }) => (
                   <FormItem>
@@ -165,7 +145,7 @@ export function FinanceirasForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="categoria"
                 render={({ field }) => (
                   <FormItem>
@@ -193,7 +173,7 @@ export function FinanceirasForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="moeda"
                 render={({ field }) => (
                   <FormItem>
@@ -218,7 +198,7 @@ export function FinanceirasForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
@@ -228,7 +208,7 @@ export function FinanceirasForm({
                         organizacaoId={organizationId}
                         values={typeof field.value === 'string' ? JSON.parse(field.value) : field.value || {}}
                         onChange={field.onChange}
-                        safras={safras}
+                        safras={initialSafras}
                         currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>

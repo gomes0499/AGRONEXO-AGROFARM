@@ -7,7 +7,7 @@ import {
   BuildingIcon,
 } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +28,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 export function NavUser({
   user,
@@ -47,12 +49,13 @@ export function NavUser({
     email: user?.email || "usuario@example.com",
     avatar: user?.avatar || "",
   });
+  
 
   // Buscar dados adicionais do usuário
-  // Estabilizamos o efeito apenas para client-side para evitar problemas de hidratação
+  // Usar useEffect com flag isMounted para evitar atualizações após desmontagem
   useEffect(() => {
-    // Garantir que execute apenas no cliente
-    if (typeof window === "undefined") return;
+    let isMounted = true;
+    
     const fetchUserData = async () => {
       try {
         const supabase = createClient();
@@ -68,12 +71,16 @@ export function NavUser({
           return;
         }
 
-        if (authUser) {
+        if (authUser && isMounted) {
           // Atualizar dados do usuário com os metadados
+          const newName = authUser.user_metadata?.name || user.name || "Usuário";
+          const newEmail = authUser.email || user.email || "usuario@example.com";
+          const newAvatar = authUser.user_metadata?.avatar_url || user.avatar || "";
+          
           setUserData({
-            name: authUser.user_metadata?.name || user.name,
-            email: authUser.email || user.email || "",
-            avatar: authUser.user_metadata?.avatar_url || user.avatar,
+            name: newName,
+            email: newEmail,
+            avatar: newAvatar,
           });
         }
       } catch (error) {
@@ -82,31 +89,12 @@ export function NavUser({
     };
 
     fetchUserData();
-  }, [user]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user.name, user.email, user.avatar]);
 
-  // Função para obter as iniciais do nome - utiliza useMemo para estabilidade
-  const getInitials = (name: string): string => {
-    // Validação para evitar erros com valores vazios ou indefinidos
-    if (!name || typeof name !== "string" || name.trim() === "") {
-      return "GS"; // Valor padrão para usuário desconhecido
-    }
-
-    try {
-      return (
-        name
-          .trim()
-          .split(" ")
-          .map((part) => (part && part.length > 0 ? part[0] : ""))
-          .filter(Boolean)
-          .join("")
-          .toUpperCase()
-          .substring(0, 2) || "GS"
-      );
-    } catch (e) {
-      // Retornamos um valor padrão em caso de erro
-      return "GS";
-    }
-  };
 
   // Função para logout
   const handleLogout = async () => {
@@ -131,12 +119,12 @@ export function NavUser({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={userData.avatar} alt={userData.name} />
-                <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                  GS
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                name={userData.name}
+                src={userData.avatar}
+                className="h-8 w-8 rounded-lg"
+                fallbackClassName="rounded-lg bg-primary text-primary-foreground"
+              />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{userData.name}</span>
                 <span className="truncate text-xs text-muted-foreground">
@@ -154,12 +142,12 @@ export function NavUser({
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={userData.avatar} alt={userData.name} />
-                  <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                    GS
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  name={userData.name}
+                  src={userData.avatar}
+                  className="h-8 w-8 rounded-lg"
+                  fallbackClassName="rounded-lg bg-primary text-primary-foreground"
+                />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{userData.name}</span>
                   <span className="truncate text-xs text-muted-foreground">

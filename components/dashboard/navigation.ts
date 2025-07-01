@@ -3,7 +3,11 @@ import { BuildingIcon,
   LandmarkIcon, GaugeIcon, PaintbrushIcon,
   BarChartIcon,
   Brain,
-  FileText
+  FileText,
+  FileSpreadsheet,
+  Download,
+  Eye,
+  Award
 } from "lucide-react";
 import { LayoutDashboardIcon } from "lucide-react";
 
@@ -21,14 +25,14 @@ export const data = {
       icon: BuildingIcon,
     },
     {
-      title: "Patrimonial",
-      url: "/dashboard/assets",
-      icon: LandmarkIcon,
-    },
-    {
       title: "Produção",
       url: "/dashboard/production",
       icon: BarChartIcon,
+    },
+    {
+      title: "Patrimonial",
+      url: "/dashboard/assets",
+      icon: LandmarkIcon,
     },
     {
       title: "Financeiro",
@@ -47,6 +51,24 @@ export const data = {
     },
   ],
   navSecondary: [
+    {
+      title: "Relatório PDF",
+      url: "#pdf-report",
+      icon: FileText,
+      isPdfReport: true,
+    },
+    {
+      title: "Relatório de Rating",
+      url: "#rating-report",
+      icon: Award,
+      isRatingReport: true,
+    },
+    {
+      title: "Exportar Excel",
+      url: "#excel-export",
+      icon: FileSpreadsheet,
+      isExcelExport: true,
+    },
     {
       title: "Tema",
       url: "#theme",

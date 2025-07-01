@@ -255,24 +255,72 @@ export function GenericImportDialog({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                  <FileSpreadsheet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">
-                      Selecione um arquivo CSV ou Excel
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Formatos aceitos: .csv, .xlsx, .xls
-                    </p>
+                <label htmlFor="file-upload" className="block">
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 hover:bg-muted/50 transition-all cursor-pointer group">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl group-hover:bg-primary/30 transition-all"></div>
+                        <div className="relative bg-background border border-border rounded-full p-4 group-hover:border-primary/50 transition-all">
+                          <FileSpreadsheet className="h-8 w-8 text-primary" />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <p className="text-base font-semibold">
+                          Arraste seu arquivo aqui ou clique para selecionar
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Formatos aceitos: CSV, XLSX, XLS • Tamanho máximo: 10MB
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span>CSV</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span>Excel</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <input
+                      id="file-upload"
+                      type="file"
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      disabled={isProcessing}
+                    />
                   </div>
-                  <input
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    onChange={handleFileChange}
-                    className="mt-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                    disabled={isProcessing}
-                  />
-                </div>
+                </label>
+                
+                {file && !isProcessing && (
+                  <div className="mt-4 p-3 bg-muted rounded-lg flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <FileSpreadsheet className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setFile(null);
+                        setValidData([]);
+                        setErrors([]);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
                 
                 {isProcessing && (
                   <div className="flex items-center justify-center mt-4">

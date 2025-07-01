@@ -83,6 +83,7 @@ export function PropertyCard({ property, onDelete }: PropertyCardProps) {
     PROPRIO: { label: "Próprio", variant: "default" as const },
     ARRENDADO: { label: "Arrendado", variant: "secondary" as const },
     PARCERIA: { label: "Parceria", variant: "outline" as const },
+    PARCERIA_AGRICOLA: { label: "Parceria Agrícola", variant: "outline" as const },
     COMODATO: { label: "Comodato", variant: "ghost" as const },
   };
 

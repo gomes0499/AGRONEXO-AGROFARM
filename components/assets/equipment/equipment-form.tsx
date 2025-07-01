@@ -29,18 +29,21 @@ import {
   updateEquipment,
 } from "@/lib/actions/patrimonio-actions";
 import { Loader2 } from "lucide-react";
-import { equipmentFormSchema, type EquipmentFormValues } from "@/schemas/patrimonio/equipment";
+import {
+  equipmentFormSchema,
+  type EquipmentFormValues,
+} from "@/schemas/patrimonio/equipment";
 
 // Lista de equipamentos agrícolas
 const EQUIPMENT_OPTIONS = [
   // Tratores
   "TRATOR_4X2",
-  "TRATOR_4X4", 
+  "TRATOR_4X4",
   "MICRO_TRATOR",
   "TRATOR_ESTEIRA",
   "TRATOR_FRUTEIRO",
   "TRATOR_COMPACTO",
-  
+
   // Máquinas de Colheita
   "COLHEITADEIRA",
   "COLHEDORA_CANA",
@@ -48,7 +51,7 @@ const EQUIPMENT_OPTIONS = [
   "CEIFADEIRA",
   "DEBULHADORA",
   "DESCASCADORA",
-  
+
   // Máquinas de Plantio
   "PLANTADEIRA",
   "SEMEADEIRA",
@@ -56,7 +59,7 @@ const EQUIPMENT_OPTIONS = [
   "DISTRIBUIDORA_CALCARIO",
   "DISTRIBUIDORA_FERTILIZANTE",
   "SULCADOR",
-  
+
   // Preparo do Solo
   "ARADO",
   "GRADE_ARADORA",
@@ -66,14 +69,14 @@ const EQUIPMENT_OPTIONS = [
   "CULTIVADOR",
   "ENXADA_ROTATIVA",
   "ROLO_COMPACTADOR",
-  
+
   // Pulverizadores
   "PULVERIZADOR_AUTOPROPELIDO",
   "PULVERIZADOR_ARRASTO",
   "PULVERIZADOR_COSTAL",
   "ATOMIZADOR",
   "NEBULIZADOR",
-  
+
   // Irrigação
   "PIVO_CENTRAL",
   "ASPERSOR",
@@ -81,7 +84,7 @@ const EQUIPMENT_OPTIONS = [
   "BOMBA_AGUA",
   "MOTOBOMBA",
   "CONJUNTO_MOTOBOMBA",
-  
+
   // Transporte
   "CARRETA_GRANELEIRA",
   "CARRETA_BASCULANTE",
@@ -89,7 +92,7 @@ const EQUIPMENT_OPTIONS = [
   "TRANSBORDO",
   "CAMINHAO",
   "GUINCHO",
-  
+
   // Pecuária
   "ORDENHADEIRA",
   "RESFRIADOR_LEITE",
@@ -97,7 +100,7 @@ const EQUIPMENT_OPTIONS = [
   "CARROCA_RACAO",
   "BEBEDOURO",
   "CERCA_ELETRICA",
-  
+
   // Outros
   "GERADOR",
   "COMPRESSOR",
@@ -106,14 +109,14 @@ const EQUIPMENT_OPTIONS = [
   "SOPRADOR",
   "LAVADORA_ALTA_PRESSAO",
   "SOLDADORA",
-  "OUTROS"
+  "OUTROS",
 ];
 
 // Lista das principais marcas de equipamentos agrícolas
 const BRAND_OPTIONS = [
   // Marcas Internacionais - Tratores e Máquinas Pesadas
   "JOHN_DEERE",
-  "CASE_IH", 
+  "CASE_IH",
   "NEW_HOLLAND",
   "MASSEY_FERGUSON",
   "VALTRA",
@@ -125,7 +128,7 @@ const BRAND_OPTIONS = [
   "MAHINDRA",
   "FORD",
   "INTERNATIONAL_HARVESTER",
-  
+
   // Marcas de Máquinas de Construção/Terraplanagem
   "CATERPILLAR",
   "VOLVO",
@@ -134,7 +137,7 @@ const BRAND_OPTIONS = [
   "LIEBHERR",
   "HITACHI",
   "HYUNDAI",
-  
+
   // Marcas Nacionais - Implementos e Máquinas
   "STARA",
   "JACTO",
@@ -151,7 +154,7 @@ const BRAND_OPTIONS = [
   "SERMAG",
   "RIGESA",
   "PICCIN",
-  
+
   // Marcas de Pulverizadores e Implementos Especializados
   "KUHN",
   "AMAZONE",
@@ -161,7 +164,7 @@ const BRAND_OPTIONS = [
   "VADERSTAD",
   "GREAT_PLAINS",
   "KINZE",
-  
+
   // Marcas de Sistemas de Irrigação
   "VALLEY",
   "LINDSAY",
@@ -169,7 +172,7 @@ const BRAND_OPTIONS = [
   "PIVOT",
   "KREBS",
   "IRRIGABRAS",
-  
+
   // Marcas de Equipamentos Pecuários
   "DELAVAL",
   "LELY",
@@ -177,7 +180,7 @@ const BRAND_OPTIONS = [
   "WESTFALIA_SURGE",
   "ALFA_LAVAL",
   "FULLWOOD",
-  
+
   // Marcas de Geradores e Motores
   "HONDA",
   "YAMAHA",
@@ -186,7 +189,7 @@ const BRAND_OPTIONS = [
   "ROMAGNOLE",
   "WEG",
   "STEMAC",
-  
+
   // Marcas de Ferramentas e Equipamentos Menores
   "STIHL",
   "HUSQVARNA",
@@ -194,9 +197,9 @@ const BRAND_OPTIONS = [
   "MAKITA",
   "BOSCH",
   "KARCHER",
-  
+
   // Outras marcas
-  "OUTROS"
+  "OUTROS",
 ].sort();
 
 interface EquipmentFormProps {
@@ -234,13 +237,13 @@ export function EquipmentForm({
   const marca = form.watch("marca");
   const quantidade = form.watch("quantidade") || 0;
   const valorUnitario = form.watch("valor_unitario") || 0;
-  const anoFabricacao = form.watch("ano_fabricacao") || new Date().getFullYear();
-  
+  const anoFabricacao =
+    form.watch("ano_fabricacao") || new Date().getFullYear();
+
   // Calcular valor total automaticamente
   const valorTotal = useMemo(() => {
     return quantidade * valorUnitario;
   }, [quantidade, valorUnitario]);
-
 
   const onSubmit = async (values: EquipmentFormValues) => {
     try {
@@ -288,7 +291,10 @@ export function EquipmentForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Equipamento</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o equipamento" />
@@ -297,7 +303,7 @@ export function EquipmentForm({
                   <SelectContent>
                     {EQUIPMENT_OPTIONS.map((equipment) => (
                       <SelectItem key={equipment} value={equipment}>
-                        {equipment.replace(/_/g, ' ')}
+                        {equipment.replace(/_/g, " ")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -318,7 +324,9 @@ export function EquipmentForm({
                     type="number"
                     placeholder="Ex: 2020"
                     {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || '')}
+                    onChange={(e) =>
+                      field.onChange(parseInt(e.target.value) || "")
+                    }
                   />
                 </FormControl>
                 <FormMessage />
@@ -335,9 +343,9 @@ export function EquipmentForm({
               <FormItem>
                 <FormLabel>Especifique o Equipamento</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Digite o nome do equipamento" 
-                    {...field} 
+                  <Input
+                    placeholder="Digite o nome do equipamento"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -353,7 +361,10 @@ export function EquipmentForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Marca</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a marca" />
@@ -362,7 +373,7 @@ export function EquipmentForm({
                   <SelectContent>
                     {BRAND_OPTIONS.map((brand) => (
                       <SelectItem key={brand} value={brand}>
-                        {brand.replace(/_/g, ' ')}
+                        {brand.replace(/_/g, " ")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -395,10 +406,7 @@ export function EquipmentForm({
               <FormItem>
                 <FormLabel>Especifique a Marca</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Digite o nome da marca" 
-                    {...field} 
-                  />
+                  <Input placeholder="Digite o nome da marca" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -419,7 +427,9 @@ export function EquipmentForm({
                     min="1"
                     placeholder="1"
                     {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                    onChange={(e) =>
+                      field.onChange(parseInt(e.target.value) || 1)
+                    }
                   />
                 </FormControl>
                 <FormMessage />
@@ -444,7 +454,6 @@ export function EquipmentForm({
             className="bg-muted"
           />
         </div>
-
 
         <div className="flex justify-end gap-2 pt-4">
           <Button

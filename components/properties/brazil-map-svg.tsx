@@ -168,8 +168,8 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
             geography={BRAZIL_TOPOJSON}
             onError={() => setMapError(true)}
           >
-            {({ geographies, error }) => {
-              if (error || mapError) {
+            {({ geographies }) => {
+              if (mapError) {
                 return (
                   <g>
                     <text

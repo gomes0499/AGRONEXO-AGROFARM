@@ -100,14 +100,16 @@ export function useMemberForm({
       );
 
       const result = await createMemberAccount(
-        values.email,
-        organizationId,
+        values,
+        organizationId
       );
 
       if (result.success) {
-        toast.success(
-          `Membro adicionado com sucesso! Um email de convite foi enviado.`
-        );
+        const isDev = process.env.NODE_ENV === 'development';
+        const message = isDev 
+          ? `Membro adicionado com sucesso! (Em desenvolvimento: email não enviado)`
+          : `Membro adicionado com sucesso! Um email de convite foi enviado.`;
+        toast.success(message);
         form.reset();
         if (onSuccess) onSuccess();
         router.refresh();

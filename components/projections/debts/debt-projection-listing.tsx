@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { DebtProjectionRowActions } from "./debt-projection-row-actions";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
-import { deleteProjecaoDivida } from "@/lib/actions/projections-actions";
+import { deleteProjecaoDivida } from "@/lib/actions/projections-actions/index";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 interface ProjecaoDivida {

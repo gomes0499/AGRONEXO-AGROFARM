@@ -441,28 +441,13 @@ END $$;
 -- =============================================================================
 
 -- Commodity types
+-- NOTE: commodity_tipo is now TEXT to allow flexible values like SOJA_SEQUEIRO, MILHO_IRRIGADO
+-- The enum is kept here for reference but not used in the database
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'commodity_tipo') THEN
-        CREATE TYPE commodity_tipo AS ENUM (
-            'SOJA',
-            'ALGODAO',
-            'MILHO',
-            'ARROZ',
-            'SORGO',
-            'CAFE',
-            'CACAU',
-            'SOJA_CANA',
-            'TRIGO',
-            'FEIJAO',
-            'GIRASSOL',
-            'AMENDOIM',
-            'BOI_GORDO',
-            'BEZERRO',
-            'VACA_GORDA',
-            'OUTROS'
-        );
-    END IF;
+    -- Skip creating the enum type as we're using TEXT instead
+    -- This allows for compound values like SOJA_SEQUEIRO, MILHO_IRRIGADO
+    RAISE NOTICE 'commodity_tipo: Using TEXT type for flexibility';
 END $$;
 
 -- Commodity units
@@ -481,21 +466,13 @@ BEGIN
 END $$;
 
 -- Commodity price units
+-- NOTE: unidade_preco_commodity is now TEXT to allow flexible values like R$/saca, R$/Saca
+-- The enum is kept here for reference but not used in the database
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'unidade_preco_commodity') THEN
-        CREATE TYPE unidade_preco_commodity AS ENUM (
-            'R$/SACA',
-            'R$/@',
-            'R$/TON',
-            'R$/KG',
-            'USD/SACA',
-            'USD/@',
-            'USD/TON',
-            'USD/KG',
-            'R$/CABECA'
-        );
-    END IF;
+    -- Skip creating the enum type as we're using TEXT instead
+    -- This allows for flexible unit formats
+    RAISE NOTICE 'unidade_preco_commodity: Using TEXT type for flexibility';
 END $$;
 
 -- =============================================================================

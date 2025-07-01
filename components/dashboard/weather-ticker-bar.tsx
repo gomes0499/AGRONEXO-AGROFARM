@@ -19,7 +19,7 @@ export function WeatherTickerBar() {
         <div className="flex items-center space-x-2 text-sm text-muted-foreground font-medium pr-4 border-r">
           <Cloud className="h-4 w-4 ml-4 text-primary" />
           <Select value={selectedCity} onValueChange={setSelectedCity}>
-            <SelectTrigger className="w-[180px] h-8 bg-muted/40">
+            <SelectTrigger className="w-[180px] h-8 bg-card">
               {CITIES.find((city) => city.value === selectedCity)?.name ||
                 selectedCity}
             </SelectTrigger>

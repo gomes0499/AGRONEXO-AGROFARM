@@ -1,7 +1,10 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
-import { useDashboardFilters, DashboardFilters } from "@/hooks/use-dashboard-filters";
+import {
+  useDashboardFilters,
+  DashboardFilters,
+} from "@/hooks/use-dashboard-filters";
 
 interface FilterContextValue {
   filters: DashboardFilters;
@@ -62,7 +65,7 @@ export function DashboardFilterProvider({
     setCultureIds,
     setSystemIds,
     setCycleIds,
-    setSafraIds
+    setSafraIds,
   } = useDashboardFilters({
     totalProperties,
     totalCultures,
@@ -71,19 +74,19 @@ export function DashboardFilterProvider({
     totalSafras,
   });
 
-  const getFilteredPropertyIds = (allIds: string[]) => 
+  const getFilteredPropertyIds = (allIds: string[]) =>
     getFilteredIds(filters.propertyIds, allIds);
-  
-  const getFilteredCultureIds = (allIds: string[]) => 
+
+  const getFilteredCultureIds = (allIds: string[]) =>
     getFilteredIds(filters.cultureIds, allIds);
-  
-  const getFilteredSystemIds = (allIds: string[]) => 
+
+  const getFilteredSystemIds = (allIds: string[]) =>
     getFilteredIds(filters.systemIds, allIds);
-  
-  const getFilteredCycleIds = (allIds: string[]) => 
+
+  const getFilteredCycleIds = (allIds: string[]) =>
     getFilteredIds(filters.cycleIds, allIds);
-  
-  const getFilteredSafraIds = (allIds: string[]) => 
+
+  const getFilteredSafraIds = (allIds: string[]) =>
     getFilteredIds(filters.safraIds, allIds);
 
   const contextValue: FilterContextValue = {
@@ -117,7 +120,9 @@ export function DashboardFilterProvider({
 export function useDashboardFilterContext() {
   const context = useContext(FilterContext);
   if (context === undefined) {
-    throw new Error("useDashboardFilterContext must be used within a DashboardFilterProvider");
+    throw new Error(
+      "useDashboardFilterContext must be used within a DashboardFilterProvider"
+    );
   }
   return context;
 }

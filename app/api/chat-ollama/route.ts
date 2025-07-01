@@ -2,7 +2,12 @@
 export const maxDuration = 30
 
 // Função para chamar o Ollama API
-async function callOllama(messages: any) {
+interface Message {
+  role: string
+  content: string
+}
+
+async function callOllama(messages: Message[]) {
   const response = await fetch("http://localhost:11434/api/chat", {
     method: "POST",
     headers: {

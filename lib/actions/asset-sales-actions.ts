@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { AssetSale, AssetSaleFormValues } from "@/schemas/patrimonio/asset-sales";
+import { AssetSale, AssetSaleFormValues, MultiSafraAssetSaleFormValues } from "@/schemas/patrimonio/asset-sales";
 
 // Base error handler
 const handleError = (error: unknown) => {
@@ -127,6 +127,68 @@ export async function deleteAssetSale(id: string) {
     if (error) throw error;
     
     return { success: true };
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+// Create multiple asset sales from multi-safra form
+export async function createMultiSafraAssetSales(
+  organizationId: string,
+  data: MultiSafraAssetSaleFormValues
+) {
+  try {
+    if (!organizationId || organizationId === "undefined") {
+      throw new Error("ID da organização é obrigatório");
+    }
+
+    const supabase = await createClient();
+    
+    // Get safra data to extract years
+    const safraIds = Object.keys(data.vendas_por_safra);
+    const { data: safrasData, error: safraError } = await supabase
+      .from("safras")
+      .select("id, ano_inicio")
+      .in("id", safraIds);
+      
+    if (safraError) throw safraError;
+    
+    // Create a map for quick safra lookup
+    const safraMap = new Map(safrasData?.map(s => [s.id, s.ano_inicio]) || []);
+    
+    // Process each entry to create individual records
+    const processedSales = Object.entries(data.vendas_por_safra).map(([safraId, saleData]) => {
+      const valorTotal = saleData.quantidade * saleData.valor_unitario;
+      const ano = safraMap.get(safraId) || new Date().getFullYear();
+      
+      return {
+        organizacao_id: organizationId,
+        categoria: data.categoria,
+        ano: ano,
+        quantidade: saleData.quantidade,
+        valor_unitario: saleData.valor_unitario,
+        valor_total: valorTotal,
+        safra_id: safraId || null,
+      };
+    });
+    
+    const { data: results, error } = await supabase
+      .from("vendas_ativos")
+      .insert(processedSales)
+      .select();
+    
+    if (error) {
+      console.error("Erro ao inserir vendas de ativos em lote:", error);
+      throw error;
+    }
+    
+    // Add virtual tipo field for UI compatibility
+    const enrichedResults = (results || []).map(result => ({
+      ...result,
+      tipo: data.tipo || "REALIZADO"
+    }));
+    
+    return { data: enrichedResults };
   } catch (error) {
     return handleError(error);
   }

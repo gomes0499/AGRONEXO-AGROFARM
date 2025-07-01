@@ -149,8 +149,8 @@ export function LivestockList({
           </div>
         </div>
         <Button 
-          variant="secondary" 
-          className="gap-1" 
+          variant="outline" 
+          className="gap-1 bg-white text-black hover:bg-gray-100" 
           size="default"
           onClick={() => setIsBovineModalOpen(true)}
         >
@@ -159,8 +159,6 @@ export function LivestockList({
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="mt-4 mb-6"></div>
-        
         {livestock.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground space-y-4">
             <div>Nenhum registro de rebanho cadastrado.</div>
@@ -173,7 +171,7 @@ export function LivestockList({
             </Button>
           </div>
         ) : (
-          <div className="rounded-md border">
+          <div className="rounded-md border mt-4">
             <Table>
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">

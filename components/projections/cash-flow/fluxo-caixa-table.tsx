@@ -14,7 +14,7 @@ import {
 import { TrendingDown, TrendingUp, CircleDollarSign, DollarSign, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/formatters";
-import type { FluxoCaixaData } from "@/lib/actions/projections-actions/fluxo-caixa-simplificado";
+import type { FluxoCaixaCorrigidoData } from "@/lib/actions/projections-actions/fluxo-caixa-corrigido";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/tooltip";
 
 interface FluxoCaixaTableProps {
-  data: FluxoCaixaData;
+  data: FluxoCaixaCorrigidoData;
 }
 
 export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
@@ -69,9 +69,9 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
     dataFiltrada.outras_despesas = { 
       arrendamento: {}, 
       pro_labore: {}, 
-      divisao_lucros: {}, 
       financeiras: {}, 
       tributarias: {}, 
+      administrativas: {}, 
       outras: {}, 
       total_por_ano: {} 
     };
@@ -82,8 +82,8 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
     if (!dataFiltrada.outras_despesas.pro_labore) {
       dataFiltrada.outras_despesas.pro_labore = {};
     }
-    if (!dataFiltrada.outras_despesas.divisao_lucros) {
-      dataFiltrada.outras_despesas.divisao_lucros = {};
+    if (!dataFiltrada.outras_despesas.administrativas) {
+      dataFiltrada.outras_despesas.administrativas = {};
     }
     if (!dataFiltrada.outras_despesas.financeiras) {
       dataFiltrada.outras_despesas.financeiras = {};
@@ -121,25 +121,25 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
     }
   }
   
-  if (!dataFiltrada.financeiras) {
-    dataFiltrada.financeiras = { 
-      servico_divida: {}, 
-      pagamentos_bancos: {}, 
-      novas_linhas_credito: {}, 
+  if (!dataFiltrada.servico_divida) {
+    dataFiltrada.servico_divida = { 
+      bancos: {}, 
+      fornecedores: {}, 
+      terras: {}, 
       total_por_ano: {} 
     };
   } else {
-    if (!dataFiltrada.financeiras.servico_divida) {
-      dataFiltrada.financeiras.servico_divida = {};
+    if (!dataFiltrada.servico_divida.bancos) {
+      dataFiltrada.servico_divida.bancos = {};
     }
-    if (!dataFiltrada.financeiras.pagamentos_bancos) {
-      dataFiltrada.financeiras.pagamentos_bancos = {};
+    if (!dataFiltrada.servico_divida.fornecedores) {
+      dataFiltrada.servico_divida.fornecedores = {};
     }
-    if (!dataFiltrada.financeiras.novas_linhas_credito) {
-      dataFiltrada.financeiras.novas_linhas_credito = {};
+    if (!dataFiltrada.servico_divida.terras) {
+      dataFiltrada.servico_divida.terras = {};
     }
-    if (!dataFiltrada.financeiras.total_por_ano) {
-      dataFiltrada.financeiras.total_por_ano = {};
+    if (!dataFiltrada.servico_divida.total_por_ano) {
+      dataFiltrada.servico_divida.total_por_ano = {};
     }
   }
   
@@ -209,8 +209,8 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   </TableHeader>
                   <TableBody>
                     {/* === SEÇÃO DE RECEITAS AGRÍCOLAS === */}
-                    <TableRow className="bg-primary font-medium border-b-2 border-primary/20 dark:bg-primary/90">
-                      <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                    <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 dark:bg-primary/90">
+                      <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                         <button
                           onClick={() => toggleSection('receitas')}
                           className="flex items-center gap-2 w-full text-left"
@@ -236,8 +236,8 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
 
                   {/* Linhas de receitas por cultura */}
                   {!isSectionCollapsed('receitas') && dataFiltrada.receitas_agricolas?.culturas && Object.keys(dataFiltrada.receitas_agricolas.culturas).map((cultura) => (
-                    <TableRow key={`receita-${cultura}`} className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                    <TableRow key={`receita-${cultura}`} className="hover:bg-muted/20 dark:hover:bg-gray-700/20 transition-colors">
+                      <TableCell className="font-medium text-sm min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8 text-gray-700 dark:text-gray-300">
                         {cultura}
                       </TableCell>
                       {dataFiltrada.anos.map((ano) => {
@@ -252,7 +252,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                           >
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="cursor-help">
+                                <span className="cursor-help text-green-700 dark:text-green-400 font-medium">
                                   {formatCurrency(valor)}
                                 </span>
                               </TooltipTrigger>
@@ -270,14 +270,14 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   ))}
                   
                   {/* Total de receitas */}
-                  <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-gray-50 dark:bg-gray-800/50 font-semibold border-y">
+                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800/50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Total Receitas Agrícolas
                     </TableCell>
                     {dataFiltrada.anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center font-medium min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800"
+                        className="text-center font-semibold min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800/50 text-green-700 dark:text-green-400"
                       >
                         {formatCurrency((dataFiltrada.receitas_agricolas?.total_por_ano?.[ano]) || 0)}
                       </TableCell>
@@ -285,8 +285,8 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   </TableRow>
 
                   {/* === SEÇÃO DE DESPESAS AGRÍCOLAS === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
+                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       <button
                         onClick={() => toggleSection('despesas')}
                         className="flex items-center gap-2 w-full text-left"
@@ -312,14 +312,14 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
 
                   {/* Linhas de despesas por cultura */}
                   {!isSectionCollapsed('despesas') && dataFiltrada.despesas_agricolas?.culturas && Object.keys(dataFiltrada.despesas_agricolas.culturas).map((cultura) => (
-                    <TableRow key={`despesa-cultura-${cultura}`} className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                    <TableRow key={`despesa-cultura-${cultura}`} className="hover:bg-muted/20 dark:hover:bg-gray-700/20 transition-colors">
+                      <TableCell className="font-medium text-sm min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8 text-gray-700 dark:text-gray-300">
                         {cultura}
                       </TableCell>
                       {dataFiltrada.anos.map((ano) => (
                         <TableCell 
                           key={ano} 
-                          className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
+                          className="text-center min-w-[120px] w-[120px] text-red-700 dark:text-red-400 font-medium"
                         >
                           {formatCurrency((dataFiltrada.despesas_agricolas?.culturas?.[cultura]?.[ano]) || 0)}
                         </TableCell>
@@ -328,14 +328,14 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   ))}
                   
                   {/* Total de despesas */}
-                  <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-gray-50 dark:bg-gray-800/50 font-semibold border-y">
+                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800/50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Total Despesas Agrícolas
                     </TableCell>
                     {dataFiltrada.anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center font-medium min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800 text-destructive dark:text-red-400"
+                        className="text-center font-semibold min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800/50 text-red-700 dark:text-red-400"
                       >
                         {formatCurrency((dataFiltrada.despesas_agricolas?.total_por_ano?.[ano]) || 0)}
                       </TableCell>
@@ -343,20 +343,20 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   </TableRow>
 
                   {/* === SEÇÃO DE MARGEM BRUTA === */}
-                  <TableRow className="bg-gray-100 dark:bg-gray-700 font-medium border-t-2">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-100 dark:bg-gray-700 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-blue-50 dark:bg-blue-900/20 font-bold border-t-2 border-b">
+                    <TableCell className="font-bold min-w-[250px] w-[250px] sticky left-0 bg-blue-50 dark:bg-blue-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Margem Bruta Agrícola
                     </TableCell>
                     {dataFiltrada.anos.map((ano) => {
                       const receitas = (dataFiltrada.receitas_agricolas?.total_por_ano?.[ano]) || 0;
                       const despesas = (dataFiltrada.despesas_agricolas?.total_por_ano?.[ano]) || 0;
-                      const valor = receitas + despesas;
+                      const valor = receitas - despesas;
                       return (
                         <TableCell 
                           key={ano} 
                           className={cn(
-                            "text-center font-medium min-w-[120px] w-[120px] bg-gray-100 dark:bg-gray-700",
-                            valor < 0 ? "text-destructive dark:text-red-400" : "text-green-600 dark:text-green-400"
+                            "text-center font-bold min-w-[120px] w-[120px] bg-blue-50 dark:bg-blue-900/20",
+                            valor < 0 ? "text-red-700 dark:text-red-400" : "text-green-700 dark:text-green-400"
                           )}
                         >
                           {formatCurrency(valor)}
@@ -366,8 +366,8 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   </TableRow>
 
                   {/* === SEÇÃO DE OUTRAS DESPESAS === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
+                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       <button
                         onClick={() => toggleSection('outras_despesas')}
                         className="flex items-center gap-2 w-full text-left"
@@ -434,7 +434,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
                           >
-                            {formatCurrency((dataFiltrada.outras_despesas?.divisao_lucros?.[ano]) || 0)}
+                            {formatCurrency((dataFiltrada.outras_despesas?.administrativas?.[ano]) || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -631,7 +631,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
                           >
-                            {formatCurrency((dataFiltrada.financeiras?.servico_divida?.[ano]) || 0)}
+                            {formatCurrency((dataFiltrada.servico_divida?.total_por_ano?.[ano]) || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -723,7 +723,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                         const financeiras = (dataFiltrada.financeiras?.total_por_ano?.[ano]) || 0;
                         
                         // Calcular fluxo líquido
-                        const fluxoCaixa = receitasAgricolas + despesasAgricolas + outrasDespesas - investimentos + financeiras;
+                        const fluxoCaixa = receitasAgricolas - despesasAgricolas - outrasDespesas - investimentos - financeiras;
                         
                         return (
                           <TableCell 
@@ -778,7 +778,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                             const investimentos = (dataFiltrada.investimentos?.total?.[anoAtual]) || 0;
                             const financeiras = (dataFiltrada.financeiras?.total_por_ano?.[anoAtual]) || 0;
                             
-                            acumulado += receitasAgricolas + despesasAgricolas + outrasDespesas - investimentos + financeiras;
+                            acumulado += receitasAgricolas - despesasAgricolas - outrasDespesas - investimentos - financeiras;
                           }
                         }
                         
@@ -796,6 +796,61 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                       }
                     })}
                   </TableRow>
+
+                  {/* === POLÍTICA DE CAIXA MÍNIMO === */}
+                  {/* Temporariamente comentado - implementar na versão corrigida
+                  {dataFiltrada.politica_caixa?.ativa && dataFiltrada.politica_caixa.valor_minimo && (
+                    <TableRow className="bg-yellow-50 dark:bg-yellow-900/20 font-medium">
+                      <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-yellow-50 dark:bg-yellow-900/20 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                          <span>Caixa Mínimo Requerido</span>
+                        </div>
+                      </TableCell>
+                      {dataFiltrada.anos.map((ano) => {
+                        const alerta = dataFiltrada.politica_caixa?.alertas?.[ano];
+                        const abaixoMinimo = alerta?.abaixo_minimo || false;
+                        const valorMinimo = dataFiltrada.politica_caixa?.valor_minimo || 0;
+                        
+                        return (
+                          <TableCell 
+                            key={ano} 
+                            className={cn(
+                              "text-center font-medium min-w-[120px] w-[120px] bg-yellow-50 dark:bg-yellow-900/20",
+                              abaixoMinimo && "ring-2 ring-red-500 ring-inset"
+                            )}
+                          >
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="cursor-help">
+                                  {formatCurrency(valorMinimo)}
+                                  {abaixoMinimo && (
+                                    <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                      Abaixo do mínimo
+                                    </div>
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-sm">
+                                  <p className="font-medium">Política de Caixa Mínimo</p>
+                                  <p>Valor mínimo: {formatCurrency(valorMinimo)}</p>
+                                  {abaixoMinimo && alerta && (
+                                    <p className="text-red-600">
+                                      Faltam: {formatCurrency(alerta.valor_faltante)}
+                                    </p>
+                                  )}
+                                  <p className="text-xs mt-1">
+                                    Prioridade: {dataFiltrada.politica_caixa?.prioridade === 'cash' ? 'Preservar caixa' : 'Pagar dívida'}
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  )} */}
                 </TableBody>
               </Table>
             </div>

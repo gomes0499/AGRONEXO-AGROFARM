@@ -22,7 +22,9 @@ import { Home } from "lucide-react";
 
 interface PropertyDebtListingProps {
   organization: { id: string; nome: string };
-  initialPropertyDebts: Array<PropertyDebt & { propriedade: { id: string, nome: string } }>;
+  initialPropertyDebts: Array<
+    PropertyDebt & { propriedade: { id: string; nome: string } }
+  >;
 }
 
 export function PropertyDebtListing({
@@ -40,33 +42,37 @@ export function PropertyDebtListing({
 
   // Adicionar nova dívida
   const handleAddDebt = (newDebt: PropertyDebt) => {
-    setPropertyDebts((prev) => [
-      { 
-        ...newDebt, 
-        propriedade: { 
-          id: newDebt.propriedade_id || '', 
-          nome: "Propriedade não informada" 
-        } 
-      },
-      ...prev,
-    ] as typeof prev);
+    setPropertyDebts(
+      (prev) =>
+        [
+          {
+            ...newDebt,
+            propriedade: {
+              id: newDebt.propriedade_id || "",
+              nome: "Propriedade não informada",
+            },
+          },
+          ...prev,
+        ] as typeof prev
+    );
     setIsAddModalOpen(false);
   };
 
   // Atualizar dívida existente
   const handleUpdateDebt = (updatedDebt: PropertyDebt) => {
-    setPropertyDebts((prev) =>
-      prev.map((debt) =>
-        debt.id === updatedDebt.id
-          ? { 
-              ...updatedDebt, 
-              propriedade: {
-                id: updatedDebt.propriedade_id || '',
-                nome: debt.propriedade?.nome || "Propriedade não informada"
+    setPropertyDebts(
+      (prev) =>
+        prev.map((debt) =>
+          debt.id === updatedDebt.id
+            ? {
+                ...updatedDebt,
+                propriedade: {
+                  id: updatedDebt.propriedade_id || "",
+                  nome: debt.propriedade?.nome || "Propriedade não informada",
+                },
               }
-            }
-          : debt
-      ) as typeof prev
+            : debt
+        ) as typeof prev
     );
     setEditingDebt(null);
   };
@@ -98,58 +104,76 @@ export function PropertyDebtListing({
       <CardContent className="space-y-4">
         <Card>
           <CardContent className="p-0">
-          {propertyDebts.length === 0 ? (
-            <EmptyState
-              title="Nenhuma dívida de imóvel cadastrada"
-              description="Clique no botão acima para adicionar sua primeira dívida de imóvel."
-              action={
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                  Adicionar Dívida
-                </Button>
-              }
-            />
-          ) : filteredDebts.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">Nenhuma dívida encontrada</p>
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Denominação do Imóvel</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Credor</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Vencimento</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground rounded-tr-md w-24">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDebts.map((debt) => (
-                    <TableRow key={debt.id}>
-                      <TableCell>{debt.denominacao_imovel || debt.propriedade?.nome || "—"}</TableCell>
-                      <TableCell>{debt.credor}</TableCell>
-                      <TableCell>
-                        {formatGenericCurrency(debt.valor_total, debt.moeda)}
-                      </TableCell>
-                      <TableCell>
-                        {debt.data_vencimento
-                          ? new Date(debt.data_vencimento).toLocaleDateString("pt-BR")
-                          : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <PropertyDebtRowActions
-                          propertyDebt={debt}
-                          onEdit={() => setEditingDebt(debt)}
-                          onDelete={() => handleDeleteDebt(debt.id!)}
-                        />
-                      </TableCell>
+            {propertyDebts.length === 0 ? (
+              <EmptyState
+                title="Nenhuma dívida de imóvel cadastrada"
+                description="Clique no botão acima para adicionar sua primeira dívida de imóvel."
+                action={
+                  <Button onClick={() => setIsAddModalOpen(true)}>
+                    Adicionar Dívida
+                  </Button>
+                }
+              />
+            ) : filteredDebts.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">
+                  Nenhuma dívida encontrada
+                </p>
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-primary hover:bg-primary">
+                      <TableHead className="font-semibold text-primary-foreground rounded-tl-md">
+                        Denominação do Imóvel
+                      </TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">
+                        Credor
+                      </TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">
+                        Valor Total
+                      </TableHead>
+                      <TableHead className="font-semibold text-primary-foreground">
+                        Vencimento
+                      </TableHead>
+                      <TableHead className="font-semibold text-primary-foreground rounded-tr-md w-24">
+                        Ações
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </>
-          )}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDebts.map((debt) => (
+                      <TableRow key={debt.id}>
+                        <TableCell>
+                          {debt.denominacao_imovel ||
+                            debt.propriedade?.nome ||
+                            "—"}
+                        </TableCell>
+                        <TableCell>{debt.credor}</TableCell>
+                        <TableCell>
+                          {formatGenericCurrency(debt.valor_total, debt.moeda)}
+                        </TableCell>
+                        <TableCell>
+                          {debt.data_vencimento
+                            ? new Date(debt.data_vencimento).toLocaleDateString(
+                                "pt-BR"
+                              )
+                            : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <PropertyDebtRowActions
+                            propertyDebt={debt}
+                            onEdit={() => setEditingDebt(debt)}
+                            onDelete={() => handleDeleteDebt(debt.id!)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            )}
           </CardContent>
         </Card>
       </CardContent>
@@ -158,7 +182,7 @@ export function PropertyDebtListing({
       <PropertyDebtForm
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
-        organizationId={organization.id} 
+        organizationId={organization.id}
         onSubmit={handleAddDebt}
       />
 

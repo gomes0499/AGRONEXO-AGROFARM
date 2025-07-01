@@ -1,6 +1,6 @@
 "use client";
 
-import { type LucideIcon, FileTextIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -11,9 +11,6 @@ import {
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { StructuredReportGenerator } from "@/components/shared/structured-report-generator";
-import { useUser } from "@/components/auth/user-provider";
 
 export function NavMain({
   items,
@@ -25,11 +22,6 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
-  const { user } = useUser();
-
-  // Obter o nome da organização atual para o relatório
-  const organizationName =
-    user?.user_metadata?.organizacao?.nome || "Minha Organização";
 
   // Function to check if a menu item is active
   const isActive = (url: string) => {
@@ -90,17 +82,6 @@ export function NavMain({
               </SidebarMenuItem>
             );
           })}
-        </SidebarMenu>
-
-        {/* Report Generator Button */}
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <StructuredReportGenerator
-              title="Gerar Relatório"
-              organizationName={organizationName}
-              className="w-full justify-start bg-muted/50 shadow-none text-foreground hover:bg-muted/90"
-            />
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

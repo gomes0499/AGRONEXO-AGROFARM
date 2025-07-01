@@ -1,8 +1,13 @@
 "use client";
 
 import { Suspense } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTriggerPrimary,
+} from "@/components/ui/tabs";
+import { Loader2, Building2, Landmark, Users, Wallet, TrendingUp, Receipt, DollarSign } from "lucide-react";
 import { DebtMetrics } from "./debt-metrics";
 import { DividasBancariasListing } from "./dividas-bancarias/dividas-bancarias-listing";
 import { DividasTerrasListing } from "./dividas-terras/dividas-terras-listing";
@@ -11,6 +16,8 @@ import { CaixaDisponibilidadesListing } from "./caixa-disponibilidades/caixa-dis
 import { FinanceirasListing } from "./financeiras/financeiras-listing";
 import { OutrasDespesasListing } from "./outras-despesas/outras-despesas-listing";
 import { ReceitasFinanceirasListing } from "./receitas-financeiras/receitas-financeiras-listing";
+import { MobileTabs } from "@/components/ui/mobile-tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FinancialPageContentProps {
   organization: {
@@ -40,66 +47,152 @@ export function FinancialPageContent({
   safras,
   organizationId,
 }: FinancialPageContentProps) {
+  const isMobile = useIsMobile();
+
+  const tabs = [
+    {
+      value: "dividas-bancarias",
+      label: isMobile ? "Bancárias" : "Dívidas Bancárias",
+      icon: Building2,
+      content: (
+        <DividasBancariasListing
+          organization={organization}
+          initialDividasBancarias={dividasBancarias}
+          safras={safras}
+        />
+      ),
+    },
+    {
+      value: "dividas-terras",
+      label: isMobile ? "Terras" : "Dívidas Terras",
+      icon: Landmark,
+      content: (
+        <DividasTerrasListing
+          organization={organization}
+          initialDividas={dividasTerras}
+          safras={safras}
+        />
+      ),
+    },
+    {
+      value: "dividas-fornecedores",
+      label: isMobile ? "Fornecedores" : "Dívidas Fornecedores",
+      icon: Users,
+      content: (
+        <DividasFornecedoresListing
+          organization={organization}
+          initialDividasFornecedores={dividasFornecedores}
+        />
+      ),
+    },
+    {
+      value: "caixa-disponibilidades",
+      label: isMobile ? "Caixa" : "Caixa e Disponibilidades",
+      icon: Wallet,
+      content: (
+        <CaixaDisponibilidadesListing
+          organization={organization}
+          initialItems={caixaDisponibilidades}
+          safras={safras}
+        />
+      ),
+    },
+    {
+      value: "financeiras",
+      label: isMobile ? "Operações" : "Operações Financeiras",
+      icon: TrendingUp,
+      content: (
+        <FinanceirasListing
+          organization={organization}
+          initialFinanceiras={financeiras}
+          safras={safras}
+        />
+      ),
+    },
+    {
+      value: "outras-despesas",
+      label: isMobile ? "Despesas" : "Outras Despesas",
+      icon: Receipt,
+      content: (
+        <OutrasDespesasListing
+          organization={organization}
+          initialOutrasDespesas={outrasDespesasWithTotal}
+          safras={safras}
+        />
+      ),
+    },
+    {
+      value: "outras-receitas",
+      label: isMobile ? "Receitas" : "Outras Receitas",
+      icon: DollarSign,
+      content: (
+        <ReceitasFinanceirasListing
+          organizationId={organization.id}
+          receitas={receitasFinanceiras}
+          safras={safras}
+        />
+      ),
+    },
+  ];
+
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        {/* Métricas de Dívida Consolidada - Sempre visível */}
+        <DebtMetrics
+          dividasBancarias={dividasBancarias}
+          dividasTerras={dividasTerras}
+          dividasFornecedores={dividasFornecedores}
+        />
+
+        <MobileTabs
+          tabs={tabs}
+          defaultValue="dividas-bancarias"
+        />
+      </div>
+    );
+  }
+
+  // Desktop view - manter o layout original mas com melhorias
   return (
     <div className="-mt-6 -mx-4 md:-mx-6">
       <Tabs defaultValue="dividas-bancarias">
-        <div className="bg-muted/50 border-b">
+        <div className="bg-card border-b overflow-x-auto">
           <div className="container max-w-full px-4 md:px-6 py-2">
-            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start w-full">
-              <TabsTrigger
-                value="dividas-bancarias"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
+            <TabsList className="w-max">
+              <TabsTriggerPrimary value="dividas-bancarias">
                 Dívidas Bancárias
-              </TabsTrigger>
-              <TabsTrigger
-                value="dividas-terras"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
+              </TabsTriggerPrimary>
+              <TabsTriggerPrimary value="dividas-terras">
                 Dívidas Terras
-              </TabsTrigger>
-              <TabsTrigger
-                value="dividas-fornecedores"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
+              </TabsTriggerPrimary>
+              <TabsTriggerPrimary value="dividas-fornecedores">
                 Dívidas Fornecedores
-              </TabsTrigger>
-              <TabsTrigger
-                value="caixa-disponibilidades"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
+              </TabsTriggerPrimary>
+              <TabsTriggerPrimary value="caixa-disponibilidades">
                 Caixa e Disponibilidades
-              </TabsTrigger>
-              <TabsTrigger
-                value="financeiras"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
+              </TabsTriggerPrimary>
+              <TabsTriggerPrimary value="financeiras">
                 Operações Financeiras
-              </TabsTrigger>
-              <TabsTrigger
-                value="outras-despesas"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
+              </TabsTriggerPrimary>
+              <TabsTriggerPrimary value="outras-despesas">
                 Outras Despesas
-              </TabsTrigger>
-              <TabsTrigger
-                value="outras-receitas"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
+              </TabsTriggerPrimary>
+              <TabsTriggerPrimary value="outras-receitas">
                 Outras Receitas
-              </TabsTrigger>
+              </TabsTriggerPrimary>
             </TabsList>
           </div>
         </div>
 
         <div className="p-4 md:p-6 pt-4">
           {/* Métricas de Dívida Consolidada - Sempre visível */}
-          <DebtMetrics 
+          <DebtMetrics
             dividasBancarias={dividasBancarias}
             dividasTerras={dividasTerras}
             dividasFornecedores={dividasFornecedores}
           />
-          
+
           <Suspense
             fallback={
               <div className="flex items-center justify-center h-40">
@@ -118,7 +211,7 @@ export function FinancialPageContent({
             <TabsContent value="dividas-terras" className="space-y-4">
               <DividasTerrasListing
                 organization={organization}
-                initialDividasTerras={dividasTerras}
+                initialDividas={dividasTerras}
               />
             </TabsContent>
 
@@ -139,14 +232,14 @@ export function FinancialPageContent({
             <TabsContent value="financeiras" className="space-y-4">
               <FinanceirasListing
                 organization={organization}
-                initialItems={financeiras}
+                initialFinanceiras={financeiras}
               />
             </TabsContent>
 
             <TabsContent value="outras-despesas" className="space-y-4">
               <OutrasDespesasListing
                 organization={organization}
-                initialItems={outrasDespesasWithTotal}
+                initialOutrasDespesas={outrasDespesasWithTotal}
               />
             </TabsContent>
 

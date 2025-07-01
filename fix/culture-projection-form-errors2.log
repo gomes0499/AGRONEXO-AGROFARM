@@ -1,0 +1,3 @@
+components/projections/cultures/culture-projection-form.tsx(110,11): error TS2552: Cannot find name 'getProductionCombinations'. Did you mean 'setProductionCombinations'?
+components/projections/cultures/culture-projection-form.tsx(111,11): error TS2304: Cannot find name 'getCommodityPricesForProjection'.
+components/projections/cultures/culture-projection-form.tsx(143,28): error TS2552: Cannot find name 'getProductionDataByCombination'. Did you mean 'setProductionCombinations'?

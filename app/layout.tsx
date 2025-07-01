@@ -71,7 +71,7 @@ export default function RootLayout({
           disableTransitionOnChange
           enableColorScheme
         >
-          <main className="min-h-screen flex flex-col">
+          <main className="min-h-screen flex flex-col bg-card">
             {children}
             <Toaster />
           </main>

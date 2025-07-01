@@ -2,7 +2,7 @@
 
 import { TrendingUp, Loader2, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList } from "recharts";
 import {
   Card,
   CardContent,
@@ -150,8 +150,12 @@ export function PropertyValueChartClient({
             Ranking patrimonial das propriedades
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-32 text-muted-foreground">
-          {error ? error : "Nenhuma propriedade com valor cadastrado"}
+        <CardContent className="px-2 sm:px-6">
+          <div className="w-full h-[350px] sm:h-[400px] flex items-center justify-center">
+            <div className="text-muted-foreground">
+              {error ? error : "Nenhuma propriedade com valor cadastrado"}
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -195,7 +199,7 @@ export function PropertyValueChartClient({
             accessibilityLayer
             data={chartData}
             margin={{
-              top: 5,
+              top: 35,
               right: 0,
               left: 0,
               bottom: 5,
@@ -237,7 +241,22 @@ export function PropertyValueChartClient({
               fill="var(--color-valor)"
               radius={[3, 3, 0, 0]}
               minPointSize={2}
-            />
+            >
+              <LabelList
+                dataKey="valor"
+                position="top"
+                formatter={(value: number) => {
+                  if (value >= 1000000000) return `${(value/1000000000).toFixed(1)}B`;
+                  if (value >= 1000000) return `${(value/1000000).toFixed(1)}M`;
+                  if (value >= 1000) return `${(value/1000).toFixed(1)}K`;
+                  return value.toFixed(0);
+                }}
+                fill="var(--color-valor)"
+                fontSize={11}
+                fontWeight="600"
+                offset={8}
+              />
+            </Bar>
           </BarChart>
         </ChartContainer>
       </CardContent>

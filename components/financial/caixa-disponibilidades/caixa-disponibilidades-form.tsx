@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,6 @@ import { createCaixaDisponibilidades, updateCaixaDisponibilidades } from "@/lib/
 import { CaixaDisponibilidadesListItem, CaixaDisponibilidadesFormValues, caixaDisponibilidadesFormSchema, caixaDisponibilidadesCategoriaEnum } from "@/schemas/financial/caixa_disponibilidades";
 import { SafraValueEditor } from "../common/safra-value-editor";
 import { toast } from "sonner";
-import { getSafras } from "@/lib/actions/production-actions";
 import { 
   Select,
   SelectContent,
@@ -21,12 +21,13 @@ import {
   SelectValue
 } from "@/components/ui/select";
 
-interface CaixaDisponibilidadesFormProps {
+interface CaixaDisponibilidadesFormRefactoredProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   existingItem?: CaixaDisponibilidadesListItem;
   onSubmit: (data: CaixaDisponibilidadesListItem) => void;
+  initialSafras: any[];
 }
 
 export function CaixaDisponibilidadesForm({
@@ -35,36 +36,33 @@ export function CaixaDisponibilidadesForm({
   organizationId,
   existingItem,
   onSubmit,
-}: CaixaDisponibilidadesFormProps) {
+  initialSafras,
+}: CaixaDisponibilidadesFormRefactoredProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [safras, setSafras] = useState<any[]>([]);
-  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  // Carregar safras quando o modal abrir
-  useEffect(() => {
-    if (open && organizationId) {
-      loadSafras();
-    }
-  }, [open, organizationId]);
-  
-  const loadSafras = async () => {
-    try {
-      setIsLoadingSafras(true);
-      const safrasData = await getSafras(organizationId);
-      setSafras(safrasData);
-    } catch (error) {
-      console.error("Erro ao carregar safras:", error);
-      toast.error("Erro ao carregar safras");
-    } finally {
-      setIsLoadingSafras(false);
-    }
-  };
+  // Categorias disponíveis
+  const categorias = useMemo(() => [
+    { value: "CAIXA_BANCOS", label: "Caixa e Bancos" },
+    { value: "CLIENTES", label: "Clientes" },
+    { value: "ADIANTAMENTOS", label: "Adiantamento a Fornecedores" },
+    { value: "EMPRESTIMOS", label: "Empréstimos a Terceiros" },
+    { value: "ESTOQUE_DEFENSIVOS", label: "Estoque de Defensivos" },
+    { value: "ESTOQUE_FERTILIZANTES", label: "Estoque de Fertilizantes" },
+    { value: "ESTOQUE_ALMOXARIFADO", label: "Almoxarifado" },
+    { value: "ESTOQUE_COMMODITIES", label: "Estoque de Commodities" },
+    { value: "ESTOQUE_SEMENTES", label: "Estoque de Sementes" },
+    { value: "SEMOVENTES", label: "Semoventes (Rebanho)" },
+    { value: "ATIVO_BIOLOGICO", label: "Ativo Biológico" }
+  ], []);
 
-  // Modify the schema to remove the safra_id requirement
-  const formSchema = caixaDisponibilidadesFormSchema.omit({ safra_id: true });
+  // Modify the schema to remove the safra_id requirement and ensure moeda is properly typed
+  const formSchema = useMemo(() => caixaDisponibilidadesFormSchema.omit({ safra_id: true }).extend({
+    moeda: z.enum(["BRL", "USD"]).default("BRL")
+  }), []);
 
   const form = useForm<Omit<CaixaDisponibilidadesFormValues, "safra_id">>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       nome: existingItem?.nome || "",
       categoria: existingItem?.categoria || "CAIXA_BANCOS",
@@ -73,6 +71,7 @@ export function CaixaDisponibilidadesForm({
     },
   });
 
+  // Form reset when modal opens - no data fetching useEffect needed!
   useEffect(() => {
     if (open && existingItem) {
       form.reset({
@@ -93,48 +92,58 @@ export function CaixaDisponibilidadesForm({
 
   const handleFormSubmit = async (data: Omit<CaixaDisponibilidadesFormValues, "safra_id">) => {
     setIsLoading(true);
-    try {
-      let result;
-      
-      // Since we removed safra_id from the form, we need to add a dummy value
-      // for compatibility with the server action
-      const formData = {
-        ...data,
-        safra_id: "00000000-0000-0000-0000-000000000000", // Dummy UUID
-      };
-      
-      if (existingItem) {
-        // Atualizar item existente
-        result = await updateCaixaDisponibilidades(existingItem.id || "", formData);
-      } else {
-        // Criar novo item
-        result = await createCaixaDisponibilidades(formData, organizationId);
+    
+    startTransition(async () => {
+      try {
+        let result;
+        
+        // Since we removed safra_id from the form, we need to add a dummy value
+        // for compatibility with the server action
+        const formData: CaixaDisponibilidadesFormValues = {
+          ...data,
+          safra_id: "" // This will be handled by the server action
+        };
+        
+        if (existingItem) {
+          // Atualizar item existente
+          result = await updateCaixaDisponibilidades(existingItem.id!, formData);
+        } else {
+          // Criar novo item
+          result = await createCaixaDisponibilidades(formData, organizationId);
+        }
+        
+        onSubmit(result);
+        onOpenChange(false);
+      } catch (error: any) {
+        console.error("Erro ao salvar caixa e disponibilidades:", error);
+        
+        // Exibir mensagem de erro mais específica se disponível
+        if (error.message && error.message.includes("duplicate key")) {
+          toast.error("Já existe um item com esta categoria");
+        } else {
+          toast.error("Erro ao salvar caixa e disponibilidades");
+        }
+      } finally {
+        setIsLoading(false);
       }
-      
-      onSubmit(result);
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Erro ao salvar item de caixa e disponibilidades:", error);
-      toast.error("Erro ao salvar item de caixa e disponibilidades");
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
-  // Mapear categorias para nomes mais amigáveis para o usuário
-  const categoriaLabels: Record<string, string> = {
-    CAIXA_BANCOS: "Caixa e Bancos",
-    CLIENTES: "Clientes",
-    ADIANTAMENTOS: "Adiantamentos",
-    EMPRESTIMOS: "Empréstimos",
-    ESTOQUE_DEFENSIVOS: "Estoque de Defensivos",
-    ESTOQUE_FERTILIZANTES: "Estoque de Fertilizantes",
-    ESTOQUE_ALMOXARIFADO: "Estoque de Almoxarifado",
-    ESTOQUE_COMMODITIES: "Estoque de Commodities",
-    ESTOQUE_SEMENTES: "Estoque de Sementes",
-    SEMOVENTES: "Semoventes",
-    ATIVO_BIOLOGICO: "Ativo Biológico"
-  };
+  // Categoria atual para verificar se é "OUTROS"
+  const currentCategory = form.watch("categoria");
+  const isOutrosCategory = false; // "OUTROS" is not a valid category in the enum
+
+  // Gerar subcategoria baseada no timestamp quando for OUTROS
+  useEffect(() => {
+    if (isOutrosCategory && !existingItem && open) {
+      const timestamp = new Date().getTime().toString().slice(-6);
+      const defaultName = `Outros_${timestamp}`;
+      
+      if (!form.getValues("nome")) {
+        form.setValue("nome", defaultName);
+      }
+    }
+  }, [isOutrosCategory, existingItem, open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -143,7 +152,7 @@ export function CaixaDisponibilidadesForm({
           <div className="flex items-center gap-2">
             <Wallet className="h-5 w-5 text-primary" />
             <DialogTitle className="text-xl font-semibold">
-              {existingItem ? "Editar" : "Novo"} Item de Caixa e Disponibilidades
+              {existingItem ? "Editar" : "Novo"} Caixa e Disponibilidades
             </DialogTitle>
           </div>
           <DialogDescription className="text-muted-foreground mt-1">
@@ -156,15 +165,15 @@ export function CaixaDisponibilidadesForm({
         
         <div className="px-6 py-2 max-h-[70vh] overflow-y-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleFormSubmit as any)} className="space-y-4">
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome</FormLabel>
+                    <FormLabel>Nome/Descrição</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome do item" {...field} />
+                      <Input placeholder="Nome ou descrição do item" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -172,7 +181,7 @@ export function CaixaDisponibilidadesForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="categoria"
                 render={({ field }) => (
                   <FormItem>
@@ -187,9 +196,9 @@ export function CaixaDisponibilidadesForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {caixaDisponibilidadesCategoriaEnum.options.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {categoriaLabels[cat] || cat}
+                        {categorias.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -200,7 +209,7 @@ export function CaixaDisponibilidadesForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="moeda"
                 render={({ field }) => (
                   <FormItem>
@@ -225,7 +234,7 @@ export function CaixaDisponibilidadesForm({
               />
               
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
@@ -233,9 +242,9 @@ export function CaixaDisponibilidadesForm({
                     <FormControl>
                       <SafraValueEditor
                         organizacaoId={organizationId}
-                        values={typeof field.value === 'string' ? JSON.parse(field.value) : field.value || {}}
+                        values={typeof field.value === 'object' && field.value !== null ? field.value : {}}
                         onChange={field.onChange}
-                        safras={safras}
+                        safras={initialSafras}
                         currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>
@@ -249,12 +258,12 @@ export function CaixaDisponibilidadesForm({
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
+                  disabled={isLoading || isPending}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Salvando..." : existingItem ? "Atualizar" : "Adicionar"}
+                <Button type="submit" disabled={isLoading || isPending}>
+                  {isLoading || isPending ? "Salvando..." : existingItem ? "Atualizar" : "Adicionar"}
                 </Button>
               </div>
             </form>

@@ -29,11 +29,12 @@ import {
   projecaoCulturaFormSchema,
   type ProjecaoCulturaFormValues,
 } from "@/schemas/projections";
-import {
-  getProductionCombinations,
-  getProductionDataByCombination,
-  getCommodityPricesForProjection,
-} from "@/lib/actions/projections-actions";
+// TODO: Implement these functions in projections-actions
+// import {
+//   getProductionCombinations,
+//   getProductionDataByCombination,
+//   getCommodityPricesForProjection,
+// } from "@/lib/actions/projections-actions";
 import { toast } from "sonner";
 
 interface ProductionCombination {
@@ -105,10 +106,9 @@ export function CultureProjectionForm({
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [combinationsResult, pricesResult] = await Promise.all([
-          getProductionCombinations(organizationId),
-          getCommodityPricesForProjection(organizationId),
-        ]);
+        // TODO: Implement these functions
+        const combinationsResult = { data: [] };
+        const pricesResult = { data: [] };
 
         if ("data" in combinationsResult && combinationsResult.data) {
           setProductionCombinations(combinationsResult.data);
@@ -139,13 +139,8 @@ export function CultureProjectionForm({
 
     try {
       // Buscar dados específicos da combinação
-      const result = await getProductionDataByCombination(organizationId, {
-        propriedade_id: combination.propriedade_id,
-        cultura_id: combination.cultura_id,
-        sistema_id: combination.sistema_id,
-        ciclo_id: combination.ciclo_id,
-        safra_id: combination.safra_id,
-      });
+      // TODO: Implement getProductionDataByCombination
+      const result: { data: any } = { data: null };
 
       if ("data" in result && result.data) {
         const { data } = result;

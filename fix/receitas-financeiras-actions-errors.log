@@ -1,0 +1,2 @@
+lib/actions/financial-actions/receitas-financeiras-actions.ts(154,19): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'string | Record<string, number>'.
+lib/actions/financial-actions/receitas-financeiras-actions.ts(181,21): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'string | Record<string, number>'.

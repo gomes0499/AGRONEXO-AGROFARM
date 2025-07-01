@@ -81,7 +81,7 @@ export function OutrasDespesasSafraDetail({
   // Obter nome da safra pelo ID
   const getSafraName = (safraId: string) => {
     const safra = safras.find(s => s.id === safraId);
-    return safra ? safra.nome : `Safra ${safraId.substring(0, 8)}`;
+    return safra ? safra.nome : "N/A";
   };
   
   return (

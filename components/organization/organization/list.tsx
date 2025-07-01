@@ -324,8 +324,8 @@ export function OrganizationList({
             {userId && (
               <NewOrganizationButton
                 userId={userId}
-                variant="secondary"
-                className="gap-1"
+                variant="default"
+                className="gap-1 bg-white text-black hover:bg-white/90"
               />
             )}
           </div>

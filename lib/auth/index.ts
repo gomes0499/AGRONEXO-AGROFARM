@@ -39,6 +39,12 @@ export async function getOrganizationId() {
     throw new Error("Organização não encontrada ou usuário não autenticado");
   }
   
+  
+  // Garantir que retornamos apenas o ID string, não o objeto completo
+  if (typeof session.organizationId === 'object' && session.organizationId !== null && 'id' in session.organizationId) {
+    return session.organizationId.id;
+  }
+  
   return session.organizationId;
 }
 
@@ -86,6 +92,7 @@ export async function getSession() {
     activeAssociation = associacoes.find(
       assoc => assoc.organizacao_id === userOrganizationId
     );
+    
   }
   
   // Se não encontrou, usa a última acessada
@@ -98,6 +105,7 @@ export async function getSession() {
     });
     
     activeAssociation = sortedAssociations[0];
+    
   }
   
   // Atualizar o último acesso
@@ -105,6 +113,7 @@ export async function getSession() {
     .from("associacoes")
     .update({ ultimo_login: new Date().toISOString() })
     .eq("id", activeAssociation.id);
+  
   
   return {
     user,

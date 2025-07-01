@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useTransition } from "react";
 import {
   Card,
   CardContent,
@@ -11,11 +11,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  getFinancialMetrics,
-  getAvailableFinancialYears,
-} from "@/lib/actions/financial-metrics-actions";
-import type { FinancialMetrics } from "@/lib/actions/financial-metrics-actions";
+import type { FinancialKpiCardsData } from "@/lib/actions/financial-kpi-cards-actions";
 import {
   Select,
   SelectContent,
@@ -29,7 +25,6 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { YearFilter } from "@/components/assets/common/year-filter";
 import {
   Building2Icon,
   FileTextIcon,
@@ -44,21 +39,13 @@ import {
 } from "lucide-react";
 import { FinancialMetricHistoryChartModal } from "./financial-metric-history-chart-modal";
 import type { FinancialMetricType } from "@/lib/actions/financial-historical-metrics-actions";
-import { getFinancialHistoricalMetricData } from "@/lib/actions/financial-historical-metrics-actions";
+import { prefetchMetricData, getFinancialKpiCardsData } from "@/lib/actions/financial-kpi-cards-actions";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 
-interface SafraOption {
-  id: string;
-  nome: string;
-  ano_inicio: number;
-  ano_fim: number;
-}
-
-interface FinancialKpiCardsProps {
+interface FinancialKpiCardsRefactoredProps {
   organizationId: string;
+  initialData: FinancialKpiCardsData;
   onYearChange?: (year: number | null) => void;
-  safraId?: string;
   onSafraChange?: (safraId: string) => void;
 }
 
@@ -337,30 +324,33 @@ const KpiItem = React.memo(function KpiItem({
   );
 });
 
-export function FinancialKpiCardsProductionStyle({
+export function FinancialKpiCardsProductionStyleRefactored({
   organizationId,
+  initialData,
   onYearChange,
-  safraId,
   onSafraChange,
-}: FinancialKpiCardsProps) {
-  const [metrics, setMetrics] = useState<FinancialMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [availableYears, setAvailableYears] = useState<number[]>([]);
-  const [safras, setSafras] = useState<SafraOption[]>([]);
-  const [selectedSafraId, setSelectedSafraId] = useState<string>(safraId || "");
-  const [loadingSafras, setLoadingSafras] = useState(true);
+}: FinancialKpiCardsRefactoredProps) {
+  const [data, setData] = useState<FinancialKpiCardsData>(initialData);
+  const [selectedSafraId, setSelectedSafraId] = useState<string>(() => {
+    // Definir safra inicial
+    if (initialData.safras.length > 0) {
+      const currentYear = new Date().getFullYear();
+      const currentSafra = initialData.safras.find((s) => s.ano_inicio === currentYear) || initialData.safras[0];
+      return currentSafra.id;
+    }
+    return "";
+  });
+  const [selectedYear, setSelectedYear] = useState<number | null>(() => {
+    // Definir ano inicial baseado na safra selecionada
+    const safra = initialData.safras.find((s) => s.id === selectedSafraId);
+    return safra?.ano_inicio || initialData.currentYear;
+  });
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedMetric, setSelectedMetric] =
-    useState<FinancialMetricType>("dividaReceita");
-
-  const currentYear = new Date().getFullYear();
-
+  const [selectedMetric, setSelectedMetric] = useState<FinancialMetricType>("dividaReceita");
+  const [isPending, startTransition] = useTransition();
+  
   // Cache de métricas para prefetching
-  const [prefetchedMetrics, setPrefetchedMetrics] = useState<
-    Record<string, boolean>
-  >({});
+  const [prefetchedMetrics, setPrefetchedMetrics] = useState<Record<string, boolean>>({});
 
   // Usar useCallback para memoizar as funções e evitar re-renderizações desnecessárias
   const handleMetricClick = useCallback((metricType: FinancialMetricType) => {
@@ -381,7 +371,7 @@ export function FinancialKpiCardsProductionStyle({
         setPrefetchedMetrics((prev) => ({ ...prev, [metricType]: true }));
 
         // Fazer prefetch dos dados silenciosamente
-        await getFinancialHistoricalMetricData(organizationId, metricType);
+        await prefetchMetricData(organizationId, metricType, undefined);
       } catch (err) {
         // Erro no prefetch não é crítico, ignoramos silenciosamente
       }
@@ -389,106 +379,35 @@ export function FinancialKpiCardsProductionStyle({
     [organizationId, prefetchedMetrics]
   );
 
-  // Carregar as safras disponíveis
-  useEffect(() => {
-    async function fetchSafras() {
-      try {
-        setLoadingSafras(true);
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("safras")
-          .select("id, nome, ano_inicio, ano_fim")
-          .eq("organizacao_id", organizationId)
-          .order("ano_inicio", { ascending: false });
-
-        if (error) {
-          console.error("Erro ao buscar safras:", error);
-          return;
-        }
-
-        setSafras(data || []);
-
-        // Definir safra atual como padrão se não estiver definida
-        if (!selectedSafraId && data && data.length > 0) {
-          const currentYear = new Date().getFullYear();
-          const currentSafra =
-            data?.find((s) => s.ano_inicio === currentYear) || data?.[0];
-          if (currentSafra) {
-            setSelectedSafraId(currentSafra.id);
-            if (onSafraChange) {
-              onSafraChange(currentSafra.id);
-            }
-            // Também atualizar o ano selecionado baseado na safra
-            setSelectedYear(currentSafra.ano_inicio);
-          }
-        }
-      } catch (error) {
-        console.error("Erro ao buscar safras:", error);
-      } finally {
-        setLoadingSafras(false);
-      }
-    }
-
-    if (organizationId) {
-      fetchSafras();
-    }
-  }, [organizationId, onSafraChange]);
-
   const handleSafraChange = (value: string) => {
     setSelectedSafraId(value);
     if (onSafraChange) {
       onSafraChange(value);
     }
 
-    // Também atualizar o ano selecionado baseado na safra,
-    // mas manter o ID da safra como o valor principal para outros componentes
-    const safra = safras.find((s) => s.id === value);
+    // Também atualizar o ano selecionado baseado na safra
+    const safra = data.safras.find((s) => s.id === value);
     if (safra) {
       setSelectedYear(safra.ano_inicio);
+      if (onYearChange) {
+        onYearChange(safra.ano_inicio);
+      }
     }
+
+    // Atualizar dados quando safra mudar
+    startTransition(async () => {
+      try {
+        const newData = await getFinancialKpiCardsData(
+          organizationId,
+          safra?.ano_inicio,
+          undefined
+        );
+        setData(newData);
+      } catch (error) {
+        console.error("Erro ao atualizar métricas:", error);
+      }
+    });
   };
-
-  const loadMetrics = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await getFinancialMetrics(
-        organizationId,
-        selectedYear || currentYear
-      );
-      setMetrics(result);
-    } catch (err) {
-      console.error("Erro ao carregar métricas financeiras:", err);
-      setError("Erro ao carregar métricas");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAvailableYears = async () => {
-    try {
-      const years = await getAvailableFinancialYears(organizationId);
-      setAvailableYears(years);
-    } catch (err) {
-      console.error("Erro ao carregar anos disponíveis:", err);
-      // Fallback para anos padrão
-      setAvailableYears(Array.from({ length: 16 }, (_, i) => 2020 + i));
-    }
-  };
-
-  useEffect(() => {
-    loadAvailableYears();
-  }, [organizationId]);
-
-  useEffect(() => {
-    loadMetrics();
-  }, [organizationId, selectedYear, selectedSafraId]);
-
-  useEffect(() => {
-    if (onYearChange) {
-      onYearChange(selectedYear);
-    }
-  }, [selectedYear, onYearChange]);
 
   const formatMilhoes = (valor: number) => {
     return `R$ ${(Math.abs(valor) / 1000000).toFixed(1)}M`;
@@ -512,25 +431,7 @@ export function FinancialKpiCardsProductionStyle({
     return null;
   };
 
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-red-600">
-            {error}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadMetrics}
-              className="ml-2"
-            >
-              Tentar novamente
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const metrics = data.metrics;
 
   return (
     <TooltipProvider>
@@ -546,6 +447,7 @@ export function FinancialKpiCardsProductionStyle({
                 <div>
                   <CardTitle className="text-white">
                     Resumo Financeiro
+                    {isPending && " (Atualizando...)"}
                   </CardTitle>
                   <CardDescription className="text-white/80">
                     Indicadores consolidados de endividamento e liquidez
@@ -554,25 +456,21 @@ export function FinancialKpiCardsProductionStyle({
               </div>
 
               <div className="flex items-center gap-2">
-                {loadingSafras ? (
-                  <div className="h-9 w-48 bg-white/10 rounded animate-pulse" />
-                ) : (
-                  <Select
-                    value={selectedSafraId}
-                    onValueChange={handleSafraChange}
-                  >
-                    <SelectTrigger className="w-48 h-9 bg-white/10 border-white/20 text-white focus:ring-white/30 placeholder:text-white/60">
-                      <SelectValue placeholder="Selecionar safra" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {safras.map((safra) => (
-                        <SelectItem key={safra.id} value={safra.id}>
-                          {safra.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <Select
+                  value={selectedSafraId}
+                  onValueChange={handleSafraChange}
+                >
+                  <SelectTrigger className="w-48 h-9 bg-white/10 border-white/20 text-white focus:ring-white/30 placeholder:text-white/60">
+                    <SelectValue placeholder="Selecionar safra" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {data.safras.map((safra) => (
+                      <SelectItem key={safra.id} value={safra.id}>
+                        {safra.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help" />
@@ -596,7 +494,7 @@ export function FinancialKpiCardsProductionStyle({
                   value={
                     metrics
                       ? formatMilhoes(metrics.dividaBancaria.valorAtual)
-                      : ""
+                      : "R$ 0.0M"
                   }
                   change={
                     metrics
@@ -607,7 +505,7 @@ export function FinancialKpiCardsProductionStyle({
                         }${metrics.dividaBancaria.percentualMudanca.toFixed(
                           1
                         )}% YoY`
-                      : ""
+                      : "+0.0% YoY"
                   }
                   isPositive={
                     metrics
@@ -617,7 +515,7 @@ export function FinancialKpiCardsProductionStyle({
                       : true
                   }
                   icon={<Building2Icon className="h-5 w-5 text-white" />}
-                  loading={loading}
+                  loading={isPending}
                 />
                 <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
               </div>
@@ -629,7 +527,7 @@ export function FinancialKpiCardsProductionStyle({
                   value={
                     metrics
                       ? formatMilhoes(metrics.outrosPassivos.valorAtual)
-                      : ""
+                      : "R$ 0.0M"
                   }
                   change={
                     metrics
@@ -640,7 +538,7 @@ export function FinancialKpiCardsProductionStyle({
                         }${metrics.outrosPassivos.percentualMudanca.toFixed(
                           1
                         )}% YoY`
-                      : ""
+                      : "+0.0% YoY"
                   }
                   isPositive={
                     metrics
@@ -650,7 +548,7 @@ export function FinancialKpiCardsProductionStyle({
                       : true
                   }
                   icon={<FileTextIcon className="h-5 w-5 text-white" />}
-                  loading={loading}
+                  loading={isPending}
                 />
                 <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
               </div>
@@ -662,7 +560,7 @@ export function FinancialKpiCardsProductionStyle({
                   value={
                     metrics
                       ? formatMilhoes(metrics.dividaLiquida.valorAtual)
-                      : ""
+                      : "R$ 0.0M"
                   }
                   change={
                     metrics
@@ -671,7 +569,7 @@ export function FinancialKpiCardsProductionStyle({
                         }${metrics.dividaLiquida.percentualMudanca.toFixed(
                           1
                         )}% YoY`
-                      : ""
+                      : "+0.0% YoY"
                   }
                   isPositive={
                     metrics
@@ -681,7 +579,7 @@ export function FinancialKpiCardsProductionStyle({
                       : true
                   }
                   icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
-                  loading={loading}
+                  loading={isPending}
                 />
                 <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
               </div>
@@ -691,18 +589,18 @@ export function FinancialKpiCardsProductionStyle({
                 <KpiItem
                   title="PRAZO MÉDIO"
                   value={
-                    metrics ? formatAnos(metrics.prazoMedio.valorAtual) : ""
+                    metrics ? formatAnos(metrics.prazoMedio.valorAtual) : "0.0 anos"
                   }
                   change={
                     metrics
                       ? `vs ${formatAnos(
                           metrics.prazoMedio.valorAnterior
                         )} ant.`
-                      : ""
+                      : "vs 0.0 anos ant."
                   }
                   isPositive={true}
                   icon={<ClockIcon className="h-5 w-5 text-white" />}
-                  loading={loading}
+                  loading={isPending}
                   changeIcon={<ClockIcon className="h-3 w-3 mr-1" />}
                 />
               </div>
@@ -718,15 +616,15 @@ export function FinancialKpiCardsProductionStyle({
                   value={
                     metrics
                       ? `${metrics.indicadores.dividaReceita.toFixed(1)}x`
-                      : ""
+                      : "0.0x"
                   }
                   change="Ideal: até 2,0x"
                   isPositive={
                     metrics ? metrics.indicadores.dividaReceita <= 2.0 : true
                   }
                   icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
-                  loading={loading}
-                  clickable={!loading}
+                  loading={isPending}
+                  clickable={!isPending}
                   onClick={() => handleMetricClick("dividaReceita")}
                   onMouseEnter={() => handleMetricHover("dividaReceita")}
                   tooltip="Relação entre a dívida total e a receita operacional. Quanto menor, melhor."
@@ -741,15 +639,15 @@ export function FinancialKpiCardsProductionStyle({
                   value={
                     metrics
                       ? `${metrics.indicadores.dividaEbitda.toFixed(1)}x`
-                      : ""
+                      : "0.0x"
                   }
                   change="Ideal: até 3,0x"
                   isPositive={
                     metrics ? metrics.indicadores.dividaEbitda <= 3.0 : true
                   }
                   icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
-                  loading={loading}
-                  clickable={!loading}
+                  loading={isPending}
+                  clickable={!isPending}
                   onClick={() => handleMetricClick("dividaEbitda")}
                   onMouseEnter={() => handleMetricHover("dividaEbitda")}
                   tooltip="Relação entre a dívida total e o EBITDA (lucro operacional). Quanto menor, melhor."
@@ -766,7 +664,7 @@ export function FinancialKpiCardsProductionStyle({
                       ? `${metrics.indicadores.dividaLiquidaReceita.toFixed(
                           1
                         )}x`
-                      : ""
+                      : "0.0x"
                   }
                   change="Ideal: até 1,5x"
                   isPositive={
@@ -775,8 +673,8 @@ export function FinancialKpiCardsProductionStyle({
                       : true
                   }
                   icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
-                  loading={loading}
-                  clickable={!loading}
+                  loading={isPending}
+                  clickable={!isPending}
                   onClick={() => handleMetricClick("dividaLiquidaReceita")}
                   onMouseEnter={() => handleMetricHover("dividaLiquidaReceita")}
                   tooltip="Relação entre a dívida líquida (descontando caixa) e a receita. Quanto menor, melhor."
@@ -791,7 +689,7 @@ export function FinancialKpiCardsProductionStyle({
                   value={
                     metrics
                       ? `${metrics.indicadores.dividaLiquidaEbitda.toFixed(1)}x`
-                      : ""
+                      : "0.0x"
                   }
                   change="Ideal: até 2,5x"
                   isPositive={
@@ -800,8 +698,8 @@ export function FinancialKpiCardsProductionStyle({
                       : true
                   }
                   icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
-                  loading={loading}
-                  clickable={!loading}
+                  loading={isPending}
+                  clickable={!isPending}
                   onClick={() => handleMetricClick("dividaLiquidaEbitda")}
                   onMouseEnter={() => handleMetricHover("dividaLiquidaEbitda")}
                   tooltip="Relação entre a dívida líquida e o EBITDA. É o principal indicador de capacidade de pagamento. Quanto menor, melhor."
@@ -809,6 +707,21 @@ export function FinancialKpiCardsProductionStyle({
               </div>
             </div>
           </CardContent>
+          {/* Footer com insights */}
+          <div className="px-6 py-4 border-t">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {metrics?.indicadores.dividaLiquidaEbitda
+                  ? metrics.indicadores.dividaLiquidaEbitda > 3.0
+                    ? "⚠️ Indicadores de endividamento acima do recomendado. Considere estratégias de redução de dívida."
+                    : metrics.indicadores.dividaLiquidaEbitda > 1.2
+                    ? "📊 Indicadores de endividamento em níveis moderados. Continue monitorando."
+                    : "✅ Indicadores de endividamento saudáveis. Boa capacidade de pagamento."
+                  : "Configure os dados financeiros para análise de indicadores."}
+              </p>
+            </div>
+          </div>
         </Card>
       </div>
 
@@ -818,6 +731,7 @@ export function FinancialKpiCardsProductionStyle({
         onClose={() => setModalOpen(false)}
         metricType={selectedMetric}
         organizationId={organizationId}
+        projectionId={undefined}
       />
     </TooltipProvider>
   );

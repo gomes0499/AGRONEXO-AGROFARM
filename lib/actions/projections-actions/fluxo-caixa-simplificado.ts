@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCultureProjections } from "@/lib/actions/culture-projections-actions";
 import { getDividasBancarias, getTotalDividasBancarias } from "@/lib/actions/financial-actions/dividas-bancarias";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { getCashPolicyConfig } from "@/lib/actions/financial-actions/cash-policy-actions";
 
 export interface FluxoCaixaData {
   anos: string[];
@@ -39,15 +40,26 @@ export interface FluxoCaixaData {
   };
   fluxo_liquido: Record<string, number>;
   fluxo_acumulado: Record<string, number>;
+  politica_caixa: {
+    ativa: boolean;
+    valor_minimo: number | null;
+    moeda: "BRL" | "USD";
+    prioridade: "debt" | "cash";
+    alertas: Record<string, {
+      abaixo_minimo: boolean;
+      valor_faltante: number;
+    }>;
+  };
 }
 
 export async function getFluxoCaixaSimplificado(
-  organizationId: string
+  organizationId: string,
+  projectionId?: string
 ): Promise<FluxoCaixaData> {
   const supabase = await createClient();
   
   // 1. Buscar projeções de culturas
-  const cultureProjections = await getCultureProjections(organizationId);
+  const cultureProjections = await getCultureProjections(organizationId, projectionId);
   const anos = cultureProjections.anos;
   
   // Filtrar anos para remover 2030/31 e 2031/32
@@ -109,10 +121,17 @@ export async function getFluxoCaixaSimplificado(
   }, {} as Record<string, string>);
   
   // 5. Buscar dados de arrendamentos
-  const { data: arrendamentos, error: arrendamentosError } = await supabase
-    .from("arrendamentos")
+  const arrendamentosTableName = projectionId ? "arrendamentos_projections" : "arrendamentos";
+  let arrendamentosQuery = supabase
+    .from(arrendamentosTableName)
     .select("*")
     .eq("organizacao_id", organizationId);
+  
+  if (projectionId) {
+    arrendamentosQuery = arrendamentosQuery.eq("projection_id", projectionId);
+  }
+  
+  const { data: arrendamentos, error: arrendamentosError } = await arrendamentosQuery;
 
   if (arrendamentosError) {
     console.warn("⚠️ Erro ao buscar arrendamentos:", arrendamentosError.message);
@@ -138,10 +157,17 @@ export async function getFluxoCaixaSimplificado(
   };
   
   // 7. Buscar dados de outras despesas (se existir)
-  const { data: outrasDespesasData, error: outrasDespesasError } = await supabase
-    .from("outras_despesas")
+  const outrasDespesasTableName = projectionId ? "outras_despesas_projections" : "outras_despesas";
+  let outrasDespesasQuery = supabase
+    .from(outrasDespesasTableName)
     .select("*")
     .eq("organizacao_id", organizationId);
+  
+  if (projectionId) {
+    outrasDespesasQuery = outrasDespesasQuery.eq("projection_id", projectionId);
+  }
+  
+  const { data: outrasDespesasData, error: outrasDespesasError } = await outrasDespesasQuery;
 
   if (outrasDespesasError) {
     console.warn("⚠️ Erro ao buscar outras despesas:", outrasDespesasError.message);
@@ -173,12 +199,9 @@ export async function getFluxoCaixaSimplificado(
         }
       });
     });
-  } else {
-    // Valores demonstrativos para arrendamentos
-    anosFiltrados.forEach(ano => {
-      outrasDespesas.arrendamento[ano] = 1200000; // R$ 1.2M
-    });
   }
+  // Se não há dados de arrendamento, deixar zerado
+  // Não usar valores fictícios
   
   // 9. Processar valores de outras despesas
   if (outrasDespesasData && outrasDespesasData.length > 0) {
@@ -209,15 +232,9 @@ export async function getFluxoCaixaSimplificado(
         }
       });
     });
-  } else {
-    anosFiltrados.forEach(ano => {
-      outrasDespesas.pro_labore[ano] = 600000;    // R$ 600K
-      outrasDespesas.divisao_lucros[ano] = 0;     // Zerado por enquanto
-      outrasDespesas.financeiras[ano] = 800000;   // R$ 800K
-      outrasDespesas.tributarias[ano] = 500000;   // R$ 500K
-      outrasDespesas.outras[ano] = 300000;        // R$ 300K
-    });
   }
+  // Se não há dados de outras despesas, deixar zerado
+  // Não usar valores fictícios
   
   // 10. Calcular totais de outras despesas
   anosFiltrados.forEach(ano => {
@@ -231,10 +248,17 @@ export async function getFluxoCaixaSimplificado(
   });
   
   // 11. Buscar investimentos da tabela de investimentos (se existir)
-  const { data: investimentosData, error: investimentosError } = await supabase
-    .from("investimentos")
+  const investimentosTableName = projectionId ? "investimentos_projections" : "investimentos";
+  let investimentosQuery = supabase
+    .from(investimentosTableName)
     .select("*")
     .eq("organizacao_id", organizationId);
+  
+  if (projectionId) {
+    investimentosQuery = investimentosQuery.eq("projection_id", projectionId);
+  }
+  
+  const { data: investimentosData, error: investimentosError } = await investimentosQuery;
 
   if (investimentosError) {
     console.warn("⚠️ Erro ao buscar investimentos:", investimentosError.message);
@@ -296,34 +320,9 @@ export async function getFluxoCaixaSimplificado(
         investimentosOutros[safraCorrespondente] += valor;
       }
     });
-  } else {
-    const valoresDemo: Record<string, { total: number; terras: number; maquinarios: number; outros: number }> = {
-      "2021/22": { total: 52800000, terras: 0, maquinarios: 11800000, outros: 41000000 },
-      "2022/23": { total: 90376000, terras: 0, maquinarios: 48376000, outros: 42000000 },
-      "2023/24": { total: 48207000, terras: 0, maquinarios: 21207000, outros: 27000000 },
-      "2024/25": { total: 12400000, terras: 0, maquinarios: 9000000, outros: 3400000 },
-      "2025/26": { total: 8000000, terras: 0, maquinarios: 6000000, outros: 2000000 },
-      "2026/27": { total: 8000000, terras: 0, maquinarios: 6000000, outros: 2000000 },
-      "2027/28": { total: 19000000, terras: 0, maquinarios: 12000000, outros: 7000000 },
-      "2028/29": { total: 17000000, terras: 0, maquinarios: 12000000, outros: 5000000 },
-      "2029/30": { total: 12000000, terras: 0, maquinarios: 12000000, outros: 0 },
-    };
-    
-    anosFiltrados.forEach(ano => {
-      if (valoresDemo[ano]) {
-        investimentosTotal[ano] = valoresDemo[ano].total;
-        investimentosTerras[ano] = valoresDemo[ano].terras;
-        investimentosMaquinarios[ano] = valoresDemo[ano].maquinarios;
-        investimentosOutros[ano] = valoresDemo[ano].outros;
-      } else {
-        // Valores padrão para anos não especificados
-        investimentosTotal[ano] = 8000000;
-        investimentosTerras[ano] = 0;
-        investimentosMaquinarios[ano] = 6000000;
-        investimentosOutros[ano] = 2000000;
-      }
-    });
   }
+  // Se não há dados de investimentos, deixar zerado
+  // Não usar valores fictícios
   
   // 13. Calcular fluxo de atividade
   const fluxoAtividade: Record<string, number> = {};
@@ -348,34 +347,81 @@ export async function getFluxoCaixaSimplificado(
     fluxoAcumulado[ano] = acumulado;
   });
   
-  // 16. Calcular dados financeiras
-  const financeirasData = await calcularDadosFinanceiras(organizationId, anosFiltrados, safraToYear);
+  // 16. Buscar política de caixa mínimo ANTES de calcular financeiras
+  const politicaCaixa = await getCashPolicyConfig(organizationId);
   
-  // Recalcular fluxo líquido incluindo financeiras
+  // 17. Calcular dados financeiras
+  const financeirasData = await calcularDadosFinanceiras(organizationId, anosFiltrados, safraToYear, projectionId);
+  
+  // Criar cópia ajustada das financeiras
+  const financeirasAjustadas = {
+    servico_divida: { ...financeirasData.servico_divida },
+    pagamentos_bancos: { ...financeirasData.pagamentos_bancos },
+    novas_linhas_credito: { ...financeirasData.novas_linhas_credito },
+    total_por_ano: { ...financeirasData.total_por_ano }
+  };
+  
+  // 18. Recalcular fluxo líquido com política de caixa mínimo
   const fluxoLiquidoComFinanceiras: Record<string, number> = {};
+  const fluxoAcumuladoComFinanceiras: Record<string, number> = {};
+  const alertasCaixa: Record<string, { abaixo_minimo: boolean; valor_faltante: number }> = {};
+  let acumuladoAtualizado = 0;
+  
   anosFiltrados.forEach(ano => {
-    // Zerar fluxo líquido para 2021/22 e 2022/23
+    // Casos especiais para 2021/22 e 2022/23
     if (ano === "2021/22" || ano === "2022/23") {
       fluxoLiquidoComFinanceiras[ano] = 0;
-    } else {
-      fluxoLiquidoComFinanceiras[ano] = fluxoLiquido[ano] + financeirasData.total_por_ano[ano];
-    }
-  });
-  
-  // Recalcular fluxo acumulado
-  const fluxoAcumuladoComFinanceiras: Record<string, number> = {};
-  let acumuladoAtualizado = 0;
-  anosFiltrados.forEach(ano => {
-    // Zerar fluxo acumulado para 2021/22 e 2022/23
-    if (ano === "2021/22" || ano === "2022/23") {
       fluxoAcumuladoComFinanceiras[ano] = 0;
-    } else {
-      acumuladoAtualizado += fluxoLiquidoComFinanceiras[ano];
-      fluxoAcumuladoComFinanceiras[ano] = acumuladoAtualizado;
+      return;
+    }
+    
+    // Calcular fluxo sem considerar pagamentos de dívidas
+    const fluxoSemPagamentos = fluxoLiquido[ano] + financeirasAjustadas.novas_linhas_credito[ano];
+    const saldoProjetadoSemPagamentos = acumuladoAtualizado + fluxoSemPagamentos;
+    
+    // Verificar política de caixa mínimo
+    if (politicaCaixa && politicaCaixa.enabled && politicaCaixa.minimum_cash && politicaCaixa.priority === 'cash') {
+      const pagamentosOriginais = Math.abs(financeirasAjustadas.servico_divida[ano] + financeirasAjustadas.pagamentos_bancos[ano]);
+      const saldoAposPagamentos = saldoProjetadoSemPagamentos - pagamentosOriginais;
+      
+      // Se ficar abaixo do mínimo, ajustar pagamentos
+      if (saldoAposPagamentos < politicaCaixa.minimum_cash) {
+        const valorDisponivel = Math.max(0, saldoProjetadoSemPagamentos - politicaCaixa.minimum_cash);
+        
+        // Distribuir o valor disponível proporcionalmente
+        if (pagamentosOriginais > 0) {
+          const percentualPagamento = valorDisponivel / pagamentosOriginais;
+          financeirasAjustadas.servico_divida[ano] *= percentualPagamento;
+          financeirasAjustadas.pagamentos_bancos[ano] *= percentualPagamento;
+        } else {
+          financeirasAjustadas.servico_divida[ano] = 0;
+          financeirasAjustadas.pagamentos_bancos[ano] = 0;
+        }
+        
+        // Recalcular total
+        financeirasAjustadas.total_por_ano[ano] = 
+          financeirasAjustadas.servico_divida[ano] + 
+          financeirasAjustadas.pagamentos_bancos[ano] + 
+          financeirasAjustadas.novas_linhas_credito[ano];
+      }
+    }
+    
+    // Calcular fluxo final
+    fluxoLiquidoComFinanceiras[ano] = fluxoLiquido[ano] + financeirasAjustadas.total_por_ano[ano];
+    acumuladoAtualizado += fluxoLiquidoComFinanceiras[ano];
+    fluxoAcumuladoComFinanceiras[ano] = acumuladoAtualizado;
+    
+    // Registrar alertas
+    if (politicaCaixa && politicaCaixa.enabled && politicaCaixa.minimum_cash) {
+      const abaixoMinimo = acumuladoAtualizado < politicaCaixa.minimum_cash;
+      alertasCaixa[ano] = {
+        abaixo_minimo: abaixoMinimo,
+        valor_faltante: abaixoMinimo ? politicaCaixa.minimum_cash - acumuladoAtualizado : 0
+      };
     }
   });
-  
-  // 17. Retornar estrutura completa
+
+  // 18. Retornar estrutura completa
   return {
     anos: anosFiltrados,
     receitas_agricolas: {
@@ -394,9 +440,16 @@ export async function getFluxoCaixaSimplificado(
       maquinarios: investimentosMaquinarios,
       outros: investimentosOutros
     },
-    financeiras: financeirasData,
+    financeiras: financeirasAjustadas,
     fluxo_liquido: fluxoLiquidoComFinanceiras,
-    fluxo_acumulado: fluxoAcumuladoComFinanceiras
+    fluxo_acumulado: fluxoAcumuladoComFinanceiras,
+    politica_caixa: {
+      ativa: politicaCaixa?.enabled || false,
+      valor_minimo: politicaCaixa?.minimum_cash || null,
+      moeda: politicaCaixa?.currency || "BRL",
+      prioridade: politicaCaixa?.priority || "cash",
+      alertas: alertasCaixa
+    }
   };
 }
 
@@ -433,7 +486,8 @@ function formatarNomeCultura(projection: any): string {
 async function calcularDadosFinanceiras(
   organizationId: string,
   anos: string[],
-  safraToYear: Record<string, string>
+  safraToYear: Record<string, string>,
+  projectionId?: string
 ): Promise<{
   servico_divida: Record<string, number>;
   pagamentos_bancos: Record<string, number>;
@@ -455,24 +509,35 @@ async function calcularDadosFinanceiras(
   });
   
   try {
-    // Valor fixo para dívidas bancárias conforme tabela POSIÇÃO DE DÍVIDA
-    const valorFixoDividasBancarias = 359179564; 
+    // Buscar dados reais de dívidas bancárias ao invés de valor fixo
+    let valorTotalDividasBancarias = 0; 
     
     // Criar cliente Supabase para buscar dados
     const supabase = await createClient();
     
     // Buscar dados de novas linhas de crédito do banco de dados
-    const { data: financeirasData, error: financeirasError } = await supabase
-      .from("financeiras")
+    const financeirasTableName = projectionId ? "financeiras_projections" : "financeiras";
+    let financeirasQuery = supabase
+      .from(financeirasTableName)
       .select("*")
       .eq("organizacao_id", organizationId)
-      .eq("categoria", "NOVAS_LINHAS_CREDITO")
-      .single();
+      .eq("categoria", "NOVAS_LINHAS_CREDITO");
+    
+    if (projectionId) {
+      financeirasQuery = financeirasQuery.eq("projection_id", projectionId);
+    }
+    
+    const { data: financeirasData, error: financeirasError } = await financeirasQuery.maybeSingle();
     
     if (financeirasError) {
       console.error("Erro ao buscar dados financeiros:", financeirasError);
       throw new Error("Erro ao buscar dados financeiros");
     }
+    
+    // If no data found, use empty object
+    const defaultFinanceirasData = financeirasData || { 
+      valores_por_safra: {} 
+    };
     
     // Criar mapeamento de safra ID para ano formatado
     const safraIdToYear = Object.entries(safraToYear).reduce((acc, [id, ano]) => {
@@ -481,29 +546,58 @@ async function calcularDadosFinanceiras(
     }, {} as Record<string, string>);
     
     // Extrair valores de novas linhas de crédito do banco de dados
-    const valoresPorAno = financeirasData?.valores_por_ano || {} as Record<string, number>;
+    const valoresPorAno = defaultFinanceirasData?.valores_por_ano || {} as Record<string, number>;
     
     // Para cada ano, calcular valores financeiros conforme a tabela
     for (const ano of anos) {
       // Extrair ano base para verificar se é 2023/24 ou posterior
       const anoBase = parseInt(ano.split('/')[0]);
       
-      // 1. Serviço da dívida (9.92% do total da dívida bancária)
-      // Zerar para 2021/22, 2022/23 e 2023/24 conforme solicitado
-      if (ano === "2021/22" || ano === "2022/23" || ano === "2023/24") {
-        servicoDivida[ano] = 0;
-      } else if (anoBase >= 2023) {
-        servicoDivida[ano] = valorFixoDividasBancarias * 0.0992; // 9.92% do valor fixo
-      } else {
-        servicoDivida[ano] = 0; // Zero para anos anteriores a 2023/24
+      // 1. Serviço da dívida - buscar valores reais das dívidas bancárias
+      servicoDivida[ano] = 0;
+      
+      // Encontrar ID da safra correspondente a este ano para buscar dados reais
+      const safraId = Object.keys(safraIdToYear).find(id => safraIdToYear[id] === ano);
+      
+      if (safraId) {
+        try {
+          // Buscar serviço real da dívida das tabelas de dívidas bancárias
+          const { data: dividasBancarias } = await supabase
+            .from(projectionId ? "dividas_bancarias_projections" : "dividas_bancarias")
+            .select("fluxo_pagamento_anual")
+            .eq("organizacao_id", organizationId);
+            
+          if (dividasBancarias) {
+            dividasBancarias.forEach(divida => {
+              const fluxo = divida.fluxo_pagamento_anual || {};
+              servicoDivida[ano] += fluxo[safraId] || 0;
+            });
+          }
+        } catch (error) {
+          console.warn(`Erro ao buscar serviço da dívida para ${ano}:`, error);
+        }
       }
       
-      // 2. Pagamentos - Bancos/Adto. Clientes
-      // Zerar para 2021/22, 2022/23 e 2023/24 conforme solicitado
-      if (ano === "2021/22" || ano === "2022/23" || ano === "2023/24") {
-        pagamentosBancos[ano] = 0;
-      } else {
-        pagamentosBancos[ano] = 179000000; // R$ 179M fixo para os demais anos
+      // 2. Pagamentos - buscar valores reais de fornecedores
+      pagamentosBancos[ano] = 0;
+      
+      if (safraId) {
+        try {
+          // Buscar pagamentos reais de fornecedores
+          const { data: dividasFornecedores } = await supabase
+            .from(projectionId ? "dividas_fornecedores_projections" : "dividas_fornecedores")
+            .select("valores_por_ano")
+            .eq("organizacao_id", organizationId);
+            
+          if (dividasFornecedores) {
+            dividasFornecedores.forEach(divida => {
+              const valores = divida.valores_por_ano || {};
+              pagamentosBancos[ano] += valores[safraId] || 0;
+            });
+          }
+        } catch (error) {
+          console.warn(`Erro ao buscar pagamentos de fornecedores para ${ano}:`, error);
+        }
       }
       
       // 3. Novas linhas de crédito do banco de dados

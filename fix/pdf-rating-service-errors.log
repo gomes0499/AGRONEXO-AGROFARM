@@ -1,0 +1,8 @@
+lib/services/pdf-rating-service.ts(227,19): error TS2345: Argument of type 'string' is not assignable to parameter of type 'any[]'.
+lib/services/pdf-rating-service.ts(394,22): error TS7006: Parameter 'data' implicitly has an 'any' type.
+lib/services/pdf-rating-service.ts(409,21): error TS7006: Parameter 'data' implicitly has an 'any' type.
+lib/services/pdf-rating-service.ts(476,22): error TS7006: Parameter 'data' implicitly has an 'any' type.
+lib/services/pdf-rating-service.ts(492,21): error TS7006: Parameter 'data' implicitly has an 'any' type.
+lib/services/pdf-rating-service.ts(536,21): error TS7006: Parameter 'data' implicitly has an 'any' type.
+lib/services/pdf-rating-service.ts(659,22): error TS7006: Parameter 'data' implicitly has an 'any' type.
+lib/services/pdf-rating-service.ts(667,21): error TS7006: Parameter 'data' implicitly has an 'any' type.

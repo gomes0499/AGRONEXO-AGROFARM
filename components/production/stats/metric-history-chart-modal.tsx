@@ -32,6 +32,7 @@ import {
   type HistoricalMetricsResponse,
 } from "@/lib/actions/production-historical-stats-actions";
 import { formatArea, formatCurrency } from "@/lib/utils/property-formatters";
+import { useChartColors } from "@/contexts/chart-colors-context";
 
 interface MetricHistoryChartModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ interface MetricHistoryChartModalProps {
   organizationId: string;
   propertyIds?: string[];
   cultureIds?: string[];
+  projectionId?: string;
 }
 
 export function MetricHistoryChartModal({
@@ -49,16 +51,18 @@ export function MetricHistoryChartModal({
   organizationId,
   propertyIds,
   cultureIds,
+  projectionId,
 }: MetricHistoryChartModalProps) {
   const [data, setData] = useState<HistoricalMetricsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { colors } = useChartColors();
 
   useEffect(() => {
     if (isOpen && organizationId) {
       fetchHistoricalData();
     }
-  }, [isOpen, organizationId, metricType, propertyIds, cultureIds]);
+  }, [isOpen, organizationId, metricType, propertyIds, cultureIds, projectionId]);
 
   const fetchHistoricalData = async () => {
     setLoading(true);
@@ -68,7 +72,8 @@ export function MetricHistoryChartModal({
         organizationId,
         metricType,
         propertyIds,
-        cultureIds
+        cultureIds,
+        projectionId
       );
       setData(result);
     } catch (err) {
@@ -140,7 +145,7 @@ export function MetricHistoryChartModal({
   const chartConfig: ChartConfig = {
     valor: {
       label: data?.metricName || "Valor",
-      color: "hsl(var(--primary))",
+      color: colors.color1,
     },
   };
 
@@ -355,6 +360,27 @@ export function MetricHistoryChartModal({
                             strokeWidth={3}
                             dot={{ r: 6, fill: "hsl(var(--primary))" }}
                             activeDot={{ r: 8, fill: "hsl(var(--primary))" }}
+                            label={{
+                              position: "top",
+                              fill: "hsl(var(--primary))",
+                              fontSize: 11,
+                              offset: 10,
+                              formatter: (value: number) => {
+                                switch (data.unit) {
+                                  case "ha":
+                                    return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toFixed(0);
+                                  case "R$":
+                                    if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B`;
+                                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                                    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                                    return value.toFixed(0);
+                                  case "sc/ha":
+                                    return value.toFixed(1);
+                                  default:
+                                    return value.toLocaleString('pt-BR');
+                                }
+                              }
+                            }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
@@ -362,7 +388,7 @@ export function MetricHistoryChartModal({
                   </div>
 
                   {/* Insights */}
-                  <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+                  <div className="mt-6 p-4 rounded-lg border">
                     <h4 className="font-semibold mb-2">Insights da Evolução</h4>
                     <div className="text-sm text-muted-foreground space-y-2">
                       {/* Insights dos dados realizados */}

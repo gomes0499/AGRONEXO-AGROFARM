@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { SiteHeader } from "@/components/dashboard/site-header";
+import { ProjectionControls } from "@/components/production/projections/projection-controls";
 
 export const metadata: Metadata = {
   title: "Produção | SR Consultoria",
@@ -13,7 +14,10 @@ export default function ProductionLayout({
 }) {
   return (
     <div className="flex flex-col min-h-screen">
-      <SiteHeader title="Produção" />
+      <SiteHeader 
+        title="Produção" 
+        rightContent={<ProjectionControls />}
+      />
       <div className="p-4 md:p-6 pt-2 space-y-4">
         <div className="w-full">{children}</div>
       </div>

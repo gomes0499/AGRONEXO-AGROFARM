@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { TrendingUp, Building2 } from "lucide-react";
 import {
   Bar,
@@ -26,13 +26,12 @@ import {
   ChartTooltipContent,
   ChartContainer,
 } from "@/components/ui/chart";
-import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { Loader2 } from "lucide-react";
-import { useOrganizationColors } from "@/lib/hooks/use-organization-colors";
+import { useChartColors } from "@/contexts/chart-colors-context";
 
-interface FinancialDebtEvolutionChartProps {
+interface FinancialDebtEvolutionChartClientProps {
   organizationId: string;
+  initialData: DebtEvolutionData[];
 }
 
 interface DebtEvolutionData {
@@ -40,60 +39,6 @@ interface DebtEvolutionData {
   CUSTEIO: number;
   INVESTIMENTOS: number;
   total: number;
-}
-
-// Cores padrão caso não haja cores personalizadas
-const DEFAULT_CHART_COLORS = {
-  CUSTEIO: "#1B124E", // Tom primário da marca
-  INVESTIMENTOS: "#6346C2", // Tom secundário da marca
-};
-
-async function getDebtEvolutionData(organizationId: string): Promise<DebtEvolutionData[]> {
-  const supabase = createClient();
-  
-  const { data: dividasBancarias } = await supabase
-    .from('dividas_bancarias')
-    .select('modalidade, fluxo_pagamento_anual')
-    .eq('organizacao_id', organizationId);
-
-  if (!dividasBancarias || dividasBancarias.length === 0) {
-    return [];
-  }
-
-  // Extrair todos os anos disponíveis
-  const anosSet = new Set<string>();
-  dividasBancarias.forEach(divida => {
-    const fluxo = divida.fluxo_pagamento_anual || {};
-    Object.keys(fluxo).forEach(ano => anosSet.add(ano));
-  });
-
-  const anos = Array.from(anosSet).sort();
-
-  // Calcular valores por ano e modalidade
-  const evolutionData: DebtEvolutionData[] = anos.map(ano => {
-    let custeio = 0;
-    let investimentos = 0;
-
-    dividasBancarias.forEach(divida => {
-      const fluxo = divida.fluxo_pagamento_anual || {};
-      const valorAno = fluxo[ano] || 0;
-      
-      if (divida.modalidade === 'CUSTEIO') {
-        custeio += valorAno;
-      } else if (divida.modalidade === 'INVESTIMENTOS') {
-        investimentos += valorAno;
-      }
-    });
-
-    return {
-      ano,
-      CUSTEIO: custeio,
-      INVESTIMENTOS: investimentos,
-      total: custeio + investimentos,
-    };
-  }).filter(item => item.total > 0); // Filtrar anos sem dívidas
-
-  return evolutionData;
 }
 
 function CustomTooltip({ active, payload, label }: any) {
@@ -119,102 +64,27 @@ function CustomTooltip({ active, payload, label }: any) {
   return null;
 }
 
-export function FinancialDebtEvolutionChart({ organizationId }: FinancialDebtEvolutionChartProps) {
-  const [data, setData] = useState<DebtEvolutionData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function FinancialDebtEvolutionChartClient({
+  organizationId,
+  initialData,
+}: FinancialDebtEvolutionChartClientProps) {
+  // Usar cores customizadas
+  const { colors } = useChartColors();
   
-  const { palette } = useOrganizationColors(organizationId);
-  
-  // Criar configuração dinâmica do gráfico com cores da organização
+  // Criar configuração do gráfico com cores customizadas
   const chartConfig = useMemo(() => ({
     CUSTEIO: {
       label: "Custeio",
-      color: palette[0] || DEFAULT_CHART_COLORS.CUSTEIO,
+      color: colors.color1,
     },
     INVESTIMENTOS: {
       label: "Investimentos",
-      color: palette[1] || DEFAULT_CHART_COLORS.INVESTIMENTOS,
+      color: colors.color2,
     },
-  } satisfies ChartConfig), [palette]);
+  } satisfies ChartConfig), [colors]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const evolutionData = await getDebtEvolutionData(organizationId);
-        setData(evolutionData);
-      } catch (err) {
-        console.error("Erro ao carregar dados de evolução:", err);
-        setError("Erro ao carregar gráfico de evolução");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [organizationId]);
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full p-2 bg-white/20">
-                <Building2 className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-white">
-                  Evolução das Dívidas Bancárias
-                </CardTitle>
-                <CardDescription className="text-white/80">
-                  Carregando evolução das dívidas...
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <div className="h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">Carregando gráfico...</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full p-2 bg-white/20">
-                <Building2 className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-white">
-                  Evolução das Dívidas Bancárias
-                </CardTitle>
-                <CardDescription className="text-white/80">
-                  {error}
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <div className="h-[350px] sm:h-[400px] flex items-center justify-center">
-            <div className="text-muted-foreground">{error}</div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || data.length === 0) {
+  // Empty state
+  if (!initialData || initialData.length === 0) {
     return (
       <Card>
         <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
@@ -246,10 +116,10 @@ export function FinancialDebtEvolutionChart({ organizationId }: FinancialDebtEvo
   }
 
   // Calcular estatísticas para o footer
-  const totalGeral = data.reduce((sum, item) => sum + item.total, 0);
-  const anoMaior = data.reduce((max, item) => item.total > max.total ? item : max, data[0]);
-  const crescimento = data.length > 1 ? 
-    ((data[data.length - 1].total - data[0].total) / data[0].total) * 100 : 0;
+  const totalGeral = initialData.reduce((sum, item) => sum + item.total, 0);
+  const anoMaior = initialData.reduce((max, item) => item.total > max.total ? item : max, initialData[0]);
+  const crescimento = initialData.length > 1 ? 
+    ((initialData[initialData.length - 1].total - initialData[0].total) / initialData[0].total) * 100 : 0;
 
   return (
     <Card>
@@ -264,7 +134,7 @@ export function FinancialDebtEvolutionChart({ organizationId }: FinancialDebtEvo
                 Evolução das Dívidas Bancárias
               </CardTitle>
               <CardDescription className="text-white/80">
-                Distribuição anual entre custeio e investimentos ({data[0]?.ano} - {data[data.length - 1]?.ano})
+                Distribuição anual entre custeio e investimentos ({initialData[0]?.ano} - {initialData[initialData.length - 1]?.ano})
               </CardDescription>
             </div>
           </div>
@@ -275,7 +145,7 @@ export function FinancialDebtEvolutionChart({ organizationId }: FinancialDebtEvo
           <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={data}
+                data={initialData}
                 margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
               >
                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--muted)" />
@@ -322,7 +192,7 @@ export function FinancialDebtEvolutionChart({ organizationId }: FinancialDebtEvo
           </ChartContainer>
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4 bg-muted/30">
+      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4">
         <div className="flex gap-2 font-medium leading-none dark:text-foreground">
           {crescimento >= 0 ? (
             <>

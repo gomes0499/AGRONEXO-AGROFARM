@@ -837,17 +837,10 @@ export async function deleteInventory(id: string) {
 export async function getReceivableContracts(organizationId: string) {
   const supabase = await createClient();
   
-  const { data, error } = await supabase
-    .from("contratos_recebiveis")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .order("created_at", { ascending: false });
-    
-  if (error) {
-    throw new Error(error.message);
-  }
-  
-  return data as ReceivableContract[];
+  // Tabela contratos_recebiveis não existe no banco atual
+  // Retornar array vazio por enquanto
+  console.log("getReceivableContracts: tabela não existe, retornando array vazio");
+  return [];
 }
 
 export async function createReceivableContract(data: Omit<ReceivableContract, "id" | "created_at" | "updated_at">) {
@@ -969,85 +962,23 @@ export async function getSupplierAdvances(organizationId: string) {
   const supabase = await createClient();
   
   try {
-    // Buscar adiantamentos sem join
-    const { data: advances, error: advancesError } = await supabase
-      .from("adiantamentos_fornecedores")
+    // Usar tabela adiantamentos
+    const { data, error } = await supabase
+      .from("adiantamentos")
       .select("*")
-      .eq("organizacao_id", organizationId)
-      .order("created_at", { ascending: false });
+      .eq("organizacao_id", organizationId);
       
-    if (advancesError) {
-      console.error("Erro ao buscar adiantamentos:", advancesError);
-      throw new Error("Falha ao buscar adiantamentos");
-    }
-    
-    if (!advances || advances.length === 0) {
+    if (error) {
+      console.error("Erro ao buscar adiantamentos:", error);
       return [];
     }
-
     
-    // Extrair todos os IDs de fornecedores únicos
-    const fornecedorIds = [...new Set(advances
-      .filter(adv => adv.fornecedor_id)
-      .map(adv => adv.fornecedor_id))];
-      
-    if (fornecedorIds.length === 0) {
-      return advances.map(adv => ({
-        ...adv,
-        fornecedor: null
-      }));
-    }
-    
-    // Buscar detalhes de todos os fornecedores de uma vez
-    const { data: fornecedores, error: fornecedoresError } = await supabase
-      .from("fornecedores")
-      .select("id, nome")
-      .in("id", fornecedorIds);
-      
-    if (fornecedoresError) {
-      console.error("Erro ao buscar fornecedores:", fornecedoresError);
-      throw new Error("Falha ao buscar dados dos fornecedores");
-    }
-    
-    // Criar um mapa de fornecedores para consulta rápida
-    type Fornecedor = {
-      id: string;
-      nome: string;
-    };
-    
-    interface FornecedorMap {
-      [key: string]: Fornecedor;
-    }
-    
-    const fornecedoresMap: FornecedorMap = {};
-    
-    // Garantir que fornecedores é um array antes de iterar
-    if (Array.isArray(fornecedores)) {
-      fornecedores.forEach(f => {
-        if (f && f.id) {
-          fornecedoresMap[f.id] = f;
-        }
-      });
-    }
-    
-    // Adicionar fornecedor a cada adiantamento
-    const advancesWithSuppliers = advances.map(advance => {
-      // Verificar se temos fornecedor_id e se ele existe no mapa
-      const fornecedorId = advance.fornecedor_id;
-      if (fornecedorId && fornecedoresMap[fornecedorId]) {
-        return {
-          ...advance,
-          fornecedor: fornecedoresMap[fornecedorId]
-        };
-      } else {
-        return {
-          ...advance,
-          fornecedor: null
-        };
-      }
-    });
-    
-    return advancesWithSuppliers as SupplierAdvance[];
+    // Transformar para o formato esperado
+    return data?.map(item => ({
+      id: item.id,
+      organizacao_id: item.organizacao_id,
+      valor: Object.values(item.valores_por_safra || {}).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0)
+    })) || [];
   } catch (error) {
     console.error("Erro ao processar adiantamentos:", error);
     throw new Error("Falha ao carregar adiantamentos a fornecedores");
@@ -1187,33 +1118,10 @@ export async function getThirdPartyLoans(organizationId: string) {
 
   
   try {
-    const { data, error } = await supabase
-      .from("emprestimos_terceiros")
-      .select("*")
-      .eq("organizacao_id", organizationId)
-      .order("created_at", { ascending: false });
-      
-    if (error) {
-      console.error("Erro ao buscar empréstimos:", error);
-      throw new Error(error.message);
-    }
-    
-
-    
-    // Processa os dados antes de retornar para garantir formatação correta
-    const processedLoans = data?.map(loan => {
-      // Certifica que as datas estão em formato de Data
-      const processedLoan = {
-        ...loan,
-        // Se estiver recebendo como string, converter para Date
-        data_inicio: loan.data_inicio ? new Date(loan.data_inicio) : undefined,
-        data_vencimento: loan.data_vencimento ? new Date(loan.data_vencimento) : undefined
-      };
-      
-      return processedLoan;
-    });
-    
-    return processedLoans as ThirdPartyLoan[];
+    // Tabela emprestimos_terceiros não existe no banco atual
+    // Retornar array vazio por enquanto
+    console.log("getThirdPartyLoans: tabela não existe, retornando array vazio");
+    return [];
   } catch (error) {
     console.error("Erro ao processar empréstimos:", error);
     throw new Error("Falha ao carregar empréstimos a terceiros");

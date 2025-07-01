@@ -3,7 +3,6 @@
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus, User } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 import { useMemberForm } from "./hooks/use-member-form";
 import { useMemberFormSteps } from "./hooks/use-member-form-steps";
 import { BasicInfoStep } from "./steps/basic-info-step";
@@ -16,8 +15,6 @@ interface MemberFormContainerProps {
   onSuccess?: () => void;
   onCancel?: () => void;
 }
-
-const STEP_TITLES = ["Informações Básicas", "Documentos", "Endereço"];
 
 const STEP_DESCRIPTIONS = [
   "Dados pessoais e informações do cônjuge",
@@ -62,8 +59,21 @@ export function MemberFormContainer({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(handleFormSubmit)}
-        className="space-y-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Form submitted, current step:', currentStep, 'isLastStep:', isLastStep);
+          if (isLastStep) {
+            form.handleSubmit(handleFormSubmit)(e);
+          }
+        }}
+        className="space-y-6 p-6"
+        onKeyDown={(e) => {
+          // Prevent form submission on Enter key
+          if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+            e.preventDefault();
+          }
+        }}
       >
         {/* Header */}
         <div className="flex items-center gap-3 pb-4">
@@ -80,51 +90,11 @@ export function MemberFormContainer({
           </div>
         </div>
 
-        <Separator />
-
-        {/* Step Indicator */}
-        <div className="flex items-center justify-center space-x-4">
-          {STEP_TITLES.map((title, index) => (
-            <div key={title} className="flex items-center">
-              <div
-                className={`
-                flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium
-                ${
-                  index === currentStep
-                    ? "bg-primary text-primary-foreground"
-                    : index < currentStep
-                    ? "bg-primary/20 text-primary"
-                    : "bg-muted text-muted-foreground"
-                }
-              `}
-              >
-                {index + 1}
-              </div>
-              <span
-                className={`ml-2 text-sm ${
-                  index === currentStep
-                    ? "font-medium"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {title}
-              </span>
-              {index < STEP_TITLES.length - 1 && (
-                <ChevronRight className="w-4 h-4 mx-4 text-muted-foreground" />
-              )}
-            </div>
-          ))}
-        </div>
-
-        <Separator />
-
         {/* Step Content */}
-        <div className="min-h-[400px]">{renderCurrentStep()}</div>
+        <div className="space-y-6">{renderCurrentStep()}</div>
 
         {/* Footer */}
-        <Separator />
-
-        <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center justify-between pt-6">
           <Button
             type="button"
             variant="outline"
@@ -159,7 +129,11 @@ export function MemberFormContainer({
           ) : (
             <Button
               type="button"
-              onClick={goToNextStep}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                goToNextStep();
+              }}
               disabled={!canProceedToNextStep}
             >
               Próximo

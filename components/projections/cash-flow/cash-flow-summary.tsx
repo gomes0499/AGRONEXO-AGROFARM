@@ -44,8 +44,8 @@ export function CashFlowSummary({ data, selectedYear, onYearChange }: CashFlowSu
     const despesasAgricolas = data.despesas_agricolas?.total_por_ano?.[year] || 0;
     const outrasDespesas = data.outras_despesas?.total_por_ano?.[year] || 0;
     const investimentos = data.investimentos?.total?.[year] || 0;
-    const servicoDivida = data.custos_financeiros?.servico_divida?.total?.[year] || 0;
-    const novoCredito = data.custos_financeiros?.credito_novo?.total?.[year] || 0;
+    const servicoDivida = data.financeiras?.servico_divida?.[year] || 0;
+    const novoCredito = data.financeiras?.novas_linhas_credito?.[year] || 0;
     
     const margemBruta = receitas + despesasAgricolas;
     const resultadoOperacional = margemBruta + outrasDespesas;

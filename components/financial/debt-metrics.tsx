@@ -201,11 +201,28 @@ export function DebtMetrics({
 
     // Dívidas bancárias
     dividasBancarias.forEach(divida => {
-      const valor = divida.saldo_devedor || 0;
-      if (divida.moeda === 'USD') {
-        totalUSD += valor;
-      } else {
-        totalBRL += valor;
+      try {
+        let valor = 0;
+        
+        // Se tem saldo devedor, usa ele, senão calcula do fluxo
+        if (divida.saldo_devedor) {
+          valor = divida.saldo_devedor;
+        } else if (divida.fluxo_pagamento_anual) {
+          let fluxo = {};
+          fluxo = typeof divida.fluxo_pagamento_anual === 'string' 
+            ? JSON.parse(divida.fluxo_pagamento_anual) 
+            : divida.fluxo_pagamento_anual || {};
+          
+          valor = Object.values(fluxo).reduce<number>((s, v) => s + (Number(v) || 0), 0);
+        }
+        
+        if (divida.moeda === 'USD') {
+          totalUSD += valor;
+        } else {
+          totalBRL += valor;
+        }
+      } catch (error) {
+        console.error('Erro ao processar moeda da dívida bancária:', error);
       }
     });
 
@@ -242,6 +259,18 @@ export function DebtMetrics({
 
     const percentualUSD = totalDividas > 0 ? (totalUSD / totalDividas) * 100 : 0;
     const percentualBRL = totalDividas > 0 ? (totalBRL / totalDividas) * 100 : 0;
+    
+    // Debug para entender a distribuição de moedas
+    console.log('Distribuição de moedas:', {
+      totalUSD,
+      totalBRL,
+      totalDividas,
+      percentualUSD,
+      percentualBRL,
+      dividasBancarias: dividasBancarias.map(d => ({ moeda: d.moeda, valor: d.saldo_devedor || 'fluxo' })),
+      dividasTerras: dividasTerras.map(d => ({ moeda: d.moeda, valor: d.valor_total })),
+      dividasFornecedores: dividasFornecedores.map(f => ({ moeda: f.moeda, nome: f.nome }))
+    });
 
     // Calcular taxa média de juros (apenas dívidas bancárias)
     const taxaMediaJuros = dividasBancarias.length > 0
@@ -333,7 +362,7 @@ export function DebtMetrics({
           <div className="relative">
             <KpiItem
               title="Total de Dívidas"
-              value={formatCurrency(metrics.totalDividas)}
+              value={formatCurrency(metrics.totalDividas, 0)}
               change="Soma de todas as dívidas"
               isPositive={true}
               icon={<DollarSign className="h-5 w-5 text-white" />}
@@ -345,7 +374,7 @@ export function DebtMetrics({
           <div className="relative">
             <KpiItem
               title="Dívidas Bancárias"
-              value={formatCurrency(metrics.totalBancarias)}
+              value={formatCurrency(metrics.totalBancarias, 0)}
               change={`${metrics.totalDividas > 0 ? formatPercent((metrics.totalBancarias / metrics.totalDividas) * 100) : '0%'} do total`}
               isPositive={true}
               icon={<Building2 className="h-5 w-5 text-white" />}
@@ -380,7 +409,7 @@ export function DebtMetrics({
           <div className="relative">
             <KpiItem
               title="Dívidas de Terras"
-              value={formatCurrency(metrics.totalTerras)}
+              value={formatCurrency(metrics.totalTerras, 0)}
               change={`${metrics.totalDividas > 0 ? formatPercent((metrics.totalTerras / metrics.totalDividas) * 100) : '0%'} do total`}
               isPositive={true}
               icon={<TrendingUp className="h-5 w-5 text-white" />}
@@ -392,7 +421,7 @@ export function DebtMetrics({
           <div className="relative">
             <KpiItem
               title="Dívidas Fornecedores"
-              value={formatCurrency(metrics.totalFornecedores)}
+              value={formatCurrency(metrics.totalFornecedores, 0)}
               change={`${dividasFornecedores.length} fornecedor${dividasFornecedores.length !== 1 ? 'es' : ''}`}
               isPositive={true}
               icon={<Wallet className="h-5 w-5 text-white" />}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 export interface DashboardFilters {
@@ -50,34 +50,40 @@ export function useDashboardFilters({
   };
 
   const [filters, setFilters] = useState<DashboardFilters>(initializeFilters);
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Atualizar URL quando os filtros mudarem
   const updateURL = (newFilters: DashboardFilters) => {
-    const params = new URLSearchParams(searchParams);
+    // Cancel any pending URL update
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
 
-    // Função helper para atualizar parâmetro
-    const updateParam = (key: string, ids: string[], total: number) => {
-      if (ids.length === 0 || ids.length === total) {
-        params.delete(key);
-      } else {
-        params.set(key, ids.join(","));
-      }
-    };
+    // Debounce URL updates to prevent multiple rapid changes
+    updateTimeoutRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams);
 
-    updateParam("properties", newFilters.propertyIds, totalProperties);
-    updateParam("cultures", newFilters.cultureIds, totalCultures);
-    updateParam("systems", newFilters.systemIds, totalSystems);
-    updateParam("cycles", newFilters.cycleIds, totalCycles);
-    updateParam("safras", newFilters.safraIds, totalSafras);
+      // Função helper para atualizar parâmetro
+      const updateParam = (key: string, ids: string[], total: number) => {
+        if (ids.length === 0 || ids.length === total) {
+          params.delete(key);
+        } else {
+          params.set(key, ids.join(","));
+        }
+      };
 
-    const newUrl = `${pathname}?${params.toString()}`;
-    
-    // Usar setTimeout para evitar atualização durante render
-    setTimeout(() => {
+      updateParam("properties", newFilters.propertyIds, totalProperties);
+      updateParam("cultures", newFilters.cultureIds, totalCultures);
+      updateParam("systems", newFilters.systemIds, totalSystems);
+      updateParam("cycles", newFilters.cycleIds, totalCycles);
+      updateParam("safras", newFilters.safraIds, totalSafras);
+
+      const newUrl = `${pathname}?${params.toString()}`;
+      
       startTransition(() => {
         router.replace(newUrl);
       });
-    }, 0);
+    }, 100); // 100ms debounce
   };
 
   // Handlers para cada tipo de filtro
@@ -141,8 +147,29 @@ export function useDashboardFilters({
 
   // Sincronizar com mudanças na URL externa
   useEffect(() => {
-    setFilters(initializeFilters());
+    const newFilters = initializeFilters();
+    // Only update if filters actually changed
+    setFilters(prev => {
+      // Check if filters are actually different
+      const hasChanged = 
+        JSON.stringify(prev.propertyIds) !== JSON.stringify(newFilters.propertyIds) ||
+        JSON.stringify(prev.cultureIds) !== JSON.stringify(newFilters.cultureIds) ||
+        JSON.stringify(prev.systemIds) !== JSON.stringify(newFilters.systemIds) ||
+        JSON.stringify(prev.cycleIds) !== JSON.stringify(newFilters.cycleIds) ||
+        JSON.stringify(prev.safraIds) !== JSON.stringify(newFilters.safraIds);
+      
+      return hasChanged ? newFilters : prev;
+    });
   }, [searchParams]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     filters,

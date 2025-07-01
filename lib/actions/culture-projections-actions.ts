@@ -29,7 +29,7 @@ export interface ConsolidatedCultureProjections {
   anos: string[];
 }
 
-export async function getCultureProjections(organizationId: string): Promise<ConsolidatedCultureProjections> {
+export async function getCultureProjections(organizationId: string, projectionId?: string): Promise<ConsolidatedCultureProjections> {
   const supabase = await createClient();
 
 
@@ -58,8 +58,9 @@ export async function getCultureProjections(organizationId: string): Promise<Con
   }
 
   // Buscar áreas de plantio com JSONB multi-safra conforme schema
-  const { data: areas, error: areasError } = await supabase
-    .from("areas_plantio")
+  const tableName = projectionId ? "areas_plantio_projections" : "areas_plantio";
+  let areasQuery = supabase
+    .from(tableName)
     .select(`
       id,
       areas_por_safra,
@@ -68,12 +69,19 @@ export async function getCultureProjections(organizationId: string): Promise<Con
       ciclos!inner(id, nome)
     `)
     .eq("organizacao_id", organizationId);
+  
+  if (projectionId) {
+    areasQuery = areasQuery.eq("projection_id", projectionId);
+  }
+  
+  const { data: areas, error: areasError } = await areasQuery;
 
   if (areasError) throw areasError;
 
   // Buscar produtividades com JSONB multi-safra conforme schema
-  const { data: produtividades, error: produtividadesError } = await supabase
-    .from("produtividades")
+  const prodTableName = projectionId ? "produtividades_projections" : "produtividades";
+  let prodQuery = supabase
+    .from(prodTableName)
     .select(`
       id,
       cultura_id,
@@ -83,12 +91,19 @@ export async function getCultureProjections(organizationId: string): Promise<Con
       sistemas!inner(id, nome)
     `)
     .eq("organizacao_id", organizationId);
+  
+  if (projectionId) {
+    prodQuery = prodQuery.eq("projection_id", projectionId);
+  }
+  
+  const { data: produtividades, error: produtividadesError } = await prodQuery;
 
   if (produtividadesError) throw produtividadesError;
 
   // Buscar custos de produção com JSONB multi-safra conforme schema
-  const { data: custos, error: custosError } = await supabase
-    .from("custos_producao")
+  const custosTableName = projectionId ? "custos_producao_projections" : "custos_producao";
+  let custosQuery = supabase
+    .from(custosTableName)
     .select(`
       id,
       cultura_id,
@@ -98,16 +113,30 @@ export async function getCultureProjections(organizationId: string): Promise<Con
       sistemas!inner(id, nome)
     `)
     .eq("organizacao_id", organizationId);
+  
+  if (projectionId) {
+    custosQuery = custosQuery.eq("projection_id", projectionId);
+  }
+  
+  const { data: custos, error: custosError } = await custosQuery;
 
   if (custosError) throw custosError;
 
   // Buscar preços de commodities conforme schema (incluindo MILHO_SAFRINHA)
   let precosCommodities = null;
   try {
-    const { data: precosData, error: precosError } = await supabase
+    let precosQuery = supabase
       .from("commodity_price_projections")
       .select("*")
       .eq("organizacao_id", organizationId);
+    
+    if (projectionId) {
+      precosQuery = precosQuery.eq("projection_id", projectionId);
+    } else {
+      precosQuery = precosQuery.is("projection_id", null);
+    }
+    
+    const { data: precosData, error: precosError } = await precosQuery;
     
     if (!precosError) {
       precosCommodities = precosData;

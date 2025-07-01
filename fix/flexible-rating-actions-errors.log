@@ -1,0 +1,2 @@
+lib/actions/flexible-rating-actions.ts(485,63): error TS18048: 'threshold.valor_min' is possibly 'undefined'.
+lib/actions/flexible-rating-actions.ts(486,63): error TS18048: 'threshold.valor_max' is possibly 'undefined'.

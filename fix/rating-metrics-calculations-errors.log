@@ -1,0 +1,9 @@
+lib/actions/rating-metrics-calculations.ts(249,54): error TS2339: Property 'produtividade' does not exist on type '{ produtividade: any; }[]'.
+lib/actions/rating-metrics-calculations.ts(250,42): error TS2339: Property 'nome' does not exist on type '{ nome: any; }[]'.
+lib/actions/rating-metrics-calculations.ts(253,50): error TS2339: Property 'preco_soja_brl' does not exist on type '{ preco_soja_brl: any; preco_milho: any; preco_algodao_bruto: any; }[]'.
+lib/actions/rating-metrics-calculations.ts(254,33): error TS2339: Property 'preco_soja_brl' does not exist on type '{ preco_soja_brl: any; preco_milho: any; preco_algodao_bruto: any; }[]'.
+lib/actions/rating-metrics-calculations.ts(255,58): error TS2339: Property 'preco_milho' does not exist on type '{ preco_soja_brl: any; preco_milho: any; preco_algodao_bruto: any; }[]'.
+lib/actions/rating-metrics-calculations.ts(256,33): error TS2339: Property 'preco_milho' does not exist on type '{ preco_soja_brl: any; preco_milho: any; preco_algodao_bruto: any; }[]'.
+lib/actions/rating-metrics-calculations.ts(257,60): error TS2339: Property 'preco_algodao_bruto' does not exist on type '{ preco_soja_brl: any; preco_milho: any; preco_algodao_bruto: any; }[]'.
+lib/actions/rating-metrics-calculations.ts(258,33): error TS2339: Property 'preco_algodao_bruto' does not exist on type '{ preco_soja_brl: any; preco_milho: any; preco_algodao_bruto: any; }[]'.
+lib/actions/rating-metrics-calculations.ts(351,7): error TS18004: No value exists in scope for the shorthand property 'landDebtTotal'. Either declare one or provide an initializer.

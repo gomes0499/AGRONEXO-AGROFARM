@@ -172,6 +172,46 @@ export async function getTotalDividasFornecedores(organizacaoId: string, safraId
   }
 }
 
+// Criar múltiplas dívidas de fornecedores em lote
+export async function createDividasFornecedoresBatch(
+  items: Array<{
+    organizacao_id: string;
+    nome: string;
+    moeda: string;
+    valores_por_ano: Record<string, number>;
+  }>
+) {
+  const supabase = await createClient();
+  
+  try {
+    const { data, error } = await supabase
+      .from("dividas_fornecedores")
+      .insert(items)
+      .select();
+    
+    if (error) {
+      console.error("Erro ao criar dívidas de fornecedores em lote:", error);
+      return { error: "Não foi possível importar as dívidas de fornecedores" };
+    }
+    
+    // Adicionar campos para compatibilidade
+    const dataWithCompatibility = (data || []).map(item => {
+      const valores = item.valores_por_ano || {};
+      const total = Object.values(valores).reduce((sum: number, value) => sum + Number(value || 0), 0);
+      return {
+        ...item,
+        valores_por_safra: valores,
+        total
+      };
+    });
+    
+    return { data: dataWithCompatibility };
+  } catch (error) {
+    console.error("Erro ao processar importação:", error);
+    return { error: "Erro ao processar importação de dívidas de fornecedores" };
+  }
+}
+
 // Obter total por categoria
 export async function getTotalDividasFornecedoresPorCategoria(
   organizacaoId: string,

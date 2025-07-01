@@ -1,13 +1,3 @@
-import {
-  Building2,
-  Mail,
-  Phone,
-  Globe,
-  Hash,
-  CreditCard,
-  FileText,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   FormControl,
@@ -29,7 +19,6 @@ interface BasicInfoStepProps {
   logoUrl: string | null;
   onLogoSuccess: (url: string) => void;
   onLogoRemove: () => void;
-  onGenerateSlug: () => void;
 }
 
 export function BasicInfoStep({
@@ -38,7 +27,6 @@ export function BasicInfoStep({
   logoUrl,
   onLogoSuccess,
   onLogoRemove,
-  onGenerateSlug,
 }: BasicInfoStepProps) {
   return (
     <div className="space-y-6">
@@ -49,14 +37,13 @@ export function BasicInfoStep({
         onRemove={onLogoRemove}
       />
 
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1">
         <FormField
           control={form.control}
           name="nome"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <FormLabel>
                 Nome da Organização*
               </FormLabel>
               <FormControl>
@@ -67,33 +54,6 @@ export function BasicInfoStep({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="slug"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                Identificador único*
-              </FormLabel>
-              <div className="flex gap-2">
-                <FormControl>
-                  <Input placeholder="Ex: fazenda-sao-joao" {...field} />
-                </FormControl>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onGenerateSlug}
-                  className="whitespace-nowrap"
-                >
-                  Gerar
-                </Button>
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
       </div>
 
       <Separator />
@@ -107,8 +67,7 @@ export function BasicInfoStep({
             name="cpf"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                <FormLabel>
                   CPF*
                 </FormLabel>
                 <FormControl>
@@ -129,8 +88,7 @@ export function BasicInfoStep({
               name="cnpj"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-1.5">
-                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <FormLabel>
                     CNPJ*
                   </FormLabel>
                   <FormControl>
@@ -150,8 +108,7 @@ export function BasicInfoStep({
               name="inscricao_estadual"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                  <FormLabel>
                     Inscrição Estadual
                   </FormLabel>
                   <FormControl>
@@ -173,8 +130,7 @@ export function BasicInfoStep({
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+              <FormLabel>
                 Email de Contato
               </FormLabel>
               <FormControl>
@@ -194,8 +150,7 @@ export function BasicInfoStep({
           name="telefone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+              <FormLabel>
                 Telefone
               </FormLabel>
               <FormControl>
@@ -216,8 +171,7 @@ export function BasicInfoStep({
             name="website"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                <FormLabel>
                   Site
                 </FormLabel>
                 <FormControl>

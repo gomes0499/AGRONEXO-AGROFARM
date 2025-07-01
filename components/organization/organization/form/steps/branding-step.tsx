@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UseFormReturn } from "react-hook-form";
 import { OrganizationFormValues } from "../schemas/organization-form-schema";
+import { ChartColorsStep } from "./chart-colors-step";
 
 interface BrandingStepProps {
   form: UseFormReturn<OrganizationFormValues>;
@@ -158,6 +159,9 @@ export function BrandingStep({ form }: BrandingStepProps) {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Chart Colors Section */}
+      <ChartColorsStep form={form} />
     </div>
   );
 }

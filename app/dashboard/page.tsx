@@ -1,32 +1,20 @@
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { createClient } from "@/lib/supabase/server";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UnderConstruction } from "@/components/shared/under-construction";
-import { PropertyMapBreakdown } from "@/components/properties/property-map-breakdown";
-import { DashboardGlobalFilterWrapper } from "@/components/dashboard/dashboard-global-filter-wrapper";
-import { DashboardFilterProvider } from "@/components/dashboard/dashboard-filter-provider";
-import { getProperties } from "@/lib/actions/property-actions";
-import {
-  getCultures,
-  getSystems,
-  getCycles,
-  getSafras,
-  getProductionDataUnified,
-  getPlantingAreasUnified,
-  getProductivitiesUnified,
-  getProductionCostsUnified,
-} from "@/lib/actions/production-actions";
-import { ProductionKpiCardsWrapper } from "@/components/production/stats/production-kpi-cards-wrapper";
-import { FinancialDashboardSection } from "@/components/dashboard/visao-geral/financial-dashboard-section";
-import { OverviewKpiCards } from "@/components/dashboard/visao-geral/overview-kpi-cards";
-import { Suspense } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { FluxoCaixaClient } from "@/components/projections/cash-flow/fluxo-caixa-client";
+import { ProjectionSelector } from "@/components/production/projections/projection-selector";
+import { NewProjectionButton } from "@/components/production/projections/new-projection-button";
+import { NewOrganizationButton } from "@/components/organization/organization/new-button";
+import { fetchDashboardData } from "@/lib/actions/dashboard/dashboard-actions";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ projection?: string }>;
+}) {
   // Verifica autenticação e obtém dados do usuário
   const user = await verifyUserPermission();
+  const params = await searchParams;
+  const projectionId = params.projection;
 
   // Verifica se o usuário é super admin
   const isSuperAdmin = user.app_metadata?.is_super_admin === true;
@@ -80,12 +68,9 @@ export default async function DashboardPage() {
                 : "Aguarde um convite para começar."}
             </p>
             {isSuperAdmin && (
-              <a
-                href="/dashboard/organization/new"
-                className="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              >
-                Criar Organização
-              </a>
+              <div className="mt-4">
+                <NewOrganizationButton userId={user.id} />
+              </div>
             )}
           </div>
         </div>
@@ -118,51 +103,13 @@ export default async function DashboardPage() {
     organizationName = "Minha Organização";
   }
 
-  // Preços removidos - módulo comercial descontinuado
-  let latestPrice = null;
-
-  // Buscar dados para filtros globais se organizationId está disponível
-  let filterData = null;
+  // Buscar TODOS os dados do dashboard se organizationId está disponível
+  let dashboardData = null;
   if (organizationId) {
     try {
-      // Buscar dados de produção de forma unificada como na página de produção
-      const productionConfig = await getProductionDataUnified(organizationId);
-
-      const { safras, cultures, systems, cycles, properties } =
-        productionConfig;
-
-      filterData = {
-        properties,
-        cultures,
-        systems,
-        cycles,
-        safras,
-      };
+      dashboardData = await fetchDashboardData(organizationId, projectionId);
     } catch (error) {
-      console.error("Erro ao carregar dados de produção:", error);
-
-      // Fallback para abordagem antiga se houver erro
-      const [
-        propertiesData,
-        culturesData,
-        systemsData,
-        cyclesData,
-        safrasData,
-      ] = await Promise.all([
-        getProperties(organizationId),
-        getCultures(organizationId),
-        getSystems(organizationId),
-        getCycles(organizationId),
-        getSafras(organizationId),
-      ]);
-
-      filterData = {
-        properties: propertiesData,
-        cultures: culturesData,
-        systems: systemsData,
-        cycles: cyclesData,
-        safras: safrasData,
-      };
+      console.error("Erro ao carregar dados do dashboard:", error);
     }
   }
 
@@ -184,8 +131,8 @@ export default async function DashboardPage() {
     );
   }
 
-  // Se não há filterData, retornar dashboard sem filtros
-  if (!filterData) {
+  // Se não há dados, retornar dashboard sem dados
+  if (!dashboardData) {
     return (
       <div className="flex flex-col">
         <SiteHeader title={`Dashboard - ${organizationName}`} />
@@ -203,159 +150,33 @@ export default async function DashboardPage() {
     );
   }
 
+  // Importar DashboardClient dinamicamente para evitar problemas de hidratação
+  const DashboardClient = (await import("@/components/dashboard/dashboard-client")).DashboardClient;
+
   return (
-    <DashboardFilterProvider
-      totalProperties={filterData.properties.length}
-      totalCultures={filterData.cultures.length}
-      totalSystems={filterData.systems.length}
-      totalCycles={filterData.cycles.length}
-      totalSafras={filterData.safras.length}
-      allPropertyIds={filterData.properties.map((p) => p.id || "")}
-      allCultureIds={filterData.cultures.map((c) => c.id || "")}
-      allSystemIds={filterData.systems.map((s) => s.id || "")}
-      allCycleIds={filterData.cycles.map((c) => c.id || "")}
-      allSafraIds={filterData.safras.map((s) => s.id || "")}
-    >
-      <div className="flex flex-col">
-        <SiteHeader title={`Dashboard - ${organizationName}`} />
-
-{/* Removed global filters row */}
-
-        {/* Tabs Navigation - logo abaixo do site header */}
-        <Tabs defaultValue="properties">
-          <div className="border-b">
-            <div className="w-full px-6 py-3 flex justify-between items-center">
-              <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap">
-                <TabsTrigger
-                  value="properties"
-                  className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-                >
-                  Propriedades
-                </TabsTrigger>
-                <TabsTrigger
-                  value="production"
-                  className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-                >
-                  Produção
-                </TabsTrigger>
-
-                <TabsTrigger
-                  value="financial"
-                  className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-                >
-                  Financeiro
-                </TabsTrigger>
-
-                <TabsTrigger
-                  value="projections"
-                  className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-                >
-                  Fluxo de Caixa Projetado
-                </TabsTrigger>
-              </TabsList>
-            </div>
-          </div>
-
-          <main className="flex-1 p-4">
-            <TabsContent value="overview" className="space-y-4">
-              <Suspense
-                fallback={
-                  <Card>
-                    <div className="h-80 bg-muted rounded-lg animate-pulse" />
-                  </Card>
-                }
-              >
-                <OverviewKpiCards organizationId={organizationId} />
-              </Suspense>
-            </TabsContent>
-
-            <TabsContent value="properties" className="space-y-6">
-              <Suspense
-                fallback={
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    {Array.from({ length: 2 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="h-80 bg-muted rounded-lg animate-pulse"
-                      />
-                    ))}
-                  </div>
-                }
-              >
-                <PropertyMapBreakdown organizationId={organizationId} />
-              </Suspense>
-            </TabsContent>
-
-            <TabsContent value="production" className="space-y-6">
-              <Suspense
-                fallback={
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <div className="h-6 bg-muted rounded w-48 animate-pulse" />
-                        <div className="h-4 bg-muted rounded w-64 animate-pulse" />
-                      </div>
-                      <div className="h-10 w-48 bg-muted rounded animate-pulse" />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {Array.from({ length: 4 }).map((_, index) => (
-                        <Card key={index} className="relative overflow-hidden">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="h-3 bg-muted rounded w-24 mb-2 animate-pulse" />
-                                <div className="h-6 bg-muted rounded w-16 mb-2 animate-pulse" />
-                                <div className="h-3 bg-muted rounded w-20 animate-pulse" />
-                              </div>
-                              <div className="p-2 rounded-lg bg-muted animate-pulse">
-                                <div className="h-5 w-5 bg-muted-foreground/20 rounded" />
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                }
-              >
-                <ProductionKpiCardsWrapper
-                  organizationId={organizationId}
-                  propertyIds={filterData.properties.map((p) => p.id || "")}
-                />
-              </Suspense>
-            </TabsContent>
-
-            <TabsContent value="financial" className="space-y-6">
-              <FinancialDashboardSection organizationId={organizationId} />
-            </TabsContent>
-
-            <TabsContent value="assets" className="space-y-6">
-              <h2 className="text-2xl font-bold">Patrimonial</h2>
-              <UnderConstruction
-                variant="coming-soon"
-                showBackButton={false}
-                message="Permitira a visualização de dados estatísticos de todos os máquinas, equipamentos, veículos e outros ativos."
+    <div className="flex flex-col">
+      <SiteHeader 
+        title={`Dashboard - ${organizationName}`} 
+        rightContent={
+          organizationId ? (
+            <div className="flex items-center gap-2">
+              <ProjectionSelector 
+                currentProjectionId={projectionId} 
+                organizationId={organizationId}
               />
-            </TabsContent>
-
-            <TabsContent value="projections" className="space-y-6">
-              <Suspense
-                fallback={
-                  <Card>
-                    <div className="h-80 bg-muted rounded-lg animate-pulse" />
-                  </Card>
-                }
-              >
-                <div className="mb-4">
-                  {organizationId && (
-                    <FluxoCaixaClient organizationId={organizationId} />
-                  )}
-                </div>
-              </Suspense>
-            </TabsContent>
-          </main>
-        </Tabs>
-      </div>
-    </DashboardFilterProvider>
+              <NewProjectionButton />
+            </div>
+          ) : undefined
+        }
+      />
+      
+      <DashboardClient
+        organizationId={organizationId}
+        organizationName={organizationName}
+        projectionId={projectionId}
+        initialData={dashboardData}
+        isSuperAdmin={isSuperAdmin}
+      />
+    </div>
   );
 }

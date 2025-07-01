@@ -10,11 +10,13 @@ import { toast } from "sonner";
 interface NewCaixaDisponibilidadesButtonProps {
   organizationId: string;
   onItemCreated?: (item: CaixaDisponibilidadesListItem) => void;
+  safras?: any[];
 }
 
 export function NewCaixaDisponibilidadesButton({
   organizationId,
   onItemCreated,
+  safras = [],
 }: NewCaixaDisponibilidadesButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -40,6 +42,7 @@ export function NewCaixaDisponibilidadesButton({
         onOpenChange={setIsOpen}
         organizationId={organizationId}
         onSubmit={handleItemCreated}
+        initialSafras={safras}
       />
     </>
   );

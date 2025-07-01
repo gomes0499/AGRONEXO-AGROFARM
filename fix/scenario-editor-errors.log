@@ -1,0 +1,3 @@
+components/projections/scenario-editor.tsx(336,52): error TS2339: Property 'area_hectares' does not exist on type '{}'.
+components/projections/scenario-editor.tsx(337,60): error TS2339: Property 'productivity' does not exist on type '{}'.
+components/projections/scenario-editor.tsx(338,53): error TS2339: Property 'price_per_unit' does not exist on type '{}'.

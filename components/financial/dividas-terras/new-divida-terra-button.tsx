@@ -10,11 +10,13 @@ import { toast } from "sonner";
 interface NewDividaTerraButtonProps {
   organizationId: string;
   onDividaCreated?: (divida: DividasTerrasListItem) => void;
+  safras?: any[];
 }
 
 export function NewDividaTerraButton({
   organizationId,
   onDividaCreated,
+  safras = [],
 }: NewDividaTerraButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -40,6 +42,7 @@ export function NewDividaTerraButton({
         onOpenChange={setIsOpen}
         organizationId={organizationId}
         onSubmit={handleDividaCreated}
+        initialSafras={safras}
       />
     </>
   );

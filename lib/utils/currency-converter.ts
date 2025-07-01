@@ -41,15 +41,15 @@ export function formatCurrencyWithConversion(
     const brlValue = valueCurrency === "BRL" ? value : convertCurrency(value, "USD", "BRL", exchangeRate);
     const usdValue = valueCurrency === "USD" ? value : convertCurrency(value, "BRL", "USD", exchangeRate);
     
-    return `${formatCurrency(brlValue, "BRL")} / ${formatCurrency(usdValue, "USD")}`;
+    return `${formatCurrency(brlValue)} / ${formatCurrency(usdValue)}`;
   }
   
   if (displayCurrency === valueCurrency) {
-    return formatCurrency(value, displayCurrency);
+    return formatCurrency(value);
   }
   
   const convertedValue = convertCurrency(value, valueCurrency, displayCurrency, exchangeRate);
-  return formatCurrency(convertedValue, displayCurrency);
+  return formatCurrency(convertedValue);
 }
 
 /**

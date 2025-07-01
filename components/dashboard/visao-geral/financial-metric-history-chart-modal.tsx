@@ -36,6 +36,7 @@ interface FinancialMetricHistoryChartModalProps {
   onClose: () => void;
   metricType: FinancialMetricType;
   organizationId: string;
+  projectionId?: string;
 }
 
 export function FinancialMetricHistoryChartModal({
@@ -43,6 +44,7 @@ export function FinancialMetricHistoryChartModal({
   onClose,
   metricType,
   organizationId,
+  projectionId,
 }: FinancialMetricHistoryChartModalProps) {
   const [data, setData] = useState<FinancialHistoricalMetricsResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,11 +57,11 @@ export function FinancialMetricHistoryChartModal({
     if (isOpen && organizationId) {
       fetchHistoricalData();
     }
-  }, [isOpen, organizationId, metricType]);
+  }, [isOpen, organizationId, metricType, projectionId]);
 
   const fetchHistoricalData = async () => {
     // Verificar se os dados já existem em cache
-    const cacheKey = `${organizationId}_${metricType}`;
+    const cacheKey = `${organizationId}_${metricType}_${projectionId || 'base'}`;
     
     if (metricsCache.current[cacheKey]) {
       setData(metricsCache.current[cacheKey]);
@@ -71,7 +73,8 @@ export function FinancialMetricHistoryChartModal({
     try {
       const result = await getFinancialHistoricalMetricData(
         organizationId,
-        metricType
+        metricType,
+        projectionId
       );
       
       // Armazenar resultado em cache
@@ -282,6 +285,13 @@ export function FinancialMetricHistoryChartModal({
                             strokeWidth={3}
                             dot={{ r: 6, fill: "hsl(var(--primary))" }}
                             activeDot={{ r: 8, fill: "hsl(var(--primary))" }}
+                            label={{
+                              position: "top",
+                              fill: "hsl(var(--primary))",
+                              fontSize: 11,
+                              offset: 10,
+                              formatter: (value: number) => `${value.toFixed(1)}x`
+                            }}
                           />
                           <ReferenceLine 
                             y={getReferenceLineValue(metricType)} 

@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { createClient } from "@/lib/supabase/server";
-import { User, Settings, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Perfil do Usuário | SR-Consultoria",
@@ -28,12 +27,12 @@ export default async function ProfilePage() {
   return (
     <div className="flex flex-col">
       <SiteHeader title="Perfil do Usuário" />
-      
+
       {/* Tabs Navigation - logo abaixo do site header */}
       <Tabs defaultValue="basic">
         <div className="border-b">
           <div className="container mx-auto px-6 py-3">
-            <TabsList className="h-auto bg-transparent border-none rounded-none p-0 gap-1 flex flex-wrap justify-start">
+            <TabsList>
               <TabsTrigger
                 value="basic"
                 className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
@@ -64,7 +63,7 @@ export default async function ProfilePage() {
           <TabsContent value="details" className="space-y-4">
             <ProfileDetailsTab user={user} userData={userData} />
           </TabsContent>
-          
+
           <TabsContent value="account" className="space-y-4">
             <ProfileAccountTab user={user} userData={userData} />
           </TabsContent>

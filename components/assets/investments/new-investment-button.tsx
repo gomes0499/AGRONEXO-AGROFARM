@@ -6,22 +6,25 @@ import { Button } from "@/components/ui/button";
 import { AssetFormModal } from "../common/asset-form-modal";
 import { InvestmentForm } from "./investment-form";
 import { Investment } from "@/schemas/patrimonio/investments";
+import { type Safra } from "@/lib/actions/asset-forms-data-actions";
 
 interface NewInvestmentButtonProps {
   organizationId: string;
   onSuccess?: (investment: Investment) => void;
+  safras?: Safra[];
 }
 
 export function NewInvestmentButton({
   organizationId,
   onSuccess,
+  safras = [],
 }: NewInvestmentButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleSuccess = (investment: Investment) => {
+  const handleSuccess = (investments: any[]) => {
     setIsModalOpen(false);
-    if (onSuccess) {
-      onSuccess(investment);
+    if (onSuccess && investments.length > 0) {
+      onSuccess(investments[0]); // Take the first investment for backward compatibility
     }
   };
 
@@ -44,6 +47,7 @@ export function NewInvestmentButton({
           organizationId={organizationId}
           onSuccess={handleSuccess}
           onCancel={() => setIsModalOpen(false)}
+          initialSafras={safras}
         />
       </AssetFormModal>
     </>

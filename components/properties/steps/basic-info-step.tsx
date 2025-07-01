@@ -11,6 +11,7 @@ import {
   ClipboardSignature,
   FileCheck,
   Clock,
+  Tractor,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -348,6 +349,35 @@ export function BasicInfoStep({
             )}
           />
 
+          <FormField
+            control={form.control}
+            name="area_pecuaria"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-1.5">
+                  <Tractor className="h-3.5 w-3.5 text-muted-foreground" />
+                  Área de Pecuária (ha)
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                      field.onChange(value);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
           <FormField
             control={form.control}
             name={isLeased ? "cartorio_registro" : "ano_aquisicao"}

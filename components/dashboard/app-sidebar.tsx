@@ -17,14 +17,24 @@ import {
 import Link from "next/link";
 import { data } from "./navigation";
 import { useUser } from "@/components/auth/user-provider";
+import { useOrganization } from "@/components/auth/organization-provider";
+import { useUserRole } from "@/hooks/use-user-role";
+import { UserRole } from "@/lib/auth/roles";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
+  const { organization } = useOrganization();
+  const { userRole } = useUserRole(organization?.id);
   const [navItems, setNavItems] = React.useState(data.navMain);
+  const [navSecondaryItems, setNavSecondaryItems] = React.useState(
+    data.navSecondary
+  );
+
+  // Inicializar com dados do usuário se disponível para evitar hidratação incorreta
   const [userData, setUserData] = React.useState({
-    name: "",
-    email: "",
-    avatar: "",
+    name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Usuário",
+    email: user?.email || "usuario@example.com",
+    avatar: user?.user_metadata?.avatar_url || "",
   });
 
   React.useEffect(() => {
@@ -40,15 +50,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             avatar: user.user_metadata?.avatar_url || "",
           });
 
-          // Verifica função do usuário nos metadados
-          const userRole = user.user_metadata?.funcao;
           // Verifica se é super admin
           const isSuperAdmin = user.app_metadata?.is_super_admin === true;
 
           let filteredNavItems = [...data.navMain];
 
+          // Filtrar navegação secundária
+          let filteredSecondaryItems = [...data.navSecondary];
+
+          // Se for membro (não proprietário nem administrador), só pode ver Visão Geral
+          if (userRole === UserRole.MEMBRO) {
+            filteredNavItems = filteredNavItems.filter(
+              (item) => item.title === "Visão Geral"
+            );
+          }
           // Se não for super admin, remove as opções restritas
-          if (!isSuperAdmin) {
+          else if (!isSuperAdmin) {
             // Lista de módulos restritos a superadmin
             const restrictedModules = [
               "Organização",
@@ -57,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               "Comercial",
               "Financeiro",
               "Patrimonial",
-              "Fluxo de Caixa Projetado",
+              "Projeções",
               "Indicadores",
             ];
 
@@ -66,9 +83,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             );
           }
 
-          // Apenas superadmin pode acessar todos os módulos
-
           setNavItems(filteredNavItems);
+          setNavSecondaryItems(filteredSecondaryItems);
         }
       } catch (error) {
         console.error("Erro ao carregar dados do usuário:", error);
@@ -76,10 +92,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
 
     loadUserData();
-  }, [user]);
+  }, [user, userRole]);
 
   return (
-    <Sidebar collapsible="offcanvas" {...props} >
+    <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -101,10 +117,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navItems} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary items={navSecondaryItems} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={userData} />
+        <div className="px-3 py-2 text-center">
+          <p className="text-xs text-muted-foreground">
+            Desenvolvido por{" "}
+            <a
+              href="https://agronexo.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium hover:text-primary transition-colors"
+            >
+              AgroNexo
+            </a>
+          </p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

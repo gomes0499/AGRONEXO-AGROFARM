@@ -41,55 +41,48 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, TrendingUp, MoreHorizontal, Edit2Icon, Trash2, Upload } from "lucide-react";
+import { Plus, TrendingUp, MoreHorizontal, Edit2Icon, Trash2 } from "lucide-react";
 import { InvestmentForm } from "./investment-form";
-import { InvestmentImportDialog } from "./investment-import-dialog";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteInvestment } from "@/lib/actions/patrimonio-actions";
 import { toast } from "sonner";
-import { AssetFilterBar } from "../common/asset-filter-bar";
 import { AssetPagination } from "../common/asset-pagination";
-import { useAssetFilters } from "@/hooks/use-asset-filters";
 
 interface InvestmentListingProps {
   initialInvestments: Investment[];
   organizationId: string;
+  safras?: any[];
 }
 
 export function InvestmentListing({
   initialInvestments,
   organizationId,
+  safras = [],
 }: InvestmentListingProps) {
   const [investments, setInvestments] = useState<Investment[]>(initialInvestments);
   const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filters and pagination
-  const {
-    searchTerm,
-    filters,
-    filterOptions,
-    handleSearchChange,
-    handleFilterChange,
-    clearFilters,
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    handlePageChange,
-    handleItemsPerPageChange,
-    paginatedItems,
-    totalItems,
-    filteredCount,
-  } = useAssetFilters(investments, {
-    searchFields: ["categoria"],
-    categoryField: "categoria",
-    yearField: "ano",
-  });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  const totalPages = Math.ceil(investments.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedItems = investments.slice(startIndex, startIndex + itemsPerPage);
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   const handleCreate = () => {
     setEditingInvestment(null);
@@ -118,9 +111,16 @@ export function InvestmentListing({
     }
   };
 
-  const handleSubmit = async (investment: Investment) => {
+  const handleSubmit = async (newInvestments: any[]) => {
     try {
+      if (!newInvestments || newInvestments.length === 0) {
+        console.error("Investment data is undefined or empty");
+        return;
+      }
+
       if (editingInvestment) {
+        // For editing, we expect only one item
+        const investment = newInvestments[0];
         setInvestments(
           investments.map((item) =>
             item.id === investment.id ? investment : item
@@ -128,7 +128,8 @@ export function InvestmentListing({
         );
         setIsEditModalOpen(false);
       } else {
-        setInvestments([investment, ...investments]);
+        // For creating, add all new items
+        setInvestments([...newInvestments, ...investments]);
         setIsCreateModalOpen(false);
       }
       setEditingInvestment(null);
@@ -168,10 +169,6 @@ export function InvestmentListing({
     return categoryLabels[categoria] || categoria;
   };
 
-  const handleImportSuccess = (importedInvestments: Investment[]) => {
-    setInvestments([...importedInvestments, ...investments]);
-    setIsImportModalOpen(false);
-  };
 
   return (
     <Card className="shadow-sm border-muted/80">
@@ -180,39 +177,17 @@ export function InvestmentListing({
         title="Investimentos"
         description="Registro de investimentos em equipamentos, benfeitorias e melhorias"
         action={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsImportModalOpen(true)}
-              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Importar Excel
-            </Button>
-            <Button
-              onClick={handleCreate}
-              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar Investimento
-            </Button>
-          </div>
+          <Button
+            onClick={handleCreate}
+            className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar Investimento
+          </Button>
         }
         className="mb-4"
       />
       <CardContent>
-        {/* Filters */}
-        <AssetFilterBar
-          searchTerm={searchTerm}
-          onSearchChange={handleSearchChange}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          filterOptions={filterOptions}
-          totalItems={totalItems}
-          filteredItems={filteredCount}
-          onClearFilters={clearFilters}
-        />
-
         {isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -228,16 +203,6 @@ export function InvestmentListing({
             >
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Primeiro Investimento
-            </Button>
-          </div>
-        ) : filteredCount === 0 ? (
-          <div className="text-center py-10 text-muted-foreground space-y-4">
-            <div>Nenhum investimento encontrado com os filtros aplicados.</div>
-            <Button 
-              variant="outline"
-              onClick={clearFilters}
-            >
-              Limpar filtros
             </Button>
           </div>
         ) : (
@@ -323,7 +288,7 @@ export function InvestmentListing({
             <AssetPagination
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={filteredCount}
+              totalItems={investments.length}
               itemsPerPage={itemsPerPage}
               onPageChange={handlePageChange}
               onItemsPerPageChange={handleItemsPerPageChange}
@@ -344,6 +309,7 @@ export function InvestmentListing({
             organizationId={organizationId}
             onSuccess={handleSubmit}
             onCancel={() => setIsCreateModalOpen(false)}
+            initialSafras={safras}
           />
         </DialogContent>
       </Dialog>
@@ -364,6 +330,7 @@ export function InvestmentListing({
               setIsEditModalOpen(false);
               setEditingInvestment(null);
             }}
+            initialSafras={safras}
           />
         </DialogContent>
       </Dialog>
@@ -388,12 +355,6 @@ export function InvestmentListing({
         </AlertDialogContent>
       </AlertDialog>
 
-      <InvestmentImportDialog
-        isOpen={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
-        organizationId={organizationId}
-        onSuccess={handleImportSuccess}
-      />
     </Card>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { DebtPositionTab } from "./debt-position-tab";
+import { DebtPositionTable } from "./debt-position-table";
 
 interface DebtProjectionTabProps {
   organizationId: string;
@@ -9,7 +9,33 @@ interface DebtProjectionTabProps {
 export function DebtProjectionTab({ organizationId }: DebtProjectionTabProps) {
   return (
     <div className="space-y-6 w-full overflow-hidden">
-      <DebtPositionTab />
+      <DebtPositionTable 
+        organizationId={organizationId} 
+        initialDebtPositions={{
+          dividas: [],
+          ativos: [],
+          indicadores: {
+            endividamento_total: {},
+            caixas_disponibilidades: {},
+            divida_liquida: {},
+            divida_dolar: {},
+            divida_liquida_dolar: {},
+            receita_ano_safra: {},
+            ebitda_ano_safra: {},
+            dolar_fechamento: {},
+            indicadores_calculados: {
+              divida_receita: {},
+              divida_ebitda: {},
+              divida_liquida_receita: {},
+              divida_liquida_ebitda: {},
+              reducao_valor: {},
+              reducao_percentual: {}
+            }
+          },
+          anos: []
+        }}
+        safras={[]}
+      />
     </div>
   );
 }

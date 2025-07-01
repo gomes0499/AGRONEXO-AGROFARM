@@ -40,35 +40,117 @@ const debtPositionCache: Record<string, {
 // Tempo de expiração do cache em milissegundos (5 minutos)
 const CACHE_EXPIRATION = 5 * 60 * 1000;
 
-export async function getDebtPosition(organizationId: string): Promise<ConsolidatedDebtPosition> {
+// Estrutura vazia padrão
+const EMPTY_DEBT_POSITION: ConsolidatedDebtPosition = {
+  dividas: [],
+  ativos: [],
+  indicadores: {
+    endividamento_total: {},
+    caixas_disponibilidades: {},
+    divida_liquida: {},
+    divida_dolar: {},
+    divida_liquida_dolar: {},
+    dolar_fechamento: {},
+    receita_ano_safra: {},
+    ebitda_ano_safra: {},
+    indicadores_calculados: {
+      divida_receita: {},
+      divida_ebitda: {},
+      divida_liquida_receita: {},
+      divida_liquida_ebitda: {},
+      reducao_valor: {},
+      reducao_percentual: {}
+    }
+  },
+  anos: []
+};
+
+// Função para limpar o cache (não é uma server action, apenas uma função auxiliar)
+function clearDebtPositionCache(organizationId?: string) {
+  if (organizationId) {
+    // Limpar cache para todas as variações de projection
+    const baseKey = `debt_position_${organizationId}`;
+    Object.keys(debtPositionCache).forEach(key => {
+      if (key.startsWith(baseKey)) {
+        delete debtPositionCache[key];
+      }
+    });
+  } else {
+    // Limpar todo o cache
+    Object.keys(debtPositionCache).forEach(key => delete debtPositionCache[key]);
+  }
+}
+
+// Limpar o cache na inicialização para garantir que valores hardcoded antigos sejam removidos
+clearDebtPositionCache();
+
+// Server action para forçar limpeza de cache e recarregar dados
+export async function refreshDebtPosition(organizationId: string, projectionId?: string): Promise<ConsolidatedDebtPosition> {
+  clearDebtPositionCache(organizationId);
+  return getDebtPosition(organizationId, projectionId);
+}
+
+// Versão "safe" que sempre retorna dados (vazios em caso de erro)
+export async function getDebtPositionSafe(organizationId: string, projectionId?: string): Promise<ConsolidatedDebtPosition> {
+  try {
+    return await getDebtPosition(organizationId, projectionId);
+  } catch (error) {
+    console.error("Erro ao buscar posição de dívida, retornando dados vazios:", error);
+    return EMPTY_DEBT_POSITION;
+  }
+}
+
+export async function getDebtPosition(organizationId: string, projectionId?: string): Promise<ConsolidatedDebtPosition> {
   // Verificar se temos dados em cache para esta organização
-  const cacheKey = `debt_position_${organizationId}`;
+  const cacheKey = `debt_position_${organizationId}_${projectionId || 'base'}`;
   const now = Date.now();
   const cachedData = debtPositionCache[cacheKey];
   
   if (cachedData && (now - cachedData.timestamp) < CACHE_EXPIRATION) {
+    console.log("Retornando dados do cache para:", organizationId);
     return cachedData.data;
   }
+  
   try {
-    const supabase = await createClient();
-
     if (!organizationId) {
       throw new Error("ID da organização é obrigatório");
     }
 
+    console.log("Iniciando cálculo de posição de dívida para organização:", organizationId);
+    
+    let supabase;
+    try {
+      supabase = await createClient();
+    } catch (clientError) {
+      console.error("Erro ao criar cliente Supabase:", clientError);
+      throw new Error("Erro ao conectar com o banco de dados");
+    }
+    
     // Buscar todas as safras para mapear anos
-    const { data: safras, error: safrasError } = await supabase
-      .from("safras")
-      .select("id, nome, ano_inicio, ano_fim")
-      .eq("organizacao_id", organizationId)
-      .order("ano_inicio");
+    console.log("Buscando safras...");
+    let safras, safrasError;
+    
+    try {
+      const result = await supabase
+        .from("safras")
+        .select("id, nome, ano_inicio, ano_fim")
+        .eq("organizacao_id", organizationId)
+        .order("ano_inicio");
+      
+      safras = result.data;
+      safrasError = result.error;
+    } catch (fetchError) {
+      console.error("Erro ao executar query de safras:", fetchError);
+      throw new Error("Erro ao buscar dados de safras");
+    }
 
     if (safrasError) {
-      console.error("Erro ao buscar safras:", safrasError);
-      throw new Error(`Erro ao buscar safras: ${safrasError.message}`);
+      console.error("Erro retornado pelo Supabase ao buscar safras:", safrasError);
+      throw new Error(`Erro ao buscar safras: ${safrasError.message || JSON.stringify(safrasError)}`);
     }
 
     if (!safras || safras.length === 0) {
+      console.log("Nenhuma safra encontrada para a organização:", organizationId);
       return {
         dividas: [],
         ativos: [],
@@ -121,13 +203,23 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
   
   const buscarTabela = async (tableName: string): Promise<Record<string, any>[]> => {
     try {
-      const { data, error } = await supabase
-        .from(tableName)
+      // Determinar nome da tabela baseado em projectionId
+      const actualTableName = projectionId ? `${tableName}_projections` : tableName;
+      
+      let query = supabase
+        .from(actualTableName)
         .select("*")
         .eq("organizacao_id", organizationId);
       
+      // Adicionar filtro de projection_id se usando tabela de projeções
+      if (projectionId) {
+        query = query.eq("projection_id", projectionId);
+      }
+      
+      const { data, error } = await query;
+      
       if (error) {
-        console.warn(`⚠️ Erro ao buscar ${tableName}:`, error.message);
+        console.warn(`⚠️ Erro ao buscar ${actualTableName}:`, error.message);
         return [];
       }
       
@@ -141,19 +233,32 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
   try {
     [
       dividasBancarias,
-      dividasTrading,
       dividasImoveis,
       arrendamentos,
       fornecedores,
       fatoresLiquidez, // Agora contém todos os dados de caixa_disponibilidades
     ] = await Promise.all([
       buscarTabela("dividas_bancarias"),
-      buscarTabela("dividas_trading"),
       buscarTabela("dividas_imoveis"),
       buscarTabela("arrendamentos"),
       buscarTabela("dividas_fornecedores"),
       buscarTabela("caixa_disponibilidades"),
     ]);
+    
+    // dividas_trading - buscar da tabela financeiras
+    const financeirasTableName = projectionId ? "financeiras_projections" : "financeiras";
+    let financeirasQuery = supabase
+      .from(financeirasTableName)
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .eq("categoria", "TRADING");
+    
+    if (projectionId) {
+      financeirasQuery = financeirasQuery.eq("projection_id", projectionId);
+    }
+    
+    const { data: financeirasData } = await financeirasQuery;
+    dividasTrading = financeirasData || [];
     
     // Estoques e EstoquesCommodities vêm da mesma tabela caixa_disponibilidades
     estoques = fatoresLiquidez?.filter(item => 
@@ -170,56 +275,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     // Continuar com arrays vazios para não quebrar a função
   }
 
-  
-  // Valores específicos para CAIXAS E DISPONIBILIDADES (para garantir a exibição correta)
-  // Estes valores são baseados no exemplo fornecido pelo usuário
-  const valoresCaixasEspecificos: Record<string, number> = {
-    "2021/22": 0,
-    "2022/23": 0,
-    "2023/24": 2200000,
-    "2024/25": 2200000,
-    "2025/26": 25712278,
-    "2026/27": 24317326,
-    "2027/28": 25999172,
-    "2028/29": 25092131,
-    "2029/30": 25704746
-  };
-  
-  const valoresAtivoBiologicoEspecificos: Record<string, number> = {
-    "2021/22": 0,
-    "2022/23": 0,
-    "2023/24": 70265980,
-    "2024/25": 70265980,
-    "2025/26": 89596000,
-    "2026/27": 89424500,
-    "2027/28": 90737000,
-    "2028/29": 91787000,
-    "2029/30": 91787000
-  };
-  
-  const valoresEstoqueInsumosEspecificos: Record<string, number> = {
-    "2021/22": 0,
-    "2022/23": 0,
-    "2023/24": 12300000,
-    "2024/25": 12300000,
-    "2025/26": 12300000,
-    "2026/27": 12300000,
-    "2027/28": 12300000,
-    "2028/29": 12300000,
-    "2029/30": 12300000
-  };
-  
-  const valoresEstoqueCommoditiesEspecificos: Record<string, number> = {
-    "2021/22": 0,
-    "2022/23": 0,
-    "2023/24": 6500000,
-    "2024/25": 6500000,
-    "2025/26": 6500000,
-    "2026/27": 6500000,
-    "2027/28": 6500000,
-    "2028/29": 6500000,
-    "2029/30": 6500000
-  };
   
 
   // MODIFICAÇÃO: Consolidar dívidas bancárias (APENAS tipo = BANCO)
@@ -597,12 +652,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       }
     });
     
-    // Fallback para os valores específicos se o banco não tiver dados
-    anos.forEach(ano => {
-      if (valores[ano] === 0 && valoresCaixasEspecificos[ano]) {
-        valores[ano] = valoresCaixasEspecificos[ano];
-      }
-    });
     
     return valores;
   };
@@ -643,12 +692,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       }
     });
     
-    // Fallback para os valores específicos se o banco não tiver dados
-    anos.forEach(ano => {
-      if (valores[ano] === 0 && valoresAtivoBiologicoEspecificos[ano]) {
-        valores[ano] = valoresAtivoBiologicoEspecificos[ano];
-      }
-    });
     
     return valores;
   };
@@ -689,12 +732,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       }
     });
     
-    // Fallback para os valores específicos se o banco não tiver dados
-    anos.forEach(ano => {
-      if (valores[ano] === 0 && valoresEstoqueInsumosEspecificos[ano]) {
-        valores[ano] = valoresEstoqueInsumosEspecificos[ano];
-      }
-    });
     
     return valores;
   };
@@ -735,12 +772,6 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
       }
     });
     
-    // Fallback para os valores específicos se o banco não tiver dados
-    anos.forEach(ano => {
-      if (valores[ano] === 0 && valoresEstoqueCommoditiesEspecificos[ano]) {
-        valores[ano] = valoresEstoqueCommoditiesEspecificos[ano];
-      }
-    });
     
     return valores;
   };
@@ -970,6 +1001,15 @@ export async function getDebtPosition(organizationId: string): Promise<Consolida
     return result;
   } catch (error) {
     console.error("❌ Erro geral ao calcular posição de dívida:", error);
+    
+    // Limpar cache em caso de erro
+    clearDebtPositionCache(organizationId);
+    
+    // Se for erro de fetch, tentar fornecer mais contexto
+    if (error instanceof Error && error.message.includes('fetch failed')) {
+      throw new Error('Erro de conexão com o banco de dados. Por favor, verifique sua conexão e tente novamente.');
+    }
+    
     throw new Error(`Erro ao calcular posição de dívida: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
   }
 }

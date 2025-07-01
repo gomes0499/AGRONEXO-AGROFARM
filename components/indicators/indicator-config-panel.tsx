@@ -113,7 +113,13 @@ export function IndicatorConfigPanel({
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-sm font-medium">
                     {threshold.level === "THRESHOLD"
-                      ? "Limite Crítico"
+                      ? "LIMITE CRÍTICO"
+                      : threshold.level === "MUITO_BOM"
+                      ? "MUITO BOM"
+                      : threshold.level === "ATENCAO"
+                      ? "ATENÇÃO"
+                      : threshold.level === "CONFORTAVEL"
+                      ? "CONFORTÁVEL"
                       : threshold.level}
                   </CardTitle>
                   <div

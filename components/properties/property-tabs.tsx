@@ -138,7 +138,7 @@ export function PropertyTabs({
 
         <TabsContent value="leases" className="mt-4">
           <LeaseList 
-            leases={leases} 
+            initialLeases={leases} 
             propertyId={property.id!} 
             organizationId={property.organizacao_id}
           />

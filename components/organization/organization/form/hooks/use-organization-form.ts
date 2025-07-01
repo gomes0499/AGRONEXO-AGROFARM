@@ -55,6 +55,7 @@ export function useOrganizationForm({
       cor_secundaria: organizationData?.cor_secundaria || "#FF6B00",
       cor_fundo: organizationData?.cor_fundo || "#FFFFFF",
       cor_texto: organizationData?.cor_texto || "#000000",
+      chart_colors: organizationData?.chart_colors || undefined,
     },
   });
 
@@ -86,6 +87,7 @@ export function useOrganizationForm({
         cor_secundaria: organizationData.cor_secundaria || "#FF6B00",
         cor_fundo: organizationData.cor_fundo || "#FFFFFF",
         cor_texto: organizationData.cor_texto || "#000000",
+        chart_colors: organizationData.chart_colors || undefined,
       };
       form.reset(formData as OrganizationFormValues);
       setLogoUrl(organizationData.logo || null);
@@ -93,11 +95,10 @@ export function useOrganizationForm({
   }, [organizationData, mode, form]);
 
   // Função para gerar slug a partir do nome
-  const generateSlug = () => {
-    const nome = form.getValues("nome");
-    if (!nome) return;
+  const generateSlug = (nome: string) => {
+    if (!nome) return "";
 
-    const slug = nome
+    return nome
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -105,8 +106,6 @@ export function useOrganizationForm({
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
       .trim();
-
-    form.setValue("slug", slug);
   };
 
   // Função para lidar com a submissão do formulário
@@ -114,25 +113,29 @@ export function useOrganizationForm({
     setIsLoading(true);
 
     try {
+      // Gerar slug automaticamente baseado no nome
+      const generatedSlug = generateSlug(values.nome);
+      
       // Verifica se o slug já existe (apenas para criação ou se mudou o slug na edição)
       if (
         mode === "create" ||
-        (mode === "edit" && values.slug !== organizationData?.slug)
+        (mode === "edit" && generatedSlug !== organizationData?.slug)
       ) {
         const { data: existingOrg } = await supabase
           .from("organizacoes")
           .select("id")
-          .eq("slug", values.slug)
+          .eq("slug", generatedSlug)
           .single();
 
         if (existingOrg) {
-          form.setError("slug", {
-            type: "manual",
-            message: "Este identificador já está em uso",
-          });
-          setIsLoading(false);
-          return { success: false, shouldReturnToStep1: true };
+          // Se o slug já existe, adicionar um número aleatório
+          const randomSuffix = Math.floor(Math.random() * 10000);
+          values.slug = `${generatedSlug}-${randomSuffix}`;
+        } else {
+          values.slug = generatedSlug;
         }
+      } else {
+        values.slug = organizationData?.slug || generatedSlug;
       }
 
       // Prepara os dados da organização
@@ -162,6 +165,7 @@ export function useOrganizationForm({
         cor_secundaria: values.cor_secundaria,
         cor_fundo: values.cor_fundo,
         cor_texto: values.cor_texto,
+        chart_colors: values.chart_colors || undefined,
       };
 
       if (mode === "edit" && organizationData?.id) {
@@ -308,7 +312,6 @@ export function useOrganizationForm({
     isLoading,
     logoUrl,
     setLogoUrl,
-    generateSlug,
     onSubmit,
     resetForm,
   };

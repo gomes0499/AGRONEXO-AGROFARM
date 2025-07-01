@@ -6,9 +6,17 @@ export const metadata: Metadata = {
   description: "Crie sua conta na plataforma SR-Consultoria",
 };
 
-export default function RegisterPage({ searchParams }: { searchParams: any }) {
-  const email = searchParams.email || "";
-  const inviteToken = searchParams.invite_token || "";
+interface RegisterPageProps {
+  searchParams: Promise<{
+    email?: string;
+    invite_token?: string;
+  }>;
+}
+
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  const params = await searchParams;
+  const email = params.email || "";
+  const inviteToken = params.invite_token || "";
 
   return <RegisterForm email={email} inviteToken={inviteToken} />;
 }

@@ -35,6 +35,13 @@ export interface DREData {
     pecuaria: Record<string, number>;
     total: Record<string, number>;
   };
+  // Impostos sobre Vendas
+  impostos_vendas?: {
+    icms: Record<string, number>;
+    pis: Record<string, number>;
+    cofins: Record<string, number>;
+    total: Record<string, number>;
+  };
   // Receita Operacional Líquida
   receita_liquida: Record<string, number>;
   // Custos
@@ -81,10 +88,12 @@ export interface DREData {
 }
 
 interface DRETableProps {
-  data: DREData;
+  organizationId: string;
+  initialData: DREData;
 }
 
-export function DRETable({ data }: DRETableProps) {
+export function DRETable({ organizationId, initialData }: DRETableProps) {
+  const data = initialData;
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   
   // Função para formatar texto em normal case
@@ -144,14 +153,14 @@ export function DRETable({ data }: DRETableProps) {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary dark:bg-primary/90 dark:hover:bg-primary/90">
-                    <TableHead className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
+                    <TableHead className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
                       Demonstração de Resultado
                     </TableHead>
                     {data.anos.map((ano, index) => (
                       <TableHead 
                         key={ano} 
                         className={cn(
-                          "font-medium text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
+                          "font-semibold text-primary-foreground text-center min-w-[120px] w-[120px] whitespace-nowrap",
                           index === data.anos.length - 1 && "rounded-tr-md"
                         )}
                       >
@@ -162,8 +171,8 @@ export function DRETable({ data }: DRETableProps) {
                 </TableHeader>
                 <TableBody>
                   {/* === RECEITA OPERACIONAL BRUTA === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 dark:bg-primary/90">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 dark:bg-primary/90">
+                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       <button
                         onClick={() => toggleSection('receita_bruta')}
                         className="flex items-center gap-2 w-full text-left"
@@ -191,14 +200,14 @@ export function DRETable({ data }: DRETableProps) {
                   {!isSectionCollapsed('receita_bruta') && (
                     <>
                       {/* Receita Agrícola */}
-                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                      <TableRow className="hover:bg-muted/20 dark:hover:bg-gray-700/20 transition-colors">
+                        <TableCell className="font-medium text-sm min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8 text-gray-700 dark:text-gray-300">
                           Receita Agrícola
                         </TableCell>
                         {data.anos.map((ano) => (
                           <TableCell 
                             key={ano} 
-                            className="text-center min-w-[120px] w-[120px]"
+                            className="text-center min-w-[120px] w-[120px] text-green-700 dark:text-green-400 font-medium"
                           >
                             {formatCurrency(data.receita_bruta.agricola[ano] || 0)}
                           </TableCell>
@@ -223,29 +232,61 @@ export function DRETable({ data }: DRETableProps) {
                   )}
 
                   {/* Total Receita Bruta */}
-                  <TableRow className="bg-gray-50 dark:bg-gray-800 font-medium">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-gray-50 dark:bg-gray-800/50 font-semibold border-y">
+                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800/50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Total Receita Bruta
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center font-medium min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800"
+                        className="text-center font-semibold min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800/50 text-green-700 dark:text-green-400"
                       >
                         {formatCurrency(data.receita_bruta.total[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
 
+                  {/* === IMPOSTOS SOBRE VENDAS === */}
+                  {data.impostos_vendas && (
+                    <>
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium text-sm min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8 text-gray-700 dark:text-gray-300">
+                          (-) PIS/COFINS
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-red-700 dark:text-red-400 font-medium"
+                          >
+                            ({formatCurrency((data.impostos_vendas?.pis[ano] || 0) + (data.impostos_vendas?.cofins[ano] || 0))})
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                      <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          (-) Total Impostos s/ Vendas
+                        </TableCell>
+                        {data.anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px] text-destructive font-medium"
+                          >
+                            ({formatCurrency(data.impostos_vendas?.total[ano] || 0)})
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </>
+                  )}
+
                   {/* === RECEITA OPERACIONAL LÍQUIDA === */}
-                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-gray-50 dark:bg-gray-800/50 font-semibold border-y">
+                    <TableCell className="font-semibold min-w-[250px] w-[250px] sticky left-0 bg-gray-50 dark:bg-gray-800/50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       Receita Operacional Líquida
                     </TableCell>
                     {data.anos.map((ano) => (
                       <TableCell 
                         key={ano} 
-                        className="text-center min-w-[120px] w-[120px]"
+                        className="text-center font-semibold min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800/50"
                       >
                         {formatCurrency(data.receita_liquida[ano] || 0)}
                       </TableCell>
@@ -253,8 +294,8 @@ export function DRETable({ data }: DRETableProps) {
                   </TableRow>
 
                   {/* === CUSTOS === */}
-                  <TableRow className="bg-primary font-medium border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
-                    <TableCell className="font-medium text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  <TableRow className="bg-primary font-semibold border-b-2 border-primary/20 border-t-2 dark:bg-primary/90">
+                    <TableCell className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                       <button
                         onClick={() => toggleSection('custos')}
                         className="flex items-center gap-2 w-full text-left"

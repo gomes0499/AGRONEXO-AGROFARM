@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { InfoField } from "@/components/organization/common/data-display/info-field";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
-import { PropertyMap } from "./property-map";
 
 interface PropertyDetailProps {
   property: Property;
@@ -56,6 +55,7 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
       PROPRIO: { label: "Própria", variant: "default" as const },
       ARRENDADO: { label: "Arrendada", variant: "secondary" as const },
       PARCERIA: { label: "Parceria", variant: "outline" as const },
+      PARCERIA_AGRICOLA: { label: "Parceria Agrícola", variant: "outline" as const },
       COMODATO: { label: "Comodato", variant: "ghost" as const },
     };
 
@@ -298,8 +298,6 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
         </Card>
       )}
 
-      {/* Card do Mapa SICAR */}
-      <PropertyMap property={property} />
     </div>
   );
 }

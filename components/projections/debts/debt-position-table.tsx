@@ -15,31 +15,16 @@ import { TrendingDown, TrendingUp, DollarSign, ChevronRight, ChevronDown, BarCha
 import { cn } from "@/lib/utils";
 import { DebtPositionData } from "@/lib/actions/debt-position-actions";
 
+import type { ConsolidatedDebtPosition } from "@/lib/actions/debt-position-actions";
+
 interface DebtPositionTableProps {
-  dividas: DebtPositionData[];
-  ativos: DebtPositionData[];
-  indicadores: {
-    endividamento_total: Record<string, number>;
-    caixas_disponibilidades: Record<string, number>;
-    divida_liquida: Record<string, number>;
-    divida_dolar: Record<string, number>;
-    divida_liquida_dolar: Record<string, number>;
-    dolar_fechamento: Record<string, number>;
-    receita_ano_safra: Record<string, number>;
-    ebitda_ano_safra: Record<string, number>;
-    indicadores_calculados: {
-      divida_receita: Record<string, number>;
-      divida_ebitda: Record<string, number>;
-      divida_liquida_receita: Record<string, number>;
-      divida_liquida_ebitda: Record<string, number>;
-      reducao_valor: Record<string, number>;
-      reducao_percentual: Record<string, number>;
-    };
-  };
-  anos: string[];
+  organizationId: string;
+  initialDebtPositions: ConsolidatedDebtPosition;
+  safras: Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number; }>;
 }
 
-export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPositionTableProps) {
+export function DebtPositionTable({ organizationId, initialDebtPositions, safras }: DebtPositionTableProps) {
+  const { dividas, ativos, indicadores, anos } = initialDebtPositions;
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   
   const formatNumber = (value: number, decimals: number = 0) => {
@@ -428,26 +413,23 @@ export function DebtPositionTable({ dividas, ativos, indicadores, anos }: DebtPo
                           </TableCell>
                         ))}
                       </TableRow>
+
+                      {/* Dívida Líquida/ Ebitda */}
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
+                          Dívida Líquida/ Ebitda
+                        </TableCell>
+                        {anos.map((ano) => (
+                          <TableCell 
+                            key={ano} 
+                            className="text-center min-w-[120px] w-[120px]"
+                          >
+                            {formatRatio(indicadores.indicadores_calculados.divida_liquida_ebitda[ano] || 0)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
                     </>
                   )}
-
-                  {/* Dívida Líquida/ Ebitda */}
-                  <TableRow className="font-medium border-t-2 border-gray-100">
-                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                      Dívida Líquida/ Ebitda
-                    </TableCell>
-                    {anos.map((ano) => {
-                      const valor = indicadores.indicadores_calculados.divida_liquida_ebitda[ano] || 0;
-                      return (
-                        <TableCell 
-                          key={ano} 
-                          className="text-center font-bold min-w-[120px] w-[120px]"
-                        >
-                          {formatRatio(valor)}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
                 </TableBody>
               </Table>
             </div>

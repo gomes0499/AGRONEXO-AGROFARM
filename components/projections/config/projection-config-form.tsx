@@ -35,7 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   createProjecaoConfig,
   updateProjecaoConfig,
-} from "@/lib/actions/projections-actions";
+} from "@/lib/actions/projections-actions/index";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 

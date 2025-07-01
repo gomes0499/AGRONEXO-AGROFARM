@@ -59,7 +59,11 @@ export function IndicatorValueBadge({
           {suffix}
         </span>
       )}
-      {threshold.level === "THRESHOLD" ? "Limite Crítico" : threshold.level}
+      {threshold.level === "THRESHOLD" ? "LIMITE CRÍTICO" : 
+        threshold.level === "MUITO_BOM" ? "MUITO BOM" : 
+        threshold.level === "ATENCAO" ? "ATENÇÃO" : 
+        threshold.level === "CONFORTAVEL" ? "CONFORTÁVEL" : 
+        threshold.level}
     </Badge>
   );
 }

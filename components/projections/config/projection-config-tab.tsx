@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ProjectionConfigListing } from "./projection-config-listing";
-import { getProjecoesConfig } from "@/lib/actions/projections-actions";
+import { getProjecoesConfig } from "@/lib/actions/projections-actions/index";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProjectionConfigTabProps {

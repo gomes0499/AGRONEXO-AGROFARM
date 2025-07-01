@@ -10,11 +10,13 @@ import { toast } from "sonner";
 interface NewFinanceirasButtonProps {
   organizationId: string;
   onItemCreated?: (item: FinanceirasListItem) => void;
+  safras?: any[];
 }
 
 export function NewFinanceirasButton({
   organizationId,
   onItemCreated,
+  safras = [],
 }: NewFinanceirasButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -40,6 +42,7 @@ export function NewFinanceirasButton({
         onOpenChange={setIsOpen}
         organizationId={organizationId}
         onSubmit={handleItemCreated}
+        initialSafras={safras}
       />
     </>
   );

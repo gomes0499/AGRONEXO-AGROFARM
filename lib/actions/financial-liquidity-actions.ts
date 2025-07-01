@@ -21,7 +21,7 @@ type SafraInfo = {
 };
 
 // Buscar fatores de liquidez no novo formato
-export async function getLiquidityFactorsUnified(organizationId: string): Promise<{
+export async function getLiquidityFactorsUnified(organizationId: string, projectionId?: string): Promise<{
   liquidityFactors: LiquidityFactorUnified[];
   safras: SafraInfo[];
 }> {
@@ -40,12 +40,40 @@ export async function getLiquidityFactorsUnified(organizationId: string): Promis
       return { liquidityFactors: [], safras: [] };
     }
     
-    // Buscar caixa e disponibilidades (agora substitui fatores_liquidez)
-    const { data, error } = await supabase
-      .from("caixa_disponibilidades")
-      .select("*")
-      .eq("organizacao_id", organizationId)
-      .order("created_at", { ascending: false });
+    // Try projection table first if projectionId is provided
+    let data = null;
+    let error = null;
+    
+    if (projectionId) {
+      const projectionTableName = "caixa_disponibilidades_projections";
+      const projectionQuery = supabase
+        .from(projectionTableName)
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .eq("projection_id", projectionId)
+        .order("created_at", { ascending: false });
+      
+      const projectionResult = await projectionQuery;
+      
+      // If projection table doesn't exist or has no data, fall back to base table
+      if (!projectionResult.error && projectionResult.data?.length > 0) {
+        data = projectionResult.data;
+        error = projectionResult.error;
+      }
+    }
+    
+    // If no projection data found or no projectionId, use base table
+    if (!data || data.length === 0) {
+      const baseQuery = supabase
+        .from("caixa_disponibilidades")
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .order("created_at", { ascending: false });
+      
+      const baseResult = await baseQuery;
+      data = baseResult.data;
+      error = baseResult.error;
+    }
       
     if (error) {
       console.error("Erro ao buscar caixa e disponibilidades:", error);
@@ -55,16 +83,16 @@ export async function getLiquidityFactorsUnified(organizationId: string): Promis
     const processedData = data?.map(item => {
       let valoresPorSafra = {};
       
-      // Parsear valores_por_safra se necessário
-      if (item.valores_por_safra) {
+      // Parsear valores_por_ano se necessário
+      if (item.valores_por_ano) {
         try {
-          if (typeof item.valores_por_safra === 'string') {
-            valoresPorSafra = JSON.parse(item.valores_por_safra);
-          } else if (typeof item.valores_por_safra === 'object') {
-            valoresPorSafra = item.valores_por_safra;
+          if (typeof item.valores_por_ano === 'string') {
+            valoresPorSafra = JSON.parse(item.valores_por_ano);
+          } else if (typeof item.valores_por_ano === 'object') {
+            valoresPorSafra = item.valores_por_ano;
           }
         } catch (e) {
-          console.error(`Erro ao parsear valores_por_safra para item ${item.id}:`, e);
+          console.error(`Erro ao parsear valores_por_ano para item ${item.id}:`, e);
         }
       }
       
@@ -97,7 +125,7 @@ export async function getLiquidityFactorsUnified(organizationId: string): Promis
 }
 
 // Buscar estoques no novo formato
-export async function getInventoriesUnified(organizationId: string): Promise<{
+export async function getInventoriesUnified(organizationId: string, projectionId?: string): Promise<{
   inventories: any[];
   safras: SafraInfo[];
 }> {
@@ -116,13 +144,42 @@ export async function getInventoriesUnified(organizationId: string): Promise<{
       return { inventories: [], safras: [] };
     }
     
-    // Agora buscamos da tabela caixa_disponibilidades com categoria = ESTOQUE
-    const { data, error } = await supabase
-      .from("caixa_disponibilidades")
-      .select("*")
-      .eq("organizacao_id", organizationId)
-      .eq("categoria", "ESTOQUE")
-      .order("created_at", { ascending: false });
+    // Try projection table first if projectionId is provided
+    let data = null;
+    let error = null;
+    
+    if (projectionId) {
+      const projectionTableName = "caixa_disponibilidades_projections";
+      const projectionQuery = supabase
+        .from(projectionTableName)
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .eq("projection_id", projectionId)
+        .in("categoria", ["ESTOQUE_DEFENSIVOS", "ESTOQUE_FERTILIZANTES", "ESTOQUE_ALMOXARIFADO", "ESTOQUE_SEMENTES"])
+        .order("created_at", { ascending: false });
+      
+      const projectionResult = await projectionQuery;
+      
+      // If projection table doesn't exist or has no data, fall back to base table
+      if (!projectionResult.error && projectionResult.data?.length > 0) {
+        data = projectionResult.data;
+        error = projectionResult.error;
+      }
+    }
+    
+    // If no projection data found or no projectionId, use base table
+    if (!data || data.length === 0) {
+      const baseQuery = supabase
+        .from("caixa_disponibilidades")
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .in("categoria", ["ESTOQUE_DEFENSIVOS", "ESTOQUE_FERTILIZANTES", "ESTOQUE_ALMOXARIFADO", "ESTOQUE_SEMENTES"])
+        .order("created_at", { ascending: false });
+      
+      const baseResult = await baseQuery;
+      data = baseResult.data;
+      error = baseResult.error;
+    }
       
     if (error) {
       console.error("Erro ao buscar estoques:", error);
@@ -133,15 +190,15 @@ export async function getInventoriesUnified(organizationId: string): Promise<{
     const processedData = data?.map(item => {
       let valoresPorSafra = {};
       
-      if (item.valores_por_safra) {
+      if (item.valores_por_ano) {
         try {
-          if (typeof item.valores_por_safra === 'string') {
-            valoresPorSafra = JSON.parse(item.valores_por_safra);
-          } else if (typeof item.valores_por_safra === 'object') {
-            valoresPorSafra = item.valores_por_safra;
+          if (typeof item.valores_por_ano === 'string') {
+            valoresPorSafra = JSON.parse(item.valores_por_ano);
+          } else if (typeof item.valores_por_ano === 'object') {
+            valoresPorSafra = item.valores_por_ano;
           }
         } catch (e) {
-          console.error(`Erro ao parsear valores_por_safra para item ${item.id}:`, e);
+          console.error(`Erro ao parsear valores_por_ano para item ${item.id}:`, e);
         }
       }
       
@@ -163,7 +220,7 @@ export async function getInventoriesUnified(organizationId: string): Promise<{
 }
 
 // Buscar estoques de commodities no novo formato
-export async function getCommodityInventoriesUnified(organizationId: string): Promise<{
+export async function getCommodityInventoriesUnified(organizationId: string, projectionId?: string): Promise<{
   commodityInventories: any[];
   safras: SafraInfo[];
 }> {
@@ -182,13 +239,42 @@ export async function getCommodityInventoriesUnified(organizationId: string): Pr
       return { commodityInventories: [], safras: [] };
     }
     
-    // Agora buscamos da tabela caixa_disponibilidades com categoria = ESTOQUE_COMMODITY
-    const { data, error } = await supabase
-      .from("caixa_disponibilidades")
-      .select("*")
-      .eq("organizacao_id", organizationId)
-      .eq("categoria", "ESTOQUE_COMMODITY")
-      .order("created_at", { ascending: false });
+    // Try projection table first if projectionId is provided
+    let data = null;
+    let error = null;
+    
+    if (projectionId) {
+      const projectionTableName = "caixa_disponibilidades_projections";
+      const projectionQuery = supabase
+        .from(projectionTableName)
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .eq("projection_id", projectionId)
+        .eq("categoria", "ESTOQUE_COMMODITIES")
+        .order("created_at", { ascending: false });
+      
+      const projectionResult = await projectionQuery;
+      
+      // If projection table doesn't exist or has no data, fall back to base table
+      if (!projectionResult.error && projectionResult.data?.length > 0) {
+        data = projectionResult.data;
+        error = projectionResult.error;
+      }
+    }
+    
+    // If no projection data found or no projectionId, use base table
+    if (!data || data.length === 0) {
+      const baseQuery = supabase
+        .from("caixa_disponibilidades")
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .eq("categoria", "ESTOQUE_COMMODITIES")
+        .order("created_at", { ascending: false });
+      
+      const baseResult = await baseQuery;
+      data = baseResult.data;
+      error = baseResult.error;
+    }
       
     if (error) {
       console.error("Erro ao buscar estoques de commodities:", error);
@@ -199,15 +285,15 @@ export async function getCommodityInventoriesUnified(organizationId: string): Pr
     const processedData = data?.map(item => {
       let valoresPorSafra = {};
       
-      if (item.valores_por_safra) {
+      if (item.valores_por_ano) {
         try {
-          if (typeof item.valores_por_safra === 'string') {
-            valoresPorSafra = JSON.parse(item.valores_por_safra);
-          } else if (typeof item.valores_por_safra === 'object') {
-            valoresPorSafra = item.valores_por_safra;
+          if (typeof item.valores_por_ano === 'string') {
+            valoresPorSafra = JSON.parse(item.valores_por_ano);
+          } else if (typeof item.valores_por_ano === 'object') {
+            valoresPorSafra = item.valores_por_ano;
           }
         } catch (e) {
-          console.error(`Erro ao parsear valores_por_safra para item ${item.id}:`, e);
+          console.error(`Erro ao parsear valores_por_ano para item ${item.id}:`, e);
         }
       }
       
@@ -229,7 +315,7 @@ export async function getCommodityInventoriesUnified(organizationId: string): Pr
 }
 
 // Buscar fornecedores no novo formato
-export async function getSuppliersUnified(organizationId: string): Promise<{
+export async function getSuppliersUnified(organizationId: string, projectionId?: string): Promise<{
   suppliers: any[];
   safras: SafraInfo[];
 }> {
@@ -248,12 +334,40 @@ export async function getSuppliersUnified(organizationId: string): Promise<{
       return { suppliers: [], safras: [] };
     }
     
-    // Buscar da tabela dividas_fornecedores
-    const { data, error } = await supabase
-      .from("dividas_fornecedores")
-      .select("*")
-      .eq("organizacao_id", organizationId)
-      .order("created_at", { ascending: false });
+    // Try projection table first if projectionId is provided
+    let data = null;
+    let error = null;
+    
+    if (projectionId) {
+      const projectionTableName = "dividas_fornecedores_projections";
+      const projectionQuery = supabase
+        .from(projectionTableName)
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .eq("projection_id", projectionId)
+        .order("created_at", { ascending: false });
+      
+      const projectionResult = await projectionQuery;
+      
+      // If projection table doesn't exist or has no data, fall back to base table
+      if (!projectionResult.error && projectionResult.data?.length > 0) {
+        data = projectionResult.data;
+        error = projectionResult.error;
+      }
+    }
+    
+    // If no projection data found or no projectionId, use base table
+    if (!data || data.length === 0) {
+      const baseQuery = supabase
+        .from("dividas_fornecedores")
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .order("created_at", { ascending: false });
+      
+      const baseResult = await baseQuery;
+      data = baseResult.data;
+      error = baseResult.error;
+    }
       
     if (error) {
       console.error("Erro ao buscar dívidas de fornecedores:", error);
@@ -264,15 +378,15 @@ export async function getSuppliersUnified(organizationId: string): Promise<{
     const processedData = data?.map(item => {
       let valoresPorSafra = {};
       
-      if (item.valores_por_safra) {
+      if (item.valores_por_ano) {
         try {
-          if (typeof item.valores_por_safra === 'string') {
-            valoresPorSafra = JSON.parse(item.valores_por_safra);
-          } else if (typeof item.valores_por_safra === 'object') {
-            valoresPorSafra = item.valores_por_safra;
+          if (typeof item.valores_por_ano === 'string') {
+            valoresPorSafra = JSON.parse(item.valores_por_ano);
+          } else if (typeof item.valores_por_ano === 'object') {
+            valoresPorSafra = item.valores_por_ano;
           }
         } catch (e) {
-          console.error(`Erro ao parsear valores_por_safra para item ${item.id}:`, e);
+          console.error(`Erro ao parsear valores_por_ano para item ${item.id}:`, e);
         }
       }
       
@@ -329,15 +443,15 @@ export async function getOtherExpensesUnified(organizationId: string): Promise<{
     const processedData = data?.map(item => {
       let valoresPorSafra = {};
       
-      if (item.valores_por_safra) {
+      if (item.valores_por_ano) {
         try {
-          if (typeof item.valores_por_safra === 'string') {
-            valoresPorSafra = JSON.parse(item.valores_por_safra);
-          } else if (typeof item.valores_por_safra === 'object') {
-            valoresPorSafra = item.valores_por_safra;
+          if (typeof item.valores_por_ano === 'string') {
+            valoresPorSafra = JSON.parse(item.valores_por_ano);
+          } else if (typeof item.valores_por_ano === 'object') {
+            valoresPorSafra = item.valores_por_ano;
           }
         } catch (e) {
-          console.error(`Erro ao parsear valores_por_safra para item ${item.id}:`, e);
+          console.error(`Erro ao parsear valores_por_ano para item ${item.id}:`, e);
         }
       }
       

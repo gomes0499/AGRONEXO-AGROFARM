@@ -222,3 +222,47 @@ export async function getTotalOutrasDespesasPorCategoria(
     }, 0);
   }
 }
+
+/**
+ * Cria múltiplas outras despesas em lote
+ */
+export async function createOutrasDespesasBatch(
+  items: Array<{
+    organizacao_id: string;
+    descricao: string;
+    categoria: string;
+    valores_por_ano?: any;
+  }>
+) {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("outras_despesas")
+      .insert(items)
+      .select();
+
+    if (error) {
+      console.error("Erro ao criar itens em lote:", error);
+      
+      // Verificar se é erro de violação de restrição de chave única
+      if (error.code === '23505' && error.message.includes('uk_outras_despesas_org_categoria')) {
+        return { error: "Uma ou mais categorias já existem. Use descrições diferentes ou a categoria 'OUTROS' para múltiplas despesas do mesmo tipo." };
+      }
+      
+      return { error: "Não foi possível importar as outras despesas." };
+    }
+
+    // Adicionar campos para compatibilidade
+    const dataWithCompat = data.map(item => ({
+      ...item,
+      nome: item.descricao || item.categoria,
+      valores_por_safra: item.valores_por_ano
+    }));
+    
+    return { data: dataWithCompat };
+  } catch (error) {
+    console.error("Erro ao processar importação:", error);
+    return { error: "Erro ao processar importação de outras despesas." };
+  }
+}

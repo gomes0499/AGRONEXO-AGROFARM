@@ -118,6 +118,7 @@ export function DividasTerrasPopoverEditor({
         {
           nome: divida.nome,
           propriedade_id: divida.propriedade_id,
+          moeda: divida.moeda || "BRL",
           valores_por_safra: validValues
         },
         organizationId

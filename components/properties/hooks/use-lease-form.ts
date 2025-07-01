@@ -36,7 +36,7 @@ export function useLeaseForm({
     resolver: zodResolver(leaseFormSchema),
     defaultValues: {
       propriedade_id: propertyId,
-      safra_id: lease?.safra_id || "",
+      ...((lease as any)?.safra_id ? { safra_id: (lease as any).safra_id } : { safra_id: "" }),
       numero_arrendamento: lease?.numero_arrendamento || "",
       area_fazenda: lease?.area_fazenda || 0,
       area_arrendada: lease?.area_arrendada || 0,
@@ -80,7 +80,7 @@ export function useLeaseForm({
       setIsLoading(true);
       toast.info("Processando formulário...");
 
-      if (!values.safra_id) {
+      if (!(values as any).safra_id) {
         toast.error("Selecione uma safra");
         return { success: false };
       }

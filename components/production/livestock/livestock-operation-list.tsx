@@ -320,7 +320,7 @@ export function LivestockOperationList({
             </CardDescription>
           </div>
         </div>
-        <Button variant="secondary" className="gap-1" size="default" onClick={handleCreate}>
+        <Button variant="outline" className="gap-1 bg-white text-black hover:bg-gray-100" size="default" onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-2" />
           Nova Operação
         </Button>
@@ -347,7 +347,7 @@ export function LivestockOperationList({
             </Button>
           </div>
         ) : (
-          <div className="rounded-md border">
+          <div className="rounded-md border mt-4">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>

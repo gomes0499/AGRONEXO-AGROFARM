@@ -68,7 +68,11 @@ export function IndicatorThresholdCard({
               color: thresholdColor,
             }}
           >
-            {thresholdLevel === "THRESHOLD" ? "Limite Crítico" : thresholdLevel}
+            {thresholdLevel === "THRESHOLD" ? "LIMITE CRÍTICO" : 
+              thresholdLevel === "MUITO_BOM" ? "MUITO BOM" : 
+              thresholdLevel === "ATENCAO" ? "ATENÇÃO" : 
+              thresholdLevel === "CONFORTAVEL" ? "CONFORTÁVEL" : 
+              thresholdLevel}
           </Badge>
         </div>
       </CardContent>

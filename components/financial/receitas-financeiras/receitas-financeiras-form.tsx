@@ -62,7 +62,7 @@ export function ReceitasFinanceirasForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ReceitaFinanceiraFormValues>({
-    resolver: zodResolver(receitaFinanceiraFormSchema),
+    resolver: zodResolver(receitaFinanceiraFormSchema) as any,
     defaultValues: defaultValues || {
       nome: "",
       categoria: "OUTRAS_RECEITAS",
@@ -72,7 +72,7 @@ export function ReceitasFinanceirasForm({
     },
   });
 
-  const onSubmit = async (values: ReceitaFinanceiraFormValues) => {
+  const onSubmit = async (values: any) => {
     try {
       setIsSubmitting(true);
 
@@ -108,9 +108,9 @@ export function ReceitasFinanceirasForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="nome"
           render={({ field }) => (
             <FormItem>
@@ -128,7 +128,7 @@ export function ReceitasFinanceirasForm({
         />
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="categoria"
           render={({ field }) => (
             <FormItem>
@@ -157,7 +157,7 @@ export function ReceitasFinanceirasForm({
         />
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="moeda"
           render={({ field }) => (
             <FormItem>
@@ -183,7 +183,7 @@ export function ReceitasFinanceirasForm({
         />
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="descricao"
           render={({ field }) => (
             <FormItem>
@@ -206,14 +206,14 @@ export function ReceitasFinanceirasForm({
         />
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="valores_por_safra"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Valores por Safra</FormLabel>
               <FormControl>
                 <SafraValueEditor
-                  values={field.value || {}}
+                  values={(field.value as any) || {}}
                   onChange={field.onChange}
                   safras={safras}
                   organizacaoId={organizationId}

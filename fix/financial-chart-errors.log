@@ -1,0 +1,4 @@
+components/production/stats/financial-chart.tsx(109,32): error TS2554: Expected 4-5 arguments, but got 1.
+components/production/stats/financial-chart.tsx(115,30): error TS2554: Expected 4-5 arguments, but got 1.
+components/production/stats/financial-chart.tsx(124,29): error TS2339: Property 'harvestData' does not exist on type 'ScenarioData'.
+components/production/stats/financial-chart.tsx(125,46): error TS2339: Property 'harvestData' does not exist on type 'ScenarioData'.
