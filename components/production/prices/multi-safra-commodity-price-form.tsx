@@ -77,37 +77,42 @@ export function MultiSafraCommodityPriceForm({
 
     setIsSubmitting(true);
     try {
-      // Criar um preço para cada safra selecionada
-      const createPromises = Object.entries(values.precos_por_safra).map(async ([safraId, currentPrice]) => {
-        // Formar o commodity_type no formato CULTURA_SISTEMA
-        const cultureObj = cultures.find(c => c.id === values.cultura_id);
-        const commodityType = `${cultureObj?.nome.toUpperCase()}_${values.sistema}`;
+      // Formar o commodity_type no formato CULTURA_SISTEMA
+      const cultureObj = cultures.find(c => c.id === values.cultura_id);
+      const commodityType = `${cultureObj?.nome.toUpperCase()}_${values.sistema}`;
 
-        const response = await fetch('/api/production/commodity-prices', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            organizacao_id: organizationId,
-            safra_id: safraId,
-            commodity_type: commodityType,
-            current_price: currentPrice,
-            unit: values.unit,
-            precos_por_ano: { [safraId]: currentPrice }, // Incluir pelo menos o valor da safra atual
-          }),
-        });
-
-        if (!response.ok) {
-          const safra = safras.find(s => s.id === safraId);
-          throw new Error(`Erro ao criar preço para safra ${safra?.nome || safraId}`);
+      // Converter preços por safra para preços por ano
+      const precosPorAno: Record<string, number> = {};
+      const safrasIds = Object.keys(values.precos_por_safra);
+      
+      // Para cada safra selecionada, mapear seu ano para o preço
+      for (const safraId of safrasIds) {
+        const safra = safras.find(s => s.id === safraId);
+        if (safra) {
+          precosPorAno[safra.ano_inicio.toString()] = values.precos_por_safra[safraId];
         }
+      }
 
-        return response.json();
+      // Criar um único registro com todos os preços
+      const response = await fetch('/api/production/commodity-prices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizacao_id: organizationId,
+          safra_id: safrasIds[0], // Usar a primeira safra como referência
+          commodity_type: commodityType,
+          current_price: Object.values(values.precos_por_safra)[0], // Primeiro preço como padrão
+          unit: values.unit,
+          precos_por_ano: precosPorAno, // Todos os preços em um objeto
+        }),
       });
 
-      await Promise.all(createPromises);
+      if (!response.ok) {
+        throw new Error('Erro ao criar preço de commodity');
+      }
 
       toast.success(
-        `${Object.keys(values.precos_por_safra).length} preço(s) de commodity criado(s) com sucesso!`
+        `Preço de commodity criado com sucesso para ${Object.keys(values.precos_por_safra).length} safra(s)!`
       );
 
       if (onSuccess) {

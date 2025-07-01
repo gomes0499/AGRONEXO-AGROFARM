@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -77,9 +77,19 @@ export function UnifiedPricesListing({
     null
   );
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Local state to track deleted items
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
 
-  // Combine all prices
-  const allPrices = [...commodityPrices, ...exchangeRates];
+  // Reset deleted IDs when props change (data reloaded)
+  useEffect(() => {
+    setDeletedIds(new Set());
+  }, [commodityPrices, exchangeRates]);
+
+  // Combine all prices and filter out deleted ones
+  const allPrices = [...commodityPrices, ...exchangeRates].filter(
+    price => !deletedIds.has(price.id)
+  );
 
   // Years to display (2021 to 2029)
   const years = [2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029];
@@ -195,6 +205,9 @@ export function UnifiedPricesListing({
         await deleteCommodityPrice(priceToDelete.id);
       }
 
+      // Add the deleted ID to local state for immediate UI update
+      setDeletedIds(prev => new Set([...prev, priceToDelete.id]));
+      
       toast.success("Preço excluído com sucesso");
       setDeleteDialogOpen(false);
       setPriceToDelete(null);

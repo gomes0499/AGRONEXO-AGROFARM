@@ -27,8 +27,6 @@ import { Badge } from "@/components/ui/badge";
 import { SafraPriceEditorAllVisible } from "../common/safra-price-editor-all-visible";
 import type { Culture, Harvest } from "@/schemas/production";
 import { z } from "zod";
-import { createMultiSafraCommodityPrices } from "@/lib/actions/commodity-prices-actions";
-import { createMultiSafraExchangeRates } from "@/lib/actions/exchange-rates-actions";
 
 // Schema para o formulário
 const priceFormSchema = z.object({
@@ -121,30 +119,69 @@ export function PriceForm({
           ? `${culture?.nome.toUpperCase()}_${values.sistema}`
           : culture?.nome.toUpperCase() || "";
 
-        // Criar um preço para cada safra
+        // Converter preços por safra para preços por ano
+        const precosPorAno: Record<string, number> = {};
+        const safrasIds = validPrices.map(([safraId]) => safraId);
+        
+        // Para cada safra selecionada, mapear seu ano para o preço
         for (const [safraId, price] of validPrices) {
-          await createMultiSafraCommodityPrices({
-            organizationId,
-            commodityType,
-            safrasIds: [safraId],
-            precoAtual: price,
-            precosporSafra: { [safraId]: price }
-          });
+          const safra = harvests.find(s => s.id === safraId);
+          if (safra) {
+            precosPorAno[safra.ano_inicio.toString()] = price;
+          }
+        }
+
+        // Criar um único registro com todos os preços
+        const response = await fetch('/api/production/commodity-prices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organizacao_id: organizationId,
+            safra_id: safrasIds[0], // Usar a primeira safra como referência
+            commodity_type: commodityType,
+            current_price: validPrices[0][1], // Primeiro preço como padrão
+            unit: values.unit,
+            precos_por_ano: precosPorAno, // Todos os preços em um objeto
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao criar preço de commodity');
         }
       } else {
         // Exchange rate
+        // Converter cotações por safra para cotações por ano
+        const cotacoesPorAno: Record<string, number> = {};
+        const safrasIds = validPrices.map(([safraId]) => safraId);
+        
+        // Para cada safra selecionada, mapear seu ano para a cotação
         for (const [safraId, price] of validPrices) {
-          await createMultiSafraExchangeRates({
-            organizationId,
-            exchangeType: values.item_id,
-            safrasIds: [safraId],
-            precoAtual: price,
-            precosporSafra: { [safraId]: price }
-          });
+          const safra = harvests.find(s => s.id === safraId);
+          if (safra) {
+            cotacoesPorAno[safra.ano_inicio.toString()] = price;
+          }
+        }
+
+        // Criar um único registro com todas as cotações
+        const response = await fetch('/api/production/exchange-rates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organizacao_id: organizationId,
+            safra_id: safrasIds[0], // Usar a primeira safra como referência
+            tipo_moeda: values.item_id,
+            cotacao_atual: validPrices[0][1], // Primeira cotação como padrão
+            unit: values.unit,
+            cotacoes_por_ano: cotacoesPorAno, // Todas as cotações em um objeto
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao criar cotação de câmbio');
         }
       }
 
-      toast.success(`${validPrices.length} preço(s) criado(s) com sucesso!`);
+      toast.success(`Preço criado com sucesso para ${validPrices.length} safra(s)!`);
       
       if (onSuccess) {
         onSuccess();

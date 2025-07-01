@@ -209,6 +209,7 @@ export function DividasFornecedoresForm({
                         values={field.value as Record<string, number> || {}}
                         onChange={field.onChange}
                         safras={safras}
+                        currency={form.watch("moeda") as any}
                       />
                     </FormControl>
                     <FormMessage />

@@ -78,33 +78,38 @@ export function MultiSafraExchangeRateForm({
 
     setIsSubmitting(true);
     try {
-      // Criar uma cotação para cada safra selecionada
-      const createPromises = Object.entries(values.cotacoes_por_safra).map(async ([safraId, cotacaoAtual]) => {
-        const response = await fetch('/api/production/exchange-rates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            organizacao_id: organizationId,
-            safra_id: safraId,
-            tipo_moeda: values.tipo_moeda,
-            cotacao_atual: cotacaoAtual,
-            unit: values.unit,
-            cotacoes_por_ano: { [safraId]: cotacaoAtual }, // Incluir pelo menos o valor da safra atual
-          }),
-        });
-
-        if (!response.ok) {
-          const safra = safras.find(s => s.id === safraId);
-          throw new Error(`Erro ao criar cotação para safra ${safra?.nome || safraId}`);
+      // Converter cotações por safra para cotações por ano
+      const cotacoesPorAno: Record<string, number> = {};
+      const safrasIds = Object.keys(values.cotacoes_por_safra);
+      
+      // Para cada safra selecionada, mapear seu ano para a cotação
+      for (const safraId of safrasIds) {
+        const safra = safras.find(s => s.id === safraId);
+        if (safra) {
+          cotacoesPorAno[safra.ano_inicio.toString()] = values.cotacoes_por_safra[safraId];
         }
+      }
 
-        return response.json();
+      // Criar um único registro com todas as cotações
+      const response = await fetch('/api/production/exchange-rates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizacao_id: organizationId,
+          safra_id: safrasIds[0], // Usar a primeira safra como referência
+          tipo_moeda: values.tipo_moeda,
+          cotacao_atual: Object.values(values.cotacoes_por_safra)[0], // Primeira cotação como padrão
+          unit: values.unit,
+          cotacoes_por_ano: cotacoesPorAno, // Todas as cotações em um objeto
+        }),
       });
 
-      await Promise.all(createPromises);
+      if (!response.ok) {
+        throw new Error('Erro ao criar cotação de câmbio');
+      }
 
       toast.success(
-        `${Object.keys(values.cotacoes_por_safra).length} cotação(ões) de câmbio criada(s) com sucesso!`
+        `Cotação de câmbio criada com sucesso para ${Object.keys(values.cotacoes_por_safra).length} safra(s)!`
       );
 
       if (onSuccess) {

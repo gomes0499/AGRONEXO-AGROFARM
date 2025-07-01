@@ -298,6 +298,7 @@ export function DividasBancariasForm({
                       values={field.value || {}}
                       onChange={field.onChange}
                       safras={initialSafras}
+                      currency={form.watch("moeda") as any}
                     />
                   </FormControl>
                   <FormMessage />
