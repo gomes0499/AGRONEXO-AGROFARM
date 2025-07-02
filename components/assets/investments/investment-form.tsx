@@ -28,12 +28,16 @@ import { SafraInvestmentEditor } from "../common/safra-investment-editor";
 import { type Safra } from "@/lib/actions/asset-forms-data-actions";
 
 const INVESTMENT_CATEGORIES = [
+  { value: "MAQUINARIO_AGRICOLA", label: "Máquinas" },
   { value: "EQUIPAMENTO", label: "Equipamento" },
   { value: "TRATOR_COLHEITADEIRA_PULVERIZADOR", label: "Trator/Colheitadeira/Pulverizador" },
-  { value: "AERONAVE", label: "Aeronave" },
-  { value: "VEICULO", label: "Veículo" },
+  { value: "INFRAESTRUTURA", label: "Infraestrutura" },
+  { value: "INVESTIMENTO_SOLO", label: "Solo" },
   { value: "BENFEITORIA", label: "Benfeitoria" },
-  { value: "INVESTIMENTO_SOLO", label: "Investimento em Solo" },
+  { value: "VEICULO", label: "Veículo" },
+  { value: "AERONAVE", label: "Aeronave" },
+  { value: "TECNOLOGIA", label: "Tecnologia" },
+  { value: "OUTROS", label: "Outros" },
 ];
 
 interface InvestmentFormClientProps {

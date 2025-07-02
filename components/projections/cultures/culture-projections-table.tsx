@@ -386,7 +386,7 @@ export function CultureProjectionsTable({ organizationId, initialProjections, sa
             Preço
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px]">
-            R$/Sc
+            {projection.cultura_nome.toLowerCase().includes('algod') ? 'R$/@' : 'R$/Sc'}
           </TableCell>
           {anosFiltrados.map((ano) => (
             <TableCell 

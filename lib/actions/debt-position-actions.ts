@@ -176,10 +176,10 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       };
     }
 
-  // Filtrar apenas as safras até 2029/30 para exibição na tabela
+  // Filtrar apenas as safras até 2033/34 para exibição na tabela
   const anosFiltrados = safras.filter(s => {
     const anoFim = parseInt(s.ano_fim);
-    return anoFim <= 2030; // 2029/30 é a última safra que queremos mostrar
+    return anoFim <= 2034; // 2033/34 é a última safra que queremos mostrar
   });
 
   // Criar mapeamento de safra ID para nome (apenas para safras até 2029/30)
@@ -245,20 +245,31 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       buscarTabela("caixa_disponibilidades"),
     ]);
     
-    // dividas_trading - buscar da tabela financeiras
-    const financeirasTableName = projectionId ? "financeiras_projections" : "financeiras";
-    let financeirasQuery = supabase
-      .from(financeirasTableName)
-      .select("*")
-      .eq("organizacao_id", organizationId)
-      .eq("categoria", "TRADING");
-    
-    if (projectionId) {
-      financeirasQuery = financeirasQuery.eq("projection_id", projectionId);
+    // dividas_trading - buscar da tabela dividas_bancarias com tipo = 'TRADING'
+    // NOTA: dividas_bancarias tem tipo TRADING para empresas de trading
+    try {
+      let tradingQuery = supabase
+        .from(projectionId ? "dividas_bancarias_projections" : "dividas_bancarias")
+        .select("*")
+        .eq("organizacao_id", organizationId)
+        .eq("tipo", "TRADING");
+      
+      if (projectionId) {
+        tradingQuery = tradingQuery.eq("projection_id", projectionId);
+      }
+      
+      const { data: tradingData, error: tradingError } = await tradingQuery;
+      
+      if (tradingError) {
+        console.warn("⚠️ Erro ao buscar dívidas trading:", tradingError.message);
+        dividasTrading = [];
+      } else {
+        dividasTrading = tradingData || [];
+      }
+    } catch (err) {
+      console.warn("⚠️ Erro inesperado ao buscar dívidas trading:", err);
+      dividasTrading = [];
     }
-    
-    const { data: financeirasData } = await financeirasQuery;
-    dividasTrading = financeirasData || [];
     
     // Estoques e EstoquesCommodities vêm da mesma tabela caixa_disponibilidades
     estoques = fatoresLiquidez?.filter(item => 
@@ -398,10 +409,28 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     return valores;
   };
 
-  // Consolidar arrendamentos
-  const consolidarArrendamentos = (): Record<string, number> => {
+  // Consolidar arrendamentos - convertendo sacas para reais
+  const consolidarArrendamentos = async (): Promise<Record<string, number>> => {
     const valores: Record<string, number> = {};
     anos.forEach(ano => valores[ano] = 0);
+
+    // Buscar preços da soja para converter sacas em reais
+    let soyPrices: Record<string, number> = {};
+    try {
+      const { data: priceData, error } = await supabase
+        .from("commodity_price_projections")
+        .select("commodity_type, precos_por_ano")
+        .eq("organizacao_id", organizationId)
+        .eq("commodity_type", "SOJA_SEQUEIRO")
+        .is("projection_id", projectionId ? projectionId : null)
+        .single();
+
+      if (!error && priceData && priceData.precos_por_ano) {
+        soyPrices = priceData.precos_por_ano;
+      }
+    } catch (error) {
+      console.warn("⚠️ Erro ao buscar preços da soja para arrendamentos:", error);
+    }
 
     arrendamentos?.forEach(arrendamento => {
       // Try to use custos_por_ano first, then fall back to valores_por_ano for compatibility
@@ -413,7 +442,10 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       Object.keys(custos).forEach(safraId => {
         const anoNome = safraToYear[safraId];
         if (anoNome && valores[anoNome] !== undefined) {
-          valores[anoNome] += custos[safraId] || 0;
+          const sacas = custos[safraId] || 0;
+          const precoSoja = soyPrices[safraId] || 125; // Default R$ 125,00/saca
+          const valorReais = sacas * precoSoja;
+          valores[anoNome] += valorReais;
         }
       });
     });
@@ -421,101 +453,48 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     return valores;
   };
 
-  // Consolidar fornecedores - mostrar valores exatos por safra, sem somar
+  // Consolidar fornecedores - mostrar valores exatos por safra
   const consolidarFornecedores = (): Record<string, number> => {
     const valores: Record<string, number> = {};
     // Inicializar com zero todos os anos
     anos.forEach(ano => valores[ano] = 0);
-
-    // Criar mapeamento de ano para safraId
-    const anoToSafraId: Record<string, string> = {};
-    safras.forEach(safra => {
-      anoToSafraId[safra.nome] = safra.id;
-    });
     
+    console.log("📊 Debug Fornecedores:");
+    console.log("- Total de fornecedores:", fornecedores?.length || 0);
+    console.log("- Safras mapeadas:", Object.entries(safraToYear).map(([id, nome]) => `${nome}: ${id}`));
     
-    // Função para extrair os valores a partir de diferentes formatos possíveis
-    const extrairValoresPorSafra = (fornecedor: Record<string, any>) => {
-      // Tentar caso 1: campo valores_por_ano/fluxo_pagamento_anual que é um objeto JSONB com safra_id como chave
-      const campoValores = fornecedor.valores_por_ano || 
-                          fornecedor.valores_por_safra || 
-                          fornecedor.fluxo_pagamento_anual || 
-                          fornecedor.valoresPorAno || 
-                          fornecedor.valores;
-      
-      if (campoValores) {
-        try {
-          if (typeof campoValores === 'string') {
-            return JSON.parse(campoValores);
-          } else if (typeof campoValores === 'object') {
-            return campoValores;
-          }
-        } catch (e) {
-          console.error("❌ Erro ao parsear valores do fornecedor:", e);
-        }
-      }
-      
-      // Tentar caso 2: os valores estão diretamente no objeto, com safra_id ou ano como chave
-      // Exemplo: { "2023/24": 1000, "2024/25": 2000 }
-      const valoresDiretos: Record<string, number> = {};
-      Object.keys(fornecedor).forEach(key => {
-        // Verificar se a chave é um ano (contém /)
-        if (key.includes('/') && typeof fornecedor[key] === 'number') {
-          valoresDiretos[key] = fornecedor[key];
-        }
-        // Verificar se a chave é um UUID (possível safra_id)
-        else if (key.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) && 
-                typeof fornecedor[key] === 'number') {
-          valoresDiretos[key] = fornecedor[key];
-        }
-      });
-      
-      if (Object.keys(valoresDiretos).length > 0) {
-        return valoresDiretos;
-      }
-      
-      // Caso 3: campo valor fixo para todas as safras
-      if (typeof fornecedor.valor === 'number') {
-        const valorFixo: Record<string, number> = {};
-        safras.forEach(safra => {
-          valorFixo[safra.id] = fornecedor.valor;
-        });
-        return valorFixo;
-      }
-      
-      return {} as Record<string, number>;
-    };
-
     // Buscar dados da tabela dividas_fornecedores
-    fornecedores?.forEach(fornecedor => {
-      // Extrair valores independente do formato
-      const valoresPorAno = extrairValoresPorSafra(fornecedor);
+    fornecedores?.forEach((fornecedor, index) => {
+      console.log(`\n${index + 1}. Fornecedor:`, fornecedor.nome);
+      console.log("   - valores_por_ano raw:", fornecedor.valores_por_ano);
       
-      
-      // Para cada safra, pegar o valor exato (sem somar todos)
-      anos.forEach(ano => {
-        // Tentar buscar o valor pelo ID da safra
-        const safraId = anoToSafraId[ano];
-        if (safraId && valoresPorAno[safraId]) {
-          valores[ano] += valoresPorAno[safraId] || 0;
-          return;
-        }
+      // Campo valores_por_ano contém os valores por safra_id
+      if (fornecedor.valores_por_ano) {
+        const valoresPorAno = typeof fornecedor.valores_por_ano === 'string'
+          ? JSON.parse(fornecedor.valores_por_ano)
+          : fornecedor.valores_por_ano;
         
-        // Ou tentar buscar diretamente pelo nome da safra (Exemplo: "2023/24")
-        if (valoresPorAno[ano]) {
-          valores[ano] += valoresPorAno[ano] || 0;
-          return;
-        }
+        console.log("   - valores parseados:", valoresPorAno);
         
-        // Tentar pegar o ano numérico (exemplo: 2023)
-        const anoNumerico = parseInt(ano.split('/')[0]);
-        if (!isNaN(anoNumerico) && valoresPorAno[anoNumerico]) {
-          valores[ano] += valoresPorAno[anoNumerico] || 0;
-        }
-      });
+        // Para cada safra_id nos valores
+        Object.keys(valoresPorAno).forEach(safraId => {
+          // Usar o mapeamento safraToYear que já contém apenas safras filtradas
+          const anoNome = safraToYear[safraId];
+          const valor = valoresPorAno[safraId] || 0;
+          
+          console.log(`   - Safra ID: ${safraId} -> Ano: ${anoNome} -> Valor: ${valor}`);
+          
+          if (anoNome && valores[anoNome] !== undefined) {
+            valores[anoNome] += valor;
+            console.log(`     ✅ Adicionado: ${anoNome} = ${valores[anoNome]}`);
+          } else {
+            console.log(`     ❌ Ignorado: safra não encontrada no mapeamento`);
+          }
+        });
+      }
     });
     
-
+    console.log("\n💰 Valores finais fornecedores:", valores);
     return valores;
   };
 
@@ -859,7 +838,7 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
 
   // Calcular valores consolidados
   const bancos = consolidarBancos(); // Apenas tipo = BANCO + tabela dividas_trading
-  const arrendamento = consolidarArrendamentos();
+  const arrendamento = await consolidarArrendamentos(); // Agora é assíncrono
   const fornecedoresValues = consolidarFornecedores();
   const tradingsValues = consolidarTradingsFromBancarias(); // Apenas tipo = TRADING
   const terrasValues = consolidarTerras();

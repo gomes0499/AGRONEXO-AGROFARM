@@ -54,9 +54,9 @@ export function ImprovementModal({
         <ImprovementForm
           propertyId={propertyId}
           organizationId={organizationId}
-          improvement={improvement}
           onSuccess={handleSuccess}
-          isModal={true}
+          open={true}
+          onOpenChange={() => {}}
         />
       </DialogContent>
     </Dialog>

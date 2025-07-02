@@ -59,9 +59,10 @@ export default async function EditImprovementPage({
           </div>
           <Separator />
           <ImprovementForm 
-            improvement={improvement}
             propertyId={resolvedParams.id} 
-            organizationId={session.organizationId} 
+            organizationId={session.organizationId}
+            open={true}
+            onOpenChange={() => {}}
           />
         </div>
       </>

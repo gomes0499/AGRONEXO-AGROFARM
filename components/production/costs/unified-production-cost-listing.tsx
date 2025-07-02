@@ -60,6 +60,7 @@ interface UnifiedProductionCostListingProps {
   systems: System[];
   cycles: Cycle[];
   organizationId: string;
+  projectionId?: string;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -98,6 +99,7 @@ export function UnifiedProductionCostListing({
   systems,
   cycles,
   organizationId,
+  projectionId,
 }: UnifiedProductionCostListingProps) {
   const [editingState, setEditingState] = useState<
     Record<string, Record<string, number>>
@@ -217,7 +219,7 @@ export function UnifiedProductionCostListing({
       const editValues = editingState[cost.id];
       if (!editValues) return;
 
-      await updateProductionCost(cost.id, { custos_por_safra: editValues });
+      await updateProductionCost(cost.id, { custos_por_safra: editValues }, projectionId);
 
       toast.success("Custos atualizados com sucesso");
     } catch (error) {
@@ -275,6 +277,7 @@ export function UnifiedProductionCostListing({
               harvests={safras}
               properties={properties}
               organizationId={organizationId}
+              projectionId={projectionId}
             />
           </div>
         </div>

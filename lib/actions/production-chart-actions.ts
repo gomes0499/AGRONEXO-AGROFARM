@@ -464,15 +464,84 @@ export async function getReceitaChart(
   projectionId?: string
 ): Promise<RevenueData[]> {
   try {
+    // Se temos um projectionId, buscar dados das projeções de cultura
+    if (projectionId) {
+      const { getCultureProjections } = await import('./culture-projections-actions');
+      const projections = await getCultureProjections(organizationId, projectionId);
+      
+      if (!projections || !projections.anos || projections.anos.length === 0) {
+        return [];
+      }
+      
+      // Converter dados de projeções para o formato do gráfico
+      const chartData: RevenueData[] = [];
+      
+      // Para cada safra nas projeções (anos contém nomes de safras, não anos numéricos)
+      projections.anos.forEach(safra => {
+        const receitaPorCultura: Record<string, number> = {};
+        let totalSafra = 0;
+        
+        // Somar receitas de todas as culturas para esta safra
+        projections.projections.forEach((proj, index) => {
+          if (proj.projections_by_year && proj.projections_by_year[safra]) {
+            const data = proj.projections_by_year[safra];
+            const receita = data.receita || 0;
+            
+            
+            if (receita > 0) {
+              // Criar chave normalizada para a cultura
+              const culturaNome = proj.cultura_nome || 'DESCONHECIDA';
+              const sistemaNome = proj.sistema_nome || '';
+              const cicloNome = proj.ciclo_nome || '';
+              
+              // Incluir ciclo no nome para diferenciar culturas
+              let chaveExibicao = culturaNome;
+              
+              // Adicionar detalhes para diferenciar as culturas
+              if (culturaNome.toUpperCase() === 'MILHO' && cicloNome.toUpperCase().includes('SAFRINHA')) {
+                chaveExibicao = 'Milho Safrinha';
+              } else if (sistemaNome.toUpperCase() === 'IRRIGADO') {
+                chaveExibicao = `${culturaNome} Irrigado`;
+              } else if (cicloNome && cicloNome !== '1ª Safra') {
+                chaveExibicao = `${culturaNome} ${cicloNome}`;
+              }
+              
+              const chaveNormalizada = chaveExibicao
+                .toUpperCase()
+                .replace(/\s+/g, '')
+                .replace(/[ÃÁÀÂ]/g, 'A')
+                .replace(/[ÕÓÒÔ]/g, 'O')
+                .replace(/[ÇC]/g, 'C')
+                .replace(/[ÉÈÊ]/g, 'E')
+                .replace(/[ÍÌÎ]/g, 'I')
+                .replace(/[ÚÙÛ]/g, 'U');
+              
+              receitaPorCultura[chaveNormalizada] = (receitaPorCultura[chaveNormalizada] || 0) + receita;
+              totalSafra += receita;
+            }
+          }
+        });
+        
+        // Se há dados para esta safra, adicionar ao gráfico
+        if (totalSafra > 0) {
+          const safraData: RevenueData = {
+            safra: safra,
+            total: totalSafra,
+            ...receitaPorCultura
+          };
+          
+          
+          chartData.push(safraData);
+        }
+      });
+      
+      
+      return chartData;
+    }
+    
+    // Código original para quando não há projectionId
     const supabase = await createClient();
     
-    // Debug log
-    console.log("getReceitaChart - Parâmetros:", {
-      organizationId,
-      projectionId,
-      propertyIdsCount: propertyIds?.length || 0,
-      cultureIdsCount: cultureIds?.length || 0
-    });
     
     // 1. Buscar todas as safras da organização
     const { data: allSafras, error: safrasError } = await supabase
@@ -727,22 +796,22 @@ export async function getReceitaChart(
         let cicloNomeLC = cicloNome.toLowerCase();
         
         if (culturaNomeLC.includes('soja')) {
-          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA_SEQUEIRO';
         } else if (culturaNomeLC.includes('milho')) {
           // Detectar se é Milho Safrinha ou Milho comum
-          if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('2')) {
+          if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('safrinha')) {
             commodityType = 'MILHO_SAFRINHA';
           } else {
-            commodityType = 'MILHO';
+            commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'MILHO_IRRIGADO' : 'MILHO_SEQUEIRO';
           }
         } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
-          commodityType = 'ALGODAO';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ALGODÃO_IRRIGADO' : 'ALGODÃO_SEQUEIRO';
         } else if (culturaNomeLC.includes('arroz')) {
-          commodityType = 'ARROZ';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ARROZ_IRRIGADO' : 'ARROZ_SEQUEIRO';
         } else if (culturaNomeLC.includes('sorgo')) {
-          commodityType = 'SORGO';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SORGO_IRRIGADO' : 'SORGO_SEQUEIRO';
         } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
-          commodityType = 'FEIJAO';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'FEIJÃO_IRRIGADO' : 'FEIJÃO_SEQUEIRO';
         } else {
           // Tipo de commodity não identificado
           continue;
@@ -758,10 +827,22 @@ export async function getReceitaChart(
             // Usar precos_por_ano JSONB com chave sendo o safraId
             preco = commodityPrice.precos_por_ano[safraId] || 0;
           }
+          
+          // Debug log para preços
+          if (safra.nome === "2024/25" || safra.nome === "2025/26") {
+            console.log(`Preço para ${culturaNome} ${sistemaNome} em ${safra.nome}:`, {
+              commodityType,
+              commodityPriceFound: !!commodityPrice,
+              precoEncontrado: preco,
+              safraId,
+              todosOsPrecos: commodityPrice?.precos_por_ano
+            });
+          }
         }
         
         // Se não existe preço para esta safra, seguir a orientação de não usar fallback
         if (preco <= 0) {
+          console.log(`Pulando ${culturaNome} ${sistemaNome} na safra ${safra.nome} - sem preço`);
           continue; // Pular esta cultura/sistema se não temos preço
         }
         
@@ -835,6 +916,52 @@ export async function getFinancialChart(
   projectionId?: string
 ): Promise<FinancialData[]> {
   try {
+    // Se temos um projectionId, buscar dados das projeções de cultura
+    if (projectionId) {
+      const { getCultureProjections } = await import('./culture-projections-actions');
+      const projections = await getCultureProjections(organizationId, projectionId);
+      
+      if (!projections || !projections.anos || projections.anos.length === 0) {
+        return [];
+      }
+      
+      // Converter dados de projeções para o formato do gráfico financeiro
+      const chartData: FinancialData[] = [];
+      
+      // Para cada safra nas projeções (anos contém nomes de safras, não anos numéricos)
+      projections.anos.forEach(safra => {
+        let receitaTotal = 0;
+        let custoTotal = 0;
+        
+        // Somar receitas e custos de todas as culturas para esta safra
+        projections.projections.forEach(proj => {
+          if (proj.projections_by_year && proj.projections_by_year[safra]) {
+            const data = proj.projections_by_year[safra];
+            receitaTotal += data.receita || 0;
+            custoTotal += data.custo_total || 0;
+          }
+        });
+        
+        // Calcular EBITDA e lucro líquido
+        const ebitda = receitaTotal - custoTotal;
+        const lucroLiquido = ebitda * 0.8; // Aproximação: 80% do EBITDA
+        
+        // Se há dados para esta safra, adicionar ao gráfico
+        if (receitaTotal > 0 || custoTotal > 0) {
+          chartData.push({
+            safra: safra,
+            receitaTotal,
+            custoTotal,
+            ebitda,
+            lucroLiquido
+          });
+        }
+      });
+      
+      return chartData;
+    }
+    
+    // Código original para quando não há projectionId
     const supabase = await createClient();
     
     // 1. Buscar todas as safras da organização
@@ -1076,22 +1203,22 @@ export async function getFinancialChart(
         let cicloNomeLC = cicloNome.toLowerCase();
         
         if (culturaNomeLC.includes('soja')) {
-          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA_SEQUEIRO';
         } else if (culturaNomeLC.includes('milho')) {
           // Detectar se é Milho Safrinha ou Milho comum
-          if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('2')) {
+          if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('safrinha')) {
             commodityType = 'MILHO_SAFRINHA';
           } else {
-            commodityType = 'MILHO';
+            commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'MILHO_IRRIGADO' : 'MILHO_SEQUEIRO';
           }
         } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
-          commodityType = 'ALGODAO';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ALGODÃO_IRRIGADO' : 'ALGODÃO_SEQUEIRO';
         } else if (culturaNomeLC.includes('arroz')) {
-          commodityType = 'ARROZ';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ARROZ_IRRIGADO' : 'ARROZ_SEQUEIRO';
         } else if (culturaNomeLC.includes('sorgo')) {
-          commodityType = 'SORGO';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SORGO_IRRIGADO' : 'SORGO_SEQUEIRO';
         } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
-          commodityType = 'FEIJAO';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'FEIJÃO_IRRIGADO' : 'FEIJÃO_SEQUEIRO';
         } else {
           // Tipo de commodity não identificado
           continue;
@@ -1107,10 +1234,22 @@ export async function getFinancialChart(
             // Usar precos_por_ano JSONB com chave sendo o safraId
             preco = commodityPrice.precos_por_ano[safraId] || 0;
           }
+          
+          // Debug log para preços
+          if (safra.nome === "2024/25" || safra.nome === "2025/26") {
+            console.log(`Preço para ${culturaNome} ${sistemaNome} em ${safra.nome}:`, {
+              commodityType,
+              commodityPriceFound: !!commodityPrice,
+              precoEncontrado: preco,
+              safraId,
+              todosOsPrecos: commodityPrice?.precos_por_ano
+            });
+          }
         }
         
         // Se não existe preço para esta safra, seguir a orientação de não usar fallback
         if (preco <= 0) {
+          console.log(`Pulando ${culturaNome} ${sistemaNome} na safra ${safra.nome} - sem preço`);
           continue; // Pular esta cultura/sistema se não temos preço
         }
         

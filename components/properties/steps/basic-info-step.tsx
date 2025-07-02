@@ -1,18 +1,3 @@
-import {
-  Building,
-  User,
-  Calendar,
-  Tag,
-  MapPin,
-  Hash,
-  Ruler,
-  FileText,
-  UserCheck,
-  ClipboardSignature,
-  FileCheck,
-  Clock,
-  Tractor,
-} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -37,6 +22,11 @@ import { PropertyImageUpload } from "../property-image-upload";
 import { OwnersManager } from "../owners-manager";
 import { useWatch } from "react-hook-form";
 import { useEffect, useState } from "react";
+import { SafraFinancialEditorAllVisible } from "@/components/financial/common/safra-financial-editor-all-visible";
+import { getSafras } from "@/lib/actions/property-actions";
+import { getCommodityPriceProjections } from "@/lib/actions/production-prices-actions";
+import { toast } from "sonner";
+import { useOrganization } from "@/components/auth/organization-provider";
 
 interface BasicInfoStepProps {
   form: UseFormReturn<PropertyFormValues>;
@@ -81,6 +71,10 @@ export function BasicInfoStep({
   onImageSuccess,
   onImageRemove,
 }: BasicInfoStepProps) {
+  const { organization } = useOrganization();
+  const [safras, setSafras] = useState<any[]>([]);
+  const [commodityPrices, setCommodityPrices] = useState<any[]>([]);
+  
   // Watch the property type to conditionally render fields
   const propertyType = useWatch({
     control: form.control,
@@ -89,6 +83,17 @@ export function BasicInfoStep({
   });
 
   const isLeased = propertyType === "ARRENDADO" || propertyType === "PARCERIA_AGRICOLA";
+  
+  // Watch area and cost for automatic calculation
+  const areaTotal = useWatch({
+    control: form.control,
+    name: "area_total",
+  });
+  
+  const custoHectare = useWatch({
+    control: form.control,
+    name: "custo_hectare",
+  });
   
   // Quando o tipo mudar para arrendado, limpar o ano de aquisição
   // e quando mudar para próprio, limpar os campos de arrendamento
@@ -101,8 +106,78 @@ export function BasicInfoStep({
       form.setValue("data_inicio", null, { shouldValidate: false });
       form.setValue("data_termino", null, { shouldValidate: false });
       form.setValue("tipo_anuencia", "", { shouldValidate: false });
+      form.setValue("arrendantes", "", { shouldValidate: false });
+      form.setValue("custo_hectare", null, { shouldValidate: false });
+      form.setValue("tipo_pagamento", "SACAS", { shouldValidate: false });
+      form.setValue("custos_por_safra", {}, { shouldValidate: false });
     }
   }, [isLeased, form]);
+  
+  // Buscar safras quando o tipo for arrendado
+  useEffect(() => {
+    const fetchSafras = async () => {
+      if (isLeased && organization?.id) {
+        try {
+          const safrasList = await getSafras(organization.id);
+          setSafras(safrasList);
+        } catch (error) {
+          console.error("Erro ao buscar safras:", error);
+        }
+      }
+    };
+    
+    fetchSafras();
+  }, [isLeased, organization?.id]);
+  
+  // Buscar preços de commodities
+  useEffect(() => {
+    const fetchCommodityPrices = async () => {
+      if (isLeased) {
+        try {
+          const result = await getCommodityPriceProjections();
+          if (result.data) {
+            setCommodityPrices(result.data);
+          }
+        } catch (error) {
+          console.error("Erro ao buscar preços:", error);
+        }
+      }
+    };
+    
+    fetchCommodityPrices();
+  }, [isLeased]);
+  
+  // Calcular valores por safra automaticamente
+  useEffect(() => {
+    if (isLeased && areaTotal && custoHectare && safras.length > 0 && Array.isArray(commodityPrices)) {
+      const custosPorSafra: Record<string, number> = {};
+      const sacasTotal = areaTotal * custoHectare;
+      
+      // Buscar preços de soja
+      const sojaPrices = commodityPrices.find(p => 
+        p.commodity_type === "SOJA_SEQUEIRO" || 
+        (p.cultura && p.cultura.nome === "SOJA" && p.sistema && p.sistema.nome === "SEQUEIRO")
+      );
+      
+      safras.forEach(safra => {
+        if (safra.id) {
+          let precoSafra = 150; // Preço padrão
+          
+          if (sojaPrices && sojaPrices.precos_por_ano) {
+            // Tentar buscar preço por ID da safra
+            precoSafra = sojaPrices.precos_por_ano[safra.id] || 
+                        sojaPrices.precos_por_ano[safra.ano_inicio?.toString()] || 
+                        sojaPrices.current_price || 
+                        150;
+          }
+          
+          custosPorSafra[safra.id] = sacasTotal * precoSafra;
+        }
+      });
+      
+      form.setValue("custos_por_safra", custosPorSafra, { shouldValidate: false });
+    }
+  }, [isLeased, areaTotal, custoHectare, safras, commodityPrices, form]);
   
   return (
     <div className="space-y-6">
@@ -124,8 +199,7 @@ export function BasicInfoStep({
           name="nome"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <Building className="h-3.5 w-3.5 text-muted-foreground" />
+              <FormLabel>
                 Nome da Propriedade*
               </FormLabel>
               <FormControl>
@@ -158,8 +232,7 @@ export function BasicInfoStep({
           name="tipo"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+              <FormLabel>
                 Tipo de Propriedade*
               </FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
@@ -222,8 +295,7 @@ export function BasicInfoStep({
             name="cidade"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                <FormLabel>
                   Cidade*
                 </FormLabel>
                 <FormControl>
@@ -243,8 +315,7 @@ export function BasicInfoStep({
             name="estado"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                <FormLabel>
                   Estado*
                 </FormLabel>
                 <Select onValueChange={field.onChange} value={field.value || undefined}>
@@ -271,8 +342,7 @@ export function BasicInfoStep({
             name="numero_matricula"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                <FormLabel>
                   Número da Matrícula*
                 </FormLabel>
                 <FormControl>
@@ -300,8 +370,7 @@ export function BasicInfoStep({
             name="area_total"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <Ruler className="h-3.5 w-3.5 text-muted-foreground" />
+                <FormLabel>
                   Área Total (ha)*
                 </FormLabel>
                 <FormControl>
@@ -327,8 +396,7 @@ export function BasicInfoStep({
             name="area_cultivada"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <Ruler className="h-3.5 w-3.5 text-muted-foreground" />
+                <FormLabel>
                   Área Cultivada (ha)
                 </FormLabel>
                 <FormControl>
@@ -354,8 +422,7 @@ export function BasicInfoStep({
             name="area_pecuaria"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <Tractor className="h-3.5 w-3.5 text-muted-foreground" />
+                <FormLabel>
                   Área de Pecuária (ha)
                 </FormLabel>
                 <FormControl>
@@ -383,18 +450,8 @@ export function BasicInfoStep({
             name={isLeased ? "cartorio_registro" : "ano_aquisicao"}
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  {isLeased ? (
-                    <>
-                      <FileCheck className="h-3.5 w-3.5 text-muted-foreground" />
-                      Cartório de Registro
-                    </>
-                  ) : (
-                    <>
-                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                      Ano de Aquisição*
-                    </>
-                  )}
+                <FormLabel>
+                  {isLeased ? "Cartório de Registro" : "Ano de Aquisição*"}
                 </FormLabel>
                 <FormControl>
                   {isLeased ? (
@@ -428,8 +485,7 @@ export function BasicInfoStep({
             name="numero_car"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                <FormLabel>
                   Número do CAR
                 </FormLabel>
                 <FormControl>
@@ -452,8 +508,7 @@ export function BasicInfoStep({
               name="data_inicio"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <FormLabel>
                     Data de Início*
                   </FormLabel>
                   <DatePicker
@@ -472,8 +527,7 @@ export function BasicInfoStep({
               name="data_termino"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <FormLabel>
                     Data de Término*
                   </FormLabel>
                   <DatePicker
@@ -492,8 +546,7 @@ export function BasicInfoStep({
               name="tipo_anuencia"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                  <FormLabel>
                     Tipo de Anuência*
                   </FormLabel>
                   <Select 
@@ -515,6 +568,121 @@ export function BasicInfoStep({
               )}
             />
           </div>
+        )}
+        
+        {isLeased && (
+          <>
+          {/* Campos adicionais de arrendamento */}
+          <Separator className="my-4" />
+          
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-muted-foreground">Dados do Arrendamento</h4>
+            
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="arrendantes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Arrendantes*
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Nome dos arrendantes/proprietários"
+                        {...field}
+                        value={field.value ?? ""}
+                        className="resize-none"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid gap-4 grid-cols-1">
+                <FormField
+                  control={form.control}
+                  name="tipo_pagamento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Tipo de Pagamento*
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || "SACAS"}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo de pagamento" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="SACAS">Sacas</SelectItem>
+                          <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                          <SelectItem value="MISTO">Misto</SelectItem>
+                          <SelectItem value="PERCENTUAL_PRODUCAO">% da Produção</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="custo_hectare"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Custo por Hectare (sacas)*
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Ex: 13.50"
+                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+            
+            {/* Editor de custos por safra */}
+            <FormField
+              control={form.control}
+              name="custos_por_safra"
+              render={({ field }) => (
+                <FormItem>
+                  <SafraFinancialEditorAllVisible
+                    label="Custos do Arrendamento por Safra"
+                    description="Valores calculados automaticamente: Custo/ha × Área × Preço da Soja"
+                    values={field.value || {}}
+                    onChange={field.onChange}
+                    safras={safras}
+                    disabled={true}
+                    currency="BRL"
+                  />
+                  {(!areaTotal || !custoHectare) && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Preencha a área total e o custo por hectare para calcular os valores
+                    </p>
+                  )}
+                </FormItem>
+              )}
+            />
+          </div>
+          </>
         )}
       </div>
     </div>

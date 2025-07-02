@@ -108,6 +108,13 @@ export const propertySchema = z.object({
   data_inicio: z.coerce.date().nullable().optional(),
   data_termino: z.coerce.date().nullable().optional(),
   tipo_anuencia: z.string().nullable().optional(),
+  // Campos de arrendamento
+  arrendantes: z.string().nullable().optional(),
+  custo_hectare: z.coerce.number().min(0, "Custo por hectare deve ser positivo ou zero").nullable().optional().refine(val => val === null || val === undefined || !isNaN(val), {
+    message: "Insira um valor numérico válido para o custo por hectare"
+  }),
+  tipo_pagamento: z.enum(["SACAS", "DINHEIRO", "MISTO", "PERCENTUAL_PRODUCAO"]).nullable().optional(),
+  custos_por_safra: z.record(z.string(), z.number()).nullable().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
@@ -160,6 +167,30 @@ export const propertyFormSchema = basePropertyFormSchema
           code: z.ZodIssueCode.custom,
           message: `Tipo de anuência é obrigatório para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
           path: ["tipo_anuencia"],
+        });
+      }
+      
+      if (!data.arrendantes) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Arrendantes é obrigatório para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
+          path: ["arrendantes"],
+        });
+      }
+      
+      if (!data.custo_hectare || data.custo_hectare <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Custo por hectare é obrigatório para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
+          path: ["custo_hectare"],
+        });
+      }
+      
+      if (!data.tipo_pagamento) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Tipo de pagamento é obrigatório para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
+          path: ["tipo_pagamento"],
         });
       }
     }

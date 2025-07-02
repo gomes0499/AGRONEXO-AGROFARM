@@ -35,7 +35,7 @@ export function ImprovementList({
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const router = useRouter();
-  
+
   const totalValue = improvements.reduce(
     (sum, imp) => sum + (imp.valor || 0),
     0
@@ -43,7 +43,10 @@ export function ImprovementList({
 
   const handleNewImprovement = () => {
     if (!propertyId || !organizationId) {
-      console.error("Erro: IDs inválidos para criar benfeitoria", { propertyId, organizationId });
+      console.error("Erro: IDs inválidos para criar benfeitoria", {
+        propertyId,
+        organizationId,
+      });
       return;
     }
     setShowModal(true);
@@ -61,26 +64,20 @@ export function ImprovementList({
 
   return (
     <Card className="shadow-sm border-muted/80">
-      <CardHeaderPrimary 
+      <CardHeaderPrimary
         icon={<Building className="h-4 w-4" />}
         title="Benfeitorias"
         description={
-          improvements.length > 0 
-            ? `Infraestrutura e melhorias realizadas na propriedade • ${improvements.length} ${improvements.length === 1 ? 'item' : 'itens'} • Valor total: ${formatCurrency(totalValue)}`
+          improvements.length > 0
+            ? `Infraestrutura e melhorias realizadas na propriedade • ${improvements.length} ${improvements.length === 1 ? "item" : "itens"} • Valor total: ${formatCurrency(totalValue)}`
             : "Infraestrutura e melhorias realizadas na propriedade"
         }
         action={
-          propertyId && organizationId && (
+          propertyId &&
+          organizationId && (
             <div className="flex gap-2">
-              <Button 
-                variant="outline"
-                onClick={() => setShowImportModal(true)}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Importar Excel
-              </Button>
-              <Button 
-                variant="secondary"
+              <Button
+                className="bg-white text-black hover:bg-white/90"
                 onClick={handleNewImprovement}
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -96,29 +93,37 @@ export function ImprovementList({
             <Table>
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
-                  <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Descrição</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground">Dimensões</TableHead>
-                  <TableHead className="font-semibold text-primary-foreground">Valor</TableHead>
-                  <TableHead className="text-right font-semibold text-primary-foreground rounded-tr-md">Ações</TableHead>
+                  <TableHead className="font-semibold text-primary-foreground rounded-tl-md">
+                    Descrição
+                  </TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">
+                    Dimensões
+                  </TableHead>
+                  <TableHead className="font-semibold text-primary-foreground">
+                    Valor
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-primary-foreground rounded-tr-md">
+                    Ações
+                  </TableHead>
                 </TableRow>
               </TableHeader>
-            <TableBody>
-              {improvements.map((improvement) => (
-                <TableRow key={improvement.id}>
-                  <TableCell className="font-medium">
-                    {improvement.descricao}
-                  </TableCell>
-                  <TableCell>{improvement.dimensoes || "-"}</TableCell>
-                  <TableCell>{formatCurrency(improvement.valor)}</TableCell>
-                  <TableCell className="text-right">
-                    <ImprovementRowActions
-                      improvement={improvement}
-                      propertyId={propertyId}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
+              <TableBody>
+                {improvements.map((improvement) => (
+                  <TableRow key={improvement.id}>
+                    <TableCell className="font-medium">
+                      {improvement.descricao}
+                    </TableCell>
+                    <TableCell>{improvement.dimensoes || "-"}</TableCell>
+                    <TableCell>{formatCurrency(improvement.valor)}</TableCell>
+                    <TableCell className="text-right">
+                      <ImprovementRowActions
+                        improvement={improvement}
+                        propertyId={propertyId}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
             </Table>
           </div>
         ) : (
@@ -127,9 +132,13 @@ export function ImprovementList({
             description="Cadastre benfeitorias e melhorias realizadas nesta propriedade."
             icon={<Building size={48} className="text-muted-foreground" />}
             action={
-              propertyId && organizationId && (
+              propertyId &&
+              organizationId && (
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowImportModal(true)}
+                  >
                     <Upload className="h-4 w-4 mr-2" />
                     Importar Excel
                   </Button>

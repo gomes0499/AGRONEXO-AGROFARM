@@ -21,6 +21,7 @@ import {
   XCircle,
   Calendar as CalendarIcon,
   Users,
+  Shield,
 } from "lucide-react";
 import { InfoField } from "@/components/organization/common/data-display/info-field";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
@@ -242,11 +243,80 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
               />
             )}
 
-            {property.avaliacao_banco && (
+            {property.avaliacao_terceiro && (
               <InfoField
                 icon={<DollarSign className="h-4 w-4" />}
-                label="Avaliação do Banco"
-                value={formatCurrency(property.avaliacao_banco)}
+                label="Avaliação de Terceiro"
+                value={formatCurrency(property.avaliacao_terceiro)}
+              />
+            )}
+
+            {property.valor_terra_nua && (
+              <InfoField
+                icon={<DollarSign className="h-4 w-4" />}
+                label="Valor da Terra Nua"
+                value={formatCurrency(property.valor_terra_nua)}
+              />
+            )}
+
+            {property.valor_benfeitoria && (
+              <InfoField
+                icon={<DollarSign className="h-4 w-4" />}
+                label="Valor das Benfeitorias"
+                value={formatCurrency(property.valor_benfeitoria)}
+              />
+            )}
+
+            {property.area_pecuaria && (
+              <InfoField
+                icon={<Ruler className="h-4 w-4" />}
+                label="Área de Pecuária"
+                value={formatArea(property.area_pecuaria)}
+              />
+            )}
+
+            {property.cartorio_registro && (
+              <InfoField
+                icon={<FileText className="h-4 w-4" />}
+                label="Cartório de Registro"
+                value={property.cartorio_registro}
+              />
+            )}
+
+            {property.status && (
+              <InfoField
+                icon={<CheckCircle className="h-4 w-4" />}
+                label="Status"
+                copyable={false}
+              >
+                <Badge variant={property.status === "ATIVA" ? "default" : property.status === "VENDIDA" ? "destructive" : "secondary"} className="mt-0.5">
+                  {property.status === "ATIVA" ? "Ativa" : property.status === "VENDIDA" ? "Vendida" : property.status === "INATIVA" ? "Inativa" : "Em Negociação"}
+                </Badge>
+              </InfoField>
+            )}
+
+            {/* Seção de Ônus */}
+            {property.tipo_onus && (
+              <InfoField
+                icon={<Shield className="h-4 w-4" />}
+                label="Tipo de Ônus"
+                value={property.tipo_onus === "hipoteca" ? "Hipoteca" : property.tipo_onus === "alienacao_fiduciaria" ? "Alienação Fiduciária" : "Outros"}
+              />
+            )}
+
+            {property.banco_onus && (
+              <InfoField
+                icon={<Building2 className="h-4 w-4" />}
+                label="Banco/Instituição do Ônus"
+                value={property.banco_onus}
+              />
+            )}
+
+            {property.valor_onus && (
+              <InfoField
+                icon={<DollarSign className="h-4 w-4" />}
+                label="Valor do Ônus"
+                value={formatCurrency(property.valor_onus)}
               />
             )}
 
@@ -254,7 +324,7 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
             {property.onus && (
               <InfoField
                 icon={<FileText className="h-4 w-4" />}
-                label="Ônus e Observações"
+                label="Observações sobre Ônus"
                 value={property.onus}
                 className="col-span-full"
               />
@@ -297,6 +367,44 @@ export function PropertyDetail({ property }: PropertyDetailProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Card de Documentos */}
+      <Card className="shadow-sm border-muted/80">
+        <CardHeaderPrimary 
+          icon={<FileText className="h-4 w-4" />}
+          title="Documentos"
+          description="Documentos relacionados à propriedade"
+        />
+        <CardContent className="mt-4">
+          <div className="space-y-4">
+            {/* Documento de ônus */}
+            {property.documento_onus_url ? (
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Documento de Ônus</p>
+                    <p className="text-sm text-muted-foreground">Contrato, certidão ou documento relacionado ao ônus</p>
+                  </div>
+                </div>
+                <a 
+                  href={property.documento_onus_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  Visualizar
+                </a>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Nenhum documento anexado</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
     </div>
   );

@@ -3,7 +3,7 @@
 import React, { useState, useTransition, useCallback } from "react";
 import { ReceitaFinanceira } from "@/schemas/financial/receitas_financeiras";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, FileSpreadsheet, Loader2 } from "lucide-react";
+import { TrendingUp, FileSpreadsheet, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -46,7 +46,7 @@ interface ReceitasFinanceirasListingProps {
   organizationId: string;
   receitas: ReceitaFinanceira[];
   projectionId?: string;
-  safras?: Array<{ id: string; nome: string }>;
+  safras?: Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number }>;
   selectedSafraId?: string;
   error?: string;
 }
@@ -59,7 +59,12 @@ export function ReceitasFinanceirasListing({
   selectedSafraId,
   error: initialError,
 }: ReceitasFinanceirasListingProps) {
-  const [receitas, setReceitas] = useState<ReceitaFinanceira[]>(initialReceitasFinanceiras || []);
+  const [receitas, setReceitas] = useState<any[]>(
+    (initialReceitasFinanceiras || []).map((receita) => ({
+      ...receita,
+      isExpanded: false,
+    }))
+  );
   const [error, setError] = useState<string | null>(initialError || null);
   const [isPending, startTransition] = useTransition();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -69,7 +74,12 @@ export function ReceitasFinanceirasListing({
     startTransition(async () => {
       try {
         const newReceitas = await getReceitasFinanceiras(organizationId);
-        setReceitas(newReceitas);
+        setReceitas(
+          newReceitas.map((receita) => ({
+            ...receita,
+            isExpanded: false,
+          }))
+        );
         setError(null);
       } catch (err) {
         console.error("❌ Erro ao atualizar receitas financeiras:", err);
@@ -94,34 +104,21 @@ export function ReceitasFinanceirasListing({
     toast.success("Receitas importadas com sucesso!");
   }, [refreshData]);
 
-  // Calcular totais por categoria
-  const totaisPorCategoria = receitas.reduce((acc, receita) => {
-    const valor =
-      selectedSafraId && receita.safra_id !== selectedSafraId
-        ? 0
-        : receita.valor || 0;
-
-    if (!acc[receita.categoria]) {
-      acc[receita.categoria] = 0;
-    }
-    acc[receita.categoria] += valor;
-    return acc;
-  }, {} as Record<string, number>);
+  // Toggle expansion
+  const toggleExpansion = useCallback((id: string) => {
+    setReceitas((prev) =>
+      prev.map((receita) =>
+        receita.id === id
+          ? { ...receita, isExpanded: !receita.isExpanded }
+          : receita
+      )
+    );
+  }, []);
 
   // Calcular total geral
-  const totalGeral = Object.values(totaisPorCategoria).reduce(
-    (sum, val) => sum + val,
-    0
-  );
-
-  // Agrupar receitas por categoria
-  const receitasPorCategoria = receitas.reduce((acc, receita) => {
-    if (!acc[receita.categoria]) {
-      acc[receita.categoria] = [];
-    }
-    acc[receita.categoria].push(receita);
-    return acc;
-  }, {} as Record<string, ReceitaFinanceira[]>);
+  const totalGeral = receitas.reduce((sum, receita) => {
+    return sum + (receita.valor || 0);
+  }, 0);
 
   // Safra selecionada
   const safraAtual = selectedSafraId
@@ -211,6 +208,7 @@ export function ReceitasFinanceirasListing({
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
+                      <TableHead className="w-[40px]"></TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead>Categoria</TableHead>
                       <TableHead>Safra</TableHead>
@@ -219,72 +217,108 @@ export function ReceitasFinanceirasListing({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Object.entries(receitasPorCategoria).map(
-                      ([categoria, receitasCategoria]) => (
-                        <React.Fragment key={categoria}>
-                          {/* Linha de categoria */}
-                          <TableRow className="bg-muted/30">
-                            <TableCell colSpan={3} className="font-medium">
-                              <Badge
-                                variant="secondary"
-                                className={
-                                  categoryColors[categoria] ||
-                                  categoryColors.OUTRAS_RECEITAS
-                                }
-                              >
-                                {categoryLabels[categoria] || categoria}
-                              </Badge>
+                    {receitas.map((receita) => (
+                      <React.Fragment key={receita.id}>
+                        {/* Linha principal */}
+                        <TableRow className="cursor-pointer hover:bg-muted/50">
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleExpansion(receita.id)}
+                            >
+                              {receita.isExpanded ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {receita.descricao}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className={
+                                categoryColors[receita.categoria] ||
+                                categoryColors.OUTRAS_RECEITAS
+                              }
+                            >
+                              {categoryLabels[receita.categoria] || receita.categoria}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            -
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(receita.valor || 0)}
+                          </TableCell>
+                          <TableCell>
+                            <ReceitasFinanceirasRowActions
+                              receita={receita}
+                              organizationId={organizationId}
+                              safras={safras}
+                              onUpdate={handleUpdate}
+                            />
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Detalhamento por safra (expandido) */}
+                        {receita.isExpanded && receita.valores_por_safra && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="bg-muted/20 p-6">
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-sm font-medium">Detalhamento por Safra</h4>
+                                  <div className="text-sm font-medium">
+                                    Total: {formatCurrency(receita.valor || 0)}
+                                  </div>
+                                </div>
+                                
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>SAFRA</TableHead>
+                                      <TableHead className="text-right">VALOR</TableHead>
+                                      <TableHead className="text-right">% DO TOTAL</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {/* Ordenar safras por ano */}
+                                    {safras
+                                      .filter(safra => receita.valores_por_safra[safra.id])
+                                      .sort((a, b) => a.ano_inicio - b.ano_inicio)
+                                      .map((safra) => {
+                                        const valor = receita.valores_por_safra[safra.id] || 0;
+                                        const percentual = receita.valor > 0 
+                                          ? ((valor / receita.valor) * 100).toFixed(1)
+                                          : "0.0";
+                                        
+                                        return (
+                                          <TableRow key={safra.id}>
+                                            <TableCell>{safra.nome}</TableCell>
+                                            <TableCell className="text-right">
+                                              {formatCurrency(valor)}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                              {percentual}%
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                  </TableBody>
+                                </Table>
+                              </div>
                             </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(totaisPorCategoria[categoria] || 0)}
-                            </TableCell>
-                            <TableCell></TableCell>
                           </TableRow>
-                          
-                          {/* Linhas das receitas */}
-                          {receitasCategoria
-                            .filter(
-                              (receita) =>
-                                !selectedSafraId ||
-                                receita.safra_id === selectedSafraId
-                            )
-                            .map((receita) => (
-                              <TableRow key={receita.id}>
-                                <TableCell className="pl-8">
-                                  {receita.descricao}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline">
-                                    {categoryLabels[receita.categoria] ||
-                                      receita.categoria}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="secondary">
-                                    {safras.find((s) => s.id === receita.safra_id)
-                                      ?.nome || "-"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {formatCurrency(receita.valor || 0)}
-                                </TableCell>
-                                <TableCell>
-                                  <ReceitasFinanceirasRowActions
-                                    receita={receita}
-                                    organizationId={organizationId}
-                                    safras={safras}
-                                    onUpdate={handleUpdate}
-                                  />
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                        </React.Fragment>
-                      )
-                    )}
+                        )}
+                      </React.Fragment>
+                    ))}
                     
                     {/* Linha de total geral */}
                     <TableRow className="bg-primary/10 font-medium">
-                      <TableCell colSpan={3} className="text-right">
+                      <TableCell colSpan={4} className="text-right">
                         <strong>Total Geral:</strong>
                       </TableCell>
                       <TableCell className="text-right">

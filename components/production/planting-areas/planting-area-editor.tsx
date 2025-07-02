@@ -128,12 +128,8 @@ export function PlantingAreaEditor({ plantingArea, harvests, onSuccess }: Planti
   const systemName = plantingArea.sistemas?.nome || "Sistema não encontrado";
   const cycleName = plantingArea.ciclos?.nome || "Ciclo não encontrado";
 
-  // Filtered and sorted harvests
+  // No filtering - show all harvests sorted by year
   const filteredHarvests = harvests
-    .filter(harvest => {
-      const anoInicio = harvest.ano_inicio;
-      return anoInicio >= 2021 && anoInicio <= 2029;
-    })
     .sort((a, b) => a.ano_inicio - b.ano_inicio);
 
   return (

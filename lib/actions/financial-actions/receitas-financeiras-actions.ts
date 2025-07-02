@@ -27,7 +27,49 @@ export async function getReceitasFinanceiras(organizationId: string) {
     throw new Error("Erro ao buscar receitas financeiras");
   }
 
-  return data as ReceitaFinanceira[];
+  // Agrupar receitas por descrição e categoria
+  const receitasAgrupadas = data.reduce((acc: any[], receita) => {
+    const key = `${receita.descricao}_${receita.categoria}_${receita.moeda}`;
+    const existingGroup = acc.find(
+      (g) => `${g.descricao}_${g.categoria}_${g.moeda}` === key
+    );
+
+    if (existingGroup) {
+      // Adicionar valores por safra
+      if (!existingGroup.valores_por_safra) {
+        existingGroup.valores_por_safra = {};
+      }
+      if (receita.safra_id) {
+        existingGroup.valores_por_safra[receita.safra_id] = receita.valor;
+      }
+      // Somar ao valor total
+      existingGroup.valor = (existingGroup.valor || 0) + (receita.valor || 0);
+      // Adicionar ID ao array de registros
+      if (!existingGroup.registros_ids) {
+        existingGroup.registros_ids = [];
+      }
+      existingGroup.registros_ids.push(receita.id);
+    } else {
+      // Criar novo grupo
+      const valores_por_safra: Record<string, number> = {};
+      if (receita.safra_id) {
+        valores_por_safra[receita.safra_id] = receita.valor;
+      }
+      
+      acc.push({
+        ...receita,
+        nome: receita.descricao, // Para compatibilidade com o formulário
+        valores_por_safra,
+        valor: receita.valor || 0,
+        // IDs dos registros individuais para operações futuras
+        registros_ids: [receita.id]
+      });
+    }
+
+    return acc;
+  }, []);
+
+  return receitasAgrupadas as ReceitaFinanceira[];
 }
 
 export async function getReceitaFinanceiraById(id: string) {
@@ -60,30 +102,62 @@ export async function createReceitaFinanceira(
   // Validar dados
   const validatedData = receitaFinanceiraFormSchema.parse(data);
   
-  // Preparar dados para inserção
-  const insertData = {
-    organizacao_id: organizationId,
-    categoria: validatedData.categoria,
-    descricao: validatedData.nome, // Usar nome como descrição
-    moeda: validatedData.moeda || "BRL",
-    valor: validatedData.valor || 0,
-    safra_id: validatedData.safra_id,
-    data_receita: validatedData.data_receita || new Date().toISOString()
-  };
+  // Se tem valores_por_safra, criar um registro para cada safra
+  if (validatedData.valores_por_safra && Object.keys(validatedData.valores_por_safra).length > 0) {
+    const insertDataArray = Object.entries(validatedData.valores_por_safra)
+      .filter(([_, valor]) => valor > 0) // Apenas valores maiores que zero
+      .map(([safraId, valor]) => ({
+        organizacao_id: organizationId,
+        categoria: validatedData.categoria,
+        descricao: validatedData.nome || validatedData.descricao, // Usar nome como descrição
+        moeda: validatedData.moeda || "BRL",
+        valor: valor,
+        safra_id: safraId,
+        data_receita: new Date().toISOString().split('T')[0]
+      }));
 
-  const { data: newReceitaFinanceira, error } = await supabase
-    .from("receitas_financeiras")
-    .insert(insertData)
-    .select()
-    .single();
+    if (insertDataArray.length === 0) {
+      throw new Error("Nenhum valor foi informado para as safras");
+    }
 
-  if (error) {
-    console.error("Erro ao criar receita financeira:", error);
-    throw new Error("Erro ao criar receita financeira");
+    const { data: newReceitasFinanceiras, error } = await supabase
+      .from("receitas_financeiras")
+      .insert(insertDataArray)
+      .select();
+
+    if (error) {
+      console.error("Erro ao criar receitas financeiras:", error);
+      throw new Error("Erro ao criar receitas financeiras");
+    }
+
+    revalidatePath("/dashboard/financial");
+    return newReceitasFinanceiras[0] as ReceitaFinanceira;
+  } else {
+    // Caso não tenha valores_por_safra (compatibilidade)
+    const insertData = {
+      organizacao_id: organizationId,
+      categoria: validatedData.categoria,
+      descricao: validatedData.nome || validatedData.descricao,
+      moeda: validatedData.moeda || "BRL",
+      valor: 0,
+      safra_id: null,
+      data_receita: new Date().toISOString().split('T')[0]
+    };
+
+    const { data: newReceitaFinanceira, error } = await supabase
+      .from("receitas_financeiras")
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Erro ao criar receita financeira:", error);
+      throw new Error("Erro ao criar receita financeira");
+    }
+
+    revalidatePath("/dashboard/financial");
+    return newReceitaFinanceira as ReceitaFinanceira;
   }
-
-  revalidatePath("/dashboard/financial");
-  return newReceitaFinanceira as ReceitaFinanceira;
 }
 
 export async function updateReceitaFinanceira(
@@ -100,9 +174,6 @@ export async function updateReceitaFinanceira(
     categoria: validatedData.categoria,
     descricao: validatedData.nome, // Usar nome como descrição
     moeda: validatedData.moeda || "BRL",
-    valor: validatedData.valor || 0,
-    safra_id: validatedData.safra_id,
-    data_receita: validatedData.data_receita,
     updated_at: new Date().toISOString()
   };
 

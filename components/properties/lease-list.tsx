@@ -9,7 +9,16 @@ import {
   formatSacas,
 } from "@/lib/utils/formatters";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, File, FileText, Edit2Icon, Trash2Icon, MoreHorizontal, ScrollText, Loader2 } from "lucide-react";
+import {
+  PlusIcon,
+  File,
+  FileText,
+  Edit2Icon,
+  Trash2Icon,
+  MoreHorizontal,
+  ScrollText,
+  Loader2,
+} from "lucide-react";
 import Link from "next/link";
 import {
   Table,
@@ -54,11 +63,11 @@ interface LeaseListProps {
   error?: string;
 }
 
-export function LeaseList({ 
+export function LeaseList({
   organizationId,
   propertyId,
   initialLeases,
-  error: initialError
+  error: initialError,
 }: LeaseListProps) {
   const [leases, setLeases] = useState<Lease[]>(initialLeases);
   const [error, setError] = useState<string | null>(initialError || null);
@@ -93,9 +102,9 @@ export function LeaseList({
       try {
         setIsDeleting(true);
         setDeletingLeaseId(leaseId);
-        
+
         await deleteLease(leaseId, organizationId);
-        
+
         toast.success(`Arrendamento "${leaseName}" excluído com sucesso!`);
         refreshData();
       } catch (error) {
@@ -171,9 +180,9 @@ export function LeaseList({
           title="Arrendamentos"
           description="Gerencie os contratos de arrendamento"
           action={
-            <Button 
+            <Button
               onClick={() => setIsLeaseModalOpen(true)}
-              size="sm"
+              className="bg-white text-black hover:bg-white/90"
             >
               <PlusIcon className="mr-2 h-4 w-4" />
               Novo Arrendamento
@@ -272,31 +281,42 @@ export function LeaseList({
                             <DropdownMenuSeparator />
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <DropdownMenuItem
+                                  onSelect={(e) => e.preventDefault()}
+                                >
                                   <Trash2Icon className="mr-2 h-4 w-4" />
                                   Excluir
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Confirmar exclusão
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Tem certeza que deseja excluir o arrendamento "{lease.numero_arrendamento}" 
-                                    da fazenda "{lease.nome_fazenda}"? Esta ação não pode ser desfeita.
+                                    Tem certeza que deseja excluir o
+                                    arrendamento "{lease.numero_arrendamento}"
+                                    da fazenda "{lease.nome_fazenda}"? Esta ação
+                                    não pode ser desfeita.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogCancel>
+                                    Cancelar
+                                  </AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => 
+                                    onClick={() =>
                                       handleDeleteLease(
-                                        lease.id || '', 
+                                        lease.id || "",
                                         `${lease.numero_arrendamento} - ${lease.nome_fazenda}`
                                       )
                                     }
-                                    disabled={isDeleting && deletingLeaseId === lease.id}
+                                    disabled={
+                                      isDeleting && deletingLeaseId === lease.id
+                                    }
                                   >
-                                    {isDeleting && deletingLeaseId === lease.id ? (
+                                    {isDeleting &&
+                                    deletingLeaseId === lease.id ? (
                                       <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                         Excluindo...
@@ -326,7 +346,7 @@ export function LeaseList({
         onOpenChange={handleModalClose}
         onSuccess={handleLeaseSave}
         organizationId={organizationId}
-        propertyId={propertyId || ''}
+        propertyId={propertyId || ""}
         lease={editingLease || undefined}
       />
     </div>

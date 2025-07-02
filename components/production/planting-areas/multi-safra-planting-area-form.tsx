@@ -50,6 +50,7 @@ interface MultiSafraPlantingAreaFormProps {
   cycles: Cycle[];
   harvests: Harvest[];
   organizationId: string;
+  projectionId?: string;
   onSuccess?: (areas: PlantingArea[]) => void;
   onCancel?: () => void;
 }
@@ -61,6 +62,7 @@ export function MultiSafraPlantingAreaForm({
   cycles,
   harvests,
   organizationId,
+  projectionId,
   onSuccess,
   onCancel,
 }: MultiSafraPlantingAreaFormProps) {
@@ -90,7 +92,8 @@ export function MultiSafraPlantingAreaForm({
       
       const newAreas = await createMultiSafraPlantingAreas(
         organizationId,
-        formData
+        formData,
+        projectionId
       );
       toast.success(
         values.propriedade_id === "all"

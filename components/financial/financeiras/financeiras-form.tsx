@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { createFinanceiras, updateFinanceiras } from "@/lib/actions/financial-actions/financeiras";
 import { FinanceirasListItem, FinanceirasFormValues, financeirasFormSchema, financeirasCategoriasEnum } from "@/schemas/financial/financeiras";
-import { SafraValueEditor } from "../common/safra-value-editor";
+import { SafraFinancialEditorAllVisible } from "../common/safra-financial-editor-all-visible";
 import { toast } from "sonner";
 import { type Safra } from "@/lib/actions/financial-forms-data-actions";
 import { 
@@ -202,13 +202,14 @@ export function FinanceirasForm({
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valores por Safra</FormLabel>
                     <FormControl>
-                      <SafraValueEditor
-                        organizacaoId={organizationId}
+                      <SafraFinancialEditorAllVisible
+                        label="Valores por Safra"
+                        description="Defina os valores da operação financeira para cada safra"
                         values={typeof field.value === 'string' ? JSON.parse(field.value) : field.value || {}}
                         onChange={field.onChange}
                         safras={initialSafras}
+                        disabled={isLoading}
                         currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>

@@ -32,6 +32,7 @@ interface UnifiedPlantingAreaListingProps {
   systems?: any[];
   cycles?: any[];
   organizationId?: string;
+  projectionId?: string;
 }
 
 export function UnifiedPlantingAreaListing({ 
@@ -41,7 +42,8 @@ export function UnifiedPlantingAreaListing({
   cultures = [],
   systems = [],
   cycles = [],
-  organizationId = ""
+  organizationId = "",
+  projectionId
 }: UnifiedPlantingAreaListingProps) {
   const [selectedArea, setSelectedArea] = useState<PlantingArea | null>(null);
   const [showEditDrawer, setShowEditDrawer] = useState(false);
@@ -137,7 +139,7 @@ export function UnifiedPlantingAreaListing({
       const updatedArea = await updatePlantingArea(areaId, {
         areas_por_safra: updatedAreas,
         observacoes: area.observacoes
-      });
+      }, projectionId);
 
       // Update the local state with the server response
       area.areas_por_safra = updatedArea.areas_por_safra;
@@ -392,6 +394,7 @@ export function UnifiedPlantingAreaListing({
                   cycles={cycles}
                   harvests={safras}
                   organizationId={organizationId}
+                  projectionId={projectionId}
                   onSuccess={(newAreas) => {
                     setIsCreateModalOpen(false);
                     toast.success("Área de plantio criada com sucesso");
@@ -421,6 +424,7 @@ export function UnifiedPlantingAreaListing({
                   cycles={cycles}
                   harvests={safras}
                   organizationId={organizationId}
+                  projectionId={projectionId}
                   onSuccess={(newAreas) => {
                     setIsCreateModalOpen(false);
                     toast.success("Área de plantio criada com sucesso");

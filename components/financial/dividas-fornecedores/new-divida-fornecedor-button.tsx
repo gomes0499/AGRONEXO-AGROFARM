@@ -40,6 +40,7 @@ export function NewDividaFornecedorButton({
         onOpenChange={setIsOpen}
         organizationId={organizationId}
         onSubmit={handleDividaCreated}
+        initialSafras={[]}
       />
     </>
   );

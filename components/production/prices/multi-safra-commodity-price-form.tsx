@@ -50,9 +50,15 @@ interface Harvest {
   organizacao_id?: string;
 }
 
+interface System {
+  id: string;
+  nome: string;
+}
+
 interface MultiSafraCommodityPriceFormProps {
   cultures: Culture[];
   safras: Harvest[];
+  systems?: System[];
   organizationId: string;
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -61,6 +67,7 @@ interface MultiSafraCommodityPriceFormProps {
 export function MultiSafraCommodityPriceForm({
   cultures,
   safras,
+  systems = [],
   organizationId,
   onSuccess,
   onCancel,
@@ -89,6 +96,13 @@ export function MultiSafraCommodityPriceForm({
       const cultureObj = cultures.find(c => c.id === values.cultura_id);
       const commodityType = `${cultureObj?.nome.toUpperCase()}_${values.sistema}`;
 
+      // Encontrar o ID do sistema baseado no nome
+      const systemId = systems.find(s => s.nome === values.sistema)?.id;
+      if (!systemId) {
+        toast.error("Sistema não encontrado");
+        return;
+      }
+
       // Converter preços por safra para preços por ano
       const precosPorAno: Record<string, number> = {};
       const safrasIds = Object.keys(values.precos_por_safra);
@@ -109,6 +123,8 @@ export function MultiSafraCommodityPriceForm({
           organizacao_id: organizationId,
           safra_id: safrasIds[0], // Usar a primeira safra como referência
           commodity_type: commodityType,
+          cultura_id: values.cultura_id,
+          sistema_id: systemId, // Converter de nome para ID
           current_price: Object.values(values.precos_por_safra)[0], // Primeiro preço como padrão
           unit: values.unit,
           precos_por_ano: precosPorAno, // Todos os preços em um objeto
@@ -116,7 +132,8 @@ export function MultiSafraCommodityPriceForm({
       });
 
       if (!response.ok) {
-        throw new Error('Erro ao criar preço de commodity');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao criar preço de commodity');
       }
 
       toast.success(
@@ -128,7 +145,8 @@ export function MultiSafraCommodityPriceForm({
       }
     } catch (error) {
       console.error("Erro ao criar preços de commodity:", error);
-      toast.error("Ocorreu um erro ao criar os preços de commodity.");
+      const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro ao criar os preços de commodity.";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

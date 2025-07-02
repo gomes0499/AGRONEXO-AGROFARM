@@ -68,10 +68,9 @@ export function LeaseFormModal({
   return (
     <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent
-        className="sm:max-w-[90%] max-w-5xl w-full max-h-[98vh] overflow-hidden p-0"
-        style={{ minWidth: "800px" }}
+        className="sm:max-w-3xl w-full max-h-[90vh] overflow-hidden p-0"
       >
-        <div className="flex flex-col h-full max-h-[98vh]">
+        <div className="flex flex-col h-full max-h-[90vh]">
           <div className="flex-shrink-0 p-6 border-b">
             <DialogHeader className="space-y-3">
               <DialogTitle className="flex items-center gap-2">
@@ -88,16 +87,14 @@ export function LeaseFormModal({
             </DialogHeader>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-6 px-6">
-            <div className="space-y-6">
-              <Form {...form}>
-                <LeaseFormStep form={form} organizationId={organizationId} />
-              </Form>
-            </div>
+          <div className="flex-1 overflow-y-auto p-6">
+            <Form {...form}>
+              <LeaseFormStep form={form} organizationId={organizationId} />
+            </Form>
           </div>
 
           {/* Submit Button */}
-          <div className="flex-shrink-0 p-6 border-t">
+          <div className="flex-shrink-0 p-6 border-t bg-background">
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
@@ -121,6 +118,7 @@ export function LeaseFormModal({
                         tipo_pagamento: values.tipo_pagamento || "SACAS",
                         custos_por_ano: values.custos_por_ano || {},
                         ativo: values.ativo !== undefined ? values.ativo : true,
+                        safra_id: undefined, // Remover safra_id já que não é mais necessário
                       };
                       onSubmit(validatedValues);
                     } else {

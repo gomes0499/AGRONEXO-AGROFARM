@@ -172,7 +172,7 @@ export function SafraAssetSaleEditor({
             <p className="text-sm">Clique em "Adicionar Safra" para começar</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
             {safraAssetSales.map((item, index) => {
               const availableSafras = getAvailableSafras(index);
               const valorTotal = item.quantidade * item.valor_unitario;

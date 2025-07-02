@@ -58,6 +58,7 @@ interface MultiSafraProductivityFormProps {
   cycles: Cycle[];
   harvests: Harvest[];
   organizationId: string;
+  projectionId?: string;
   onSuccess?: (productivities: any[]) => void;
   onCancel?: () => void;
 }
@@ -69,6 +70,7 @@ export function MultiSafraProductivityForm({
   cycles,
   harvests,
   organizationId,
+  projectionId,
   onSuccess,
   onCancel,
 }: MultiSafraProductivityFormProps) {
@@ -96,7 +98,7 @@ export function MultiSafraProductivityForm({
         propriedade_id: propriedadeId || '',
       };
       
-      const newProductivities = await createMultiSafraProductivities(organizationId, formData);
+      const newProductivities = await createMultiSafraProductivities(organizationId, formData, projectionId);
       toast.success(
         values.propriedade_id === "all" 
           ? `${Object.keys(values.produtividades_por_safra).length} produtividade(s) média(s) criada(s) para todas as propriedades!`

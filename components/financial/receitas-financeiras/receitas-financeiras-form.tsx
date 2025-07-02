@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SafraValueEditor } from "@/components/financial/common/safra-value-editor";
+import { SafraFinancialEditorAllVisible } from "@/components/financial/common/safra-financial-editor-all-visible";
 import { 
   ReceitaFinanceiraFormValues,
   receitaFinanceiraFormSchema,
@@ -44,7 +44,7 @@ const categoryLabels: Record<string, string> = {
 
 interface ReceitasFinanceirasFormProps {
   organizationId: string;
-  safras: Array<{ id: string; nome: string }>;
+  safras: Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number }>;
   receitaId?: string;
   defaultValues?: ReceitaFinanceiraFormValues;
   onSuccess?: () => void;
@@ -210,17 +210,15 @@ export function ReceitasFinanceirasForm({
           name="valores_por_safra"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Valores por Safra</FormLabel>
               <FormControl>
-                <SafraValueEditor
+                <SafraFinancialEditorAllVisible
+                  label="Valores de Receita por Safra"
+                  description="Informe os valores de receita para cada safra"
                   values={(field.value as any) || {}}
                   onChange={field.onChange}
                   safras={safras}
-                  organizacaoId={organizationId}
-                  label="Valores de Receita por Safra"
-                  description="Informe os valores de receita para cada safra"
-                  currency={form.watch("moeda") as "BRL" | "USD"}
                   disabled={isSubmitting}
+                  currency={form.watch("moeda") as "BRL" | "USD"}
                 />
               </FormControl>
               <FormMessage />

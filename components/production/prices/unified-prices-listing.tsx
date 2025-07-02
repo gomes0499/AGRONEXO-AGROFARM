@@ -72,6 +72,7 @@ interface UnifiedPricesListingProps {
     ano_fim: number;
     organizacao_id?: string;
   }>;
+  projectionId?: string;
 }
 
 export function UnifiedPricesListing({
@@ -82,6 +83,7 @@ export function UnifiedPricesListing({
   systems = [],
   cycles = [],
   safras = [],
+  projectionId,
 }: UnifiedPricesListingProps) {
   const [editingState, setEditingState] = useState<
     Record<string, Record<string, string>>
@@ -125,7 +127,8 @@ export function UnifiedPricesListing({
       // For commodities with cultura_id and sistema_id, create a unique key
       let key = price.commodity_type || price.tipo_moeda || "";
       if (price.cultura_id && price.sistema_id) {
-        key = `${price.cultura_id}_${price.sistema_id}`;
+        // Include ciclo_id in the key to allow different prices for different cycles
+        key = `${price.cultura_id}_${price.sistema_id}_${price.ciclo_id || 'no-cycle'}`;
       }
       
       if (!acc[key]) {
@@ -201,12 +204,12 @@ export function UnifiedPricesListing({
         await updateExchangeRateProjection(priceId, {
           cotacao_atual: currentPrice,
           cotacoes_por_ano: precosPorAno,
-        });
+        }, projectionId);
       } else {
         await updateCommodityPriceProjection(priceId, {
           current_price: currentPrice,
           precos_por_ano: precosPorAno,
-        });
+        }, projectionId);
       }
 
       toast.success("Preço atualizado com sucesso");

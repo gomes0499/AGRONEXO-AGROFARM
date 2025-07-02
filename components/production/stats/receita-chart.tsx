@@ -301,11 +301,14 @@ export function ReceitaChartClient({
             </div>
             <div>
               <CardTitle className="text-white">
-                Evolução da Receita Projetada por Cultura{projectionId && " - Projeção"}
+                {projectionId ? "Projeção de Receita por Cultura" : "Evolução da Receita por Cultura"}
                 {isPending && " (Atualizando...)"}
               </CardTitle>
               <CardDescription className="text-white/80">
-                {`Receita projetada por cultura em reais (${data[0]?.safra} - ${data[data.length - 1]?.safra})`}
+                {projectionId 
+                  ? `Receita projetada por cultura em reais (${data[0]?.safra} - ${data[data.length - 1]?.safra})`
+                  : `Receita por cultura em reais (${data[0]?.safra} - ${data[data.length - 1]?.safra})`
+                }
               </CardDescription>
             </div>
           </div>
@@ -375,43 +378,69 @@ export function ReceitaChartClient({
         </div>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-xs">
-          {/* Período Realizado 2021-2024 */}
-          <div className="space-y-1">
-            <div className="font-medium text-muted-foreground">Realizado (2021-2024)</div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-primary"></div>
-              <span>Receita Média: {mediasPeriodo.receitaRealizada}</span>
+        {!projectionId ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-xs">
+              {/* Período Realizado 2021-2024 */}
+              <div className="space-y-1">
+                <div className="font-medium text-muted-foreground">Realizado (2021-2024)</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-primary"></div>
+                  <span>Receita Média: {mediasPeriodo.receitaRealizada}</span>
+                </div>
+              </div>
+              
+              {/* Período Projetado 2025-2030 */}
+              <div className="space-y-1">
+                <div className="font-medium text-muted-foreground">Projetado (2025-2030)</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-primary"></div>
+                  <span>Receita Média: {mediasPeriodo.receitaProjetada}</span>
+                </div>
+              </div>
             </div>
-          </div>
-          
-          {/* Período Projetado 2025-2030 */}
-          <div className="space-y-1">
-            <div className="font-medium text-muted-foreground">Projetado (2025-2030)</div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-primary"></div>
-              <span>Receita Média: {mediasPeriodo.receitaProjetada}</span>
+            
+            <div className="flex gap-2 font-medium leading-none pt-2 border-t border-muted-foreground/20 w-full">
+              {Number(mediasPeriodo.crescimentoMedio) >= 0 ? (
+                <>
+                  Crescimento total de {mediasPeriodo.crescimentoMedio}% na receita{" "}
+                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+                </>
+              ) : (
+                <>
+                  Redução total de {Math.abs(Number(mediasPeriodo.crescimentoMedio))}% na receita{" "}
+                  <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
+                </>
+              )}
             </div>
-          </div>
-        </div>
-        
-        <div className="flex gap-2 font-medium leading-none pt-2 border-t border-muted-foreground/20 w-full">
-          {Number(mediasPeriodo.crescimentoMedio) >= 0 ? (
-            <>
-              Crescimento total de {mediasPeriodo.crescimentoMedio}% na receita{" "}
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            </>
-          ) : (
-            <>
-              Redução total de {Math.abs(Number(mediasPeriodo.crescimentoMedio))}% na receita{" "}
-              <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
-            </>
-          )}
-        </div>
-        
-        <div className="leading-none text-muted-foreground text-xs">
-          {`Receitas médias por período e crescimento total entre ${data[0]?.safra} e ${data[data.length - 1]?.safra}`}
-        </div>
+            
+            <div className="leading-none text-muted-foreground text-xs">
+              {`Receitas médias por período e crescimento total entre ${data[0]?.safra} e ${data[data.length - 1]?.safra}`}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="w-full">
+              <div className="font-medium text-muted-foreground text-xs mb-2">
+                Valores projetados por safra
+              </div>
+              {/* Mostrar resumo dos valores totais */}
+              <div className="space-y-1">
+                {data.slice(-3).map((item) => (
+                  <div key={item.safra} className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{item.safra}:</span>
+                    <span className="font-medium">{formatCurrency(item.total)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex gap-2 font-medium leading-none pt-2 border-t border-muted-foreground/20 w-full text-xs">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Projeção baseada em áreas, produtividades e preços estimados
+            </div>
+          </>
+        )}
       </CardFooter>
     </Card>
   );

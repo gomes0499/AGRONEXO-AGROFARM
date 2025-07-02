@@ -10,11 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { createDividaFornecedor, updateDividaFornecedor } from "@/lib/actions/financial-actions/dividas-fornecedores";
 import { DividasFornecedoresListItem, DividasFornecedoresFormValues, dividasFornecedoresFormSchema } from "@/schemas/financial/dividas_fornecedores";
-import { SafraValueEditor } from "../common/safra-value-editor";
+import { SafraFinancialEditorAllVisible } from "../common/safra-financial-editor-all-visible";
 import { CurrencySelector } from "../common/currency-selector";
 import { CategoriaFornecedorType, categoriaFornecedorEnum } from "@/schemas/financial/common";
 import { toast } from "sonner";
-import { getSafras } from "@/lib/actions/production-actions";
 import { 
   Select,
   SelectContent,
@@ -29,6 +28,7 @@ interface DividasFornecedoresFormProps {
   organizationId: string;
   existingDivida?: DividasFornecedoresListItem;
   onSubmit: (data: DividasFornecedoresListItem) => void;
+  initialSafras: any[];
 }
 
 export function DividasFornecedoresForm({
@@ -37,30 +37,9 @@ export function DividasFornecedoresForm({
   organizationId,
   existingDivida,
   onSubmit,
+  initialSafras,
 }: DividasFornecedoresFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [safras, setSafras] = useState<any[]>([]);
-  const [isLoadingSafras, setIsLoadingSafras] = useState(false);
-
-  // Carregar safras quando o modal abrir
-  useEffect(() => {
-    if (open && organizationId) {
-      loadSafras();
-    }
-  }, [open, organizationId]);
-  
-  const loadSafras = async () => {
-    try {
-      setIsLoadingSafras(true);
-      const safrasData = await getSafras(organizationId);
-      setSafras(safrasData);
-    } catch (error) {
-      console.error("Erro ao carregar safras:", error);
-      toast.error("Erro ao carregar safras");
-    } finally {
-      setIsLoadingSafras(false);
-    }
-  };
 
   const form = useForm<DividasFornecedoresFormValues>({
     resolver: zodResolver(dividasFornecedoresFormSchema) as any,
@@ -202,13 +181,14 @@ export function DividasFornecedoresForm({
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valores por Safra</FormLabel>
                     <FormControl>
-                      <SafraValueEditor
-                        organizacaoId={organizationId}
+                      <SafraFinancialEditorAllVisible
+                        label="Valores por Safra"
+                        description="Defina os valores da dívida para cada safra"
                         values={field.value as Record<string, number> || {}}
                         onChange={field.onChange}
-                        safras={safras}
+                        safras={initialSafras}
+                        disabled={isLoading}
                         currency={form.watch("moeda") as any}
                       />
                     </FormControl>

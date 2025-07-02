@@ -35,9 +35,8 @@ export function SafraCostEditorAllVisible({
   const sortedSafras = [...safras].sort((a, b) => a.ano_inicio - b.ano_inicio);
 
   // Filter to show only relevant years (2021-2029)
-  const filteredSafras = sortedSafras.filter(
-    (safra) => safra.ano_inicio >= 2021 && safra.ano_inicio <= 2029
-  );
+  // No filtering - show all available safras
+  const filteredSafras = sortedSafras;
 
   // Initialize all safras with 0 if not present
   useEffect(() => {

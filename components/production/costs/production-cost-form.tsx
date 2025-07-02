@@ -62,6 +62,7 @@ interface ProductionCostFormProps {
   cycles: Cycle[];
   harvests: Harvest[];
   organizationId: string;
+  projectionId?: string;
   cost?: ProductionCost | null;
   properties: Property[];
   onSuccess?: (cost: ProductionCost) => void;
@@ -156,6 +157,7 @@ export function ProductionCostForm({
   cycles,
   harvests,
   organizationId,
+  projectionId,
   cost = null,
   properties,
   onSuccess,
@@ -244,7 +246,7 @@ export function ProductionCostForm({
           custos_por_safra: values.custos_por_safra,
           descricao: "",
           observacoes: "",
-        });
+        }, projectionId);
         toast.success("Custo de produção atualizado com sucesso!");
         onSuccess?.(updatedItem);
       } else {
@@ -262,7 +264,7 @@ export function ProductionCostForm({
           custos_por_safra: values.custos_por_safra,
           descricao: "",
           observacoes: "",
-        });
+        }, projectionId);
         toast.success(
           values.propriedade_id === "all" 
             ? "Custo de produção criado para todas as propriedades!" 

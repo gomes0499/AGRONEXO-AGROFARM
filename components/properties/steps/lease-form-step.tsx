@@ -11,6 +11,7 @@ import {
   MapPin,
   FileText,
 } from "lucide-react";
+import { SafraFinancialEditorAllVisible } from "@/components/financial/common/safra-financial-editor-all-visible";
 import { Input } from "@/components/ui/input";
 import {
   FormControl,
@@ -36,7 +37,7 @@ import {
   parseFormattedNumber,
 } from "@/lib/utils/formatters";
 import { getSafras } from "@/lib/actions/property-actions";
-import { getSafraCommodityPrices } from "@/lib/actions/indicator-actions/tenant-commodity-actions";
+import { getCommodityPriceProjections } from "@/lib/actions/production-prices-actions";
 import { toast } from "sonner";
 import type { UseFormReturn } from "react-hook-form";
 import type { LeaseFormValues } from "@/schemas/properties";
@@ -50,56 +51,7 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
   const [safras, setSafras] = useState<any[]>([]);
   const [isLoadingSafras, setIsLoadingSafras] = useState(false);
   const [commodityPrices, setCommodityPrices] = useState<any[]>([]);
-  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
   
-  // Função para calcular custo anual automaticamente
-  const calculateAnnualCost = () => {
-    const area = form.getValues("area_arrendada");
-    const costPerHectare = form.getValues("custo_hectare");
-
-    if (area && costPerHectare) {
-      const sacasTotal = area * costPerHectare;
-      form.setValue("custo_ano", sacasTotal);
-      
-      // Atualizar custos por ano
-      updateCostsPerYear(sacasTotal);
-    }
-  };
-  
-  // Função para atualizar custos por ano com base nos preços das commodities
-  const updateCostsPerYear = (sacasTotal: number) => {
-    if (!sacasTotal) return;
-    
-    // Usar preços de commodities se disponíveis, ou preço padrão
-    const currentYear = new Date().getFullYear().toString();
-    
-    // Verificar qual commodity está selecionada (padrão SOJA)
-    const commodity = commodityPrices.find(c => c.commodityType === "SOJA_SEQUEIRO") || 
-                     commodityPrices[0];
-    
-    // Se não temos preços de commodities, usar valor padrão
-    if (!commodity) {
-      const costsByYear = { [currentYear]: sacasTotal * 150 }; // Preço padrão R$ 150
-      form.setValue("custos_por_ano", costsByYear);
-      return;
-    }
-    
-    // Criar objeto de custos por ano
-    const costsByYear: Record<string, number> = {};
-    
-    // Ano atual
-    costsByYear[currentYear] = sacasTotal * (commodity.currentPrice || 150);
-    
-    // Anos futuros, se disponíveis
-    if (commodity.price2025) costsByYear["2025"] = sacasTotal * commodity.price2025;
-    if (commodity.price2026) costsByYear["2026"] = sacasTotal * commodity.price2026;
-    if (commodity.price2027) costsByYear["2027"] = sacasTotal * commodity.price2027;
-    if (commodity.price2028) costsByYear["2028"] = sacasTotal * commodity.price2028;
-    if (commodity.price2029) costsByYear["2029"] = sacasTotal * commodity.price2029;
-    
-    // Atualizar o form
-    form.setValue("custos_por_ano", costsByYear);
-  };
 
   // Buscar safras disponíveis
   useEffect(() => {
@@ -124,89 +76,145 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
 
     fetchSafras();
   }, [organizationId]);
-  
+
   // Buscar preços de commodities
   useEffect(() => {
     const fetchCommodityPrices = async () => {
       try {
-        setIsLoadingPrices(true);
-        
-        // Usar a função especializada que sempre retorna os preços do tenant
-        const prices = await getSafraCommodityPrices();
-        
-        if (prices && prices.length > 0) {
-          setCommodityPrices(prices);
-          
-          // Após carregar os preços, recalcular os custos por ano
-          setTimeout(() => {
-            const sacasTotal = form.getValues("custo_ano");
-            if (sacasTotal) {
-              updateCostsPerYear(sacasTotal);
-            }
-          }, 100);
-        } else {
-          console.warn("Nenhum preço de commodity encontrado");
+        const result = await getCommodityPriceProjections();
+        console.log("Resultado completo da API de preços:", result);
+        if (result.data && Array.isArray(result.data)) {
+          setCommodityPrices(result.data);
+          console.log("Preços de commodities carregados:", result.data.length);
         }
       } catch (error) {
-        console.error("Erro ao buscar preços de commodities:", error);
-      } finally {
-        setIsLoadingPrices(false);
+        console.error("Erro ao buscar preços:", error);
       }
     };
     
-    fetchCommodityPrices();
-  }, [form]);
+    if (organizationId) {
+      fetchCommodityPrices();
+    }
+  }, [organizationId]);
 
-  // Recalcular custo anual quando área arrendada ou custo por hectare mudam
+  // Calcular valores por safra automaticamente
   useEffect(() => {
-    calculateAnnualCost();
-  }, [form.watch("area_arrendada"), form.watch("custo_hectare")]);
+    const areaArrendada = form.watch("area_arrendada");
+    const custoHectare = form.watch("custo_hectare");
+    
+    console.log("Debug - areaArrendada:", areaArrendada, "custoHectare:", custoHectare);
+    console.log("Debug - safras disponíveis:", safras);
+    console.log("Debug - commodityPrices:", commodityPrices);
+    console.log("Debug - commodityPrices detalhado:", commodityPrices.map(p => ({
+      commodity_type: p.commodity_type,
+      cultura: p.cultura?.nome,
+      sistema: p.sistema?.nome,
+      precos_por_ano: p.precos_por_ano
+    })));
+    
+    if (areaArrendada && custoHectare && safras.length > 0) {
+      const custosPorAno: Record<string, number> = {};
+      const sacasTotal = areaArrendada * custoHectare;
+      
+      // Se temos preços de commodities, tentar usar
+      if (commodityPrices.length > 0) {
+        console.log("Buscando preços de soja sequeiro entre", commodityPrices.length, "registros");
+        
+        // Buscar preços de soja sequeiro (padrão para arrendamento)
+        let sojaPrices = commodityPrices.find(p => {
+          const match = p.commodity_type === "SOJA_SEQUEIRO" || 
+            (p.cultura && p.cultura.nome && p.cultura.nome.toLowerCase() === "soja" && 
+             p.sistema && p.sistema.nome && p.sistema.nome.toLowerCase() === "sequeiro");
+          if (match) {
+            console.log("Match encontrado para SOJA SEQUEIRO:", p);
+          }
+          return match;
+        });
+        
+        // Se não encontrar sequeiro, tentar irrigado como fallback
+        if (!sojaPrices) {
+          console.log("Não encontrou SOJA SEQUEIRO, tentando IRRIGADO...");
+          sojaPrices = commodityPrices.find(p => 
+            p.commodity_type === "SOJA_IRRIGADO" || 
+            (p.cultura && p.cultura.nome && p.cultura.nome.toLowerCase() === "soja" && 
+             p.sistema && p.sistema.nome && p.sistema.nome.toLowerCase() === "irrigado")
+          );
+        }
+        
+        console.log("Preços de soja final:", sojaPrices);
+        
+        if (sojaPrices && sojaPrices.precos_por_ano) {
+          // Calcular para cada safra
+          safras.forEach(safra => {
+            if (!safra.id) {
+              console.error("Safra sem ID:", safra);
+              return;
+            }
+            
+            let precoSafra = 0;
+            
+            // Buscar preço por ID da safra (padrão do sistema)
+            if (sojaPrices.precos_por_ano && sojaPrices.precos_por_ano[safra.id]) {
+              precoSafra = sojaPrices.precos_por_ano[safra.id];
+              console.log(`Preço para safra ${safra.nome} (ID ${safra.id}):`, precoSafra);
+            }
+            
+            // Se não encontrar por ID, tentar por ano como fallback
+            if (!precoSafra && safra.ano_inicio && sojaPrices.precos_por_ano) {
+              const anoStr = safra.ano_inicio.toString();
+              precoSafra = sojaPrices.precos_por_ano[anoStr] || 0;
+              console.log(`Preço para ano ${anoStr} (fallback):`, precoSafra);
+            }
+            
+            // Se ainda não encontrar, usar preço atual como fallback
+            if (!precoSafra && sojaPrices.current_price) {
+              precoSafra = sojaPrices.current_price;
+              console.log("Usando preço atual como fallback:", precoSafra);
+            }
+            
+            // Se ainda não tiver preço, usar padrão
+            if (!precoSafra) {
+              precoSafra = 150; // R$ 150 por saca como padrão
+              console.log("Usando preço padrão: 150");
+            }
+            
+            // Calcular o valor total: sacas/ha * área * preço da saca
+            const valorTotal = sacasTotal * precoSafra;
+            console.log(`Cálculo para ${safra.nome}: ${sacasTotal} sacas * R$ ${precoSafra}/saca = R$ ${valorTotal}`);
+            
+            // Usar o ID da safra como chave (requerido pelo banco)
+            custosPorAno[safra.id] = valorTotal;
+          });
+        } else {
+          // Usar preço padrão se não encontrar preços de soja
+          safras.forEach(safra => {
+            if (safra.id) {
+              custosPorAno[safra.id] = sacasTotal * 150; // R$ 150 por saca
+            }
+          });
+        }
+      } else {
+        // Se não há preços de commodities, usar valor padrão
+        safras.forEach(safra => {
+          if (safra.id) {
+            custosPorAno[safra.id] = sacasTotal * 150; // R$ 150 por saca
+          }
+        });
+      }
+      
+      console.log("Custos finais calculados por safra:", custosPorAno);
+      console.log("Chaves do objeto:", Object.keys(custosPorAno));
+      
+      // Só atualizar se temos valores calculados
+      if (Object.keys(custosPorAno).length > 0) {
+        form.setValue("custos_por_ano", custosPorAno);
+      }
+    }
+  }, [form.watch("area_arrendada"), form.watch("custo_hectare"), safras, commodityPrices]);
+  
 
   return (
     <div className="space-y-6">
-      {/* Campo de Safra */}
-      <FormField
-        control={form.control}
-        name="safra_id"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-              Safra*
-            </FormLabel>
-            <Select
-              value={field.value}
-              onValueChange={field.onChange}
-              disabled={isLoadingSafras}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder={isLoadingSafras ? "Carregando..." : "Selecione uma safra"} />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {safras.length > 0 ? (
-                  safras.map((safra) => (
-                    <SelectItem key={safra.id} value={safra.id}>
-                      {safra.nome} ({safra.ano_inicio}/{safra.ano_fim})
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="no-safras" disabled>
-                    {isLoadingSafras ? "Carregando safras..." : "Nenhuma safra encontrada"}
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-            <FormDescription>
-              Safra base para cálculo dos custos do arrendamento
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <Separator />
 
       {/* Informações Básicas */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
@@ -332,15 +340,17 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
                 </FormLabel>
                 <FormControl>
                   <Input
-                    type="text"
-                    placeholder="Digite a área total da fazenda"
+                    type="number"
+                    step="0.01"
+                    placeholder="0"
                     {...field}
-                    value={
-                      field.value !== undefined && field.value !== null
-                        ? formatArea(field.value)
-                        : ""
-                    }
-                    disabled={true} // Somente leitura, preenchido automaticamente
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      field.onChange(isNaN(value) ? 0 : value);
+                    }}
+                    value={field.value || ""}
+                    readOnly={true} // Somente leitura, preenchido automaticamente
+                    className="bg-muted"
                   />
                 </FormControl>
                 <FormDescription>
@@ -367,11 +377,8 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
                     placeholder="Digite a área arrendada (ex: 150.50)"
                     {...field}
                     onChange={(e) => {
-                      // Garantir que é um número válido
                       const value = parseFloat(e.target.value);
                       field.onChange(isNaN(value) ? 0 : value);
-                      // Atualizar o custo anual após mudar a área
-                      setTimeout(() => calculateAnnualCost(), 0);
                     }}
                     onBlur={field.onBlur}
                     value={field.value || ""}
@@ -391,7 +398,6 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
 
       {/* Custos */}
       <div className="space-y-4">
-        <h4 className="text-sm font-medium text-muted-foreground">Custos</h4>
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <FormField
             control={form.control}
@@ -442,52 +448,45 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
                     placeholder="Digite o custo por hectare (ex: 13.50)"
                     {...field}
                     onChange={(e) => {
-                      // Garantir que é um número válido
                       const value = parseFloat(e.target.value);
                       field.onChange(isNaN(value) ? 0 : value);
-                      // Atualizar o custo anual após mudar o custo por hectare
-                      setTimeout(() => calculateAnnualCost(), 0);
                     }}
                     onBlur={field.onBlur}
                     value={field.value || ""}
                   />
                 </FormControl>
                 <FormDescription>
-                  Em sacas (utilize ponto para casas decimais)
+                  Em sacas por hectare (base: Soja Sequeiro)
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
-
-          <FormField
-            control={form.control}
-            name="custo_ano"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                  Custo Anual (sacas)*
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="text"
-                    placeholder="Calculado automaticamente"
-                    {...field}
-                    value={
-                      field.value !== undefined && field.value !== null
-                        ? formatSacas(field.value)
-                        : ""
-                    }
-                    disabled={true} // Somente leitura, calculado automaticamente
-                  />
-                </FormControl>
-                <FormDescription>Custo total anual em sacas</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
+
+        {/* Editor de custos por safra */}
+        <FormField
+          control={form.control}
+          name="custos_por_ano"
+          render={({ field }) => (
+            <FormItem>
+              <SafraFinancialEditorAllVisible
+                label="Custos do Arrendamento por Safra"
+                description="Valores calculados automaticamente: Custo/ha × Área × Preço da Soja"
+                values={field.value || {}}
+                onChange={field.onChange}
+                safras={safras}
+                disabled={true}
+                currency="BRL"
+              />
+              {(!form.watch("area_arrendada") || !form.watch("custo_hectare")) && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Preencha a área arrendada e o custo por hectare para calcular os valores
+                </p>
+              )}
+            </FormItem>
+          )}
+        />
       </div>
       
       <Separator />

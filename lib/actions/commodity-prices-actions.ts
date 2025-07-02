@@ -16,23 +16,38 @@ export interface CommodityPrice {
 }
 
 // Get all commodity prices for an organization
-export async function getCommodityPrices(organizationId: string): Promise<any[]> {
+export async function getCommodityPrices(organizationId: string, projectionId?: string): Promise<any[]> {
   const supabase = await createClient();
   
-  const { data, error } = await supabase
-    .from("commodity_price_projections")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .not("commodity_type", "in", "(DOLAR_ALGODAO,DOLAR_SOJA,DOLAR_FECHAMENTO)")
-    .is("projection_id", null); // Buscar apenas dados reais, não projeções
-  
-  if (error) {
-    console.error("Erro ao buscar preços de commodities:", error);
-    return [];
+  if (projectionId) {
+    // Buscar dados da tabela de projeções
+    const { data, error } = await supabase
+      .from("commodity_price_projections_projections")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .eq("projection_id", projectionId);
+    
+    if (error) {
+      console.error("Erro ao buscar preços de commodities da projeção:", error);
+      return [];
+    }
+    
+    return data || [];
+  } else {
+    // Buscar dados da tabela principal
+    const { data, error } = await supabase
+      .from("commodity_price_projections")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .is("projection_id", null);
+    
+    if (error) {
+      console.error("Erro ao buscar preços de commodities:", error);
+      return [];
+    }
+    
+    return data || [];
   }
-  
-  // Return data as-is to preserve all fields including cultura_id, sistema_id, and precos_por_ano
-  return data || [];
 }
 
 // Create a new commodity price

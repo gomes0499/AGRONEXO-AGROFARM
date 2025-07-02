@@ -46,6 +46,7 @@ interface NewProductionCostButtonProps {
   harvests: Harvest[];
   properties: Property[];
   organizationId: string;
+  projectionId?: string;
   className?: string;
   variant?: "default" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
@@ -59,6 +60,7 @@ export function NewProductionCostButton({
   harvests,
   properties,
   organizationId,
+  projectionId,
   className,
   variant = "default",
   size = "default",
@@ -111,6 +113,7 @@ export function NewProductionCostButton({
                 harvests={harvests}
                 properties={properties}
                 organizationId={organizationId}
+                projectionId={projectionId}
                 onSuccess={handleSuccess}
                 onCancel={() => setIsOpen(false)}
               />

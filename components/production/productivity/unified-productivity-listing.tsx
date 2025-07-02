@@ -40,6 +40,7 @@ interface UnifiedProductivityListingProps {
   systems?: any[];
   cycles?: any[];
   organizationId?: string;
+  projectionId?: string;
 }
 
 export function UnifiedProductivityListing({ 
@@ -49,7 +50,8 @@ export function UnifiedProductivityListing({
   cultures = [],
   systems = [],
   cycles = [],
-  organizationId = ""
+  organizationId = "",
+  projectionId
 }: UnifiedProductivityListingProps) {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -161,7 +163,7 @@ export function UnifiedProductivityListing({
       const updatedProductivity = await updateProductivity(productivityId, {
         produtividades_por_safra: updatedProductivities,
         observacoes: productivity.observacoes
-      });
+      }, projectionId);
 
       // Update the local state with the server response
       productivity.produtividades_por_safra = updatedProductivity.produtividades_por_safra;
@@ -467,6 +469,7 @@ export function UnifiedProductivityListing({
                   cycles={cycles}
                   harvests={safras}
                   organizationId={organizationId}
+                  projectionId={projectionId}
                   onSuccess={(newProductivities) => {
                     setIsCreateModalOpen(false);
                     toast.success("Produtividade criada com sucesso");
@@ -496,6 +499,7 @@ export function UnifiedProductivityListing({
                   cycles={cycles}
                   harvests={safras}
                   organizationId={organizationId}
+                  projectionId={projectionId}
                   onSuccess={(newProductivities) => {
                     setIsCreateModalOpen(false);
                     toast.success("Produtividade criada com sucesso");

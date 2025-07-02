@@ -16,22 +16,38 @@ export interface ExchangeRate {
 }
 
 // Get all exchange rates for an organization
-export async function getExchangeRates(organizationId: string): Promise<any[]> {
+export async function getExchangeRates(organizationId: string, projectionId?: string): Promise<any[]> {
   const supabase = await createClient();
   
-  const { data, error } = await supabase
-    .from("cotacoes_cambio")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .is("projection_id", null); // Buscar apenas dados reais, não projeções
-  
-  if (error) {
-    console.error("Erro ao buscar cotações de câmbio:", error);
-    return [];
+  if (projectionId) {
+    // Buscar dados da tabela de projeções
+    const { data, error } = await supabase
+      .from("cotacoes_cambio_projections")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .eq("projection_id", projectionId);
+    
+    if (error) {
+      console.error("Erro ao buscar cotações de câmbio da projeção:", error);
+      return [];
+    }
+    
+    return data || [];
+  } else {
+    // Buscar dados da tabela principal
+    const { data, error } = await supabase
+      .from("cotacoes_cambio")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .is("projection_id", null);
+    
+    if (error) {
+      console.error("Erro ao buscar cotações de câmbio:", error);
+      return [];
+    }
+    
+    return data || [];
   }
-  
-  // Return data as-is to preserve all fields including cotacoes_por_ano
-  return data || [];
 }
 
 // Create a new exchange rate

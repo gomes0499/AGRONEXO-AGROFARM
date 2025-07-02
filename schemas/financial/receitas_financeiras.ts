@@ -37,11 +37,12 @@ export const receitaFinanceiraSchema = z.object({
 export type ReceitaFinanceira = z.infer<typeof receitaFinanceiraSchema>;
 
 // Schema para formulário de Receitas Financeiras
-export const receitaFinanceiraFormSchema = receitaFinanceiraSchema.omit({ 
-  id: true, 
-  organizacao_id: true,
-  created_at: true,
-  updated_at: true 
+export const receitaFinanceiraFormSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  categoria: receitaFinanceiraCategoriaEnum,
+  descricao: z.string().optional(),
+  moeda: z.enum(["BRL", "USD"]).default("BRL"),
+  valores_por_safra: z.record(z.string(), z.number().min(0)).default({}),
 });
 
 export type ReceitaFinanceiraFormValues = z.infer<typeof receitaFinanceiraFormSchema>;

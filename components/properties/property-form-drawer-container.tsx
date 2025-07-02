@@ -1,6 +1,6 @@
 "use client";
 
-import { Building, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Form } from "@/components/ui/form";
 import {
   Sheet,
@@ -127,11 +127,10 @@ export function PropertyFormDrawerContainer({
       {children && <SheetTrigger asChild>{children}</SheetTrigger>}
       <SheetContent
         side="right"
-        className="w-[90vw] sm:w-[800px] lg:w-[1000px] xl:w-[1200px] overflow-hidden flex flex-col max-h-screen"
+        className="w-[95vw] sm:w-[900px] lg:w-[1200px] xl:w-[1400px] overflow-hidden flex flex-col max-h-screen"
       >
         <SheetHeader className="space-y-3">
-          <SheetTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-primary" />
+          <SheetTitle>
             {mode === "edit" ? "Editar Propriedade" : "Nova Propriedade"}
           </SheetTitle>
           <SheetDescription>

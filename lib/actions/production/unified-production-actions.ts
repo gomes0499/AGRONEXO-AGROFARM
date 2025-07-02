@@ -29,12 +29,9 @@ import {
 } from "@/lib/actions/receita-chart-actions";
 
 import {
-  getCommodityPrices,
-} from "@/lib/actions/commodity-prices-actions";
-
-import {
-  getExchangeRates,
-} from "@/lib/actions/exchange-rates-actions";
+  getCommodityPriceProjections,
+  getExchangeRateProjections,
+} from "@/lib/actions/production-prices-actions";
 
 export interface ProductionFilters {
   safraId?: string;
@@ -60,8 +57,8 @@ export interface ProductionPageData {
   productionCosts: Awaited<ReturnType<typeof getProductionCosts>>;
   
   // Prices data
-  commodityPrices: Awaited<ReturnType<typeof getCommodityPrices>>;
-  exchangeRates: Awaited<ReturnType<typeof getExchangeRates>>;
+  commodityPrices: Awaited<ReturnType<typeof getCommodityPriceProjections>>["data"];
+  exchangeRates: Awaited<ReturnType<typeof getExchangeRateProjections>>["data"];
   
   // Stats
   productionStats: Awaited<ReturnType<typeof getProductionStats>>;
@@ -80,7 +77,8 @@ export interface ProductionPageData {
  */
 export const fetchProductionPageData = async (
   organizationId: string,
-  filters?: ProductionFilters
+  filters?: ProductionFilters,
+  projectionId?: string
 ): Promise<ProductionPageData> => {
     // Set default filters
     const appliedFilters = {
@@ -129,23 +127,26 @@ export const fetchProductionPageData = async (
       getCycles(organizationId),
       getSafras(organizationId),
       
-      // Main data with pagination
-      getPlantingAreas(organizationId),
-      getProductivities(organizationId),
-      getProductionCosts(organizationId),
+      // Main data with pagination and projection support
+      getPlantingAreas(organizationId, undefined, projectionId),
+      getProductivities(organizationId, undefined, projectionId),
+      getProductionCosts(organizationId, undefined, projectionId),
       
       // Prices data
-      getCommodityPrices(organizationId),
-      getExchangeRates(organizationId),
+      getCommodityPriceProjections(projectionId),
+      getExchangeRateProjections(projectionId),
       
       // Stats
       getProductionStats(organizationId, propertyIds),
       
-      // Chart data
-      getAreaPlantadaChartData(organizationId, safraIds),
-      getProdutividadeChartData(organizationId, safraIds),
-      getReceitaChartData(organizationId, safraIds),
+      // Chart data - pass projectionId to chart functions
+      getAreaPlantadaChartData(organizationId, propertyIds, undefined, projectionId),
+      getProdutividadeChartData(organizationId, propertyIds, undefined, projectionId),
+      getReceitaChartData(organizationId, propertyIds, undefined, projectionId),
     ]);
+
+    const pricesResult = commodityPrices;
+    const exchangeResult = exchangeRates;
 
     return {
       // Configuration data
@@ -160,8 +161,8 @@ export const fetchProductionPageData = async (
       productionCosts,
       
       // Prices data
-      commodityPrices,
-      exchangeRates,
+      commodityPrices: pricesResult.data || [],
+      exchangeRates: exchangeResult.data || [],
       
       // Stats
       productionStats,

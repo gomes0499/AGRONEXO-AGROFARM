@@ -68,6 +68,7 @@ export function FinancialPageContent({
       icon: Landmark,
       content: (
         <DividasTerrasListing
+          key={`terras-${safras.length}`}
           organization={organization}
           initialDividas={dividasTerras}
           safras={safras}
@@ -82,6 +83,7 @@ export function FinancialPageContent({
         <DividasFornecedoresListing
           organization={organization}
           initialDividasFornecedores={dividasFornecedores}
+          safras={safras}
         />
       ),
     },
@@ -212,6 +214,7 @@ export function FinancialPageContent({
               <DividasTerrasListing
                 organization={organization}
                 initialDividas={dividasTerras}
+                safras={safras}
               />
             </TabsContent>
 
@@ -219,6 +222,7 @@ export function FinancialPageContent({
               <DividasFornecedoresListing
                 organization={organization}
                 initialDividasFornecedores={dividasFornecedores}
+                safras={safras}
               />
             </TabsContent>
 
@@ -226,6 +230,7 @@ export function FinancialPageContent({
               <CaixaDisponibilidadesListing
                 organization={organization}
                 initialItems={caixaDisponibilidades}
+                safras={safras}
               />
             </TabsContent>
 
@@ -233,6 +238,7 @@ export function FinancialPageContent({
               <FinanceirasListing
                 organization={organization}
                 initialFinanceiras={financeiras}
+                safras={safras}
               />
             </TabsContent>
 
@@ -240,6 +246,7 @@ export function FinancialPageContent({
               <OutrasDespesasListing
                 organization={organization}
                 initialOutrasDespesas={outrasDespesasWithTotal}
+                safras={safras}
               />
             </TabsContent>
 

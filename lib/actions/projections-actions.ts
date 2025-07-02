@@ -44,6 +44,10 @@ export async function createProjection(nome: string, descricao?: string) {
     const supabase = await createClient();
     const organizationId = await getOrganizationId();
 
+    console.log("=== CREATING NEW PROJECTION ===");
+    console.log("Nome:", nome);
+    console.log("Organization ID:", organizationId);
+
     // 1. Criar a projeção master
     const { data: projection, error: projectionError } = await supabase
       .from("projections")
@@ -57,64 +61,95 @@ export async function createProjection(nome: string, descricao?: string) {
       .single();
 
     if (projectionError) {
-      console.error("Erro ao criar projeção:", projectionError);
+      console.error("❌ ERRO ao criar projeção:", projectionError);
       return { data: null, error: projectionError };
     }
 
+    console.log("✅ Projeção criada com ID:", projection.id);
+
     // 2. Copiar dados de áreas de plantio
+    console.log("📋 Copiando áreas de plantio...");
     const { error: areasError } = await supabase.rpc('copy_areas_plantio_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
     });
 
     if (areasError) {
-      console.error("Erro ao copiar áreas de plantio:", areasError);
+      console.error("❌ ERRO ao copiar áreas de plantio:", areasError);
+    } else {
+      console.log("✅ Áreas de plantio copiadas");
     }
 
     // 3. Copiar dados de produtividades
+    console.log("📋 Copiando produtividades...");
     const { error: produtividadesError } = await supabase.rpc('copy_produtividades_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
     });
 
     if (produtividadesError) {
-      console.error("Erro ao copiar produtividades:", produtividadesError);
+      console.error("❌ ERRO ao copiar produtividades:", produtividadesError);
+    } else {
+      console.log("✅ Produtividades copiadas");
     }
 
     // 4. Copiar dados de custos de produção
+    console.log("📋 Copiando custos de produção...");
     const { error: custosError } = await supabase.rpc('copy_custos_producao_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
     });
 
     if (custosError) {
-      console.error("Erro ao copiar custos de produção:", custosError);
+      console.error("❌ ERRO ao copiar custos de produção:", custosError);
+    } else {
+      console.log("✅ Custos de produção copiados");
     }
 
     // 5. Copiar dados de preços de commodities
+    console.log("📋 Copiando preços de commodities...");
     const { error: commodityError } = await supabase.rpc('copy_commodity_prices_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
     });
 
     if (commodityError) {
-      console.error("Erro ao copiar preços de commodities:", commodityError);
+      console.error("❌ ERRO ao copiar preços de commodities:", commodityError);
+      console.error("Detalhes do erro:", {
+        code: commodityError.code,
+        message: commodityError.message,
+        details: commodityError.details,
+        hint: commodityError.hint
+      });
+    } else {
+      console.log("✅ Preços de commodities copiados");
     }
 
     // 6. Copiar dados de cotações de câmbio
+    console.log("📋 Copiando cotações de câmbio...");
     const { error: cambioError } = await supabase.rpc('copy_cotacoes_cambio_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
     });
 
     if (cambioError) {
-      console.error("Erro ao copiar cotações de câmbio:", cambioError);
+      console.error("❌ ERRO ao copiar cotações de câmbio:", cambioError);
+      console.error("Detalhes do erro:", {
+        code: cambioError.code,
+        message: cambioError.message,
+        details: cambioError.details,
+        hint: cambioError.hint
+      });
+    } else {
+      console.log("✅ Cotações de câmbio copiadas");
     }
 
+    console.log("=== PROJECTION CREATION COMPLETED ===");
+    
     revalidatePath("/dashboard/production");
     return { data: projection, error: null };
   } catch (error) {
-    console.error("Erro ao criar projeção:", error);
+    console.error("❌ ERRO GERAL ao criar projeção:", error);
     return { data: null, error };
   }
 }

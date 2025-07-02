@@ -107,7 +107,7 @@ export function ValuesOnusStep({ form }: ValuesOnusStepProps) {
           />
         </div>
 
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1">
           {/* @ts-ignore */}
           <CurrencyFieldWrapper
             name="valor_atual"
@@ -117,16 +117,6 @@ export function ValuesOnusStep({ form }: ValuesOnusStepProps) {
             icon={Calculator}
             description="Calculado automaticamente (Terra + Benfeitorias)"
             disabled={true}
-          />
-
-          {/* @ts-ignore */}
-          <CurrencyFieldWrapper
-            name="avaliacao_banco"
-            label="Avaliação do Banco"
-            control={form.control as any}
-            placeholder="R$ 0,00"
-            icon={Banknote}
-            description="Valor de avaliação bancária"
           />
         </div>
       </div>

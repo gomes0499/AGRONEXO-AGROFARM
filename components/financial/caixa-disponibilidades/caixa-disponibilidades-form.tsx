@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { createCaixaDisponibilidades, updateCaixaDisponibilidades } from "@/lib/actions/financial-actions/caixa-disponibilidades";
 import { CaixaDisponibilidadesListItem, CaixaDisponibilidadesFormValues, caixaDisponibilidadesFormSchema, caixaDisponibilidadesCategoriaEnum } from "@/schemas/financial/caixa_disponibilidades";
-import { SafraValueEditor } from "../common/safra-value-editor";
+import { SafraFinancialEditorAllVisible } from "../common/safra-financial-editor-all-visible";
 import { toast } from "sonner";
 import { 
   Select,
@@ -238,13 +238,14 @@ export function CaixaDisponibilidadesForm({
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valores por Safra</FormLabel>
                     <FormControl>
-                      <SafraValueEditor
-                        organizacaoId={organizationId}
+                      <SafraFinancialEditorAllVisible
+                        label="Valores por Safra"
+                        description="Defina os valores para cada safra"
                         values={typeof field.value === 'object' && field.value !== null ? field.value : {}}
                         onChange={field.onChange}
                         safras={initialSafras}
+                        disabled={isLoading || isPending}
                         currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>

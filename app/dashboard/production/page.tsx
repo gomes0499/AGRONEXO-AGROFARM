@@ -26,7 +26,7 @@ export default async function ProductionPage({
   // Fetch all production data with the unified action
   const productionData = await fetchProductionPageData(organizationId, {
     // Add filters if needed based on searchParams
-  });
+  }, projectionId);
 
   return (
     <ProductionPageClient

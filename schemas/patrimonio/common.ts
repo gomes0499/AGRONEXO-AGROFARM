@@ -7,7 +7,11 @@ export const assetCategoryEnum = z.enum([
   "AERONAVE", 
   "VEICULO", 
   "BENFEITORIA", 
-  "INVESTIMENTO_SOLO"
+  "INVESTIMENTO_SOLO",
+  "MAQUINARIO_AGRICOLA",
+  "INFRAESTRUTURA",
+  "TECNOLOGIA",
+  "OUTROS"
 ]);
 export type AssetCategoryType = z.infer<typeof assetCategoryEnum>;
 

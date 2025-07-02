@@ -36,7 +36,6 @@ export function useLeaseForm({
     resolver: zodResolver(leaseFormSchema),
     defaultValues: {
       propriedade_id: propertyId,
-      ...((lease as any)?.safra_id ? { safra_id: (lease as any).safra_id } : { safra_id: "" }),
       numero_arrendamento: lease?.numero_arrendamento || "",
       area_fazenda: lease?.area_fazenda || 0,
       area_arrendada: lease?.area_arrendada || 0,
@@ -56,15 +55,28 @@ export function useLeaseForm({
   // Buscar dados da propriedade para preenchimento automático (apenas no modo create)
   useEffect(() => {
     const fetchPropertyData = async () => {
+      console.log("useLeaseForm - mode:", mode, "propertyId:", propertyId, "lease:", lease);
       if (mode === "create" && propertyId && !lease) {
         try {
           const property = await getPropertyById(propertyId);
+          console.log("Property data:", property);
           
           // Preencher automaticamente os campos relacionados à propriedade
           form.setValue("propriedade_id", propertyId);
-          // Handle possible null values for area_total
-          form.setValue("area_fazenda", property.area_total || 0);
-          form.setValue("nome_fazenda", property.nome);
+          
+          // Aguardar um pouco para garantir que o formulário esteja pronto
+          setTimeout(() => {
+            // Handle possible null values for area_total
+            if (property.area_total !== null && property.area_total !== undefined) {
+              console.log("Setting area_fazenda to:", property.area_total);
+              form.setValue("area_fazenda", property.area_total, {
+                shouldValidate: false,
+                shouldDirty: true,
+                shouldTouch: true
+              });
+            }
+            form.setValue("nome_fazenda", property.nome);
+          }, 100);
         } catch (error) {
           console.error("Erro ao buscar dados da propriedade:", error);
           toast.error("Erro ao buscar dados da propriedade");
@@ -80,10 +92,6 @@ export function useLeaseForm({
       setIsLoading(true);
       toast.info("Processando formulário...");
 
-      if (!(values as any).safra_id) {
-        toast.error("Selecione uma safra");
-        return { success: false };
-      }
       
       if (!values.numero_arrendamento) {
         toast.error("Informe o número do arrendamento");
@@ -102,11 +110,15 @@ export function useLeaseForm({
       
       // Verificar se custos_por_ano não está vazio
       if (!values.custos_por_ano || Object.keys(values.custos_por_ano).length === 0) {
-        // Adicionar pelo menos um par chave-valor padrão se estiver vazio
-        const currentYear = new Date().getFullYear().toString();
-        const calculatedCost = values.area_arrendada * (values.custo_hectare || 0);
-        values.custos_por_ano = { [currentYear]: calculatedCost };
+        toast.error("É necessário calcular os custos por safra. Verifique se preencheu a área arrendada e o custo por hectare.");
+        setIsLoading(false);
+        return { success: false };
       }
+      
+      // Log para debug
+      console.log("Valores finais antes de salvar:", values);
+      console.log("custos_por_ano:", values.custos_por_ano);
+      console.log("Chaves de custos_por_ano:", Object.keys(values.custos_por_ano));
  
       if (mode === "edit" && lease?.id) {
         await updateLease(lease.id, values);

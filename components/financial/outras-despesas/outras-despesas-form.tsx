@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { createOutraDespesa, updateOutraDespesa } from "@/lib/actions/financial-actions/outras-despesas";
 import { OutrasDespesasListItem, OutrasDespesasFormValues, outrasDespesasFormSchema } from "@/schemas/financial/outras_despesas";
-import { SafraValueEditor } from "../common/safra-value-editor";
+import { SafraFinancialEditorAllVisible } from "../common/safra-financial-editor-all-visible";
 import { toast } from "sonner";
 import { 
   Select,
@@ -238,13 +238,14 @@ export function OutrasDespesasForm({
                 name="valores_por_safra"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valores por Safra</FormLabel>
                     <FormControl>
-                      <SafraValueEditor
-                        organizacaoId={organizationId}
-                        values={field.value}
+                      <SafraFinancialEditorAllVisible
+                        label="Valores por Safra"
+                        description="Defina os valores da despesa para cada safra"
+                        values={field.value || {}}
                         onChange={field.onChange}
                         safras={initialSafras}
+                        disabled={isLoading || isPending}
                         currency={form.watch("moeda") as "BRL" | "USD"}
                       />
                     </FormControl>

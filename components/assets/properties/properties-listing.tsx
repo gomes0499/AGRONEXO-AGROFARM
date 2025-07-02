@@ -13,15 +13,12 @@ import {
   MoreHorizontal,
   EyeIcon,
   Loader2Icon,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
 } from "lucide-react";
-import Link from "next/link";
 import { EmptyState } from "@/components/shared/empty-state";
+import { AssetPagination } from "../common/asset-pagination";
 import { Badge } from "@/components/ui/badge";
 import { PropertyFormModal } from "@/components/properties/property-form-modal";
+import { PropertyDetailsModal } from "@/components/properties/property-details-modal";
 import { formatCurrency, formatArea } from "@/lib/utils/formatters";
 import {
   Table,
@@ -75,11 +72,13 @@ export function PropertiesListing({
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [detailsPropertyId, setDetailsPropertyId] = useState<string | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const router = useRouter();
 
 
-  const handleItemsPerPageChange = useCallback((value: string) => {
-    setItemsPerPage(Number(value));
+  const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
   }, []);
 
@@ -128,8 +127,8 @@ export function PropertiesListing({
   };
 
   return (
-    <>
-      <Card>
+    <div className="space-y-6">
+      <Card className="shadow-sm border-muted/80">
         <CardHeaderPrimary
           title="Bens Imóveis"
           icon={<MapPinIcon className="h-5 w-5" />}
@@ -143,10 +142,9 @@ export function PropertiesListing({
               Nova Propriedade
             </Button>
           }
+          className="mb-4"
         />
-
-
-        <CardContent className="p-0">
+        <CardContent>
           {currentProperties.length === 0 ? (
             <div className="p-8">
               <EmptyState
@@ -163,7 +161,7 @@ export function PropertiesListing({
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto mt-4">
+              <div className="rounded-md border">
                 <Table>
                   <TableHeader className="rounded-t-md overflow-hidden">
                     <TableRow className="bg-primary hover:bg-primary">
@@ -176,7 +174,7 @@ export function PropertiesListing({
                       </TableHead>
                       <TableHead className="font-semibold text-primary-foreground">Proprietário</TableHead>
                       <TableHead className="text-right font-semibold text-primary-foreground">Valor</TableHead>
-                      <TableHead className="w-[50px] rounded-tr-md"></TableHead>
+                      <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -187,7 +185,9 @@ export function PropertiesListing({
                         </TableCell>
                         <TableCell>
                           <Badge variant={typeStyles[property.tipo].variant}>
-                            {property.tipo}
+                            {property.tipo === "PROPRIO" ? "PRÓPRIO" : 
+                             property.tipo === "ARRENDADO" ? "ARRENDADO" :
+                             property.tipo === "PARCERIA_AGRICOLA" ? "PARCERIA AGRÍCOLA" : property.tipo}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -199,7 +199,7 @@ export function PropertiesListing({
                         <TableCell className="text-right">
                           {formatArea(property.area_cultivada)}
                         </TableCell>
-                        <TableCell>{property.proprietario}</TableCell>
+                        <TableCell>{property.proprietario || "A informar"}</TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(property.valor_atual)}
                         </TableCell>
@@ -218,13 +218,14 @@ export function PropertiesListing({
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Ações</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/dashboard/properties/${property.id}`}
-                                >
-                                  <EyeIcon className="mr-2 h-4 w-4" />
-                                  Ver detalhes
-                                </Link>
+                              <DropdownMenuItem
+                                onSelect={() => {
+                                  setDetailsPropertyId(property.id || null);
+                                  setIsDetailsModalOpen(true);
+                                }}
+                              >
+                                <EyeIcon className="mr-2 h-4 w-4" />
+                                Ver detalhes
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onSelect={() => {
@@ -297,56 +298,14 @@ export function PropertiesListing({
               </div>
 
               {/* Paginação */}
-              <div className="flex items-center justify-between px-4 py-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                </div>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handlePageChange(1)}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronsLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-
-                    <span className="text-sm px-3">
-                      Página {currentPage} de {totalPages}
-                    </span>
-
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handlePageChange(totalPages)}
-                      disabled={currentPage === totalPages}
-                    >
-                      <ChevronsRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+              <AssetPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                totalItems={properties.length}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
+              />
             </>
           )}
         </CardContent>
@@ -370,6 +329,19 @@ export function PropertiesListing({
         }}
       />
 
-    </>
+      {detailsPropertyId && (
+        <PropertyDetailsModal
+          propertyId={detailsPropertyId}
+          open={isDetailsModalOpen}
+          onOpenChange={(open) => {
+            setIsDetailsModalOpen(open);
+            if (!open) {
+              setDetailsPropertyId(null);
+            }
+          }}
+        />
+      )}
+
+    </div>
   );
 }

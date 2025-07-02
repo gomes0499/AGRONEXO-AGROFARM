@@ -270,12 +270,15 @@ export function FinancialChartClient({
             </div>
             <div>
               <CardTitle className="text-white">
-                Evolução Financeira{currentScenario && " - Projeção"}
+                {projectionId ? "Projeção Financeira" : "Evolução Financeira"}
+                {currentScenario && " - Cenário"}
                 {isPending && " (Atualizando...)"}
               </CardTitle>
               <CardDescription className="text-white/80">
                 {currentScenario 
                   ? `Cenário: ${currentScenario.scenarioName} - Indicadores financeiros projetados`
+                  : projectionId
+                  ? `Indicadores financeiros projetados (${data[0]?.safra} - ${data[data.length - 1]?.safra})`
                   : `Receita, Custo, EBITDA e Lucro Líquido por safra (${data[0]?.safra} - ${data[data.length - 1]?.safra})`}
               </CardDescription>
             </div>
@@ -394,39 +397,83 @@ export function FinancialChartClient({
         </div>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-xs">
-          {/* Período Realizado 2021-2024 */}
-          <div className="space-y-1">
-            <div className="font-medium text-muted-foreground">Realizado (2021-2024)</div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
-              <span>EBITDA: {mediasMargens.ebitdaRealizado}%</span>
+        {!projectionId ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-xs">
+              {/* Período Realizado 2021-2024 */}
+              <div className="space-y-1">
+                <div className="font-medium text-muted-foreground">Realizado (2021-2024)</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
+                  <span>EBITDA: {mediasMargens.ebitdaRealizado}%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
+                  <span>Lucro Líquido: {mediasMargens.lucroRealizado}%</span>
+                </div>
+              </div>
+              
+              {/* Período Projetado 2025-2030 */}
+              <div className="space-y-1">
+                <div className="font-medium text-muted-foreground">Projetado (2025-2030)</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
+                  <span>EBITDA: {mediasMargens.ebitdaProjetado}%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
+                  <span>Lucro Líquido: {mediasMargens.lucroProjetado}%</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
-              <span>Lucro Líquido: {mediasMargens.lucroRealizado}%</span>
+            
+            <div className="leading-none text-muted-foreground text-xs pt-2 border-t border-muted-foreground/20 w-full">
+              {currentScenario 
+                ? `Projeção baseada no cenário "${currentScenario.scenarioName}" - Safras ${data[0]?.safra} a ${data[data.length - 1]?.safra}`
+                : "Margens médias calculadas sobre a receita total por período"}
             </div>
-          </div>
-          
-          {/* Período Projetado 2025-2030 */}
-          <div className="space-y-1">
-            <div className="font-medium text-muted-foreground">Projetado (2025-2030)</div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
-              <span>EBITDA: {mediasMargens.ebitdaProjetado}%</span>
+          </>
+        ) : (
+          <>
+            <div className="w-full">
+              <div className="font-medium text-muted-foreground text-xs mb-2">
+                Indicadores projetados
+              </div>
+              {/* Mostrar margens médias do período */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
+                    <span>Margem EBITDA média: {
+                      data.length > 0 
+                        ? ((data.reduce((sum, item) => sum + (item.ebitda / item.receitaTotal * 100), 0) / data.length).toFixed(1))
+                        : "0.0"
+                    }%</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
+                    <span>Margem LL média: {
+                      data.length > 0 
+                        ? ((data.reduce((sum, item) => sum + (item.lucroLiquido / item.receitaTotal * 100), 0) / data.length).toFixed(1))
+                        : "0.0"
+                    }%</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
-              <span>Lucro Líquido: {mediasMargens.lucroProjetado}%</span>
+            
+            <div className="leading-none text-muted-foreground text-xs pt-2 border-t border-muted-foreground/20 w-full">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                {currentScenario 
+                  ? `Cenário "${currentScenario.scenarioName}" aplicado`
+                  : "Projeção baseada em áreas, produtividades, preços e custos estimados"}
+              </div>
             </div>
-          </div>
-        </div>
-        
-        <div className="leading-none text-muted-foreground text-xs pt-2 border-t border-muted-foreground/20 w-full">
-          {currentScenario 
-            ? `Projeção baseada no cenário "${currentScenario.scenarioName}" - Safras ${data[0]?.safra} a ${data[data.length - 1]?.safra}`
-            : "Margens médias calculadas sobre a receita total por período"}
-        </div>
+          </>
+        )}
       </CardFooter>
     </Card>
   );

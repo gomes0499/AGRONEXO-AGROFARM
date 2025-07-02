@@ -549,8 +549,33 @@ export async function getProperties(organizationId: string) {
 export async function getPlantingAreas(organizationId: string, filters?: {
   propertyId?: string;
   cultureId?: string;
-}) {
+}, projectionId?: string) {
   const supabase = await createClient();
+  
+  if (projectionId) {
+    // Use RPC function to get data from projection table
+    const { data, error } = await supabase
+      .rpc('get_planting_areas_with_projection', {
+        p_organizacao_id: organizationId,
+        p_projection_id: projectionId
+      });
+    
+    if (error) {
+      console.error("Erro ao buscar áreas de plantio da projeção:", error);
+      throw new Error("Não foi possível carregar as áreas de plantio");
+    }
+    
+    // Apply filters if provided
+    let filteredData = data || [];
+    if (filters?.propertyId) {
+      filteredData = filteredData.filter((item: any) => item.propriedade_id === filters.propertyId);
+    }
+    if (filters?.cultureId) {
+      filteredData = filteredData.filter((item: any) => item.cultura_id === filters.cultureId);
+    }
+    
+    return filteredData as PlantingArea[];
+  }
   
   let query = supabase
     .from("areas_plantio")
@@ -612,31 +637,67 @@ export async function createPlantingArea(data: {
   ciclo_id: string;
   areas_por_safra: Record<string, number>;
   observacoes?: string;
-}) {
+}, projectionId?: string) {
   const supabase = await createClient();
   
-  const { data: result, error } = await supabase
-    .from("areas_plantio")
-    .insert(data)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Erro ao criar área de plantio:", error);
-    throw new Error("Não foi possível criar a área de plantio");
+  if (projectionId) {
+    // Se tem projectionId, usar a função RPC
+    const { data: result, error } = await supabase
+      .rpc('create_planting_area_with_projection', {
+        p_data: data,
+        p_projection_id: projectionId
+      });
+    
+    if (error) {
+      console.error("Erro ao criar área de plantio para projeção:", error);
+      throw new Error("Não foi possível criar a área de plantio");
+    }
+    
+    revalidatePath("/dashboard/production");
+    return result;
+  } else {
+    // Senão, inserir normalmente na tabela principal
+    const { data: result, error } = await supabase
+      .from("areas_plantio")
+      .insert(data)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Erro ao criar área de plantio:", error);
+      throw new Error("Não foi possível criar a área de plantio");
+    }
+    
+    revalidatePath("/dashboard/production");
+    return result;
   }
-  
-  revalidatePath("/dashboard/production");
-  return result;
 }
 
 export async function updatePlantingArea(id: string, data: {
   areas_por_safra?: Record<string, number>;
   observacoes?: string;
-}) {
+}, projectionId?: string) {
   const supabase = await createClient();
   
   try {
+    if (projectionId) {
+      // Se tem projectionId, usar a função RPC
+      const { data: result, error } = await supabase
+        .rpc('update_planting_area_with_projection', {
+          p_id: id,
+          p_data: data,
+          p_projection_id: projectionId
+        });
+      
+      if (error) {
+        console.error("Erro ao atualizar área de plantio para projeção:", error);
+        throw new Error("Não foi possível atualizar a área de plantio");
+      }
+      
+      revalidatePath("/dashboard/production");
+      return result;
+    }
+    
     // Verificar se estamos lidando com uma projeção
     const { data: projectionRecord, error: fetchError } = await supabase
       .from("areas_plantio_projections")
@@ -694,8 +755,39 @@ export async function deletePlantingArea(id: string) {
 export async function getProductivities(organizationId: string, filters?: {
   propertyId?: string;
   cultureId?: string;
-}) {
+}, projectionId?: string) {
   const supabase = await createClient();
+  
+  if (projectionId) {
+    // Use RPC function to get data from projection table
+    const { data, error } = await supabase
+      .rpc('get_productivities_with_projection', {
+        p_organizacao_id: organizationId,
+        p_projection_id: projectionId
+      });
+    
+    if (error) {
+      console.error("Erro ao buscar produtividades da projeção:", error);
+      throw new Error("Não foi possível carregar as produtividades");
+    }
+    
+    // Apply filters if provided
+    let filteredData = data || [];
+    if (filters?.propertyId) {
+      filteredData = filteredData.filter((item: any) => item.propriedade_id === filters.propertyId);
+    }
+    if (filters?.cultureId) {
+      filteredData = filteredData.filter((item: any) => item.cultura_id === filters.cultureId);
+    }
+    
+    // Normalizar dados de produtividade para garantir formato consistente
+    const normalizedData = filteredData.map((productivity: any) => ({
+      ...productivity,
+      produtividades_por_safra: normalizeProductivityData(productivity.produtividades_por_safra)
+    }));
+    
+    return normalizedData as Productivity[];
+  }
   
   let query = supabase
     .from("produtividades")
@@ -769,31 +861,130 @@ export async function createProductivity(data: {
   ciclo_id: string;
   produtividades_por_safra: Record<string, { produtividade: number; unidade: string }>;
   observacoes?: string;
-}) {
+}, projectionId?: string) {
   const supabase = await createClient();
   
-  const { data: result, error } = await supabase
-    .from("produtividades")
-    .insert(data)
-    .select()
-    .single();
+  // Log para debug
+  console.log("Dados recebidos para criar produtividade:", JSON.stringify(data, null, 2));
+  console.log("Tipo de produtividades_por_safra:", typeof data.produtividades_por_safra);
+  console.log("Conteúdo de produtividades_por_safra:", data.produtividades_por_safra);
   
-  if (error) {
-    console.error("Erro ao criar produtividade:", error);
-    throw new Error("Não foi possível criar a produtividade");
+  // Garantir que produtividades_por_safra está no formato correto
+  let produtividadesPorSafra = data.produtividades_por_safra || {};
+  
+  // Se for string, tentar fazer parse
+  if (typeof produtividadesPorSafra === 'string') {
+    try {
+      produtividadesPorSafra = JSON.parse(produtividadesPorSafra);
+    } catch (e) {
+      console.error("Erro ao fazer parse de produtividades_por_safra:", e);
+      throw new Error("Formato inválido de produtividades por safra");
+    }
   }
   
-  revalidatePath("/dashboard/production");
-  return result;
+  // Verificar se cada entrada está no formato correto
+  for (const [safraId, value] of Object.entries(produtividadesPorSafra)) {
+    if (typeof value === 'string') {
+      try {
+        produtividadesPorSafra[safraId] = JSON.parse(value);
+      } catch (e) {
+        console.error(`Erro ao fazer parse do valor para safra ${safraId}:`, e);
+        throw new Error(`Formato inválido para safra ${safraId}`);
+      }
+    }
+  }
+  
+  // Normalizar dados para o formato esperado pelo banco
+  const normalizedProductivities = normalizeProductivityData(produtividadesPorSafra);
+  
+  // Extrair apenas os valores numéricos de produtividade para o banco
+  const produtividadesNumericasParaBanco: Record<string, number> = {};
+  for (const [safraId, value] of Object.entries(normalizedProductivities)) {
+    produtividadesNumericasParaBanco[safraId] = value.produtividade;
+  }
+  
+  const dataForDb = {
+    ...data,
+    produtividades_por_safra: produtividadesNumericasParaBanco
+  };
+  
+  console.log("Dados para o banco:", JSON.stringify(dataForDb, null, 2));
+  
+  if (projectionId) {
+    // Se tem projectionId, usar a função RPC
+    const { data: result, error } = await supabase
+      .rpc('create_productivity_with_projection', {
+        p_data: dataForDb,
+        p_projection_id: projectionId
+      });
+    
+    if (error) {
+      console.error("Erro ao criar produtividade para projeção:", error);
+      throw new Error("Não foi possível criar a produtividade");
+    }
+    
+    revalidatePath("/dashboard/production");
+    return result;
+  } else {
+    // Senão, inserir normalmente na tabela principal
+    const { data: result, error } = await supabase
+      .from("produtividades")
+      .insert(dataForDb)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Erro ao criar produtividade:", error);
+      console.error("Dados que causaram erro:", dataForDb);
+      throw new Error("Não foi possível criar a produtividade");
+    }
+    
+    revalidatePath("/dashboard/production");
+    return result;
+  }
 }
 
 export async function updateProductivity(id: string, data: {
   produtividades_por_safra?: Record<string, { produtividade: number; unidade: string }>;
   observacoes?: string;
-}) {
+}, projectionId?: string) {
   const supabase = await createClient();
   
   try {
+    // Preparar dados no formato esperado pelo banco (apenas valores numéricos)
+    let dataForDb: any = { ...data };
+    
+    if (data.produtividades_por_safra) {
+      const produtividadesNumericasParaBanco: Record<string, number> = {};
+      for (const [safraId, value] of Object.entries(data.produtividades_por_safra)) {
+        if (value && typeof value === 'object' && 'produtividade' in value) {
+          produtividadesNumericasParaBanco[safraId] = value.produtividade;
+        }
+      }
+      dataForDb = {
+        ...data,
+        produtividades_por_safra: produtividadesNumericasParaBanco
+      };
+    }
+    
+    if (projectionId) {
+      // Se tem projectionId, usar a função RPC
+      const { data: result, error } = await supabase
+        .rpc('update_productivity_with_projection', {
+          p_id: id,
+          p_data: dataForDb,
+          p_projection_id: projectionId
+        });
+      
+      if (error) {
+        console.error("Erro ao atualizar produtividade para projeção:", error);
+        throw new Error("Não foi possível atualizar a produtividade");
+      }
+      
+      revalidatePath("/dashboard/production");
+      return result;
+    }
+    
     // Primeiro, verificar se estamos lidando com uma projeção
     const { data: productivityRecord, error: fetchError } = await supabase
       .from("produtividades_projections")
@@ -804,8 +995,8 @@ export async function updateProductivity(id: string, data: {
     const isProjection = !fetchError && productivityRecord;
     const tableName = isProjection ? "produtividades_projections" : "produtividades";
 
-    // Preparar dados de acordo com a estrutura da tabela
-    let updateData: any = { ...data };
+    // Usar os dados já preparados
+    let updateData = dataForDb;
     
     if (data.produtividades_por_safra) {
       if (isProjection) {
@@ -894,8 +1085,36 @@ export async function getProductionCosts(organizationId: string, filters?: {
   propertyId?: string;
   cultureId?: string;
   categoria?: string;
-}) {
+}, projectionId?: string) {
   const supabase = await createClient();
+  
+  if (projectionId) {
+    // Use RPC function to get data from projection table
+    const { data, error } = await supabase
+      .rpc('get_production_costs_with_projection', {
+        p_organizacao_id: organizationId,
+        p_projection_id: projectionId
+      });
+    
+    if (error) {
+      console.error("Erro ao buscar custos de produção da projeção:", error);
+      throw new Error("Não foi possível carregar os custos de produção");
+    }
+    
+    // Apply filters if provided
+    let filteredData = data || [];
+    if (filters?.propertyId) {
+      filteredData = filteredData.filter((item: any) => item.propriedade_id === filters.propertyId);
+    }
+    if (filters?.cultureId) {
+      filteredData = filteredData.filter((item: any) => item.cultura_id === filters.cultureId);
+    }
+    if (filters?.categoria) {
+      filteredData = filteredData.filter((item: any) => item.categoria === filters.categoria);
+    }
+    
+    return filteredData as ProductionCost[];
+  }
   
   let query = supabase
     .from("custos_producao")
@@ -963,33 +1182,69 @@ export async function createProductionCost(organizationId: string, values: {
   custos_por_safra: Record<string, number>;
   descricao?: string;
   observacoes?: string;
-}) {
+}, projectionId?: string) {
   const data = values;
   const supabase = await createClient();
   
-  const { data: result, error } = await supabase
-    .from("custos_producao")
-    .insert(data)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Erro ao criar custo de produção:", error);
-    throw new Error("Não foi possível criar o custo de produção");
+  if (projectionId) {
+    // Se tem projectionId, usar a função RPC
+    const { data: result, error } = await supabase
+      .rpc('create_production_cost_with_projection', {
+        p_data: data,
+        p_projection_id: projectionId
+      });
+    
+    if (error) {
+      console.error("Erro ao criar custo de produção para projeção:", error);
+      throw new Error("Não foi possível criar o custo de produção");
+    }
+    
+    revalidatePath("/dashboard/production");
+    return result;
+  } else {
+    // Senão, inserir normalmente na tabela principal
+    const { data: result, error } = await supabase
+      .from("custos_producao")
+      .insert(data)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Erro ao criar custo de produção:", error);
+      throw new Error("Não foi possível criar o custo de produção");
+    }
+    
+    revalidatePath("/dashboard/production");
+    return result;
   }
-  
-  revalidatePath("/dashboard/production");
-  return result;
 }
 
 export async function updateProductionCost(id: string, data: {
   custos_por_safra?: Record<string, number>;
   descricao?: string;
   observacoes?: string;
-}) {
+}, projectionId?: string) {
   const supabase = await createClient();
   
   try {
+    if (projectionId) {
+      // Se tem projectionId, usar a função RPC
+      const { data: result, error } = await supabase
+        .rpc('update_production_cost_with_projection', {
+          p_id: id,
+          p_data: data,
+          p_projection_id: projectionId
+        });
+      
+      if (error) {
+        console.error("Erro ao atualizar custo de produção para projeção:", error);
+        throw new Error("Não foi possível atualizar o custo de produção");
+      }
+      
+      revalidatePath("/dashboard/production");
+      return result;
+    }
+    
     // Verificar se estamos lidando com uma projeção
     const { data: projectionRecord, error: fetchError } = await supabase
       .from("custos_producao_projections")
@@ -1460,61 +1715,21 @@ export async function createMultiSafraProductivities(
     ciclo_id: string;
     produtividades_por_safra: Record<string, { produtividade: number; unidade: string }>;
     observacoes?: string;
-  }
+  },
+  projectionId?: string
 ) {
-  const supabase = await createClient();
+  const completeData = {
+    organizacao_id: organizationId,
+    propriedade_id: data.propriedade_id || undefined,
+    cultura_id: data.cultura_id,
+    sistema_id: data.sistema_id,
+    ciclo_id: data.ciclo_id,
+    produtividades_por_safra: data.produtividades_por_safra,
+    observacoes: data.observacoes || undefined
+  };
   
-  try {
-    // Vamos usar uma abordagem mais simples: vamos converter as produtividades complexas
-    // para valores numéricos simples, para evitar o erro de tipo do PostgreSQL
-    
-    // Criamos um objeto com valores numéricos simples
-    const numericProductivities: Record<string, number> = {};
-    
-    // Processar cada entrada para extrair apenas o valor numérico
-    Object.entries(data.produtividades_por_safra).forEach(([safraId, value]) => {
-      if (value && value.produtividade > 0) {
-        // Armazenar apenas o valor numérico de produtividade
-        numericProductivities[safraId] = Number(value.produtividade);
-      }
-    });
-    
-    // Verificar se temos alguma produtividade válida
-    if (Object.keys(numericProductivities).length === 0) {
-      throw new Error("Nenhuma produtividade válida informada");
-    }
-    
-    // Preparar os dados para inserção com formato simplificado
-    const completeData = {
-      organizacao_id: organizationId,
-      propriedade_id: data.propriedade_id || null,
-      cultura_id: data.cultura_id,
-      sistema_id: data.sistema_id,
-      ciclo_id: data.ciclo_id,
-      // Usar apenas números para evitar o erro de tipo JSONB
-      produtividades_por_safra: numericProductivities,
-      observacoes: data.observacoes || null
-    };
-    
-    const { data: result, error } = await supabase
-      .from("produtividades")
-      .insert(completeData)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error("Erro ao criar produtividades múltiplas:", error);
-      throw new Error("Não foi possível criar as produtividades");
-    }
-    
-    // Se chegamos aqui, a inserção foi bem-sucedida
-    revalidatePath("/dashboard/production");
-    return result as Productivity;
-    
-  } catch (error) {
-    console.error("Erro ao processar produtividades múltiplas:", error);
-    throw new Error("Não foi possível criar as produtividades");
-  }
+  // Use the existing createProductivity function which already supports projectionId
+  return createProductivity(completeData, projectionId);
 }
 
 // MultiSafraProductionCost form function
@@ -1524,56 +1739,33 @@ export async function createMultiSafraProductionCosts(
     propriedade_id: string;
     cultura_id: string;
     sistema_id: string;
+    ciclo_id: string;
     categoria: string;
     custos_por_safra: Record<string, number>;
     descricao?: string;
     observacoes?: string;
-  }
+  },
+  projectionId?: string
 ) {
-  const supabase = await createClient();
+  const completeData = {
+    organizacao_id: organizationId,
+    propriedade_id: data.propriedade_id || undefined,
+    cultura_id: data.cultura_id,
+    sistema_id: data.sistema_id,
+    ciclo_id: data.ciclo_id,
+    categoria: data.categoria,
+    custos_por_safra: data.custos_por_safra,
+    descricao: data.descricao,
+    observacoes: data.observacoes
+  };
   
-  try {
-    // Garantir que os custos estejam no formato numérico correto
-    const formattedCosts: Record<string, number> = {};
-    
-    Object.entries(data.custos_por_safra).forEach(([safraId, value]) => {
-      // Converter para número e garantir que seja um valor válido
-      formattedCosts[safraId] = Number(value);
-    });
-    
-    const completeData = {
-      organizacao_id: organizationId,
-      propriedade_id: data.propriedade_id,
-      cultura_id: data.cultura_id,
-      sistema_id: data.sistema_id,
-      categoria: data.categoria,
-      custos_por_safra: formattedCosts,
-      descricao: data.descricao,
-      observacoes: data.observacoes
-    };
-    
-    const { data: result, error } = await supabase
-      .from("custos_producao")
-      .insert(completeData)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error("Erro ao criar custos múltiplos:", error);
-      throw new Error("Não foi possível criar os custos");
-    }
-    
-    revalidatePath("/dashboard/production");
-    return result as ProductionCost;
-  } catch (error) {
-    console.error("Erro ao processar custos múltiplos:", error);
-    throw new Error("Não foi possível criar os custos");
-  }
+  // Use the existing createProductionCost function which already supports projectionId
+  return createProductionCost(organizationId, completeData, projectionId);
 }
 
 export async function getProductionCostsUnified(organizationId: string, projectionId?: string) {
   const [productionCosts, safras] = await Promise.all([
-    projectionId ? getProductionCostsFromProjection(organizationId, projectionId) : getProductionCosts(organizationId),
+    getProductionCosts(organizationId, undefined, projectionId),
     getSafras(organizationId),
   ]);
 
@@ -1616,13 +1808,12 @@ export async function createMultiSafraPlantingAreas(
     ciclo_id: string;
     areas_por_safra: Record<string, number>;
     observacoes?: string;
-  }
+  },
+  projectionId?: string
 ) {
-  const supabase = await createClient();
-  
   const completeData = {
     organizacao_id: organizationId,
-    propriedade_id: data.propriedade_id || null, // Convert empty string to null
+    propriedade_id: data.propriedade_id || undefined, // Convert empty string to undefined
     cultura_id: data.cultura_id,
     sistema_id: data.sistema_id,
     ciclo_id: data.ciclo_id,
@@ -1630,19 +1821,8 @@ export async function createMultiSafraPlantingAreas(
     observacoes: data.observacoes
   };
   
-  const { data: result, error } = await supabase
-    .from("areas_plantio")
-    .insert(completeData)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Erro ao criar áreas de plantio múltiplas:", error);
-    throw new Error("Não foi possível criar as áreas de plantio");
-  }
-  
-  revalidatePath("/dashboard/production");
-  return result as PlantingArea;
+  // Use the existing createPlantingArea function which already supports projectionId
+  return createPlantingArea(completeData, projectionId);
 }
 
 export async function getLivestockDataUnified(organizationId: string) {

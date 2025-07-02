@@ -14,7 +14,7 @@ import { ReceitasFinanceirasForm } from "./receitas-financeiras-form";
 
 interface NewReceitasFinanceirasButtonProps {
   organizationId: string;
-  safras: Array<{ id: string; nome: string }>;
+  safras: Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number }>;
   onSuccess?: () => void;
   variant?: "default" | "secondary" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";

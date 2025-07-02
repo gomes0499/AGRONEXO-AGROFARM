@@ -86,9 +86,11 @@ export async function getCultureProjections(organizationId: string, projectionId
       id,
       cultura_id,
       sistema_id,
+      ciclo_id,
       produtividades_por_safra,
       culturas!inner(id, nome),
-      sistemas!inner(id, nome)
+      sistemas!inner(id, nome),
+      ciclos!inner(id, nome)
     `)
     .eq("organizacao_id", organizationId);
   
@@ -108,9 +110,12 @@ export async function getCultureProjections(organizationId: string, projectionId
       id,
       cultura_id,
       sistema_id,
+      ciclo_id,
+      categoria,
       custos_por_safra,
       culturas!inner(id, nome),
-      sistemas!inner(id, nome)
+      sistemas!inner(id, nome),
+      ciclos!inner(id, nome)
     `)
     .eq("organizacao_id", organizationId);
   
@@ -184,21 +189,37 @@ export async function getCultureProjections(organizationId: string, projectionId
     const sistemaNome = sistemas.nome;
     const cicloNome = ciclos.nome;
 
-    // Encontrar produtividade correspondente (produtividades não têm ciclo_id)
+    // Encontrar produtividade correspondente
     const produtividade = produtividades?.find(p => 
       p.cultura_id === culturaId &&
-      p.sistema_id === sistemaId
+      p.sistema_id === sistemaId &&
+      p.ciclo_id === ciclos.id
     );
 
-    // Encontrar custo correspondente
-    const custo = custos?.find(c => 
+    // Encontrar custo correspondente - custos são agregados por todas as categorias
+    const custosRelacionados = custos?.filter(c => 
       c.cultura_id === culturaId &&
-      c.sistema_id === sistemaId
-    );
+      c.sistema_id === sistemaId &&
+      c.ciclo_id === ciclos.id
+    ) || [];
 
-    if (!produtividade || !custo) {
-   
+    // Agregar custos de todas as categorias
+    const custoAgregado: Record<string, number> = {};
+    custosRelacionados.forEach(c => {
+      Object.entries(c.custos_por_safra || {}).forEach(([safraId, valor]) => {
+        custoAgregado[safraId] = (custoAgregado[safraId] || 0) + (Number(valor) || 0);
+      });
+    });
+
+    if (!produtividade) {
       return;
+    }
+    
+    // Se não há custos, usar zero
+    if (custosRelacionados.length === 0) {
+      safras.forEach(safra => {
+        custoAgregado[safra.id] = 0;
+      });
     }
 
     // Determinar o tipo de commodity para buscar preços
@@ -206,27 +227,25 @@ export async function getCultureProjections(organizationId: string, projectionId
     let unidade = "Sc/ha";
     
     if (culturaNome.toLowerCase().includes("soja")) {
-      commodityType = sistemaNome.toLowerCase().includes("irrigado") ? "SOJA_IRRIGADO" : "SOJA";
+      // Para soja, sempre usar SOJA_SEQUEIRO ou SOJA_IRRIGADO baseado no sistema
+      commodityType = sistemaNome.toLowerCase().includes("irrigado") ? "SOJA_IRRIGADO" : "SOJA_SEQUEIRO";
       unidade = "Sc/ha";
     } else if (culturaNome.toLowerCase().includes("milho")) {
-      // Detectar se é Milho Safrinha ou Milho comum
-      if (culturaNome.toLowerCase().includes("safrinha") || cicloNome.toLowerCase().includes("2")) {
-        commodityType = "MILHO_SAFRINHA";
-      } else {
-        commodityType = "MILHO";
-      }
+      // Para milho, usar apenas MILHO_SEQUEIRO ou MILHO_IRRIGADO
+      // A diferenciação entre 1ª safra e safrinha será feita pelos preços
+      commodityType = sistemaNome.toLowerCase().includes("irrigado") ? "MILHO_IRRIGADO" : "MILHO_SEQUEIRO";
       unidade = "Sc/ha";
-    } else if (culturaNome.toLowerCase().includes("algodão")) {
-      commodityType = "ALGODAO";
+    } else if (culturaNome.toLowerCase().includes("algod")) {
+      commodityType = sistemaNome.toLowerCase().includes("irrigado") ? "ALGODÃO_IRRIGADO" : "ALGODÃO_SEQUEIRO";
       unidade = "@/ha";
     } else if (culturaNome.toLowerCase().includes("arroz")) {
-      commodityType = "ARROZ";
+      commodityType = sistemaNome.toLowerCase().includes("irrigado") ? "ARROZ_IRRIGADO" : "ARROZ_SEQUEIRO";
       unidade = "Sc/ha";
     } else if (culturaNome.toLowerCase().includes("sorgo")) {
-      commodityType = "SORGO";
+      commodityType = sistemaNome.toLowerCase().includes("irrigado") ? "SORGO_IRRIGADO" : "SORGO_SEQUEIRO";
       unidade = "Sc/ha";
     } else if (culturaNome.toLowerCase().includes("feijão")) {
-      commodityType = "FEIJAO";
+      commodityType = sistemaNome.toLowerCase().includes("irrigado") ? "FEIJÃO_IRRIGADO" : "FEIJÃO_SEQUEIRO";
       unidade = "Sc/ha";
     }
 
@@ -236,16 +255,36 @@ export async function getCultureProjections(organizationId: string, projectionId
     const culturaNomeUpper = culturaNome.toUpperCase();
     const cicloNomeUpper = cicloNome.toUpperCase();
     
-    let combinationTitle = `PROJEÇÃO - ${culturaNomeUpper}`;
+    // Determinar qual safra está sendo mostrada (1ª SAFRA, 2ª SAFRA, SAFRINHA, etc)
+    let safraLabel = "";
+    if (cicloNomeUpper.includes('SAFRINHA')) {
+      safraLabel = "SAFRINHA";
+    } else if (cicloNomeUpper.includes('2') || cicloNomeUpper.includes('SEGUNDA')) {
+      safraLabel = "2ª SAFRA";
+    } else if (cicloNomeUpper.includes('1') || cicloNomeUpper.includes('PRIMEIRA')) {
+      safraLabel = "1ª SAFRA";
+    } else if (cicloNomeUpper.includes('3') || cicloNomeUpper.includes('TERCEIRA')) {
+      safraLabel = "3ª SAFRA";
+    }
+    
+    // Adicionar sistema ao título
+    const sistemaNomeUpper = sistemaNome.toUpperCase();
+    
+    let combinationTitle = `PROJEÇÃO - ${culturaNomeUpper} ${sistemaNomeUpper}`;
+    if (safraLabel) {
+      combinationTitle = `PROJEÇÃO - ${culturaNomeUpper} ${sistemaNomeUpper} - ${safraLabel}`;
+    }
     if (culturaNomeUpper.includes('SAFRINHA')) {
-      combinationTitle = `PROJEÇÃO - ${culturaNomeUpper}`;
+      combinationTitle = `PROJEÇÃO - ${culturaNomeUpper} ${sistemaNomeUpper}`;
     }
     
     let sectionTitle = `${culturaNomeUpper}`;
-    if (cicloNomeUpper.includes('2')) {
-      sectionTitle = `SEGUNDA SAFRA    ${culturaNomeUpper}`;
+    if (cicloNomeUpper.includes('SAFRINHA')) {
+      sectionTitle = `SAFRINHA - ${culturaNomeUpper}`;
+    } else if (cicloNomeUpper.includes('2')) {
+      sectionTitle = `SEGUNDA SAFRA - ${culturaNomeUpper}`;
     } else if (cicloNomeUpper.includes('1')) {
-      sectionTitle = `PRIMEIRA SAFRA    ${culturaNomeUpper}`;
+      sectionTitle = `PRIMEIRA SAFRA - ${culturaNomeUpper}`;
     }
     
     // Processar dados por safra
@@ -255,43 +294,41 @@ export async function getCultureProjections(organizationId: string, projectionId
       const safraId = safra.id;
       const anoNome = safra.nome;
       const areaSafra = area.areas_por_safra?.[safraId] || 0;
-      const produtividadeSafra = produtividade.produtividades_por_safra?.[safraId] || 0;
-      const custoSafra = custo.custos_por_safra?.[safraId] || 0;
+      
+      // Lidar com formato híbrido de produtividade
+      let produtividadeSafra = 0;
+      const prodData = produtividade.produtividades_por_safra?.[safraId];
+      if (typeof prodData === 'number') {
+        produtividadeSafra = prodData;
+      } else if (prodData && typeof prodData === 'object' && 'produtividade' in prodData) {
+        produtividadeSafra = prodData.produtividade;
+      }
+      
+      const custoSafra = custoAgregado[safraId] || 0;
       
    
       let precoSafra = precosCommidity[safraId] || 0;
       
-      
-      // Se não encontrou preço na tabela, usar valores padrão
-      if (precoSafra === 0) {
-        if (culturaNome.toLowerCase().includes("soja")) {
-          precoSafra = 125;
-        } else if (culturaNome.toLowerCase().includes("milho")) {
-          // Usar preços específicos para Milho Safrinha vs Milho comum
-          if (culturaNome.toLowerCase().includes("safrinha") || cicloNome.toLowerCase().includes("2")) {
-            // Preços do Milho Safrinha conforme especificado
-            if (anoNome === "2021/22") {
-              precoSafra = 79;
-            } else if (["2024/25", "2025/26", "2026/27", "2027/28", "2028/29", "2029/30"].includes(anoNome)) {
-              precoSafra = 60;
-            } else {
-              precoSafra = 60; // padrão para anos não especificados
-            }
-          } else {
-            precoSafra = 80; // Milho comum
+      // Para milho, precisamos diferenciar entre 1ª safra, 2ª safra e safrinha
+      if (culturaNome.toLowerCase().includes("milho") && precoSafra === 0) {
+        if (cicloNome.toLowerCase().includes("safrinha")) {
+          // Preços específicos para Milho Safrinha
+          if (anoNome === "2021/22") {
+            precoSafra = 79;
+          } else if (["2024/25", "2025/26", "2026/27", "2027/28", "2028/29", "2029/30"].includes(anoNome)) {
+            precoSafra = 60;
           }
-        } else if (culturaNome.toLowerCase().includes("algodão")) {
-          precoSafra = 132;
-        } else if (culturaNome.toLowerCase().includes("arroz")) {
-          precoSafra = 125;
-        } else if (culturaNome.toLowerCase().includes("sorgo")) {
-          precoSafra = 50;
-        } else if (culturaNome.toLowerCase().includes("feijão")) {
-          precoSafra = 170;
-        } else {
-          precoSafra = 100; // preço genérico
+        } else if (cicloNome.toLowerCase().includes("1")) {
+          // Preços para Milho 1ª Safra
+          if (anoNome === "2021/22") {
+            precoSafra = 72;
+          } else if (anoNome === "2022/23") {
+            precoSafra = 49.40;
+          } else if (anoNome === "2023/24") {
+            precoSafra = 54;
+          }
         }
-      } else {
+        // Para 2ª Safra (que não é safrinha), usar os mesmos preços base
       }
 
       const receita = areaSafra * produtividadeSafra * precoSafra;

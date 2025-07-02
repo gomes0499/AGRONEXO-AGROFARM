@@ -12,6 +12,7 @@ type UnifiedPricesTabProps = {
   systems?: Array<{ id: string; nome: string }>;
   cycles?: Array<{ id: string; nome: string }>;
   safras?: Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number }>;
+  projectionId?: string;
 };
 
 export function UnifiedPricesTab({
@@ -22,6 +23,7 @@ export function UnifiedPricesTab({
   systems = [],
   cycles = [],
   safras = [],
+  projectionId,
 }: UnifiedPricesTabProps) {
 
   if (!organizationId) {
@@ -33,14 +35,19 @@ export function UnifiedPricesTab({
   }
 
   // Filter to ensure we only have the correct types
-  const EXCHANGE_RATE_TYPES = ["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_FECHAMENTO"];
+  const EXCHANGE_RATE_TYPES = ["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_MILHO", "DOLAR_FECHAMENTO"];
   
+  // Handle both commodityType and tipo_moeda fields for compatibility
   const filteredCommodityPrices = commodityPrices.filter(
-    price => !EXCHANGE_RATE_TYPES.includes(price.commodityType)
+    price => !EXCHANGE_RATE_TYPES.includes(price.commodityType || (price as any).tipo_moeda || "")
   );
   
+  // Exchange rates might come with tipo_moeda or commodity_type field
   const filteredExchangeRates = exchangeRates.filter(
-    rate => EXCHANGE_RATE_TYPES.includes(rate.commodityType)
+    rate => {
+      const type = rate.commodityType || (rate as any).tipo_moeda || (rate as any).commodity_type || "";
+      return EXCHANGE_RATE_TYPES.includes(type);
+    }
   );
 
   return (
@@ -52,6 +59,7 @@ export function UnifiedPricesTab({
       systems={systems}
       cycles={cycles}
       safras={safras}
+      projectionId={projectionId}
     />
   );
 }

@@ -105,7 +105,7 @@ export function CurrencyField({
             setStandaloneValue(
               numericValue !== null ? numericValue : undefined
             );
-            if (onChange) onChange(numericValue !== null ? numericValue : 0);
+            if (onChange) onChange(numericValue ?? 0);
           }}
           onBlur={(e) => {
             setStandaloneIsFocused(false);
@@ -178,11 +178,11 @@ export function CurrencyField({
                   // Allow continuous typing by preserving the raw input
                   const rawValue = e.target.value.replace(/[^\d.,\-]/g, "");
                   if (rawValue === "") {
-                    // Se o campo estiver vazio, defina como null para evitar constraints de "positive"
-                    field.onChange(null);
+                    // Se o campo estiver vazio, defina como 0
+                    field.onChange(0);
                   } else {
                     const numericValue = parseFormattedNumber(rawValue);
-                    field.onChange(numericValue);
+                    field.onChange(numericValue ?? 0);
                   }
                 }}
                 onBlur={(e) => {

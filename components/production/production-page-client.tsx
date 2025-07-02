@@ -78,6 +78,7 @@ export function ProductionPageClient({
           safras={safras}
           commodityPrices={commodityPrices}
           exchangeRates={exchangeRates}
+          projectionId={projectionId}
         />
       ),
     },
@@ -95,6 +96,7 @@ export function ProductionPageClient({
           systems={systems}
           cycles={cycles}
           organizationId={organizationId}
+          projectionId={projectionId}
         />
       ),
     },
@@ -112,6 +114,7 @@ export function ProductionPageClient({
           systems={systems}
           cycles={cycles}
           organizationId={organizationId}
+          projectionId={projectionId}
         />
       ),
     },
@@ -129,6 +132,7 @@ export function ProductionPageClient({
           systems={systems}
           cycles={cycles}
           organizationId={organizationId}
+          projectionId={projectionId}
         />
       ),
     },

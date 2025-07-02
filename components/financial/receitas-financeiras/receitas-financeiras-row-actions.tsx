@@ -35,7 +35,7 @@ import { toast } from "sonner";
 interface ReceitasFinanceirasRowActionsProps {
   receita: ReceitaFinanceira;
   organizationId: string;
-  safras: Array<{ id: string; nome: string }>;
+  safras: Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number }>;
   onUpdate?: () => void;
 }
 
@@ -106,10 +106,9 @@ export function ReceitasFinanceirasRowActions({
               defaultValues={{
                 descricao: receita.descricao,
                 categoria: receita.categoria,
-                valor: receita.valor,
                 moeda: receita.moeda || "BRL",
-                nome: receita.nome,
-                valores_por_safra: receita.valores_por_safra || {},
+                nome: receita.nome || "",
+                valores_por_safra: typeof receita.valores_por_safra === "object" ? receita.valores_por_safra : {},
               }}
               onSuccess={() => {
                 setIsEditOpen(false);

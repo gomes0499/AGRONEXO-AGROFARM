@@ -167,14 +167,24 @@ export async function createProperty(
     };
     
     // Extrair proprietários do objeto de valores
-    const { proprietarios, ...propertyData } = processedValues;
+    const { proprietarios, custos_por_safra, ...propertyData } = processedValues;
+    
+    // Se for arrendada, adicionar campos de arrendamento
+    const insertData = {
+      organizacao_id: organizationId,
+      ...propertyData,
+      // Adicionar campos de arrendamento se o tipo for ARRENDADO ou PARCERIA_AGRICOLA
+      ...(values.tipo === "ARRENDADO" || values.tipo === "PARCERIA_AGRICOLA" ? {
+        arrendantes: values.arrendantes,
+        custo_hectare: values.custo_hectare,
+        tipo_pagamento: values.tipo_pagamento,
+        custos_por_safra: custos_por_safra || {}
+      } : {})
+    };
     
     const { data, error } = await supabase
       .from("propriedades")
-      .insert({
-        organizacao_id: organizationId,
-        ...propertyData
-      })
+      .insert(insertData)
       .select()
       .single();
     
@@ -218,6 +228,42 @@ export async function createProperty(
       if (ownersError) {
         console.error("Erro ao salvar proprietários:", ownersError);
         // Não vamos falhar a operação completa, mas logamos o erro
+      }
+    }
+    
+    // Se for arrendamento, criar registro na tabela de arrendamentos também
+    if ((values.tipo === "ARRENDADO" || values.tipo === "PARCERIA_AGRICOLA") && custos_por_safra) {
+      try {
+        // Gerar número do arrendamento baseado no nome da propriedade
+        const numeroArrendamento = `ARR-${data.nome.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+        
+        const arrendamentoData = {
+          organizacao_id: organizationId,
+          propriedade_id: data.id,
+          numero_arrendamento: numeroArrendamento,
+          nome_fazenda: data.nome,
+          arrendantes: values.arrendantes || "",
+          data_inicio: values.data_inicio,
+          data_termino: values.data_termino,
+          area_fazenda: values.area_total || 0,
+          area_arrendada: values.area_total || 0, // Por padrão, usar a área total
+          custo_hectare: values.custo_hectare || 0,
+          tipo_pagamento: values.tipo_pagamento || "SACAS",
+          custos_por_ano: custos_por_safra,
+          ativo: true,
+          observacoes: `Arrendamento criado automaticamente para a propriedade ${data.nome}`
+        };
+        
+        const { error: leaseError } = await supabase
+          .from("arrendamentos")
+          .insert(arrendamentoData);
+        
+        if (leaseError) {
+          console.error("Erro ao criar arrendamento:", leaseError);
+          // Não falhar a operação completa, mas logar o erro
+        }
+      } catch (leaseError) {
+        console.error("Erro ao criar arrendamento:", leaseError);
       }
     }
     
@@ -292,11 +338,29 @@ export async function updateProperty(
     };
     
     // Extrair proprietários do objeto de valores
-    const { proprietarios, ...propertyData } = processedValues;
+    const { proprietarios, custos_por_safra, ...propertyData } = processedValues;
+    
+    // Se for arrendada, adicionar campos de arrendamento
+    const updateData = {
+      ...propertyData,
+      // Adicionar campos de arrendamento se o tipo for ARRENDADO ou PARCERIA_AGRICOLA
+      ...(values.tipo === "ARRENDADO" || values.tipo === "PARCERIA_AGRICOLA" ? {
+        arrendantes: values.arrendantes,
+        custo_hectare: values.custo_hectare,
+        tipo_pagamento: values.tipo_pagamento,
+        custos_por_safra: custos_por_safra || {}
+      } : {
+        // Se mudou de arrendado para próprio, limpar campos de arrendamento
+        arrendantes: null,
+        custo_hectare: null,
+        tipo_pagamento: null,
+        custos_por_safra: null
+      })
+    };
     
     const { data, error } = await supabase
       .from("propriedades")
-      .update(propertyData)
+      .update(updateData)
       .eq("id", id)
       .select()
       .single();
@@ -354,6 +418,74 @@ export async function updateProperty(
           console.error("Erro ao salvar novos proprietários:", ownersError);
           // Não vamos falhar a operação completa, mas logamos o erro
         }
+      }
+    }
+    
+    // Gerenciar arrendamentos baseado no tipo da propriedade
+    if (values.tipo === "ARRENDADO" || values.tipo === "PARCERIA_AGRICOLA") {
+      // Verificar se já existe um arrendamento para esta propriedade
+      const { data: existingLease } = await supabase
+        .from("arrendamentos")
+        .select("id")
+        .eq("propriedade_id", id)
+        .single();
+      
+      if (existingLease) {
+        // Atualizar arrendamento existente
+        const { error: updateLeaseError } = await supabase
+          .from("arrendamentos")
+          .update({
+            arrendantes: values.arrendantes || "",
+            data_inicio: values.data_inicio,
+            data_termino: values.data_termino,
+            area_fazenda: values.area_total || 0,
+            area_arrendada: values.area_total || 0,
+            custo_hectare: values.custo_hectare || 0,
+            tipo_pagamento: values.tipo_pagamento || "SACAS",
+            custos_por_ano: custos_por_safra || {},
+          })
+          .eq("id", existingLease.id);
+        
+        if (updateLeaseError) {
+          console.error("Erro ao atualizar arrendamento:", updateLeaseError);
+        }
+      } else if (custos_por_safra) {
+        // Criar novo arrendamento
+        const numeroArrendamento = `ARR-${data.nome.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+        
+        const { error: createLeaseError } = await supabase
+          .from("arrendamentos")
+          .insert({
+            organizacao_id: data.organizacao_id,
+            propriedade_id: id,
+            numero_arrendamento: numeroArrendamento,
+            nome_fazenda: data.nome,
+            arrendantes: values.arrendantes || "",
+            data_inicio: values.data_inicio,
+            data_termino: values.data_termino,
+            area_fazenda: values.area_total || 0,
+            area_arrendada: values.area_total || 0,
+            custo_hectare: values.custo_hectare || 0,
+            tipo_pagamento: values.tipo_pagamento || "SACAS",
+            custos_por_ano: custos_por_safra,
+            ativo: true,
+            observacoes: `Arrendamento criado automaticamente para a propriedade ${data.nome}`
+          });
+        
+        if (createLeaseError) {
+          console.error("Erro ao criar arrendamento:", createLeaseError);
+        }
+      }
+    } else {
+      // Se mudou de arrendado para próprio, desativar arrendamentos existentes
+      const { error: deactivateLeaseError } = await supabase
+        .from("arrendamentos")
+        .update({ ativo: false })
+        .eq("propriedade_id", id)
+        .eq("ativo", true);
+      
+      if (deactivateLeaseError) {
+        console.error("Erro ao desativar arrendamento:", deactivateLeaseError);
       }
     }
     
@@ -545,11 +677,9 @@ export async function createLease(
     }
   }
   
-  // Se estiver vazio, criar um registro padrão com o ano atual
-  if (Object.keys(custos).length === 0) {
-    const currentYear = new Date().getFullYear().toString();
-    const custoTotal = values.area_arrendada * (values.custo_hectare || 0);
-    custos = { [currentYear]: custoTotal };
+  // Validar que custos_por_ano não está vazio
+  if (!custos || Object.keys(custos).length === 0) {
+    throw new Error("É necessário informar os custos por safra para o arrendamento");
   }
   
   const insertData = {
@@ -658,11 +788,9 @@ export async function updateLease(
     }
   }
   
-  // Se estiver vazio, criar um registro padrão com o ano atual
-  if (Object.keys(custos).length === 0) {
-    const currentYear = new Date().getFullYear().toString();
-    const custoTotal = values.area_arrendada * (values.custo_hectare || 0);
-    custos = { [currentYear]: custoTotal };
+  // Validar que custos_por_ano não está vazio
+  if (!custos || Object.keys(custos).length === 0) {
+    throw new Error("É necessário informar os custos por safra para o arrendamento");
   }
   
   const updateData = {

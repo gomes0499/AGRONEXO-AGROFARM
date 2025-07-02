@@ -1,22 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Investment } from "@/lib/actions/patrimonio-actions";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/utils/formatters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -138,23 +130,40 @@ export function InvestmentListing({
     }
   };
 
-  const totalInvestments = investments.reduce(
-    (total, investment) => total + (investment?.valor_total || 0),
-    0
-  );
+  // Get unique years from investments
+  const years = useMemo(() => {
+    const uniqueYears = [...new Set(investments.map(inv => inv.ano))];
+    return uniqueYears.sort((a, b) => a - b);
+  }, [investments]);
 
-  const getCategoryBadge = (categoria: string) => {
-    const categoryColors: Record<string, string> = {
-      EQUIPAMENTO: "bg-blue-100 text-blue-800",
-      TRATOR_COLHEITADEIRA_PULVERIZADOR: "bg-green-100 text-green-800",
-      AERONAVE: "bg-purple-100 text-purple-800",
-      VEICULO: "bg-orange-100 text-orange-800",
-      BENFEITORIA: "bg-yellow-100 text-yellow-800",
-      INVESTIMENTO_SOLO: "bg-emerald-100 text-emerald-800",
-    };
+  // Group investments by category and tipo
+  const groupedInvestments = useMemo(() => {
+    const groups: Record<string, {
+      categoria: string;
+      tipo: string;
+      investmentsByYear: Record<number, number>;
+      totalValue: number;
+    }> = {};
 
-    return categoryColors[categoria] || "bg-gray-100 text-gray-800";
-  };
+    investments.forEach(investment => {
+      const key = `${investment.categoria}_${investment.tipo}`;
+      
+      if (!groups[key]) {
+        groups[key] = {
+          categoria: investment.categoria,
+          tipo: investment.tipo,
+          investmentsByYear: {},
+          totalValue: 0
+        };
+      }
+
+      groups[key].investmentsByYear[investment.ano] = 
+        (groups[key].investmentsByYear[investment.ano] || 0) + (investment.valor_total || 0);
+      groups[key].totalValue += (investment.valor_total || 0);
+    });
+
+    return Object.values(groups);
+  }, [investments]);
 
   const getCategoryLabel = (categoria: string) => {
     const categoryLabels: Record<string, string> = {
@@ -164,6 +173,10 @@ export function InvestmentListing({
       VEICULO: "Veículo",
       BENFEITORIA: "Benfeitoria",
       INVESTIMENTO_SOLO: "Investimento em Solo",
+      MAQUINARIO_AGRICOLA: "Máquinas",
+      INFRAESTRUTURA: "Infraestrutura",
+      TECNOLOGIA: "Tecnologia",
+      OUTROS: "Outros",
     };
 
     return categoryLabels[categoria] || categoria;
@@ -207,92 +220,88 @@ export function InvestmentListing({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Tipo</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Categoria</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Ano</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Quantidade</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Valor Unitário</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedItems.map((investment) => (
-                  <TableRow key={investment.id}>
-                    <TableCell>
-                      <Badge>
-                        <div className="flex items-center gap-1">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              investment.tipo === "REALIZADO"
-                                ? "bg-green-500"
-                                : "bg-blue-500"
-                            }`}
-                          />
-                          {investment.tipo === "REALIZADO" ? "Realizado" : "Planejado"}
-                        </div>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge>
-                        {getCategoryLabel(investment.categoria)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{investment.ano}</TableCell>
-                    <TableCell>{investment.quantidade}</TableCell>
-                    <TableCell>{formatCurrency(investment.valor_unitario)}</TableCell>
-                    <TableCell className="font-medium">
-                      {formatCurrency(investment.valor_total)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Abrir menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setEditingInvestment(investment);
-                              setIsEditModalOpen(true);
-                            }}
+            {/* Table Container with Scroll */}
+            <div className="border rounded-lg">
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-primary sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left p-3 font-medium text-white border-r first:rounded-tl-md min-w-[150px]">
+                        Tipo
+                      </th>
+                      <th className="text-left p-3 font-medium text-white border-r min-w-[200px]">
+                        Categoria
+                      </th>
+                      {years.map((year) => (
+                        <th
+                          key={year}
+                          className="text-center p-3 font-medium text-white border-r min-w-[120px]"
+                        >
+                          {year}
+                        </th>
+                      ))}
+                      <th className="text-center p-3 font-medium text-white last:rounded-tr-md min-w-[120px]">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedInvestments.map((group, index) => (
+                      <tr
+                        key={`${group.categoria}_${group.tipo}`}
+                        className={
+                          index % 2 === 0 ? "bg-background" : "bg-muted/25"
+                        }
+                      >
+                        <td className="p-3 border-r">
+                          <Badge
+                            variant={group.tipo === "REALIZADO" ? "default" : "secondary"}
+                            className="text-xs font-medium"
                           >
-                            <Edit2Icon className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => investment.id && handleDelete(investment.id)}
-                            className="text-destructive"
-                            disabled={deletingItemId === investment.id}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {deletingItemId === investment.id ? "Excluindo..." : "Excluir"}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                            <div className="flex items-center gap-1">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  group.tipo === "REALIZADO"
+                                    ? "bg-green-500"
+                                    : "bg-blue-500"
+                                }`}
+                              />
+                              {group.tipo === "REALIZADO" ? "Realizado" : "Planejado"}
+                            </div>
+                          </Badge>
+                        </td>
+                        <td className="p-3 border-r">
+                          <span className="font-medium">
+                            {getCategoryLabel(group.categoria)}
+                          </span>
+                        </td>
+                        {years.map((year) => {
+                          const value = group.investmentsByYear[year] || 0;
+                          return (
+                            <td key={year} className="p-3 border-r text-center">
+                              <span
+                                className={
+                                  value > 0
+                                    ? "font-medium"
+                                    : "text-muted-foreground"
+                                }
+                              >
+                                {value > 0 ? formatCurrencyCompact(value) : "-"}
+                              </span>
+                            </td>
+                          );
+                        })}
+                        <td className="p-3 text-center">
+                          <span className="font-semibold text-primary">
+                            {formatCurrencyCompact(group.totalValue)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-
-            {/* Pagination */}
-            <AssetPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={investments.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={handlePageChange}
-              onItemsPerPageChange={handleItemsPerPageChange}
-            />
           </div>
         )}
       </CardContent>

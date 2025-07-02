@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createProjection } from "@/lib/actions/projections-actions";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useScenarioLoading } from "@/hooks/use-scenario-loading";
 
 interface NewProjectionModalProps {
   open: boolean;
@@ -31,6 +33,10 @@ export function NewProjectionModal({
   const [isLoading, setIsLoading] = useState(false);
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { setLoading: setScenarioLoading } = useScenarioLoading();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +51,7 @@ export function NewProjectionModal({
     try {
       const result = await createProjection(nome.trim(), descricao.trim() || undefined);
       
-      if (result.error) {
+      if (result.error || !result.data) {
         throw new Error("Erro ao criar cenário");
       }
 
@@ -60,6 +66,24 @@ export function NewProjectionModal({
       
       // Callback de sucesso
       onSuccess?.();
+      
+      // Redirecionar para o novo cenário
+      setScenarioLoading(true, `Carregando cenário ${result.data.nome}...`);
+      
+      // Criar nova URLSearchParams a partir das atuais
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("projection", result.data.id);
+      
+      // Usar replace ao invés de push para evitar adicionar ao histórico
+      const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      
+      // Fazer o redirecionamento
+      router.replace(newUrl, { scroll: false });
+      
+      // Aguardar um pouco para garantir que os componentes recarreguem
+      setTimeout(() => {
+        setScenarioLoading(false);
+      }, 1500);
     } catch (error) {
       console.error("Erro ao criar cenário:", error);
       toast.error("Erro ao criar cenário. Tente novamente.");
@@ -87,7 +111,7 @@ export function NewProjectionModal({
                 id="nome"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                placeholder="Ex: Cenário Safra 2025/26"
+                placeholder="Ex: Cenário Otimista"
                 disabled={isLoading}
                 required
               />

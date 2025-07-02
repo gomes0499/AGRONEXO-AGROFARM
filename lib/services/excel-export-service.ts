@@ -221,9 +221,9 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
         costsData.push({
           "Cultura": c.culturas?.nome || "N/A",
           "Sistema": c.sistemas?.nome || "N/A",
-          "Safra": c.safras?.nome || "Geral",
+          "Safra": "Geral",
           "Categoria": c.categoria || "N/A",
-          "Valor": formatCurrency(c.valor || 0),
+          "Valor": formatCurrency(0),
         });
       }
     });

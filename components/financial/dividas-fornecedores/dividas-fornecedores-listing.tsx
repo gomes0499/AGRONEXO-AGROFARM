@@ -31,6 +31,7 @@ interface DividasFornecedoresListingProps {
   initialDividasFornecedores: DividasFornecedoresListItem[];
   initialExchangeRate?: number;
   initialCotacoes?: any[];
+  safras?: any[];
 }
 
 export function DividasFornecedoresListing({
@@ -38,6 +39,7 @@ export function DividasFornecedoresListing({
   initialDividasFornecedores,
   initialExchangeRate = 5.0,
   initialCotacoes = [],
+  safras = [],
 }: DividasFornecedoresListingProps) {
   const [dividasFornecedores, setDividasFornecedores] = useState<
     (DividasFornecedoresListItem & { isExpanded?: boolean })[]
@@ -349,6 +351,7 @@ export function DividasFornecedoresListing({
         onOpenChange={setIsAddModalOpen}
         organizationId={organization.id}
         onSubmit={handleAddDivida}
+        initialSafras={safras}
       />
 
       {/* Modal para editar dívida existente */}
@@ -359,6 +362,7 @@ export function DividasFornecedoresListing({
           organizationId={organization.id}
           existingDivida={editingDivida}
           onSubmit={handleUpdateDivida}
+          initialSafras={safras}
         />
       )}
 
