@@ -63,9 +63,10 @@ interface KpiItemProps {
   loading?: boolean;
   onClick?: () => void;
   isClickable?: boolean;
+  thresholdInfo?: any;
 }
 
-function KpiItem({ title, value, change, changeType, icon, tooltip, loading, onClick, isClickable }: KpiItemProps) {
+function KpiItem({ title, value, change, changeType, icon, tooltip, loading, onClick, isClickable, thresholdInfo }: KpiItemProps) {
   const getChangeColor = () => {
     switch (changeType) {
       case "positive":
@@ -127,10 +128,30 @@ function KpiItem({ title, value, change, changeType, icon, tooltip, loading, onC
             <h3 className="text-2xl font-bold mt-1 dark:text-gray-100">
               {value}
             </h3>
-            <p className={cn("flex items-center text-xs font-medium mt-1", getChangeColor())}>
-              {getChangeIcon()}
-              {change}
-            </p>
+            {thresholdInfo ? (
+              <div className="mt-1">
+                <Badge 
+                  style={{
+                    backgroundColor: `${thresholdInfo.color}20`,
+                    color: thresholdInfo.color,
+                    borderColor: thresholdInfo.color,
+                  }}
+                  className="border font-medium text-xs"
+                  variant="outline"
+                >
+                  {thresholdInfo.level === "THRESHOLD" ? "LIMITE CRÍTICO" : 
+                   thresholdInfo.level === "MUITO_BOM" ? "MUITO BOM" : 
+                   thresholdInfo.level === "ATENCAO" ? "ATENÇÃO" : 
+                   thresholdInfo.level === "CONFORTAVEL" ? "CONFORTÁVEL" : 
+                   thresholdInfo.level}
+                </Badge>
+              </div>
+            ) : (
+              <p className={cn("flex items-center text-xs font-medium mt-1", getChangeColor())}>
+                {change !== "--" && getChangeIcon()}
+                {change}
+              </p>
+            )}
           </>
         )}
       </div>
@@ -189,6 +210,28 @@ export function FinancialKpiCards({
 
   const formatRatio = (value: number) => {
     return value.toFixed(1) + "x";
+  };
+
+  // Helper function to get threshold level and color based on indicator value
+  const getThresholdInfo = (value: number, indicatorType: string) => {
+    const configs = defaultIndicatorConfigs[indicatorType as keyof typeof defaultIndicatorConfigs];
+    if (!configs || !Array.isArray(configs)) {
+      return null;
+    }
+    
+    // Find the matching threshold
+    for (const threshold of configs) {
+      const min = threshold.min;
+      const max = threshold.max;
+      
+      if (max === undefined) {
+        if (value >= min) return threshold;
+      } else {
+        if (value >= min && value <= max) return threshold;
+      }
+    }
+    
+    return null;
   };
 
   // Calculate metrics
@@ -271,6 +314,7 @@ export function FinancialKpiCards({
           getThresholds('DIVIDA_EBITDA').limiar1,
           getThresholds('DIVIDA_EBITDA').limiar2
         ),
+        thresholdInfo: getThresholdInfo(m.indicadores.dividaEbitda, 'DIVIDA_EBITDA'),
       },
       dividaReceita: {
         value: formatRatio(m.indicadores.dividaReceita),
@@ -280,6 +324,7 @@ export function FinancialKpiCards({
           getThresholds('DIVIDA_FATURAMENTO').limiar1,
           getThresholds('DIVIDA_FATURAMENTO').limiar2
         ),
+        thresholdInfo: getThresholdInfo(m.indicadores.dividaReceita, 'DIVIDA_FATURAMENTO'),
       },
       dividaLiquidaEbitda: {
         value: m.indicadores.dividaLiquidaEbitda === 0 ? "N/A" : formatRatio(m.indicadores.dividaLiquidaEbitda),
@@ -289,6 +334,7 @@ export function FinancialKpiCards({
           getThresholds('DIVIDA_EBITDA').limiar1,
           getThresholds('DIVIDA_EBITDA').limiar2
         ),
+        thresholdInfo: getThresholdInfo(m.indicadores.dividaLiquidaEbitda, 'DIVIDA_EBITDA'),
       },
       dividaLiquidaReceita: {
         value: formatRatio(m.indicadores.dividaLiquidaReceita),
@@ -298,6 +344,7 @@ export function FinancialKpiCards({
           getThresholds('DIVIDA_FATURAMENTO').limiar1,
           getThresholds('DIVIDA_FATURAMENTO').limiar2
         ),
+        thresholdInfo: getThresholdInfo(m.indicadores.dividaLiquidaReceita, 'DIVIDA_FATURAMENTO'),
       },
       indicadores: m.indicadores
     };
@@ -477,6 +524,7 @@ export function FinancialKpiCards({
                 setSelectedIndicator({ type: "divida_liquida_ebitda", title: "Dívida Líquida/EBITDA" });
                 setModalOpen(true);
               }}
+              thresholdInfo={metrics.dividaLiquidaEbitda.thresholdInfo}
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
           </div>
@@ -495,6 +543,7 @@ export function FinancialKpiCards({
                 setSelectedIndicator({ type: "divida_ebitda", title: "Dívida/EBITDA" });
                 setModalOpen(true);
               }}
+              thresholdInfo={metrics.dividaEbitda.thresholdInfo}
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
           </div>
@@ -513,6 +562,7 @@ export function FinancialKpiCards({
                 setSelectedIndicator({ type: "divida_receita", title: "Dívida/Receita" });
                 setModalOpen(true);
               }}
+              thresholdInfo={metrics.dividaReceita.thresholdInfo}
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
           </div>
@@ -531,6 +581,7 @@ export function FinancialKpiCards({
                 setSelectedIndicator({ type: "divida_liquida_receita", title: "Dívida Líquida/Receita" });
                 setModalOpen(true);
               }}
+              thresholdInfo={metrics.dividaLiquidaReceita.thresholdInfo}
             />
           </div>
         </div>

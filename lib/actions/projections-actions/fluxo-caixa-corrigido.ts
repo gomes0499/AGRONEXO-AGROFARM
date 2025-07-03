@@ -488,27 +488,61 @@ export async function getFluxoCaixaCorrigido(
       });
     }
 
-    // 7. Preencher seção financeiras (compatibilidade com tabela)
-    anos.forEach(ano => {
-      fluxoData.financeiras.servico_divida[ano] = fluxoData.servico_divida.total_por_ano[ano];
-      fluxoData.financeiras.pagamentos_bancos[ano] = 0; // Placeholder
-      fluxoData.financeiras.novas_linhas_credito[ano] = 0; // Placeholder
-      fluxoData.financeiras.total_por_ano[ano] = fluxoData.servico_divida.total_por_ano[ano];
+    // 7. Buscar dados financeiros adicionais
+    // Criar mapeamento de ano para safraId
+    const anoToSafraId: Record<string, string> = {};
+    safras.forEach(safra => {
+      anoToSafraId[safra.nome] = safra.id;
     });
+
+    // Buscar novas linhas de crédito
+    const { data: financeirasData } = await supabase
+      .from(projectionId ? "financeiras_projections" : "financeiras")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .eq("categoria", "NOVAS_LINHAS_CREDITO")
+      .maybeSingle();
+
+    // Preencher seção financeiras
+    for (const ano of anos) {
+      const safraId = anoToSafraId[ano];
+      
+      // Serviço da dívida já foi calculado
+      fluxoData.financeiras.servico_divida[ano] = fluxoData.servico_divida.total_por_ano[ano];
+      
+      // Pagamentos - Bancos (usar valores de fornecedores já calculados)
+      fluxoData.financeiras.pagamentos_bancos[ano] = fluxoData.servico_divida.fornecedores[ano];
+      
+      // Novas linhas de crédito
+      if (financeirasData?.valores_por_ano && safraId) {
+        fluxoData.financeiras.novas_linhas_credito[ano] = financeirasData.valores_por_ano[safraId] || 0;
+      } else {
+        fluxoData.financeiras.novas_linhas_credito[ano] = 0;
+      }
+      
+      // Total Financeiras = Novas Linhas - Serviço da Dívida - Pagamentos
+      fluxoData.financeiras.total_por_ano[ano] = 
+        fluxoData.financeiras.novas_linhas_credito[ano] - 
+        fluxoData.financeiras.servico_divida[ano] - 
+        fluxoData.financeiras.pagamentos_bancos[ano];
+    }
 
     // 8. Calcular fluxos finais
     anos.forEach(ano => {
-      // Fluxo operacional = Receitas - Despesas Agrícolas - Outras Despesas
-      fluxoData.fluxo_operacional[ano] = 
+      // Margem Bruta Agrícola = Receitas - Despesas Agrícolas
+      const margemBruta = 
         fluxoData.receitas_agricolas.total_por_ano[ano] -
-        fluxoData.despesas_agricolas.total_por_ano[ano] -
-        fluxoData.outras_despesas.total_por_ano[ano];
+        fluxoData.despesas_agricolas.total_por_ano[ano];
 
-      // Fluxo líquido = Fluxo Operacional - Investimentos - Serviço da Dívida
+      // Fluxo operacional = Margem Bruta - Outras Despesas
+      fluxoData.fluxo_operacional[ano] = margemBruta - fluxoData.outras_despesas.total_por_ano[ano];
+
+      // Fluxo líquido = Margem Bruta - Outras Despesas - Investimentos + Total Financeiras
       fluxoData.fluxo_liquido[ano] = 
-        fluxoData.fluxo_operacional[ano] -
-        fluxoData.investimentos.total[ano] -
-        fluxoData.servico_divida.total_por_ano[ano];
+        margemBruta -
+        fluxoData.outras_despesas.total_por_ano[ano] -
+        fluxoData.investimentos.total[ano] +
+        fluxoData.financeiras.total_por_ano[ano];
     });
 
     // 9. Calcular fluxo acumulado

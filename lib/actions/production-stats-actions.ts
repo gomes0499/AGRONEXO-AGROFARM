@@ -475,45 +475,58 @@ export async function getProductionStats(
       if (combo.area <= 0 || combo.produtividade <= 0) continue;
       
       // Determinar tipo de commodity baseado na cultura, sistema e ciclo
-      let commodityType = '';
+      // Por enquanto, vamos procurar por qualquer preço que corresponda à cultura_id e sistema_id
+      // Isso torna o sistema dinâmico sem depender de commodity types hardcoded
+      
       const culturaNome = combo.culturaNome;
       const sistemaNome = combo.sistemaNome;
       const cicloNome = combo.cicloNome || '';
       
-      let culturaNomeLC = culturaNome.toLowerCase();
-      let cicloNomeLC = cicloNome.toLowerCase();
-      
-      if (culturaNomeLC.includes('soja')) {
-        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA_SEQUEIRO';
-      } else if (culturaNomeLC.includes('milho')) {
-        // Detectar se é Milho Safrinha ou Milho comum
-        if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('safrinha')) {
-          commodityType = 'MILHO_SAFRINHA';
-        } else {
-          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'MILHO_IRRIGADO' : 'MILHO_SEQUEIRO';
-        }
-      } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
-        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ALGODÃO_IRRIGADO' : 'ALGODÃO_SEQUEIRO';
-      } else if (culturaNomeLC.includes('arroz')) {
-        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ARROZ_IRRIGADO' : 'ARROZ_SEQUEIRO';
-      } else if (culturaNomeLC.includes('sorgo')) {
-        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SORGO_IRRIGADO' : 'SORGO_SEQUEIRO';
-      } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
-        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'FEIJÃO_IRRIGADO' : 'FEIJÃO_SEQUEIRO';
-      } else {
-        // Tipo de commodity não identificado
-        continue;
-      }
-      
-      // Buscar preço para esta safra específica usando o campo precos_por_ano
+      // Primeiro, tentar encontrar preço por cultura_id e sistema_id (abordagem dinâmica)
       let preco = 0;
       
       if (commodityPrices && commodityPrices.length > 0 && currentSafraId) {
-        const commodityPrice = commodityPrices.find(p => p.commodity_type === commodityType);
+        // Procurar preço que corresponda à cultura_id e sistema_id
+        const precoPorIds = commodityPrices.find(p => 
+          (p as any).cultura_id === combo.cultura_id && 
+          (p as any).sistema_id === combo.sistema_id
+        );
         
-        if (commodityPrice && commodityPrice.precos_por_ano) {
-          // Usar precos_por_ano JSONB com chave sendo o safraId
-          preco = commodityPrice.precos_por_ano[currentSafraId] || 0;
+        if (precoPorIds && precoPorIds.precos_por_ano) {
+          preco = precoPorIds.precos_por_ano[currentSafraId] || 0;
+        }
+        
+        // Se não encontrou por IDs, tentar pela abordagem de commodity_type (fallback)
+        if (preco <= 0) {
+          let commodityType = '';
+          let culturaNomeLC = culturaNome.toLowerCase();
+          let cicloNomeLC = cicloNome.toLowerCase();
+          
+          if (culturaNomeLC.includes('soja')) {
+            commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA_SEQUEIRO';
+          } else if (culturaNomeLC.includes('milho')) {
+            // Detectar se é Milho Safrinha ou Milho comum
+            if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('safrinha')) {
+              commodityType = 'MILHO_SAFRINHA';
+            } else {
+              commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'MILHO_IRRIGADO' : 'MILHO_SEQUEIRO';
+            }
+          } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
+            commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ALGODÃO_IRRIGADO' : 'ALGODÃO_SEQUEIRO';
+          } else if (culturaNomeLC.includes('arroz')) {
+            commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ARROZ_IRRIGADO' : 'ARROZ_SEQUEIRO';
+          } else if (culturaNomeLC.includes('sorgo')) {
+            commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SORGO_IRRIGADO' : 'SORGO_SEQUEIRO';
+          } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
+            commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'FEIJÃO_IRRIGADO' : 'FEIJÃO_SEQUEIRO';
+          }
+          
+          if (commodityType) {
+            const commodityPrice = commodityPrices.find(p => p.commodity_type === commodityType);
+            if (commodityPrice && commodityPrice.precos_por_ano) {
+              preco = commodityPrice.precos_por_ano[currentSafraId] || 0;
+            }
+          }
         }
       }
       
@@ -762,48 +775,57 @@ export async function getProductionStats(
             let receitaTotalAnterior = 0;
             
             for (const [key, combo] of combinacoesAnteriores.entries()) {
-              // Determinar tipo de commodity baseado na cultura, sistema e ciclo
-              let commodityType = '';
+              // Usar a mesma lógica dinâmica para buscar preços da safra anterior
               const culturaNome = combo.culturaNome;
               const sistemaNome = combo.sistemaNome;
               const cicloNome = combo.cicloNome || '';
-              
-              let culturaNomeLC = culturaNome.toLowerCase();
-              let cicloNomeLC = cicloNome.toLowerCase();
-              
-              if (culturaNomeLC.includes('soja')) {
-                commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA';
-              } else if (culturaNomeLC.includes('milho')) {
-                // Detectar se é Milho Safrinha ou Milho comum
-                if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('2')) {
-                  commodityType = 'MILHO_SAFRINHA';
-                } else {
-                  commodityType = 'MILHO';
-                }
-              } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
-                commodityType = 'ALGODAO';
-              } else if (culturaNomeLC.includes('arroz')) {
-                commodityType = 'ARROZ';
-              } else if (culturaNomeLC.includes('sorgo')) {
-                commodityType = 'SORGO';
-              } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
-                commodityType = 'FEIJAO';
-              } else {
-                // Tipo de commodity não identificado
-                continue;
-              }
               
               // Buscar preço para a safra anterior
               let precoAnterior = 0;
               
               if (commodityPrices && commodityPrices.length > 0 && safraAnteriorId) {
-                const commodityPrice = commodityPrices.find(p => p.commodity_type === commodityType);
+                const safraKey = safraAnteriorId as string;
                 
-                if (commodityPrice && commodityPrice.precos_por_ano) {
-                  // Ensure safraAnteriorId is not null before using it as an index
-                  const safraKey = safraAnteriorId as string;
-                  // Usar precos_por_ano JSONB com chave sendo o safraId anterior
-                  precoAnterior = commodityPrice.precos_por_ano[safraKey] || 0;
+                // Primeiro, tentar encontrar preço por cultura_id e sistema_id (abordagem dinâmica)
+                const precoPorIds = commodityPrices.find(p => 
+                  (p as any).cultura_id === combo.cultura_id && 
+                  (p as any).sistema_id === combo.sistema_id
+                );
+                
+                if (precoPorIds && precoPorIds.precos_por_ano) {
+                  precoAnterior = precoPorIds.precos_por_ano[safraKey] || 0;
+                }
+                
+                // Se não encontrou por IDs, tentar pela abordagem de commodity_type (fallback)
+                if (precoAnterior <= 0) {
+                  let commodityType = '';
+                  let culturaNomeLC = culturaNome.toLowerCase();
+                  let cicloNomeLC = cicloNome.toLowerCase();
+                  
+                  if (culturaNomeLC.includes('soja')) {
+                    commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA_SEQUEIRO';
+                  } else if (culturaNomeLC.includes('milho')) {
+                    if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('safrinha')) {
+                      commodityType = 'MILHO_SAFRINHA';
+                    } else {
+                      commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'MILHO_IRRIGADO' : 'MILHO_SEQUEIRO';
+                    }
+                  } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
+                    commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ALGODÃO_IRRIGADO' : 'ALGODÃO_SEQUEIRO';
+                  } else if (culturaNomeLC.includes('arroz')) {
+                    commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ARROZ_IRRIGADO' : 'ARROZ_SEQUEIRO';
+                  } else if (culturaNomeLC.includes('sorgo')) {
+                    commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SORGO_IRRIGADO' : 'SORGO_SEQUEIRO';
+                  } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
+                    commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'FEIJÃO_IRRIGADO' : 'FEIJÃO_SEQUEIRO';
+                  }
+                  
+                  if (commodityType) {
+                    const commodityPrice = commodityPrices.find(p => p.commodity_type === commodityType);
+                    if (commodityPrice && commodityPrice.precos_por_ano) {
+                      precoAnterior = commodityPrice.precos_por_ano[safraKey] || 0;
+                    }
+                  }
                 }
               }
               

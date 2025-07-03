@@ -52,6 +52,8 @@ export interface DREData {
   };
   // Lucro Bruto
   lucro_bruto: Record<string, number>;
+  // Outras Receitas Operacionais
+  outras_receitas_operacionais?: Record<string, number>;
   // Despesas Operacionais
   despesas_operacionais: {
     administrativas: Record<string, number>;
@@ -388,6 +390,24 @@ export function DRETable({ organizationId, initialData }: DRETableProps) {
                         </TableCell>
                       );
                     })}
+                  </TableRow>
+
+                  {/* === OUTRAS RECEITAS OPERACIONAIS === */}
+                  <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
+                    <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      <div className="flex items-center gap-2">
+                        <ArrowUpCircle className="h-4 w-4 text-green-600" />
+                        Outras Receitas Operacionais
+                      </div>
+                    </TableCell>
+                    {data.anos.map((ano) => (
+                      <TableCell 
+                        key={ano} 
+                        className="text-center min-w-[120px] w-[120px] text-green-600 dark:text-green-400"
+                      >
+                        {formatCurrency(data.outras_receitas_operacionais?.[ano] || 0)}
+                      </TableCell>
+                    ))}
                   </TableRow>
 
                   {/* === DESPESAS OPERACIONAIS === */}

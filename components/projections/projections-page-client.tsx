@@ -4,9 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ProjectionsPageData } from "@/lib/actions/projections/unified-projections-actions";
 
 // Import refactored components
-import { FluxoCaixaClient } from "@/components/projections/cash-flow/fluxo-caixa-client";
-import { BalancoPatrimonialTable } from "@/components/projections/balanco/balanco-patrimonial-table";
-import { DRETable } from "@/components/projections/dre/dre-table";
 import { CultureProjectionsTable } from "@/components/projections/cultures/culture-projections-table";
 import { DebtPositionTable } from "@/components/projections/debts/debt-position-table";
 
@@ -20,9 +17,6 @@ export function ProjectionsPageClient({
   initialData,
 }: ProjectionsPageClientProps) {
   const {
-    cashFlow,
-    balanceSheet,
-    incomeStatement,
     cultureProjections,
     debtPositions,
     safras,
@@ -46,24 +40,6 @@ export function ProjectionsPageClient({
               >
                 Posição de Dívida
               </TabsTrigger>
-              <TabsTrigger
-                value="cash-flow"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
-                Fluxo de Caixa
-              </TabsTrigger>
-              <TabsTrigger
-                value="dre"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
-                DRE
-              </TabsTrigger>
-              <TabsTrigger
-                value="balanco"
-                className="rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 h-7 py-1.5 text-xs md:text-sm whitespace-nowrap"
-              >
-                Balanço Patrimonial
-              </TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -82,26 +58,6 @@ export function ProjectionsPageClient({
               organizationId={organizationId}
               initialDebtPositions={debtPositions}
               safras={safras}
-            />
-          </TabsContent>
-
-          <TabsContent value="cash-flow" className="space-y-4">
-            <FluxoCaixaClient
-              organizationId={organizationId}
-              cashFlowData={cashFlow.data}
-              cashPolicy={cashFlow.policy}
-            />
-          </TabsContent>
-
-          <TabsContent value="dre" className="space-y-4">
-            <DRETable
-              {...({ organizationId, dreData: incomeStatement.data } as any)}
-            />
-          </TabsContent>
-
-          <TabsContent value="balanco" className="space-y-4">
-            <BalancoPatrimonialTable
-              {...({ organizationId, balanceData: balanceSheet.data } as any)}
             />
           </TabsContent>
         </div>
