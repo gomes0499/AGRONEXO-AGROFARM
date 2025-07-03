@@ -37,6 +37,7 @@ interface FinancialBankDistributionChartClientProps {
   initialData: BankData[];
   initialYearUsed: number;
   initialSafraName?: string;
+  selectedSafraId?: string;
 }
 
 function CustomTooltip({ active, payload, label }: any) {
@@ -86,6 +87,7 @@ export function FinancialBankDistributionChartClient({
   initialData,
   initialYearUsed,
   initialSafraName,
+  selectedSafraId,
 }: FinancialBankDistributionChartClientProps) {
   const [data, setData] = useState<BankData[]>(initialData);
   const [loading, setLoading] = useState(false);
@@ -104,34 +106,34 @@ export function FinancialBankDistributionChartClient({
     },
   } satisfies ChartConfig), [colors]);
 
-  // Update data when selectedYear changes
+  // Update data when selectedYear or selectedSafraId changes
   useEffect(() => {
-    if (selectedYear && selectedYear !== displayYear) {
-      const loadData = async () => {
-        try {
-          setLoading(true);
-          setError(null);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-          const result = await getBankDistributionData(
-            organizationId,
-            selectedYear,
-            projectionId
-          );
+        const result = await getBankDistributionData(
+          organizationId,
+          selectedSafraId || selectedYear,
+          projectionId
+        );
 
-          setData(result.data);
-          setDisplayYear(result.yearUsed);
-          setDisplaySafra(result.safraName);
-        } catch (err) {
-          console.error("Erro ao carregar dados de distribuição bancária:", err);
-          setError("Erro ao carregar gráfico de distribuição bancária");
-        } finally {
-          setLoading(false);
-        }
-      };
+        setData(result.data);
+        setDisplayYear(result.yearUsed);
+        setDisplaySafra(result.safraName);
+      } catch (err) {
+        console.error("Erro ao carregar dados de distribuição bancária:", err);
+        setError("Erro ao carregar gráfico de distribuição bancária");
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    if (selectedSafraId || selectedYear) {
       loadData();
     }
-  }, [selectedYear, organizationId, projectionId, displayYear]);
+  }, [selectedYear, selectedSafraId, organizationId, projectionId]);
 
   if (loading) {
     return (

@@ -13,6 +13,7 @@ export interface DebtTypeDistributionData {
   data: DebtTypeData[];
   yearUsed: number;
   safraName?: string;
+  hasOnlyInvestments?: boolean;
 }
 
 export async function getDebtTypeDistributionData(
@@ -201,6 +202,9 @@ export async function getDebtTypeDistributionData(
     if (totalGeral === 0) {
       return { data: [], yearUsed: anoExibido, safraName: safraAtualNome };
     }
+    
+    // Verifica se tem apenas investimentos
+    const hasOnlyInvestments = totalPorModalidade.CUSTEIO === 0 && totalPorModalidade.INVESTIMENTOS > 0;
 
     // Criar array de dados para o gráfico com percentuais corretos
     const data: DebtTypeData[] = [
@@ -218,7 +222,12 @@ export async function getDebtTypeDistributionData(
       },
     ].filter((item) => item.value > 0);
 
-    return { data, yearUsed: anoExibido, safraName: safraAtualNome };
+    return { 
+      data, 
+      yearUsed: anoExibido, 
+      safraName: safraAtualNome,
+      hasOnlyInvestments 
+    };
   } catch (error) {
     console.error("Erro ao buscar dados de distribuição por tipo:", error);
     return { data: [], yearUsed: new Date().getFullYear() };

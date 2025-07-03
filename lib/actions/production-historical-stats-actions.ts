@@ -429,22 +429,18 @@ async function calculateReceita(
     let cicloNomeLC = combo.cicloNome.toLowerCase();
     
     if (culturaNomeLC.includes('soja')) {
-      commodityType = combo.sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA';
+      commodityType = combo.sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA_SEQUEIRO';
     } else if (culturaNomeLC.includes('milho')) {
-      // Detectar se é Milho Safrinha ou Milho comum
-      if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('2')) {
-        commodityType = 'MILHO_SAFRINHA';
-      } else {
-        commodityType = 'MILHO';
-      }
+      // Para milho, sempre usar MILHO_SEQUEIRO ou MILHO_IRRIGADO
+      commodityType = combo.sistemaNome.toLowerCase().includes('irrigado') ? 'MILHO_IRRIGADO' : 'MILHO_SEQUEIRO';
     } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
-      commodityType = 'ALGODAO';
+      commodityType = combo.sistemaNome.toLowerCase().includes('irrigado') ? 'ALGODAO_IRRIGADO' : 'ALGODAO_SEQUEIRO';
     } else if (culturaNomeLC.includes('arroz')) {
-      commodityType = 'ARROZ';
+      commodityType = combo.sistemaNome.toLowerCase().includes('irrigado') ? 'ARROZ_IRRIGADO' : 'ARROZ_SEQUEIRO';
     } else if (culturaNomeLC.includes('sorgo')) {
-      commodityType = 'SORGO';
+      commodityType = combo.sistemaNome.toLowerCase().includes('irrigado') ? 'SORGO_IRRIGADO' : 'SORGO_SEQUEIRO';
     } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
-      commodityType = 'FEIJAO';
+      commodityType = combo.sistemaNome.toLowerCase().includes('irrigado') ? 'FEIJAO_IRRIGADO' : 'FEIJAO_SEQUEIRO';
     } else {
       // Caso não tenha uma commodity específica, pular
       continue;
@@ -456,11 +452,14 @@ async function calculateReceita(
       const commodityPrice = commodityPrices.find((p: any) => p.commodity_type === commodityType);
       
       if (commodityPrice) {
-        // Tentar usar o preço específico para esta safra do JSONB precos_por_ano
-        if (commodityPrice.precos_por_ano && commodityPrice.precos_por_ano[safraId]) {
-          preco = commodityPrice.precos_por_ano[safraId];
+        // Tentar usar o preço específico para esta safra do JSONB valores_por_safra
+        if (commodityPrice.valores_por_safra && commodityPrice.valores_por_safra[safraId]) {
+          preco = commodityPrice.valores_por_safra[safraId];
+        } else if (commodityPrice.current_price) {
+          // Se não tiver preço específico para esta safra, usar current_price como fallback
+          preco = commodityPrice.current_price;
         }
-        // Se não tiver preço específico para esta safra, não usar fallback (deixar 0)
+        // Se não tiver nenhum preço, deixar 0
       }
     }
     

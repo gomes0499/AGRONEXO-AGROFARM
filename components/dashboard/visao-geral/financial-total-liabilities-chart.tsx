@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { LayoutList } from "lucide-react";
 import {
   BarChart,
@@ -50,6 +50,7 @@ interface FinancialTotalLiabilitiesChartProps {
   projectionId?: string;
   initialData: TotalLiabilitiesChartData;
   error?: string;
+  selectedSafraId?: string;
 }
 
 export function FinancialTotalLiabilitiesChart({
@@ -58,6 +59,7 @@ export function FinancialTotalLiabilitiesChart({
   projectionId,
   initialData,
   error: initialError,
+  selectedSafraId,
 }: FinancialTotalLiabilitiesChartProps) {
   const [data, setData] = useState<LiabilityData[]>(initialData.data);
   const [displaySafra, setDisplaySafra] = useState<string | undefined>(initialData.safraName);
@@ -93,7 +95,7 @@ export function FinancialTotalLiabilitiesChart({
         setError(null);
         const result = await getTotalLiabilitiesChartData(
           organizationId,
-          selectedYear,
+          selectedSafraId || selectedYear,
           projectionId
         );
         setData(result.data);
@@ -104,6 +106,13 @@ export function FinancialTotalLiabilitiesChart({
       }
     });
   };
+  
+  // Update data when filters change
+  useEffect(() => {
+    if (selectedSafraId) {
+      refreshData();
+    }
+  }, [selectedSafraId]);
 
   if (error) {
     return (

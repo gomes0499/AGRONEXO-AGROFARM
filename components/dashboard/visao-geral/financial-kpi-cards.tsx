@@ -34,9 +34,9 @@ import { formatCurrency } from "@/lib/utils/formatters";
 import { defaultIndicatorConfigs } from "@/schemas/indicators";
 import { IndicatorValueBadge } from "@/components/indicators/indicator-value-badge";
 import {
-  getFinancialKpiData,
+  getFinancialKpiDataV2 as getFinancialKpiData,
   type FinancialKpiData,
-} from "@/lib/actions/financial-kpi-data-actions";
+} from "@/lib/actions/financial-kpi-data-actions-v2";
 import {
   getChangeType,
   getDividaChangeType,
@@ -44,10 +44,13 @@ import {
 } from "@/lib/utils/financial-indicators";
 import { getFinancialMetrics } from "@/lib/actions/financial-metrics-actions";
 import type { FinancialMetrics } from "@/lib/actions/financial-metrics-actions";
+import { FinancialIndicatorHistoricalModalV2 } from "@/components/financial/indicators/financial-indicator-historical-modal-v2";
 
 interface FinancialKpiCardsProps {
   organizationId: string;
   initialData: FinancialKpiData;
+  selectedSafraId?: string;
+  onSafraChange?: (safraId: string) => void;
 }
 
 interface KpiItemProps {
@@ -58,9 +61,11 @@ interface KpiItemProps {
   icon: React.ReactNode;
   tooltip?: string;
   loading?: boolean;
+  onClick?: () => void;
+  isClickable?: boolean;
 }
 
-function KpiItem({ title, value, change, changeType, icon, tooltip, loading }: KpiItemProps) {
+function KpiItem({ title, value, change, changeType, icon, tooltip, loading, onClick, isClickable }: KpiItemProps) {
   const getChangeColor = () => {
     switch (changeType) {
       case "positive":
@@ -84,7 +89,13 @@ function KpiItem({ title, value, change, changeType, icon, tooltip, loading }: K
   };
 
   return (
-    <div className="flex items-start p-5 transition-colors">
+    <div 
+      className={cn(
+        "flex items-start p-5 transition-colors",
+        isClickable && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+      )}
+      onClick={onClick}
+    >
       <div className="rounded-full p-2 mr-3 bg-primary">
         {icon}
       </div>
@@ -130,16 +141,32 @@ function KpiItem({ title, value, change, changeType, icon, tooltip, loading }: K
 export function FinancialKpiCards({
   organizationId,
   initialData,
+  selectedSafraId: externalSelectedSafraId,
+  onSafraChange,
 }: FinancialKpiCardsProps) {
   const [data, setData] = useState(initialData);
-  const [selectedSafraId, setSelectedSafraId] = useState(
-    initialData.currentSafra?.id || ""
-  );
+  
+  // Use external safra if provided, otherwise use default
+  const defaultSafraId = initialData.safras?.find(s => s.nome === "2025/26")?.id || initialData.currentSafra?.id || "";
+  const [internalSelectedSafraId, setInternalSelectedSafraId] = useState(defaultSafraId);
+  const selectedSafraId = externalSelectedSafraId !== undefined ? externalSelectedSafraId : internalSelectedSafraId;
+  
   const [isPending, startTransition] = useTransition();
+  
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedIndicator, setSelectedIndicator] = useState<{
+    type: "divida_receita" | "divida_ebitda" | "divida_liquida_receita" | "divida_liquida_ebitda";
+    title: string;
+  } | null>(null);
 
   // Handle safra change
   const handleSafraChange = (newSafraId: string) => {
-    setSelectedSafraId(newSafraId);
+    if (onSafraChange) {
+      onSafraChange(newSafraId);
+    } else {
+      setInternalSelectedSafraId(newSafraId);
+    }
     
     startTransition(async () => {
       try {
@@ -172,9 +199,16 @@ export function FinancialKpiCards({
         outrosPassivos: { value: "R$ 0", change: "0%", changeType: "neutral" as const },
         dividaLiquida: { value: "R$ 0", change: "0%", changeType: "neutral" as const },
         prazoMedio: { value: "0 anos", change: "0 anos", changeType: "neutral" as const },
-        dividaLiquidaEbitda: { value: "0x", change: "--", changeType: "neutral" as const },
-        dividaEbitda: { value: "0x", change: "--", changeType: "neutral" as const },
-        dividaReceita: { value: "0%", change: "--", changeType: "neutral" as const },
+        dividaLiquidaEbitda: { value: "0.0x", change: "--", changeType: "neutral" as const },
+        dividaEbitda: { value: "0.0x", change: "--", changeType: "neutral" as const },
+        dividaReceita: { value: "0.0x", change: "--", changeType: "neutral" as const },
+        dividaLiquidaReceita: { value: "0.0x", change: "--", changeType: "neutral" as const },
+        indicadores: {
+          dividaReceita: 0,
+          dividaEbitda: 0,
+          dividaLiquidaReceita: 0,
+          dividaLiquidaEbitda: 0
+        }
       };
     }
 
@@ -239,7 +273,7 @@ export function FinancialKpiCards({
         ),
       },
       dividaReceita: {
-        value: `${(m.indicadores.dividaReceita * 100).toFixed(1)}%`,
+        value: formatRatio(m.indicadores.dividaReceita),
         change: "--",
         changeType: getIndicatorChangeType(
           m.indicadores.dividaReceita,
@@ -256,6 +290,16 @@ export function FinancialKpiCards({
           getThresholds('DIVIDA_EBITDA').limiar2
         ),
       },
+      dividaLiquidaReceita: {
+        value: formatRatio(m.indicadores.dividaLiquidaReceita),
+        change: "--",
+        changeType: getIndicatorChangeType(
+          m.indicadores.dividaLiquidaReceita,
+          getThresholds('DIVIDA_FATURAMENTO').limiar1,
+          getThresholds('DIVIDA_FATURAMENTO').limiar2
+        ),
+      },
+      indicadores: m.indicadores
     };
   }, [data.metrics]);
 
@@ -427,7 +471,12 @@ export function FinancialKpiCards({
               change={metrics.dividaLiquidaEbitda.change}
               changeType={metrics.dividaLiquidaEbitda.changeType}
               icon={<DollarSign className="h-5 w-5 text-white" />}
-              tooltip="Indicador de capacidade de pagamento líquida"
+              tooltip="Indicador de capacidade de pagamento líquida (clique para ver histórico)"
+              isClickable={true}
+              onClick={() => {
+                setSelectedIndicator({ type: "divida_liquida_ebitda", title: "Dívida Líquida/EBITDA" });
+                setModalOpen(true);
+              }}
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
           </div>
@@ -440,7 +489,12 @@ export function FinancialKpiCards({
               change={metrics.dividaEbitda.change}
               changeType={metrics.dividaEbitda.changeType}
               icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
-              tooltip="Indicador de capacidade de pagamento"
+              tooltip="Indicador de capacidade de pagamento (clique para ver histórico)"
+              isClickable={true}
+              onClick={() => {
+                setSelectedIndicator({ type: "divida_ebitda", title: "Dívida/EBITDA" });
+                setModalOpen(true);
+              }}
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
           </div>
@@ -453,14 +507,31 @@ export function FinancialKpiCards({
               change={metrics.dividaReceita.change}
               changeType={metrics.dividaReceita.changeType}
               icon={<Building2Icon className="h-5 w-5 text-white" />}
-              tooltip="Dívida total em relação à receita anual"
+              tooltip="Dívida total em relação à receita anual (clique para ver histórico)"
+              isClickable={true}
+              onClick={() => {
+                setSelectedIndicator({ type: "divida_receita", title: "Dívida/Receita" });
+                setModalOpen(true);
+              }}
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
           </div>
 
-          {/* Espaço vazio para manter o layout */}
-          <div>
-            {/* Empty cell to maintain 4x2 grid */}
+          {/* Dívida Líquida/Receita */}
+          <div className="relative">
+            <KpiItem
+              title="Dívida Líquida/Receita"
+              value={metrics.dividaLiquidaReceita.value}
+              change={metrics.dividaLiquidaReceita.change}
+              changeType={metrics.dividaLiquidaReceita.changeType}
+              icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
+              tooltip="Dívida líquida em relação à receita anual (clique para ver histórico)"
+              isClickable={true}
+              onClick={() => {
+                setSelectedIndicator({ type: "divida_liquida_receita", title: "Dívida Líquida/Receita" });
+                setModalOpen(true);
+              }}
+            />
           </div>
         </div>
 
@@ -475,6 +546,17 @@ export function FinancialKpiCards({
           </div>
         </div>
       </Card>
+      
+      {/* Modal para gráfico histórico */}
+      {selectedIndicator && (
+        <FinancialIndicatorHistoricalModalV2
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          organizationId={organizationId}
+          indicatorType={selectedIndicator.type}
+          indicatorTitle={selectedIndicator.title}
+        />
+      )}
     </TooltipProvider>
   );
 }

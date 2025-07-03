@@ -28,6 +28,7 @@ interface FinancialDebtTypeDistributionChartProps {
   initialData: DebtTypeDistributionData;
   selectedYear?: number | string;
   projectionId?: string;
+  selectedSafraId?: string;
 }
 
 function CustomTooltip({ active, payload }: any) {
@@ -67,6 +68,7 @@ export function FinancialDebtTypeDistributionChart({
   initialData,
   selectedYear,
   projectionId,
+  selectedSafraId,
 }: FinancialDebtTypeDistributionChartProps) {
   const [data, setData] = useState<DebtTypeDistributionData>(initialData);
   const [isPending, startTransition] = useTransition();
@@ -86,7 +88,7 @@ export function FinancialDebtTypeDistributionChart({
       try {
         const newData = await getDebtTypeDistributionData(
           organizationId,
-          selectedYear,
+          selectedSafraId || selectedYear,
           projectionId
         );
         setData(newData);
@@ -94,7 +96,7 @@ export function FinancialDebtTypeDistributionChart({
         console.error("Erro ao atualizar dados de distribuição por tipo:", error);
       }
     });
-  }, [organizationId, selectedYear, projectionId]);
+  }, [organizationId, selectedYear, selectedSafraId, projectionId]);
 
   if (!data.data || data.data.length === 0) {
     return (
@@ -239,6 +241,17 @@ export function FinancialDebtTypeDistributionChart({
             )}
           </span>
         </p>
+        {/* Aviso quando há apenas investimentos */}
+        {(data.hasOnlyInvestments || (data.yearUsed >= 2030 && data.data.find((d) => d.name === "Custeio")?.value === 0)) && (
+          <div className="text-center text-muted-foreground text-xs mt-2 space-y-1">
+            <p>
+              ⚠️ Dívidas de custeio são de curto prazo e já foram quitadas neste período
+            </p>
+            <p>
+              As dívidas de investimento são de longo prazo e continuam até sua quitação completa
+            </p>
+          </div>
+        )}
       </div>
     </Card>
   );

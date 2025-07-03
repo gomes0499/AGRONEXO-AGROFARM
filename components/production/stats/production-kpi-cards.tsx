@@ -30,7 +30,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -201,7 +201,9 @@ export function ProductionKPICardsClient({
   const [stats, setStats] = useState<any>(initialStats);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("area");
-  const [selectedSafraId, setSelectedSafraId] = useState<string>(safraId || "");
+  // Definir safra padrão como 2025/26
+  const defaultSafraId = safras?.find(s => s.nome === "2025/26")?.id || safraId || "";
+  const [selectedSafraId, setSelectedSafraId] = useState<string>(defaultSafraId);
   const [isCultureDropdownOpen, setIsCultureDropdownOpen] = useState(false);
   const [selectedCultureIds, setSelectedCultureIds] = useState<string[]>(
     propSelectedCultureIds || defaultCultureIds
@@ -210,6 +212,26 @@ export function ProductionKPICardsClient({
   
   // Usar o contexto de cenário
   const { currentScenario, getProjectedValue } = useScenario();
+
+  // Buscar dados quando o componente montar com a safra padrão
+  useEffect(() => {
+    if (defaultSafraId && defaultSafraId !== safraId) {
+      startTransition(async () => {
+        try {
+          const result = await getProductionStats(
+            organizationId,
+            propertyIds,
+            projectionId,
+            defaultSafraId,
+            selectedCultureIds.length > 0 ? selectedCultureIds : undefined
+          );
+          setStats(result);
+        } catch (error) {
+          console.error("Erro ao carregar estatísticas:", error);
+        }
+      });
+    }
+  }, []); // Executar apenas na montagem
 
   const handleMetricClick = (metricType: MetricType) => {
     setSelectedMetric(metricType);

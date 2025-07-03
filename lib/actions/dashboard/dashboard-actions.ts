@@ -123,7 +123,7 @@ export const fetchDashboardData = cache(
       getDebtEvolutionData(organizationId),
       
       // Production
-      getProductionStats(organizationId, selectedSafraId ? [selectedSafraId] : []),
+      getProductionStats(organizationId, undefined, undefined, selectedSafraId),
       getProductionDataUnified(organizationId),
       
       // Properties

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTriggerPrimary } from "@/components/ui
 import { ChartColorsConfig } from "@/components/dashboard/chart-colors-config";
 import { PropertyMapBreakdown } from "@/components/properties/property-map-breakdown";
 import { UnderConstruction } from "@/components/shared/under-construction";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import type { DashboardData } from "@/lib/actions/dashboard/dashboard-actions";
@@ -46,6 +46,10 @@ export function DashboardClient({
   isSuperAdmin,
 }: DashboardClientProps) {
   const { productionConfig } = initialData;
+  
+  // State para safra selecionada na aba financeiro
+  const defaultFinancialSafraId = productionConfig.safras?.find(s => s.nome === "2025/26")?.id || "";
+  const [selectedFinancialSafraId, setSelectedFinancialSafraId] = useState<string>(defaultFinancialSafraId);
   
   // Extract filter data from production config
   const filterData = {
@@ -190,6 +194,8 @@ export function DashboardClient({
               <FinancialKpiCards
                 organizationId={organizationId}
                 initialData={initialData.financialKpis}
+                selectedSafraId={selectedFinancialSafraId}
+                onSafraChange={setSelectedFinancialSafraId}
               />
 
               <div className="grid gap-4 lg:grid-cols-2">
@@ -199,11 +205,13 @@ export function DashboardClient({
                   initialData={initialData.bankDistribution.data}
                   initialYearUsed={initialData.bankDistribution.yearUsed}
                   initialSafraName={initialData.bankDistribution.safraName}
+                  selectedSafraId={selectedFinancialSafraId}
                 />
                 <FinancialDebtTypeDistributionChart
                   organizationId={organizationId}
                   projectionId={projectionId}
                   initialData={initialData.debtTypeDistribution}
+                  selectedSafraId={selectedFinancialSafraId}
                 />
               </div>
 
@@ -224,6 +232,7 @@ export function DashboardClient({
                 organizationId={organizationId}
                 projectionId={projectionId}
                 initialData={initialData.totalLiabilities}
+                selectedSafraId={selectedFinancialSafraId}
               />
             </TabsContent>
 

@@ -459,6 +459,7 @@ export async function getProductionStats(
             custoPorHectareTotal += custoSafra;
           });
           
+          // Os custos já são por hectare, então multiplicar pela área
           custoTotal += custoPorHectareTotal * combo.area;
         }
       }
@@ -483,22 +484,22 @@ export async function getProductionStats(
       let cicloNomeLC = cicloNome.toLowerCase();
       
       if (culturaNomeLC.includes('soja')) {
-        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA';
+        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SOJA_IRRIGADO' : 'SOJA_SEQUEIRO';
       } else if (culturaNomeLC.includes('milho')) {
         // Detectar se é Milho Safrinha ou Milho comum
-        if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('2')) {
+        if (culturaNomeLC.includes('safrinha') || cicloNomeLC.includes('safrinha')) {
           commodityType = 'MILHO_SAFRINHA';
         } else {
-          commodityType = 'MILHO';
+          commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'MILHO_IRRIGADO' : 'MILHO_SEQUEIRO';
         }
       } else if (culturaNomeLC.includes('algodão') || culturaNomeLC.includes('algodao')) {
-        commodityType = 'ALGODAO';
+        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ALGODÃO_IRRIGADO' : 'ALGODÃO_SEQUEIRO';
       } else if (culturaNomeLC.includes('arroz')) {
-        commodityType = 'ARROZ';
+        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'ARROZ_IRRIGADO' : 'ARROZ_SEQUEIRO';
       } else if (culturaNomeLC.includes('sorgo')) {
-        commodityType = 'SORGO';
+        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'SORGO_IRRIGADO' : 'SORGO_SEQUEIRO';
       } else if (culturaNomeLC.includes('feijão') || culturaNomeLC.includes('feijao')) {
-        commodityType = 'FEIJAO';
+        commodityType = sistemaNome.toLowerCase().includes('irrigado') ? 'FEIJÃO_IRRIGADO' : 'FEIJÃO_SEQUEIRO';
       } else {
         // Tipo de commodity não identificado
         continue;

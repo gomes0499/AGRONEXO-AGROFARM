@@ -516,9 +516,61 @@ async function getReceita(
         for (const [key, area] of areasPorCulturaSistema.entries()) {
           const produtividade = produtividadesPorCulturaSistema.get(key) || 0;
           if (produtividade > 0) {
-            // Buscar um preço médio padrão (simplificado para este exemplo)
-            const precoMedio = 100; // Valor padrão
-            totalReceita += area * produtividade * precoMedio;
+            // Get the culture and system IDs from the key
+            const [culturaId, sistemaId] = key.split(':');
+            
+            // Get culture and system names to determine commodity type
+            const { data: cultura } = await supabase
+              .from("culturas")
+              .select("nome")
+              .eq("id", culturaId)
+              .single();
+            
+            const { data: sistema } = await supabase
+              .from("sistemas")
+              .select("nome")
+              .eq("id", sistemaId)
+              .single();
+            
+            if (cultura && sistema && precos) {
+              const culturaNome = cultura.nome.toUpperCase();
+              const sistemaNome = sistema.nome.toUpperCase();
+              
+              // Determine commodity type based on culture and system
+              let commodityType = '';
+              if (culturaNome.includes('SOJA')) {
+                commodityType = sistemaNome.includes('IRRIGADO') ? 'SOJA_IRRIGADO' : 'SOJA_SEQUEIRO';
+              } else if (culturaNome.includes('MILHO')) {
+                commodityType = sistemaNome.includes('IRRIGADO') ? 'MILHO_IRRIGADO' : 'MILHO_SEQUEIRO';
+              } else if (culturaNome.includes('ALGODÃO') || culturaNome.includes('ALGODAO')) {
+                commodityType = sistemaNome.includes('IRRIGADO') ? 'ALGODAO_IRRIGADO' : 'ALGODAO_SEQUEIRO';
+              }
+              
+              // Find the price for this commodity type
+              let preco = 0;
+              const commodityPrice = precos.find((p: any) => {
+                const pricesBySafra = p.valores_por_safra || {};
+                return pricesBySafra[safraId] && p.commodity_type === commodityType;
+              });
+              
+              if (commodityPrice && commodityPrice.valores_por_safra) {
+                preco = commodityPrice.valores_por_safra[safraId] || 0;
+              }
+              
+              // If no specific price found, try to use legacy price fields
+              if (preco === 0 && precos.length > 0) {
+                const legacyPrice = precos[0];
+                if (culturaNome.includes('SOJA') && legacyPrice.preco_soja_brl) {
+                  preco = legacyPrice.preco_soja_brl;
+                } else if (culturaNome.includes('MILHO') && legacyPrice.preco_milho) {
+                  preco = legacyPrice.preco_milho;
+                } else if ((culturaNome.includes('ALGODÃO') || culturaNome.includes('ALGODAO')) && legacyPrice.preco_algodao_bruto) {
+                  preco = legacyPrice.preco_algodao_bruto;
+                }
+              }
+              
+              totalReceita += area * produtividade * preco;
+            }
           }
         }
       }
