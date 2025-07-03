@@ -1,2 +1,0 @@
-schemas/financial/index.ts(11,1): error TS2308: Module "./caixa_disponibilidades" has already exported a member named 'SafraValuesType'. Consider explicitly re-exporting to resolve the ambiguity.
-schemas/financial/index.ts(11,1): error TS2308: Module "./caixa_disponibilidades" has already exported a member named 'safraValuesSchema'. Consider explicitly re-exporting to resolve the ambiguity.

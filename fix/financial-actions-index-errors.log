@@ -1,2 +1,0 @@
-lib/actions/financial-actions/index.ts(1129,28): error TS2304: Cannot find name 'data'.
-lib/actions/financial-actions/index.ts(1129,38): error TS7006: Parameter 'loan' implicitly has an 'any' type.

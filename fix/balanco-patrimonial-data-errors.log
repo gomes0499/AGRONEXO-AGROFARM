@@ -1,3 +1,0 @@
-lib/actions/projections-actions/balanco-patrimonial-data.ts(356,38): error TS2339: Property 'items' does not exist on type 'ConsolidatedDebtPosition'.
-lib/actions/projections-actions/balanco-patrimonial-data.ts(356,74): error TS2339: Property 'items' does not exist on type 'ConsolidatedDebtPosition'.
-lib/actions/projections-actions/balanco-patrimonial-data.ts(357,20): error TS2339: Property 'items' does not exist on type 'ConsolidatedDebtPosition'.

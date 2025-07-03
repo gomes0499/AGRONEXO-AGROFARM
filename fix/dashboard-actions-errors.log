@@ -1,7 +1,0 @@
-lib/actions/dashboard/dashboard-actions.ts(112,42): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string[] | undefined'.
-lib/actions/dashboard/dashboard-actions.ts(115,56): error TS2554: Expected 1-2 arguments, but got 3.
-lib/actions/dashboard/dashboard-actions.ts(116,43): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'number | undefined'.
-lib/actions/dashboard/dashboard-actions.ts(122,50): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'number | undefined'.
-lib/actions/dashboard/dashboard-actions.ts(127,9): error TS2353: Object literal may only specify known properties, and 'safraId' does not exist in type 'string[]'.
-lib/actions/dashboard/dashboard-actions.ts(206,56): error TS2554: Expected 1-2 arguments, but got 3.
-lib/actions/dashboard/dashboard-actions.ts(244,9): error TS2353: Object literal may only specify known properties, and 'projectionId' does not exist in type 'string[]'.

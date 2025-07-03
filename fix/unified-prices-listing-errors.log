@@ -1,6 +1,0 @@
-components/production/prices/unified-prices-listing.tsx(83,52): error TS2551: Property 'current_price' does not exist on type 'CommodityPriceType'. Did you mean 'currentPrice'?
-components/production/prices/unified-prices-listing.tsx(89,42): error TS7053: Element implicitly has an 'any' type because expression of type 'string | number | symbol' can't be used to index type 'CommodityPriceType'.
-components/production/prices/unified-prices-listing.tsx(349,79): error TS2551: Property 'current_price' does not exist on type 'CommodityPriceType'. Did you mean 'currentPrice'?
-components/production/prices/unified-prices-listing.tsx(355,64): error TS7053: Element implicitly has an 'any' type because expression of type 'string | number | symbol' can't be used to index type 'CommodityPriceType'.
-components/production/prices/unified-prices-listing.tsx(493,77): error TS2551: Property 'current_price' does not exist on type 'CommodityPriceType'. Did you mean 'currentPrice'?
-components/production/prices/unified-prices-listing.tsx(499,63): error TS7053: Element implicitly has an 'any' type because expression of type 'string | number | symbol' can't be used to index type 'CommodityPriceType'.

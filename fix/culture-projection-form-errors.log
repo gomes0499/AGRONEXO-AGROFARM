@@ -1,3 +1,0 @@
-components/projections/cultures/culture-projection-form.tsx(33,3): error TS2305: Module '"@/lib/actions/projections-actions"' has no exported member 'getProductionCombinations'.
-components/projections/cultures/culture-projection-form.tsx(34,3): error TS2305: Module '"@/lib/actions/projections-actions"' has no exported member 'getProductionDataByCombination'.
-components/projections/cultures/culture-projection-form.tsx(35,3): error TS2305: Module '"@/lib/actions/projections-actions"' has no exported member 'getCommodityPricesForProjection'.

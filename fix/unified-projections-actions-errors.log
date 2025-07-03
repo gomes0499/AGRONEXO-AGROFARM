@@ -1,3 +1,0 @@
-lib/actions/projections/unified-projections-actions.ts(7,8): error TS2305: Module '"@/lib/actions/projections-actions/fluxo-caixa-corrigido"' has no exported member 'FluxoCaixaData'.
-lib/actions/projections/unified-projections-actions.ts(12,8): error TS2305: Module '"@/lib/actions/projections-actions/balanco-patrimonial-corrigido"' has no exported member 'BalancoPatrimonialData'.
-lib/actions/projections/unified-projections-actions.ts(17,8): error TS2459: Module '"@/lib/actions/projections-actions/dre-data-updated"' declares 'DREData' locally, but it is not exported.

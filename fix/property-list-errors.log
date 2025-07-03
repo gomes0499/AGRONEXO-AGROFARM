@@ -1,3 +1,0 @@
-components/properties/property-list.tsx(395,75): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
-components/properties/property-list.tsx(492,9): error TS2322: Type '{ open: boolean; onOpenChange: Dispatch<SetStateAction<boolean>>; onSave: () => void; organizationId: string; }' is not assignable to type 'IntrinsicAttributes & PropertyFormModalProps'.
-components/properties/property-list.tsx(497,9): error TS2322: Type '{ open: boolean; onOpenChange: Dispatch<SetStateAction<boolean>>; onSuccess: (importedProperties: any[]) => void; organizationId: string; }' is not assignable to type 'IntrinsicAttributes & PropertyImportDialogProps'.
