@@ -34,10 +34,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, TrendingUp, MoreHorizontal, Edit2Icon, Trash2 } from "lucide-react";
-import { InvestmentForm } from "./investment-form";
+import { InvestmentFormV2 } from "./investment-form-v2";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { EmptyState } from "@/components/ui/empty-state";
-import { deleteInvestment } from "@/lib/actions/patrimonio-actions";
+import { deleteInvestment, getInvestments } from "@/lib/actions/patrimonio-actions";
 import { toast } from "sonner";
 
 interface InvestmentListingProps {
@@ -99,13 +99,11 @@ export function InvestmentListing({
       }
 
       if (editingInvestment) {
-        // For editing, we expect only one item
-        const investment = newInvestments[0];
-        setInvestments(
-          investments.map((item) =>
-            item.id === investment.id ? investment : item
-          )
-        );
+        // For editing, refresh the entire list to show all updated investments
+        const result = await getInvestments(organizationId);
+        if ('data' in result && result.data) {
+          setInvestments(result.data);
+        }
         setIsEditModalOpen(false);
       } else {
         // For creating, add all new items
@@ -351,7 +349,7 @@ export function InvestmentListing({
               Adicione um novo investimento ao patrimônio.
             </DialogDescription>
           </DialogHeader>
-          <InvestmentForm
+          <InvestmentFormV2
             organizationId={organizationId}
             onSuccess={handleSubmit}
             onCancel={() => setIsCreateModalOpen(false)}
@@ -368,7 +366,7 @@ export function InvestmentListing({
               Atualize as informações do investimento.
             </DialogDescription>
           </DialogHeader>
-          <InvestmentForm
+          <InvestmentFormV2
             organizationId={organizationId}
             initialData={editingInvestment}
             onSuccess={handleSubmit}

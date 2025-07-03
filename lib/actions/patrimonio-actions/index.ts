@@ -346,6 +346,151 @@ export async function getInvestment(id: string) {
   }
 }
 
+export async function createMultiSafraInvestmentsV2(
+  organizacaoId: string,
+  values: {
+    categoria: string;
+    investimentos_por_safra: Record<string, { quantidade: number; valor_unitario: number; tipo: "REALIZADO" | "PLANEJADO" }>;
+  },
+  mode: 'create' | 'update' = 'create'
+) {
+  try {
+    const supabase = await createClient();
+    
+    // Buscar safras para obter os anos
+    const { data: safras, error: safrasError } = await supabase
+      .from("safras")
+      .select("id, nome, ano_inicio, ano_fim")
+      .eq("organizacao_id", organizacaoId);
+      
+    if (safrasError) throw safrasError;
+    
+    if (mode === 'update') {
+      // Para update, primeiro buscar investimentos existentes
+      const { data: existingInvestments } = await supabase
+        .from("investimentos")
+        .select("*")
+        .eq("organizacao_id", organizacaoId)
+        .eq("categoria", values.categoria);
+      
+      const investmentsToUpdate = [];
+      const investmentsToCreate = [];
+      const investmentIdsToKeep = new Set<string>();
+      
+      for (const [safraId, investData] of Object.entries(values.investimentos_por_safra)) {
+        const safra = safras?.find(s => s.id === safraId);
+        if (!safra) continue;
+        
+        // Verificar se já existe um investimento para esta safra
+        const existing = existingInvestments?.find(inv => 
+          inv.safra_id === safraId || 
+          (inv.ano === safra.ano_fim && inv.categoria === values.categoria)
+        );
+        
+        const investmentData = {
+          organizacao_id: organizacaoId,
+          categoria: values.categoria,
+          ano: safra.ano_fim,
+          quantidade: investData.quantidade,
+          valor_unitario: investData.valor_unitario,
+          valor_total: investData.quantidade * investData.valor_unitario,
+          tipo: investData.tipo,
+          safra_id: safraId
+        };
+        
+        if (existing) {
+          // Atualizar existente
+          investmentIdsToKeep.add(existing.id);
+          const { error } = await supabase
+            .from("investimentos")
+            .update(investmentData)
+            .eq("id", existing.id);
+            
+          if (!error) {
+            investmentsToUpdate.push({ ...investmentData, id: existing.id });
+          }
+        } else {
+          // Criar novo
+          investmentsToCreate.push(investmentData);
+        }
+      }
+      
+      // Deletar investimentos que não estão mais na lista
+      const idsToDelete = existingInvestments
+        ?.filter(inv => !investmentIdsToKeep.has(inv.id))
+        .map(inv => inv.id) || [];
+        
+      if (idsToDelete.length > 0) {
+        await supabase
+          .from("investimentos")
+          .delete()
+          .in("id", idsToDelete);
+      }
+      
+      // Criar novos investimentos se houver
+      let newlyCreated = [];
+      if (investmentsToCreate.length > 0) {
+        const { data } = await supabase
+          .from("investimentos")
+          .insert(investmentsToCreate)
+          .select();
+        newlyCreated = data || [];
+      }
+      
+      return [...investmentsToUpdate, ...newlyCreated];
+    } else {
+      // Modo create - verificar duplicatas antes de criar
+      const { data: existingInvestments } = await supabase
+        .from("investimentos")
+        .select("*")
+        .eq("organizacao_id", organizacaoId)
+        .eq("categoria", values.categoria);
+      
+      const investmentsToCreate = [];
+      
+      for (const [safraId, investData] of Object.entries(values.investimentos_por_safra)) {
+        const safra = safras?.find(s => s.id === safraId);
+        if (!safra) continue;
+        
+        // Verificar se já existe
+        const alreadyExists = existingInvestments?.some(inv => 
+          inv.safra_id === safraId || 
+          (inv.ano === safra.ano_fim && inv.tipo === investData.tipo)
+        );
+        
+        if (!alreadyExists) {
+          investmentsToCreate.push({
+            organizacao_id: organizacaoId,
+            categoria: values.categoria,
+            ano: safra.ano_fim,
+            quantidade: investData.quantidade,
+            valor_unitario: investData.valor_unitario,
+            valor_total: investData.quantidade * investData.valor_unitario,
+            tipo: investData.tipo,
+            safra_id: safraId
+          });
+        }
+      }
+      
+      if (investmentsToCreate.length === 0) {
+        return [];
+      }
+      
+      const { data, error } = await supabase
+        .from("investimentos")
+        .insert(investmentsToCreate)
+        .select();
+        
+      if (error) throw error;
+      
+      return data || [];
+    }
+  } catch (error) {
+    handleError(error);
+    return [];
+  }
+}
+
 export async function createInvestment(data: any) {
   try {
     
