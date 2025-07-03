@@ -1,7 +1,7 @@
 "use client";
 
 import { IndicatorThresholdViewer } from "@/components/indicators/indicator-threshold-viewer";
-import { RatingModelsTab } from "@/components/indicators/rating/rating-models-tab";
+import { RatingModelsManager } from "@/components/indicators/rating/rating-models-manager";
 import { RatingMetricsTab } from "@/components/indicators/rating/rating-metrics-tab";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -58,10 +58,7 @@ export function IndicatorsPageClient({
               </TabsContent>
 
               <TabsContent value="rating" className="space-y-4">
-                <RatingModelsTab
-                  organizationId={organizationId}
-                  initialModels={ratingModels}
-                />
+                <RatingModelsManager organizationId={organizationId} />
               </TabsContent>
 
               <TabsContent value="metrics" className="space-y-4">

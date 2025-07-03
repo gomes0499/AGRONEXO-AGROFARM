@@ -8,6 +8,7 @@ export const RatingModelSchema = z.object({
   descricao: z.string().optional(),
   is_default: z.boolean().default(false),
   is_active: z.boolean().default(true),
+  flow_data: z.any().optional(), // Store React Flow state
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional(),
 });

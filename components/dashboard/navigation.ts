@@ -6,8 +6,7 @@ import { BuildingIcon,
   FileText,
   FileSpreadsheet,
   Download,
-  Eye,
-  Award
+  Eye
 } from "lucide-react";
 import { LayoutDashboardIcon } from "lucide-react";
 
@@ -56,12 +55,6 @@ export const data = {
       url: "#pdf-report",
       icon: FileText,
       isPdfReport: true,
-    },
-    {
-      title: "Relatório de Rating",
-      url: "#rating-report",
-      icon: Award,
-      isRatingReport: true,
     },
     {
       title: "Exportar Excel",

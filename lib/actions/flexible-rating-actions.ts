@@ -36,7 +36,18 @@ export async function getRatingModels(organizationId: string): Promise<RatingMod
     throw new Error("Erro ao buscar modelos de rating");
   }
 
-  return data || [];
+  // Parse flow_data for each model if it's a string
+  const models = data || [];
+  return models.map(model => {
+    if (model.flow_data && typeof model.flow_data === 'string') {
+      try {
+        model.flow_data = JSON.parse(model.flow_data);
+      } catch (e) {
+        console.error("Error parsing flow_data:", e);
+      }
+    }
+    return model;
+  });
 }
 
 export async function getRatingModel(modelId: string): Promise<RatingModel> {
@@ -51,6 +62,15 @@ export async function getRatingModel(modelId: string): Promise<RatingModel> {
   if (error) {
     console.error("Error fetching rating model:", error);
     throw new Error("Erro ao buscar modelo de rating");
+  }
+
+  // Parse flow_data if it's a string
+  if (data.flow_data && typeof data.flow_data === 'string') {
+    try {
+      data.flow_data = JSON.parse(data.flow_data);
+    } catch (e) {
+      console.error("Error parsing flow_data:", e);
+    }
   }
 
   return data;
@@ -362,7 +382,8 @@ export async function createQualitativeMetricValue(value: CreateQualitativeValue
 export async function calculateRating(
   organizationId: string,
   modelId: string,
-  safraId?: string
+  safraId?: string,
+  scenarioId?: string | null
 ): Promise<RatingCalculation> {
   const supabase = await createClient();
   
@@ -396,8 +417,8 @@ export async function calculateRating(
     safraName = safraData?.nome || "";
   }
 
-  // Get all quantitative metric values for this safra
-  const quantitativeValues = await calculateQuantitativeMetrics(actualOrgId, safraId);
+  // Get all quantitative metric values for this safra and scenario
+  const quantitativeValues = await calculateQuantitativeMetrics(actualOrgId, safraId, scenarioId);
 
   // Calculate individual metric scores
   const metricScores: Record<string, { valor: number; pontuacao: number; peso: number }> = {};
@@ -450,6 +471,7 @@ export async function calculateRating(
       ...metricScores,
       safra: safraName, // Include safra in calculation details
       safra_id: safraId, // Store safra_id in details for now
+      scenario_id: scenarioId, // Store scenario_id in details
     },
   };
   

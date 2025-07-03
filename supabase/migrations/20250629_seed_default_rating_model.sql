@@ -29,15 +29,15 @@ BEGIN
     rm.id,
     CASE rm.codigo
       WHEN 'LTV' THEN 15
-      WHEN 'DIVIDA_EBITDA' THEN 20
+      WHEN 'DIVIDA_EBITDA' THEN 25
       WHEN 'MARGEM_EBITDA' THEN 15
       WHEN 'LIQUIDEZ_CORRENTE' THEN 10
       WHEN 'DIVIDA_FATURAMENTO' THEN 20
       WHEN 'DIVIDA_PATRIMONIO_LIQUIDO' THEN 15
-      WHEN 'ENTENDIMENTO_FLUXO_DE_CAIXA' THEN 5
     END as peso
   FROM rating_metrics rm
-  WHERE NOT EXISTS (
+  WHERE rm.codigo != 'ENTENDIMENTO_FLUXO_DE_CAIXA'
+  AND NOT EXISTS (
     SELECT 1 FROM rating_model_metrics rmm
     WHERE rmm.rating_model_id = default_model_id
     AND rmm.rating_metric_id = rm.id

@@ -23,6 +23,8 @@ export function DebtProjectionTab({ organizationId }: DebtProjectionTabProps) {
             receita_ano_safra: {},
             ebitda_ano_safra: {},
             dolar_fechamento: {},
+            patrimonio_liquido: {},
+            ltv: {},
             indicadores_calculados: {
               divida_receita: {},
               divida_ebitda: {},

@@ -99,10 +99,13 @@ export async function deleteScenario(id: string) {
 export async function getScenarios(organizationId: string) {
   const supabase = await createClient();
 
+  console.log("[getScenarios] Buscando cenários para organizationId:", organizationId);
+
   const { data, error } = await supabase
     .from("projection_scenarios")
     .select("*")
     .eq("organization_id", organizationId)
+    .eq("is_active", true)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -110,6 +113,8 @@ export async function getScenarios(organizationId: string) {
     return [];
   }
 
+  console.log("[getScenarios] Cenários encontrados:", data?.length || 0);
+  
   return data || [];
 }
 

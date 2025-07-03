@@ -56,7 +56,7 @@ export async function getCommodityPriceProjections(projectionId?: string) {
     if (projectionId) {
       // Buscar dados da tabela de projeções específica
       const { data, error } = await supabase
-        .from("commodity_price_projections_projections")
+        .from("commodity_price_projections")
         .select(`
           *,
           cultura:culturas!cultura_id(id, nome),
@@ -313,7 +313,7 @@ export async function updateCommodityPriceProjection(
     if (projectionId) {
       // Atualizar na tabela de projeções
       ({ data, error } = await supabase
-        .from("commodity_price_projections_projections")
+        .from("commodity_price_projections")
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
@@ -387,7 +387,7 @@ export async function getExchangeRateProjections(projectionId?: string) {
     if (projectionId) {
       // Buscar dados da tabela de projeções específica
       const { data, error } = await supabase
-        .from("cotacoes_cambio_projections")
+        .from("cotacoes_cambio")
         .select("*")
         .eq("organizacao_id", organizationId)
         .eq("projection_id", projectionId)
@@ -493,7 +493,7 @@ export async function updateExchangeRateProjection(
     if (projectionId) {
       // Atualizar na tabela de projeções
       ({ data, error } = await supabase
-        .from("cotacoes_cambio_projections")
+        .from("cotacoes_cambio")
         .update({
           ...updates,
           updated_at: new Date().toISOString(),

@@ -19,6 +19,8 @@ export interface ConsolidatedDebtPosition {
     receita_ano_safra: Record<string, number>;
     ebitda_ano_safra: Record<string, number>;
     dolar_fechamento: Record<string, number>; // Nova propriedade: Dólar Fechamento
+    patrimonio_liquido: Record<string, number>; // Patrimônio líquido
+    ltv: Record<string, number>; // Loan to Value
     indicadores_calculados: {
       divida_receita: Record<string, number>;
       divida_ebitda: Record<string, number>;
@@ -53,6 +55,8 @@ const EMPTY_DEBT_POSITION: ConsolidatedDebtPosition = {
     dolar_fechamento: {},
     receita_ano_safra: {},
     ebitda_ano_safra: {},
+    patrimonio_liquido: {},
+    ltv: {},
     indicadores_calculados: {
       divida_receita: {},
       divida_ebitda: {},
@@ -163,6 +167,8 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
           dolar_fechamento: {},
           receita_ano_safra: {},
           ebitda_ano_safra: {},
+          patrimonio_liquido: {},
+          ltv: {},
           indicadores_calculados: {
             divida_receita: {},
             divida_ebitda: {},
@@ -853,6 +859,8 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   const dividaLiquida: Record<string, number> = {};
   const dividaDolar: Record<string, number> = {};
   const dividaLiquidaDolar: Record<string, number> = {};
+  const patrimonioLiquido: Record<string, number> = {};
+  const ltv: Record<string, number> = {};
 
   anos.forEach(ano => {
     // Endividamento total = soma de todas as dívidas
@@ -871,6 +879,16 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
 
     // Dívida líquida = endividamento total - caixas e disponibilidades
     dividaLiquida[ano] = endividamentoTotal[ano] - caixasDisponibilidades[ano];
+    
+    // Patrimônio Líquido = Ativos Totais - Passivos Totais
+    // Por enquanto simplificado: caixas - dívidas
+    // TODO: Incluir valor das propriedades e outros ativos fixos quando disponíveis
+    patrimonioLiquido[ano] = caixasDisponibilidades[ano] - endividamentoTotal[ano];
+    
+    // LTV (Loan to Value) = Dívida Total / Valor dos Ativos
+    // Usando caixas e disponibilidades como proxy para valor dos ativos
+    // TODO: Incluir valor das propriedades quando disponível
+    ltv[ano] = caixasDisponibilidades[ano] > 0 ? (endividamentoTotal[ano] / caixasDisponibilidades[ano]) * 100 : 0;
     
     // Converter para dólar usando a cotação de Dólar Fechamento
     const cotacaoDolar = dolarFechamento[ano] || 5.70; // Valor padrão se não houver cotação
@@ -956,6 +974,8 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
         dolar_fechamento: dolarFechamento, // Nova propriedade: Dólar Fechamento
         receita_ano_safra: receitas,
         ebitda_ano_safra: ebitdas,
+        patrimonio_liquido: patrimonioLiquido,
+        ltv: ltv,
         indicadores_calculados: indicadoresCalculados
       },
       anos

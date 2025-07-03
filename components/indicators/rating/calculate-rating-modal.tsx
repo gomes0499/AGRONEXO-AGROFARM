@@ -23,6 +23,7 @@ import type { RatingModel } from "@/schemas/rating";
 import { getRatingModels, calculateRating } from "@/lib/actions/flexible-rating-actions";
 import { calculateQuantitativeMetricsOptimized } from "@/lib/actions/rating-metrics-calculations";
 import { getSafras, type Safra } from "@/lib/actions/production-actions";
+import { getScenarios } from "@/lib/actions/scenario-actions-v2";
 
 interface CalculateRatingModalProps {
   organizationId: string;
@@ -40,8 +41,10 @@ export function CalculateRatingModal({
 }: CalculateRatingModalProps) {
   const [models, setModels] = useState<RatingModel[]>([]);
   const [safras, setSafras] = useState<Safra[]>([]);
+  const [scenarios, setScenarios] = useState<any[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [selectedSafra, setSelectedSafra] = useState<string>("");
+  const [selectedScenario, setSelectedScenario] = useState<string>("base");
   const [isLoading, setIsLoading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -55,10 +58,11 @@ export function CalculateRatingModal({
     try {
       setIsLoading(true);
       
-      // Load models and safras in parallel
-      const [modelsData, safrasData] = await Promise.all([
+      // Load models, safras and scenarios in parallel
+      const [modelsData, safrasData, scenariosData] = await Promise.all([
         getRatingModels(organizationId),
-        getSafras(organizationId)
+        getSafras(organizationId),
+        getScenarios(organizationId)
       ]);
       
       // Filter active models
@@ -68,6 +72,9 @@ export function CalculateRatingModal({
       // Filter active safras
       const activeSafras = safrasData.filter(s => s.ativa !== false);
       setSafras(activeSafras);
+      
+      // Set scenarios
+      setScenarios(scenariosData || []);
       
       // Select default model if available
       const defaultModel = activeModels.find(m => m.is_default);
@@ -96,11 +103,16 @@ export function CalculateRatingModal({
     try {
       setIsCalculating(true);
       
-      // Use legacy method for stable rating calculation
-      const calculation = await calculateRating(organizationId, selectedModel, selectedSafra);
+      // Pass scenarioId to calculateRating (null for base scenario)
+      const scenarioId = selectedScenario === "base" ? null : selectedScenario;
+      const calculation = await calculateRating(organizationId, selectedModel, selectedSafra, scenarioId);
+      
+      const scenarioName = selectedScenario === "base" 
+        ? "Base" 
+        : scenarios.find(s => s.id === selectedScenario)?.name || "";
       
       toast.success(
-        `Rating calculado: ${calculation.rating_letra} (${calculation.pontuacao_total?.toFixed(1) || '0.0'} pontos)`
+        `Rating calculado (${scenarioName}): ${calculation.rating_letra} (${calculation.pontuacao_total?.toFixed(1) || '0.0'} pontos)`
       );
       
       onSuccess();
@@ -165,10 +177,35 @@ export function CalculateRatingModal({
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="scenario">Cenário</Label>
+              <Select value={selectedScenario} onValueChange={setSelectedScenario}>
+                <SelectTrigger id="scenario">
+                  <SelectValue placeholder="Selecione um cenário" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="base">
+                    <div className="flex items-center gap-2">
+                      <span>📊</span>
+                      <span>Cenário Base (Dados Reais)</span>
+                    </div>
+                  </SelectItem>
+                  {scenarios.map((scenario) => (
+                    <SelectItem key={scenario.id} value={scenario.id}>
+                      <div className="flex items-center gap-2">
+                        <span>📈</span>
+                        <span>{scenario.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {selectedModel && selectedSafra && (
               <div className="rounded-lg bg-muted p-3 text-sm">
                 <p className="text-muted-foreground">
-                  O rating será calculado usando os indicadores financeiros da safra selecionada.
+                  O rating será calculado usando os indicadores financeiros da safra e cenário selecionados.
                 </p>
               </div>
             )}

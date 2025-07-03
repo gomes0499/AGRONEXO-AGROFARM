@@ -24,9 +24,7 @@ INSERT INTO rating_metrics (codigo, nome, descricao, tipo, categoria, unidade, i
 ('DIVIDA_FATURAMENTO', 'Dívida / Faturamento', 'Relação entre dívida total e faturamento anual', 'QUANTITATIVE', 'ENDIVIDAMENTO', 'ratio', true, true),
 ('DIVIDA_PATRIMONIO_LIQUIDO', 'Dívida / Patrimônio Líquido', 'Relação entre dívida total e patrimônio líquido', 'QUANTITATIVE', 'ENDIVIDAMENTO', 'ratio', true, true),
 ('LTV', 'LTV (Loan to Value)', 'Relação entre empréstimos e valor dos ativos', 'QUANTITATIVE', 'ENDIVIDAMENTO', '%', true, true),
-('MARGEM_EBITDA', 'Margem EBITDA', 'Margem EBITDA sobre receitas', 'QUANTITATIVE', 'RENTABILIDADE', '%', true, true),
--- Qualitative metric
-('ENTENDIMENTO_FLUXO_DE_CAIXA', 'Entendimento do Fluxo de Caixa', 'Avaliação qualitativa do entendimento e gestão do fluxo de caixa', 'QUALITATIVE', 'GESTAO', 'pontos', true, true)
+('MARGEM_EBITDA', 'Margem EBITDA', 'Margem EBITDA sobre receitas', 'QUANTITATIVE', 'RENTABILIDADE', '%', true, true)
 ON CONFLICT (codigo) DO UPDATE SET
   nome = EXCLUDED.nome,
   descricao = EXCLUDED.descricao,
@@ -269,8 +267,7 @@ SELECT
     WHEN 'DIVIDA_FATURAMENTO' THEN 15
     WHEN 'DIVIDA_PATRIMONIO_LIQUIDO' THEN 20
     WHEN 'LTV' THEN 15
-    WHEN 'MARGEM_EBITDA' THEN 5
-    WHEN 'ENTENDIMENTO_FLUXO_DE_CAIXA' THEN 10
+    WHEN 'MARGEM_EBITDA' THEN 15
   END as peso
 FROM rating_models rm
 CROSS JOIN rating_metrics rmet

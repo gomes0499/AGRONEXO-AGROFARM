@@ -6,9 +6,7 @@ INSERT INTO rating_metrics (codigo, nome, descricao, tipo, categoria, unidade, i
 ('DIVIDA_FATURAMENTO', 'Dívida / Faturamento', 'Relação entre dívida total e faturamento anual', 'QUANTITATIVE', 'ENDIVIDAMENTO', '%', true, true),
 ('DIVIDA_PATRIMONIO_LIQUIDO', 'Dívida / Patrimônio Líquido', 'Relação entre dívida total e patrimônio líquido', 'QUANTITATIVE', 'ENDIVIDAMENTO', '%', true, true),
 ('LTV', 'LTV (Loan to Value)', 'Relação entre empréstimos e valor dos ativos', 'QUANTITATIVE', 'ENDIVIDAMENTO', '%', true, true),
-('MARGEM_EBITDA', 'Margem EBITDA', 'Margem EBITDA sobre receitas', 'QUANTITATIVE', 'RENTABILIDADE', '%', true, true),
--- Qualitative metric
-('ENTENDIMENTO_FLUXO_DE_CAIXA', 'Entendimento do Fluxo de Caixa', 'Avaliação qualitativa do entendimento e gestão do fluxo de caixa', 'QUALITATIVE', 'GESTAO', 'pontos', true, true)
+('MARGEM_EBITDA', 'Margem EBITDA', 'Margem EBITDA sobre receitas', 'QUANTITATIVE', 'RENTABILIDADE', '%', true, true)
 ON CONFLICT (codigo) DO UPDATE SET
   nome = EXCLUDED.nome,
   descricao = EXCLUDED.descricao,
