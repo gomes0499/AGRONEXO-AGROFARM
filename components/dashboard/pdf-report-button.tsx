@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Download, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { generateDefinitiveReport } from "@/lib/actions/definitive-report-actions";
+import { getProjections, type Projection } from "@/lib/actions/projections-actions";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,13 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface PDFReportButtonProps {
   organizationId: string;
@@ -42,6 +50,26 @@ export function PDFReportButton({
   const [emailList, setEmailList] = useState<string[]>([""]);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
+  const [selectedProjection, setSelectedProjection] = useState<string>("base");
+  const [projections, setProjections] = useState<Projection[]>([]);
+
+  useEffect(() => {
+    if (isDialogOpen) {
+      // Load projections when dialog opens
+      loadProjections();
+    }
+  }, [isDialogOpen]);
+
+  const loadProjections = async () => {
+    try {
+      const result = await getProjections(organizationId);
+      if (!result.error && result.data) {
+        setProjections(result.data);
+      }
+    } catch (error) {
+      console.error("Error loading projections:", error);
+    }
+  };
 
   const addEmail = () => {
     setEmailList([...emailList, ""]);
@@ -91,7 +119,7 @@ export function PDFReportButton({
           setProgress((prev) => Math.min(prev + 10, 80));
         }, 500);
 
-        const result = await generateDefinitiveReport(organizationId);
+        const result = await generateDefinitiveReport(organizationId, selectedProjection !== 'base' ? selectedProjection : undefined);
         
         clearInterval(progressInterval);
         setProgress(90);
@@ -158,6 +186,23 @@ export function PDFReportButton({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {/* Seletor de cenário */}
+          <div className="space-y-2">
+            <Label>Cenário</Label>
+            <Select value={selectedProjection} onValueChange={setSelectedProjection}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione o cenário" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="base">Cenário Base</SelectItem>
+                {projections.map((projection) => (
+                  <SelectItem key={projection.id} value={projection.id}>
+                    {projection.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           {/* Opção de envio por email */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">

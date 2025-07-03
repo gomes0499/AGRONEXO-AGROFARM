@@ -29,7 +29,7 @@ import {
 } from "@/lib/services/definitive-pdf-report-service";
 import { createClient } from "@/lib/supabase/server";
 
-export async function generateDefinitiveReport(organizationId: string) {
+export async function generateDefinitiveReport(organizationId: string, projectionId?: string) {
   try {
     // Verificar permissão do usuário
     await verifyUserPermission();
@@ -103,8 +103,10 @@ export async function generateDefinitiveReport(organizationId: string) {
       .eq("organizacao_id", organizationId)
       .order("ano_inicio");
 
-    const { data: areas } = await supabase
-      .from("areas_plantio")
+    // Use projection table if projectionId is provided
+    const areasTable = projectionId ? "areas_plantio_projections" : "areas_plantio";
+    const areasQuery = supabase
+      .from(areasTable)
       .select(`
         *,
         culturas (nome),
@@ -112,6 +114,12 @@ export async function generateDefinitiveReport(organizationId: string) {
         ciclos (nome)
       `)
       .eq("organizacao_id", organizationId);
+    
+    if (projectionId) {
+      areasQuery.eq("projection_id", projectionId);
+    }
+    
+    const { data: areas } = await areasQuery;
 
     // Processar dados para o gráfico
     const chartData: PlantingAreaData[] = [];
@@ -179,14 +187,22 @@ export async function generateDefinitiveReport(organizationId: string) {
     }
 
     // Buscar dados de produtividade
-    const { data: produtividades } = await supabase
-      .from("produtividades")
+    // Use projection table if projectionId is provided
+    const produtividadesTable = projectionId ? "produtividades_projections" : "produtividades";
+    const produtividadesQuery = supabase
+      .from(produtividadesTable)
       .select(`
         *,
         culturas (nome),
         sistemas (nome)
       `)
       .eq("organizacao_id", organizationId);
+    
+    if (projectionId) {
+      produtividadesQuery.eq("projection_id", projectionId);
+    }
+    
+    const { data: produtividades } = await produtividadesQuery;
 
     // Processar dados de produtividade
     const prodChartData: ProductivityData[] = [];

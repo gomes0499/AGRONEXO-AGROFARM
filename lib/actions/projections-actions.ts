@@ -15,15 +15,15 @@ export interface Projection {
 }
 
 // Listar todas as projeções
-export async function getProjections() {
+export async function getProjections(organizationId?: string) {
   try {
     const supabase = await createClient();
-    const organizationId = await getOrganizationId();
+    const orgId = organizationId || await getOrganizationId();
 
     const { data, error } = await supabase
       .from("projections")
       .select("*")
-      .eq("organizacao_id", organizationId)
+      .eq("organizacao_id", orgId)
       .order("created_at", { ascending: false });
 
     if (error) {

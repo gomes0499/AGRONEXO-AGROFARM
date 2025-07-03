@@ -39,7 +39,6 @@ import { CardHeaderPrimary } from "@/components/organization/common/data-display
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteInvestment } from "@/lib/actions/patrimonio-actions";
 import { toast } from "sonner";
-import { AssetPagination } from "../common/asset-pagination";
 
 interface InvestmentListingProps {
   initialInvestments: Investment[];
@@ -59,26 +58,15 @@ export function InvestmentListing({
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
-  
-  const totalPages = Math.ceil(investments.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedItems = investments.slice(startIndex, startIndex + itemsPerPage);
-  
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-  
-  const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1);
-  };
 
   const handleCreate = () => {
     setEditingInvestment(null);
     setIsCreateModalOpen(true);
+  };
+
+  const handleEdit = (investment: Investment) => {
+    setEditingInvestment(investment);
+    setIsEditModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -240,8 +228,11 @@ export function InvestmentListing({
                           {year}
                         </th>
                       ))}
-                      <th className="text-center p-3 font-medium text-white last:rounded-tr-md min-w-[120px]">
+                      <th className="text-center p-3 font-medium text-white border-r min-w-[120px]">
                         Total
+                      </th>
+                      <th className="text-center p-3 font-medium text-white last:rounded-tr-md min-w-[100px]">
+                        Ações
                       </th>
                     </tr>
                   </thead>
@@ -291,10 +282,56 @@ export function InvestmentListing({
                             </td>
                           );
                         })}
-                        <td className="p-3 text-center">
+                        <td className="p-3 border-r text-center">
                           <span className="font-semibold text-primary">
                             {formatCurrencyCompact(group.totalValue)}
                           </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  // Find the first investment of this group to edit
+                                  const investment = investments.find(
+                                    inv => inv.categoria === group.categoria && inv.tipo === group.tipo
+                                  );
+                                  if (investment) handleEdit(investment);
+                                }}
+                              >
+                                <Edit2Icon className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => {
+                                  // Find all investments of this group to delete
+                                  const groupInvestments = investments.filter(
+                                    inv => inv.categoria === group.categoria && inv.tipo === group.tipo
+                                  );
+                                  if (groupInvestments.length > 0) {
+                                    // For now, delete the first one. You may want to implement batch deletion
+                                    if (groupInvestments[0].id) {
+                                      handleDelete(groupInvestments[0].id);
+                                    }
+                                  }
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))}
