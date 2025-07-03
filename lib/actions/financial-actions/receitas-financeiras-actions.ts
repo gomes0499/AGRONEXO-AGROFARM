@@ -12,9 +12,10 @@ import {
 // FUNÇÕES DE LEITURA
 // ==========================================
 
-export async function getReceitasFinanceiras(organizationId: string) {
+export async function getReceitasFinanceiras(organizationId: string, projectionId?: string) {
   const supabase = await createClient();
   
+  // Sempre usar a tabela base, receitas financeiras não mudam com cenários
   const { data, error } = await supabase
     .from("receitas_financeiras")
     .select("*")
@@ -27,7 +28,7 @@ export async function getReceitasFinanceiras(organizationId: string) {
     throw new Error("Erro ao buscar receitas financeiras");
   }
 
-  // Agrupar receitas por descrição e categoria
+  // Agrupar receitas por descrição e categoria (para tabela base)
   const receitasAgrupadas = data.reduce((acc: any[], receita) => {
     const key = `${receita.descricao}_${receita.categoria}_${receita.moeda}`;
     const existingGroup = acc.find(
@@ -231,7 +232,7 @@ export async function getReceitasFinanceirasBySafra(
   }, {} as Record<string, number>);
 
   // Calcular total geral
-  const totalGeral = Object.values(totaisPorCategoria).reduce((sum, val) => sum + val, 0);
+  const totalGeral = Object.values(totaisPorCategoria).reduce<number>((sum, val) => sum + (val as number), 0);
 
   return {
     receitas,

@@ -19,7 +19,8 @@ export interface FinancialKpiData {
 
 export async function getFinancialKpiData(
   organizationId: string,
-  safraId?: string
+  safraId?: string,
+  projectionId?: string
 ): Promise<FinancialKpiData> {
   const supabase = await createClient();
 
@@ -56,7 +57,8 @@ export async function getFinancialKpiData(
     }
 
     // 3. Fetch financial metrics for the selected year
-    const metrics = await getFinancialMetrics(organizationId, selectedYear);
+    // Pass projectionId to getFinancialMetrics
+    const metrics = await getFinancialMetrics(organizationId, selectedYear, projectionId);
 
     return {
       safras: safrasList,

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { getBalancoPatrimonialDataV2 } from "@/lib/actions/projections-actions/balanco-patrimonial-data-v2";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import {
   Table,
@@ -27,12 +28,38 @@ import { BalancoPatrimonialData } from "@/lib/actions/projections-actions/balanc
 
 interface BalancoPatrimonialTableProps {
   organizationId: string;
+  projectionId?: string;
   initialData: BalancoPatrimonialData;
 }
 
-export function BalancoPatrimonialTable({ organizationId, initialData }: BalancoPatrimonialTableProps) {
-  const data = initialData;
+export function BalancoPatrimonialTable({ organizationId, projectionId, initialData }: BalancoPatrimonialTableProps) {
+  const [data, setData] = useState<BalancoPatrimonialData>(initialData);
+  const [loading, setLoading] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  
+  useEffect(() => {
+    async function loadData() {
+      if (!organizationId) return;
+      
+      // Se tem initialData e não tem projectionId, usar os dados iniciais
+      if (initialData && !projectionId) {
+        setData(initialData);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        const newData = await getBalancoPatrimonialDataV2(organizationId, projectionId);
+        setData(newData);
+      } catch (error) {
+        console.error('Erro ao carregar dados do Balanço:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadData();
+  }, [organizationId, projectionId, initialData]);
   
   const toggleSection = (section: string) => {
     const newCollapsed = new Set(collapsedSections);
@@ -45,6 +72,23 @@ export function BalancoPatrimonialTable({ organizationId, initialData }: Balanco
   };
 
   const isSectionCollapsed = (section: string) => collapsedSections.has(section);
+  
+  if (loading) {
+    return (
+      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
+        <CardHeaderPrimary
+          icon={<ClipboardList className="h-4 w-4" />}
+          title="Balanço Patrimonial"
+          description="Visão consolidada do patrimônio da empresa por período"
+        />
+        <CardContent className="p-6">
+          <div className="text-center py-10">
+            <p className="text-muted-foreground">Carregando dados...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   if (!data || !data.anos || data.anos.length === 0) {
     return (

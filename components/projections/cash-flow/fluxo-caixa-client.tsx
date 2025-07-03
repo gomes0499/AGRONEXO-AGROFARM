@@ -1,22 +1,92 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { FluxoCaixaTable } from "./fluxo-caixa-table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { TrendingUp } from "lucide-react";
-import { type FluxoCaixaCorrigidoData } from "@/lib/actions/projections-actions/fluxo-caixa-corrigido";
+import { type FluxoCaixaData } from "@/lib/actions/projections-actions/fluxo-caixa-simplificado";
 import { type getCashPolicyConfig } from "@/lib/actions/financial-actions/cash-policy-actions";
+import { getFluxoCaixaSimplificado } from "@/lib/actions/projections-actions/fluxo-caixa-simplificado";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
+import { DollarSign } from "lucide-react";
 
 interface FluxoCaixaClientProps {
   organizationId: string;
-  cashFlowData?: FluxoCaixaCorrigidoData;
+  projectionId?: string;
+  cashFlowData?: FluxoCaixaData;
   cashPolicy?: Awaited<ReturnType<typeof getCashPolicyConfig>>;
 }
 
 export function FluxoCaixaClient({ 
   organizationId, 
-  cashFlowData,
+  projectionId,
+  cashFlowData: initialData,
   cashPolicy
 }: FluxoCaixaClientProps) {
+  const [cashFlowData, setCashFlowData] = useState<FluxoCaixaData | undefined>(initialData);
+  const [loading, setLoading] = useState(!initialData);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCashFlowData() {
+      if (!organizationId) return;
+      
+      // Se tem initialData e não tem projectionId, usar os dados iniciais
+      if (initialData && !projectionId) {
+        setCashFlowData(initialData);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Sempre usar getFluxoCaixaSimplificado, passando projectionId quando disponível
+        console.log('Carregando fluxo de caixa:', projectionId ? `projeção ${projectionId}` : 'base');
+        const data = await getFluxoCaixaSimplificado(organizationId, projectionId);
+        
+        setCashFlowData(data);
+      } catch (err) {
+        console.error('Erro ao carregar fluxo de caixa:', err);
+        setError('Erro ao carregar dados do fluxo de caixa');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCashFlowData();
+  }, [organizationId, projectionId, initialData]);
+  if (loading) {
+    return (
+      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
+        <CardHeaderPrimary
+          icon={<DollarSign className="h-4 w-4" />}
+          title="Fluxo de Caixa Projetado"
+          description="Análise consolidada de receitas, despesas e fluxo de caixa"
+        />
+        <CardContent className="p-6">
+          <div className="space-y-3">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <EmptyState
+        icon={<TrendingUp className="h-10 w-10 text-muted-foreground" />}
+        title="Erro ao carregar fluxo de caixa"
+        description={error}
+      />
+    );
+  }
+
   if (!cashFlowData || cashFlowData.anos.length === 0) {
     return (
       <EmptyState

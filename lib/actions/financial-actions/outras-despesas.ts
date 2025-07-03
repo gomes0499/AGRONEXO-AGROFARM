@@ -5,10 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { OutrasDespesas, OutrasDespesasFormValues } from "@/schemas/financial/outras_despesas";
 
 // Obter todas as outras despesas de uma organização
-export async function getOutrasDespesas(organizacaoId: string) {
+export async function getOutrasDespesas(organizacaoId: string, projectionId?: string) {
   const supabase = await createClient();
   
   try {
+    // Sempre usar a tabela base, outras despesas não mudam com cenários
     const { data, error } = await supabase
       .from("outras_despesas")
       .select("*")

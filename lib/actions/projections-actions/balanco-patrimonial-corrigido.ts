@@ -223,9 +223,9 @@ export async function getBalancoPatrimonialCorrigido(
   });
 
   try {
-    // 2. Buscar dados de caixa e disponibilidades (ATIVO CIRCULANTE)
+    // 2. Buscar dados de caixa e disponibilidades (ATIVO CIRCULANTE) - sempre da tabela base
     const { data: caixaDisponibilidades } = await supabase
-      .from(projectionId ? "caixa_disponibilidades_projections" : "caixa_disponibilidades")
+      .from("caixa_disponibilidades")
       .select("*")
       .eq("organizacao_id", organizationId);
 
@@ -261,17 +261,17 @@ export async function getBalancoPatrimonialCorrigido(
       });
     }
 
-    // 3. Buscar propriedades (ATIVO NÃO CIRCULANTE)
+    // 3. Buscar propriedades (ATIVO NÃO CIRCULANTE) - sempre da tabela base
     const { data: propriedades } = await supabase
-      .from(projectionId ? "propriedades_projections" : "propriedades")
+      .from("propriedades")
       .select("valor_atual")
       .eq("organizacao_id", organizationId);
 
     const valorPropriedades = propriedades?.reduce((sum, prop) => sum + (prop.valor_atual || 0), 0) || 0;
 
-    // 4. Buscar máquinas e equipamentos
+    // 4. Buscar máquinas e equipamentos - sempre da tabela base
     const { data: maquinasEquipamentos } = await supabase
-      .from(projectionId ? "maquinas_equipamentos_projections" : "maquinas_equipamentos")
+      .from("maquinas_equipamentos")
       .select("valor_aquisicao, ano")
       .eq("organizacao_id", organizationId);
 
@@ -282,9 +282,9 @@ export async function getBalancoPatrimonialCorrigido(
       .eq("organizacao_id", organizationId)
       .eq("categoria", "DEPRECIACAO");
 
-    // 6. Buscar investimentos
+    // 6. Buscar investimentos - sempre da tabela base
     const { data: investimentos } = await supabase
-      .from(projectionId ? "investimentos_projections" : "investimentos")
+      .from("investimentos")
       .select("*")
       .eq("organizacao_id", organizationId);
 
@@ -367,9 +367,9 @@ export async function getBalancoPatrimonialCorrigido(
       const safraId = safra.id;
       const ano = safra.nome;
 
-      // Dívidas bancárias (classificar por prazo)
+      // Dívidas bancárias (classificar por prazo) - sempre da tabela base
       const { data: dividasBancarias } = await supabase
-        .from(projectionId ? "dividas_bancarias_projections" : "dividas_bancarias")
+        .from("dividas_bancarias")
         .select("fluxo_pagamento_anual, modalidade, indexador")
         .eq("organizacao_id", organizationId);
 
@@ -387,23 +387,23 @@ export async function getBalancoPatrimonialCorrigido(
         });
       }
 
-      // Dívidas de fornecedores (circulante)
-      const { data: dividasFornecedores } = await supabase
-        .from(projectionId ? "dividas_fornecedores_projections" : "dividas_fornecedores")
+      // Dívidas de fornecedores (circulante) - sempre da tabela base (fornecedores)
+      const { data: fornecedores } = await supabase
+        .from("fornecedores")
         .select("valores_por_ano")
         .eq("organizacao_id", organizationId);
 
-      if (dividasFornecedores) {
-        dividasFornecedores.forEach(divida => {
-          const valores = divida.valores_por_ano || {};
+      if (fornecedores) {
+        fornecedores.forEach(fornecedor => {
+          const valores = fornecedor.valores_por_ano || {};
           const valor = Number(valores[safraId]) || 0;
           balancoData.passivo.circulante.fornecedores[ano] += valor;
         });
       }
 
-      // Dívidas de imóveis/terras (não circulante)
+      // Dívidas de imóveis/terras (não circulante) - sempre da tabela base
       const { data: dividasImoveis } = await supabase
-        .from(projectionId ? "dividas_imoveis_projections" : "dividas_imoveis")
+        .from("dividas_imoveis")
         .select("fluxo_pagamento_anual")
         .eq("organizacao_id", organizationId);
 

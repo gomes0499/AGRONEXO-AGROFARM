@@ -203,6 +203,7 @@ export function DashboardWithScenarios({
                 {organizationId && (
                   <FluxoCaixaClient
                     organizationId={organizationId}
+                    projectionId={projectionId}
                     cashFlowData={undefined}
                     cashPolicy={null}
                   />

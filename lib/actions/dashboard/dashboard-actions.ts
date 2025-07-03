@@ -112,7 +112,7 @@ export const fetchDashboardData = cache(
       getOverviewKpiData(organizationId, projectionId ? [projectionId] : undefined),
       
       // Financial
-      getFinancialKpiData(organizationId, String(currentYear)),
+      getFinancialKpiData(organizationId, selectedSafraId, projectionId),
       getFinancialMetrics(organizationId, projectionId ? Number(projectionId) : undefined),
       getBankDistributionData(organizationId, selectedSafraId, projectionId),
       getDebtTypeDistributionData(organizationId, selectedSafraId, projectionId),
@@ -120,10 +120,10 @@ export const fetchDashboardData = cache(
       getDebtTypeDistributionAllSafrasData(organizationId, projectionId),
       getTotalLiabilitiesChartData(organizationId, selectedSafraId, projectionId),
       getFinancialDebtChartsData(organizationId, projectionId ? Number(projectionId) : undefined),
-      getDebtEvolutionData(organizationId),
+      getDebtEvolutionData(organizationId, projectionId),
       
       // Production
-      getProductionStats(organizationId, undefined, undefined, selectedSafraId),
+      getProductionStats(organizationId, undefined, projectionId, selectedSafraId),
       getProductionDataUnified(organizationId),
       
       // Properties
@@ -200,7 +200,7 @@ export const fetchFinancialDashboardData = cache(
       debtTypeDistributionAllSafras,
       totalLiabilities,
     ] = await Promise.all([
-      getFinancialKpiData(organizationId, String(currentYear)),
+      getFinancialKpiData(organizationId, selectedSafraId, projectionId),
       getBankDistributionData(organizationId, selectedSafraId, projectionId),
       getDebtTypeDistributionData(organizationId, selectedSafraId, projectionId),
       getBankDistributionAllSafrasData(organizationId, projectionId),
@@ -236,7 +236,7 @@ export const fetchProductionDashboardData = cache(
     }
   ) => {
     const [productionStats, productionConfig] = await Promise.all([
-      getProductionStats(organizationId, filters?.safraId ? [filters.safraId] : []),
+      getProductionStats(organizationId, filters?.propertyIds, projectionId, filters?.safraId),
       getProductionDataUnified(organizationId),
     ]);
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { getDREDataUpdated } from "@/lib/actions/projections-actions/dre-data-updated";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 // Removed accordion imports as we're using a single table now
 import {
@@ -91,12 +92,38 @@ export interface DREData {
 
 interface DRETableProps {
   organizationId: string;
+  projectionId?: string;
   initialData: DREData;
 }
 
-export function DRETable({ organizationId, initialData }: DRETableProps) {
-  const data = initialData;
+export function DRETable({ organizationId, projectionId, initialData }: DRETableProps) {
+  const [data, setData] = useState<DREData>(initialData);
+  const [loading, setLoading] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  
+  useEffect(() => {
+    async function loadData() {
+      if (!organizationId) return;
+      
+      // Se tem initialData e não tem projectionId, usar os dados iniciais
+      if (initialData && !projectionId) {
+        setData(initialData);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        const newData = await getDREDataUpdated(organizationId, projectionId);
+        setData(newData);
+      } catch (error) {
+        console.error('Erro ao carregar dados do DRE:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadData();
+  }, [organizationId, projectionId, initialData]);
   
   // Função para formatar texto em normal case
   const formatText = (text: string) => {
@@ -123,6 +150,23 @@ export function DRETable({ organizationId, initialData }: DRETableProps) {
   };
 
   const isSectionCollapsed = (section: string) => collapsedSections.has(section);
+  
+  if (loading) {
+    return (
+      <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
+        <CardHeaderPrimary
+          icon={<FileText className="h-4 w-4" />}
+          title="Demonstração de Resultado do Exercício (DRE)"
+          description="Análise consolidada de receitas, custos e resultados por período"
+        />
+        <CardContent className="p-6">
+          <div className="text-center py-10">
+            <p className="text-muted-foreground">Carregando dados...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   if (!data || !data.anos || data.anos.length === 0) {
     return (

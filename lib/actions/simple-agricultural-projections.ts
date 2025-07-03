@@ -241,3 +241,191 @@ export async function getSimpleAgriculturalRevenueProjections(organizationId: st
     anos: anos
   };
 }
+
+export async function getProjectionAgriculturalRevenueProjections(
+  organizationId: string,
+  projectionId: string
+): Promise<SimpleConsolidatedRevenues> {
+  const supabase = await createClient();
+
+  // Buscar todas as safras para mapear anos
+  const { data: safras } = await supabase
+    .from("safras")
+    .select("id, nome, ano_inicio, ano_fim")
+    .eq("organizacao_id", organizationId)
+    .order("ano_inicio");
+
+  if (!safras) {
+    return { receitas: [], total_por_ano: {}, anos: [] };
+  }
+
+  // Criar mapeamento de safra para ano
+  const safraToYear = safras.reduce((acc, safra) => {
+    acc[safra.id] = `${safra.ano_inicio}/${safra.ano_fim}`;
+    return acc;
+  }, {} as Record<string, string>);
+
+  // Buscar áreas de plantio das projeções com JSONB
+  const { data: areas } = await supabase
+    .from("areas_plantio_projections")
+    .select(`
+      id,
+      cultura_id,
+      sistema_id,
+      ciclo_id,
+      areas_por_safra,
+      culturas:cultura_id(nome),
+      sistemas:sistema_id(nome),
+      ciclos:ciclo_id(nome)
+    `)
+    .eq("organizacao_id", organizationId)
+    .eq("projection_id", projectionId);
+
+  // Buscar produtividades das projeções com JSONB
+  const { data: produtividades } = await supabase
+    .from("produtividades_projections")
+    .select(`
+      id,
+      cultura_id,
+      sistema_id,
+      ciclo_id,
+      produtividades_por_safra,
+      culturas:cultura_id(nome),
+      sistemas:sistema_id(nome),
+      ciclos:ciclo_id(nome)
+    `)
+    .eq("organizacao_id", organizationId)
+    .eq("projection_id", projectionId);
+
+  // Buscar preços das projeções
+  const { data: precos } = await supabase
+    .from("precos_projections")
+    .select("*")
+    .eq("organizacao_id", organizationId)
+    .eq("projection_id", projectionId);
+
+  if (!areas || !produtividades) {
+    return { receitas: [], total_por_ano: {}, anos: [] };
+  }
+
+  // Processar receitas consolidadas
+  const consolidated = new Map<string, SimpleAgriculturalRevenue>();
+  const totalPorAno: Record<string, number> = {};
+
+  for (const area of areas) {
+    // Verificar se culturas e sistemas existem e têm a propriedade nome
+    const culturaNome = area.culturas && typeof area.culturas === 'object' ? (area.culturas as any).nome : null;
+    const sistemaNome = area.sistemas && typeof area.sistemas === 'object' ? (area.sistemas as any).nome : null;
+    const cicloNome = area.ciclos && typeof area.ciclos === 'object' ? (area.ciclos as any).nome : null;
+    
+    if (!culturaNome || !sistemaNome) continue;
+
+    const key = `${culturaNome}-${sistemaNome}${cicloNome ? '-' + cicloNome : ''}`;
+    
+    // Encontrar produtividade correspondente
+    const produtividade = produtividades.find(p => 
+      p.cultura_id === area.cultura_id &&
+      p.sistema_id === area.sistema_id &&
+      (p.ciclo_id === area.ciclo_id || (!p.ciclo_id && !area.ciclo_id))
+    );
+
+    if (!produtividade?.produtividades_por_safra) continue;
+
+    const receitasPorAno: Record<string, number> = {};
+
+    // Para cada safra, calcular receita = área × produtividade × preço
+    Object.entries(area.areas_por_safra || {}).forEach(([safraId, areaValue]) => {
+      const ano = safraToYear[safraId];
+      if (!ano) return;
+
+      const prodValue = produtividade.produtividades_por_safra[safraId];
+      if (!prodValue) return;
+
+      // Normalizar produtividade
+      const produtividadeNormalizada = typeof prodValue === 'number' 
+        ? prodValue
+        : (prodValue as any).produtividade || 0;
+
+      // Buscar preço da projeção para a safra específica
+      let preco = 0;
+      const precoData = precos?.find(p => p.safra_id === safraId);
+      
+      if (precoData) {
+        const culturaLower = culturaNome.toLowerCase();
+        if (culturaLower.includes('soja')) {
+          preco = precoData.preco_soja_brl || 140;
+        } else if (culturaLower.includes('milho')) {
+          preco = precoData.preco_milho || 80;
+        } else if (culturaLower.includes('algodao') || culturaLower.includes('algodão')) {
+          preco = precoData.preco_algodao_bruto || 500;
+        } else {
+          preco = 100; // Fallback genérico
+        }
+      } else {
+        // Fallback: usar preços padrão
+        const culturaLower = culturaNome.toLowerCase();
+        if (culturaLower.includes('soja')) {
+          preco = 140;
+        } else if (culturaLower.includes('milho')) {
+          preco = 80;
+        } else if (culturaLower.includes('algodao') || culturaLower.includes('algodão')) {
+          preco = 500;
+        } else {
+          preco = 100;
+        }
+      }
+
+      const receita = Number(areaValue) * produtividadeNormalizada * preco;
+      receitasPorAno[ano] = (receitasPorAno[ano] || 0) + receita;
+      
+      // Adicionar ao total por ano
+      totalPorAno[ano] = (totalPorAno[ano] || 0) + receita;
+    });
+
+    // Atualizar ou criar entrada consolidada
+    if (Object.keys(receitasPorAno).length > 0) {
+      const existing = consolidated.get(key);
+      if (existing) {
+        // Somar receitas existentes
+        Object.entries(receitasPorAno).forEach(([ano, receita]) => {
+          existing.receitas_por_ano[ano] = (existing.receitas_por_ano[ano] || 0) + receita;
+        });
+      } else {
+        // Determinar unidade baseada na produtividade
+        const firstProdValue = Object.values(produtividade.produtividades_por_safra)[0];
+        const unidade = firstProdValue && typeof firstProdValue === 'object' ? (firstProdValue as any).unidade || 'sc/ha' : 'sc/ha';
+
+        consolidated.set(key, {
+          cultura: culturaNome,
+          sistema: sistemaNome,
+          ciclo: cicloNome || '',
+          unidade,
+          receitas_por_ano: receitasPorAno
+        });
+      }
+    }
+  }
+
+  // Gerar lista de anos únicos ordenados
+  const anosSet = new Set<string>();
+  consolidated.forEach(receita => {
+    Object.keys(receita.receitas_por_ano).forEach(ano => anosSet.add(ano));
+  });
+  
+  // Garantir anos de 2022-2030
+  for (let ano = 2022; ano <= 2030; ano++) {
+    const anoStr = `${ano}/${ano + 1}`;
+    anosSet.add(anoStr);
+    if (!totalPorAno[anoStr]) {
+      totalPorAno[anoStr] = 0;
+    }
+  }
+  
+  const anos = Array.from(anosSet).sort();
+
+  return {
+    receitas: Array.from(consolidated.values()),
+    total_por_ano: totalPorAno,
+    anos: anos
+  };
+}

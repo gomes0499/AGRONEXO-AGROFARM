@@ -148,6 +148,7 @@ export function DashboardClient({
             <TabsContent value="production" className="space-y-6">
               <ProductionKpiCards
                 organizationId={organizationId}
+                projectionId={projectionId}
                 cultures={initialData.productionConfig.cultures}
                 safras={initialData.productionConfig.safras}
                 initialStats={initialData.productionStats}
@@ -157,6 +158,7 @@ export function DashboardClient({
               <div className="grid gap-4 md:grid-cols-2">
                 <AreaPlantadaChart
                   organizationId={organizationId}
+                  projectionId={projectionId}
                   initialData={{ 
                     chartData: [],
                     culturaColors: {},
@@ -165,6 +167,7 @@ export function DashboardClient({
                 />
                 <ProdutividadeChart
                   organizationId={organizationId}
+                  projectionId={projectionId}
                   initialData={{
                     chartData: [],
                     culturaColors: {},
@@ -173,6 +176,7 @@ export function DashboardClient({
                 />
                 <ReceitaChart
                   organizationId={organizationId}
+                  projectionId={projectionId}
                   initialData={{
                     chartData: [],
                     culturaColors: {},
@@ -181,6 +185,7 @@ export function DashboardClient({
                 />
                 <FinancialChart
                   organizationId={organizationId}
+                  projectionId={projectionId}
                   initialData={{
                     chartData: [],
                     safras: initialData.productionConfig.safras
@@ -193,6 +198,7 @@ export function DashboardClient({
             <TabsContent value="financial" className="space-y-6">
               <FinancialKpiCards
                 organizationId={organizationId}
+                projectionId={projectionId}
                 initialData={initialData.financialKpis}
                 selectedSafraId={selectedFinancialSafraId}
                 onSafraChange={setSelectedFinancialSafraId}
@@ -240,6 +246,7 @@ export function DashboardClient({
             <TabsContent value="projections" className="space-y-6">
               <FluxoCaixaClient
                 organizationId={organizationId}
+                projectionId={projectionId}
                 cashFlowData={initialData.cashFlowSummary as any}
                 cashPolicy={null}
               />
@@ -249,6 +256,7 @@ export function DashboardClient({
             <TabsContent value="dre" className="space-y-6">
               <DRETable
                 organizationId={organizationId}
+                projectionId={projectionId}
                 initialData={initialData.dreSummary}
               />
             </TabsContent>
@@ -257,6 +265,7 @@ export function DashboardClient({
             <TabsContent value="balanco" className="space-y-6">
               <BalancoPatrimonialTable
                 organizationId={organizationId}
+                projectionId={projectionId}
                 initialData={initialData.balanceSummary as any}
               />
             </TabsContent>

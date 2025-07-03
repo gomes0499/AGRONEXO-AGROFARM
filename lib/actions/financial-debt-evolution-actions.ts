@@ -9,9 +9,10 @@ export interface DebtEvolutionData {
   total: number;
 }
 
-export async function getDebtEvolutionData(organizationId: string): Promise<DebtEvolutionData[]> {
+export async function getDebtEvolutionData(organizationId: string, projectionId?: string): Promise<DebtEvolutionData[]> {
   const supabase = await createClient();
   
+  // Sempre usar a tabela base, dívidas bancárias não mudam com cenários
   const { data: dividasBancarias } = await supabase
     .from('dividas_bancarias')
     .select('modalidade, fluxo_pagamento_anual')

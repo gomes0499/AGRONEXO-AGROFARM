@@ -203,23 +203,16 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   
   const buscarTabela = async (tableName: string): Promise<Record<string, any>[]> => {
     try {
-      // Determinar nome da tabela baseado em projectionId
-      const actualTableName = projectionId ? `${tableName}_projections` : tableName;
-      
-      let query = supabase
-        .from(actualTableName)
+      // Tabelas financeiras sempre usam a tabela base, não mudam com cenários
+      const query = supabase
+        .from(tableName)
         .select("*")
         .eq("organizacao_id", organizationId);
-      
-      // Adicionar filtro de projection_id se usando tabela de projeções
-      if (projectionId) {
-        query = query.eq("projection_id", projectionId);
-      }
       
       const { data, error } = await query;
       
       if (error) {
-        console.warn(`⚠️ Erro ao buscar ${actualTableName}:`, error.message);
+        console.warn(`⚠️ Erro ao buscar ${tableName}:`, error.message);
         return [];
       }
       
@@ -248,15 +241,12 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     // dividas_trading - buscar da tabela dividas_bancarias com tipo = 'TRADING'
     // NOTA: dividas_bancarias tem tipo TRADING para empresas de trading
     try {
-      let tradingQuery = supabase
-        .from(projectionId ? "dividas_bancarias_projections" : "dividas_bancarias")
+      // Sempre usar tabela base, dívidas não mudam com cenários
+      const tradingQuery = supabase
+        .from("dividas_bancarias")
         .select("*")
         .eq("organizacao_id", organizationId)
         .eq("tipo", "TRADING");
-      
-      if (projectionId) {
-        tradingQuery = tradingQuery.eq("projection_id", projectionId);
-      }
       
       const { data: tradingData, error: tradingError } = await tradingQuery;
       
@@ -768,7 +758,7 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
 
     try {
       const { getCultureProjections } = await import('./culture-projections-actions');
-      const projections = await getCultureProjections(organizationId);
+      const projections = await getCultureProjections(organizationId, projectionId);
 
       // Somar receitas e EBITDA do consolidado
       if (projections?.consolidado?.projections_by_year) {

@@ -95,10 +95,10 @@ export async function getDREDataUpdated(organizacaoId: string, projectionId?: st
     // 2. Buscar receitas pecuárias (por enquanto zerado, será implementado)
     
     // 3. Buscar outras despesas categorizadas
-    const outrasDespesas = await getOutrasDespesas(organizacaoId);
+    const outrasDespesas = await getOutrasDespesas(organizacaoId, projectionId);
     
     // 4. Buscar receitas financeiras
-    const receitasFinanceiras = await getReceitasFinanceiras(organizacaoId);
+    const receitasFinanceiras = await getReceitasFinanceiras(organizacaoId, projectionId);
 
     // Preencher dados para cada ano
     anosFiltrados.forEach(ano => {

@@ -233,6 +233,26 @@ export function ProductionKPICardsClient({
     }
   }, []); // Executar apenas na montagem
 
+  // Buscar dados quando o cenário (projectionId) mudar
+  useEffect(() => {
+    if (projectionId !== undefined) {
+      startTransition(async () => {
+        try {
+          const result = await getProductionStats(
+            organizationId,
+            propertyIds,
+            projectionId,
+            selectedSafraId || defaultSafraId,
+            selectedCultureIds.length > 0 ? selectedCultureIds : undefined
+          );
+          setStats(result);
+        } catch (error) {
+          console.error("Erro ao carregar estatísticas do cenário:", error);
+        }
+      });
+    }
+  }, [projectionId]); // Executar quando projectionId mudar
+
   const handleMetricClick = (metricType: MetricType) => {
     setSelectedMetric(metricType);
     setModalOpen(true);

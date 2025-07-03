@@ -120,18 +120,11 @@ export async function getFluxoCaixaSimplificado(
     return acc;
   }, {} as Record<string, string>);
   
-  // 5. Buscar dados de arrendamentos
-  const arrendamentosTableName = projectionId ? "arrendamentos_projections" : "arrendamentos";
-  let arrendamentosQuery = supabase
-    .from(arrendamentosTableName)
+  // 5. Buscar dados de arrendamentos (sempre da tabela base, não muda com cenários)
+  const { data: arrendamentos, error: arrendamentosError } = await supabase
+    .from("arrendamentos")
     .select("*")
     .eq("organizacao_id", organizationId);
-  
-  if (projectionId) {
-    arrendamentosQuery = arrendamentosQuery.eq("projection_id", projectionId);
-  }
-  
-  const { data: arrendamentos, error: arrendamentosError } = await arrendamentosQuery;
 
   if (arrendamentosError) {
     console.warn("⚠️ Erro ao buscar arrendamentos:", arrendamentosError.message);
@@ -156,18 +149,11 @@ export async function getFluxoCaixaSimplificado(
     total_por_ano: {}
   };
   
-  // 7. Buscar dados de outras despesas (se existir)
-  const outrasDespesasTableName = projectionId ? "outras_despesas_projections" : "outras_despesas";
-  let outrasDespesasQuery = supabase
-    .from(outrasDespesasTableName)
+  // 7. Buscar dados de outras despesas (sempre da tabela base, não muda com cenários)
+  const { data: outrasDespesasData, error: outrasDespesasError } = await supabase
+    .from("outras_despesas")
     .select("*")
     .eq("organizacao_id", organizationId);
-  
-  if (projectionId) {
-    outrasDespesasQuery = outrasDespesasQuery.eq("projection_id", projectionId);
-  }
-  
-  const { data: outrasDespesasData, error: outrasDespesasError } = await outrasDespesasQuery;
 
   if (outrasDespesasError) {
     console.warn("⚠️ Erro ao buscar outras despesas:", outrasDespesasError.message);
@@ -247,18 +233,11 @@ export async function getFluxoCaixaSimplificado(
       outrasDespesas.outras[ano];
   });
   
-  // 11. Buscar investimentos da tabela de investimentos (se existir)
-  const investimentosTableName = projectionId ? "investimentos_projections" : "investimentos";
-  let investimentosQuery = supabase
-    .from(investimentosTableName)
+  // 11. Buscar investimentos da tabela de investimentos (sempre da tabela base, não muda com cenários)
+  const { data: investimentosData, error: investimentosError } = await supabase
+    .from("investimentos")
     .select("*")
     .eq("organizacao_id", organizationId);
-  
-  if (projectionId) {
-    investimentosQuery = investimentosQuery.eq("projection_id", projectionId);
-  }
-  
-  const { data: investimentosData, error: investimentosError } = await investimentosQuery;
 
   if (investimentosError) {
     console.warn("⚠️ Erro ao buscar investimentos:", investimentosError.message);
@@ -515,19 +494,13 @@ async function calcularDadosFinanceiras(
     // Criar cliente Supabase para buscar dados
     const supabase = await createClient();
     
-    // Buscar dados de novas linhas de crédito do banco de dados
-    const financeirasTableName = projectionId ? "financeiras_projections" : "financeiras";
-    let financeirasQuery = supabase
-      .from(financeirasTableName)
+    // Buscar dados de novas linhas de crédito do banco de dados (sempre da tabela base, não muda com cenários)
+    const { data: financeirasData, error: financeirasError } = await supabase
+      .from("financeiras")
       .select("*")
       .eq("organizacao_id", organizationId)
-      .eq("categoria", "NOVAS_LINHAS_CREDITO");
-    
-    if (projectionId) {
-      financeirasQuery = financeirasQuery.eq("projection_id", projectionId);
-    }
-    
-    const { data: financeirasData, error: financeirasError } = await financeirasQuery.maybeSingle();
+      .eq("categoria", "NOVAS_LINHAS_CREDITO")
+      .maybeSingle();
     
     if (financeirasError) {
       console.error("Erro ao buscar dados financeiros:", financeirasError);
@@ -561,9 +534,9 @@ async function calcularDadosFinanceiras(
       
       if (safraId) {
         try {
-          // Buscar serviço real da dívida das tabelas de dívidas bancárias
+          // Buscar serviço real da dívida das tabelas de dívidas bancárias (sempre da tabela base)
           const { data: dividasBancarias } = await supabase
-            .from(projectionId ? "dividas_bancarias_projections" : "dividas_bancarias")
+            .from("dividas_bancarias")
             .select("fluxo_pagamento_anual")
             .eq("organizacao_id", organizationId);
             
@@ -583,15 +556,15 @@ async function calcularDadosFinanceiras(
       
       if (safraId) {
         try {
-          // Buscar pagamentos reais de fornecedores
-          const { data: dividasFornecedores } = await supabase
-            .from(projectionId ? "dividas_fornecedores_projections" : "dividas_fornecedores")
+          // Buscar pagamentos reais de fornecedores (sempre da tabela base)
+          const { data: fornecedores } = await supabase
+            .from("fornecedores")
             .select("valores_por_ano")
             .eq("organizacao_id", organizationId);
             
-          if (dividasFornecedores) {
-            dividasFornecedores.forEach(divida => {
-              const valores = divida.valores_por_ano || {};
+          if (fornecedores) {
+            fornecedores.forEach(fornecedor => {
+              const valores = fornecedor.valores_por_ano || {};
               pagamentosBancos[ano] += valores[safraId] || 0;
             });
           }

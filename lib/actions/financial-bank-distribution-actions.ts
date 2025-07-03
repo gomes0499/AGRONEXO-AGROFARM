@@ -17,17 +17,11 @@ export async function getBankDistributionData(
   const supabase = await createClient();
 
   // Busca todas as dívidas bancárias
-  const tableName = projectionId ? "dividas_bancarias_projections" : "dividas_bancarias";
-  let query = supabase
-    .from(tableName)
+  // Sempre usar a tabela base, dívidas não mudam com cenários
+  const { data: dividasBancarias } = await supabase
+    .from("dividas_bancarias")
     .select("*")
     .eq("organizacao_id", organizationId);
-  
-  if (projectionId) {
-    query = query.eq("projection_id", projectionId);
-  }
-  
-  const { data: dividasBancarias } = await query;
 
   if (!dividasBancarias || dividasBancarias.length === 0) {
     return { data: [], yearUsed: new Date().getFullYear() };

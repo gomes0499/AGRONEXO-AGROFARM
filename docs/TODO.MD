@@ -1,8 +1,6 @@
-[ ] ARRUMAR REVALIDATE PATH PARA PRECOS 
+[] ARRUMAR REVALIDATE PATH PARA PRECOS 
 [] DOMINIO SITE/EMAIL SR
 [] CONVIDAR MEMBRO - EMAIL N ESTA CHEGANDO
-
-
 [] ARRUME O MODAL QUE APARECE EM VISAO GERAL AO CLICAR NA ENGRENAGEM PARA CONFIGURARAR OS VALORES DO CENARIO ELE TEM QUE CORRESPONDER A EXATAMENTE AS COISAS DO MODULO DE PRODUCAO, OS VALORES, E O ESTILO
 
 [] AJUSTAR CENARIOS. O MODULO PRODUCAO POR EXEMPLO JÁ UTILIZA CORRETAMENTE CENARIOS. AGORA PRECISO QUE O RESTANTE USE CORRETAMENTE. PRA VISÃO GERAL FUNCIONAR CORRETAMENTE COM OS DADOS DO CENARIO ALTERADO NO MODULO PRODUCAO POR EXEMPLO. SÓ PRA VC ENTENDER TUDO VAI SE ALTERAR SE OS DADOS DE PRODUCAO DE UM CENARIO FOR DIFERENTE DO OUTRO. EX: USUARIO TROCA DE CENARIO BASE PARA OTIMISTA O USUARIO AUMENTA O PRECO/SC DO ALGODAO PRA SAFRA 2024/25 COM ISSO ALGUNS VALORES MUDAM NO CENARIO OTIMISTA. MAS NO BASE CONTINUA A MESMA COISA. BASTA ANALISAR MODULO PRODUCAO QUE ESTA FUNCIONANDO CORRETAMENTE AS PROJECOES. 
@@ -13,8 +11,8 @@
 
 
 
-  Para tornar o sistema completamente dinâmico no futuro:
-  1. Migrar todos os preços para usar cultura_id/sistema_id
-  2. Adicionar UI para configurar preços por cultura/sistema
-  3. Remover o enum commodity_type gradualmente
-  4. Permitir que cada organização defina suas próprias culturas sem limitações
+Para tornar o sistema completamente dinâmico no futuro:
+1. Migrar todos os preços para usar cultura_id/sistema_id
+2. Adicionar UI para configurar preços por cultura/sistema
+3. Remover o enum commodity_type gradualmente
+4. Permitir que cada organização defina suas próprias culturas sem limitações

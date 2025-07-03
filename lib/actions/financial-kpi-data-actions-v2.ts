@@ -55,7 +55,8 @@ function calcularPercentualMudanca(valorAtual: number, valorAnterior: number): n
 
 export async function getFinancialKpiDataV2(
   organizationId: string,
-  safraId?: string
+  safraId?: string,
+  projectionId?: string
 ): Promise<FinancialKpiData> {
   const supabase = await createClient();
 
@@ -97,7 +98,7 @@ export async function getFinancialKpiDataV2(
     if (currentSafra) {
       try {
         // Get debt position data (similar to what's shown in the table)
-        const debtPosition = await getDebtPosition(organizationId);
+        const debtPosition = await getDebtPosition(organizationId, projectionId);
         
         // Find the correct safra name in the debt position data
         const safraName = currentSafra.nome; // e.g., "2025/26"

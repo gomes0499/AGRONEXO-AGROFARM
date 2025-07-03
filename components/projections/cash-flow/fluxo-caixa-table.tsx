@@ -14,6 +14,7 @@ import {
 import { TrendingDown, TrendingUp, CircleDollarSign, DollarSign, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/formatters";
+import type { FluxoCaixaData } from "@/lib/actions/projections-actions/fluxo-caixa-simplificado";
 import type { FluxoCaixaCorrigidoData } from "@/lib/actions/projections-actions/fluxo-caixa-corrigido";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +24,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// União dos tipos para suportar ambas as estruturas
+type FluxoCaixaUnifiedData = FluxoCaixaData | FluxoCaixaCorrigidoData;
+
 interface FluxoCaixaTableProps {
-  data: FluxoCaixaCorrigidoData;
+  data: FluxoCaixaUnifiedData;
 }
 
 export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
@@ -53,6 +57,11 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
   // Criar uma cópia dos dados com os anos filtrados
   const dataFiltrada = { ...data, anos: anosFiltrados };
   
+  // Type guard para verificar se é FluxoCaixaCorrigidoData
+  const isFluxoCaixaCorrigido = (data: FluxoCaixaUnifiedData): data is FluxoCaixaCorrigidoData => {
+    return 'servico_divida' in data;
+  };
+
   // Garantir que todas as propriedades existam antes de acessá-las com estrutura completa
   if (!dataFiltrada.despesas_agricolas) {
     dataFiltrada.despesas_agricolas = { culturas: {}, total_por_ano: {} };
@@ -71,10 +80,9 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
       pro_labore: {}, 
       financeiras: {}, 
       tributarias: {}, 
-      administrativas: {}, 
       outras: {}, 
       total_por_ano: {} 
-    };
+    } as any;
   } else {
     if (!dataFiltrada.outras_despesas.arrendamento) {
       dataFiltrada.outras_despesas.arrendamento = {};
@@ -82,7 +90,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
     if (!dataFiltrada.outras_despesas.pro_labore) {
       dataFiltrada.outras_despesas.pro_labore = {};
     }
-    if (!dataFiltrada.outras_despesas.administrativas) {
+    if (isFluxoCaixaCorrigido(dataFiltrada) && !dataFiltrada.outras_despesas.administrativas) {
       dataFiltrada.outras_despesas.administrativas = {};
     }
     if (!dataFiltrada.outras_despesas.financeiras) {
@@ -121,25 +129,28 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
     }
   }
   
-  if (!dataFiltrada.servico_divida) {
-    dataFiltrada.servico_divida = { 
-      bancos: {}, 
-      fornecedores: {}, 
-      terras: {}, 
-      total_por_ano: {} 
-    };
-  } else {
-    if (!dataFiltrada.servico_divida.bancos) {
-      dataFiltrada.servico_divida.bancos = {};
-    }
-    if (!dataFiltrada.servico_divida.fornecedores) {
-      dataFiltrada.servico_divida.fornecedores = {};
-    }
-    if (!dataFiltrada.servico_divida.terras) {
-      dataFiltrada.servico_divida.terras = {};
-    }
-    if (!dataFiltrada.servico_divida.total_por_ano) {
-      dataFiltrada.servico_divida.total_por_ano = {};
+  // Verificar se servico_divida existe (apenas em FluxoCaixaCorrigidoData)
+  if (isFluxoCaixaCorrigido(dataFiltrada)) {
+    if (!dataFiltrada.servico_divida) {
+      dataFiltrada.servico_divida = { 
+        bancos: {}, 
+        fornecedores: {}, 
+        terras: {}, 
+        total_por_ano: {} 
+      };
+    } else {
+      if (!dataFiltrada.servico_divida.bancos) {
+        dataFiltrada.servico_divida.bancos = {};
+      }
+      if (!dataFiltrada.servico_divida.fornecedores) {
+        dataFiltrada.servico_divida.fornecedores = {};
+      }
+      if (!dataFiltrada.servico_divida.terras) {
+        dataFiltrada.servico_divida.terras = {};
+      }
+      if (!dataFiltrada.servico_divida.total_por_ano) {
+        dataFiltrada.servico_divida.total_por_ano = {};
+      }
     }
   }
   
@@ -434,7 +445,12 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
                           >
-                            {formatCurrency((dataFiltrada.outras_despesas?.administrativas?.[ano]) || 0)}
+                            {formatCurrency(
+                              ('divisao_lucros' in (dataFiltrada.outras_despesas || {}) 
+                                ? (dataFiltrada.outras_despesas as any)?.divisao_lucros?.[ano] 
+                                : (dataFiltrada.outras_despesas as any)?.administrativas?.[ano]
+                              ) || 0
+                            )}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -631,7 +647,12 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive dark:text-red-400"
                           >
-                            {formatCurrency((dataFiltrada.servico_divida?.total_por_ano?.[ano]) || 0)}
+                            {formatCurrency(
+                              ('servico_divida' in dataFiltrada && dataFiltrada.servico_divida
+                                ? (dataFiltrada.servico_divida as any)?.total_por_ano?.[ano]
+                                : (dataFiltrada.financeiras as any)?.servico_divida?.[ano]
+                              ) || 0
+                            )}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -723,7 +744,7 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                         const financeiras = (dataFiltrada.financeiras?.total_por_ano?.[ano]) || 0;
                         
                         // Calcular fluxo líquido
-                        const fluxoCaixa = receitasAgricolas - despesasAgricolas - outrasDespesas - investimentos - financeiras;
+                        const fluxoCaixa = receitasAgricolas - despesasAgricolas - outrasDespesas - investimentos + financeiras;
                         
                         return (
                           <TableCell 

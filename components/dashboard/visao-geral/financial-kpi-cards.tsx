@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ import { FinancialIndicatorHistoricalModalV2 } from "@/components/financial/indi
 
 interface FinancialKpiCardsProps {
   organizationId: string;
+  projectionId?: string;
   initialData: FinancialKpiData;
   selectedSafraId?: string;
   onSafraChange?: (safraId: string) => void;
@@ -161,6 +162,7 @@ function KpiItem({ title, value, change, changeType, icon, tooltip, loading, onC
 
 export function FinancialKpiCards({
   organizationId,
+  projectionId,
   initialData,
   selectedSafraId: externalSelectedSafraId,
   onSafraChange,
@@ -181,6 +183,20 @@ export function FinancialKpiCards({
     title: string;
   } | null>(null);
 
+  // Reload data when projectionId changes
+  useEffect(() => {
+    if (projectionId !== undefined) {
+      startTransition(async () => {
+        try {
+          const newData = await getFinancialKpiData(organizationId, selectedSafraId, projectionId);
+          setData(newData);
+        } catch (error) {
+          console.error("Erro ao carregar dados do cenário:", error);
+        }
+      });
+    }
+  }, [projectionId, organizationId, selectedSafraId]);
+
   // Handle safra change
   const handleSafraChange = (newSafraId: string) => {
     if (onSafraChange) {
@@ -191,7 +207,7 @@ export function FinancialKpiCards({
     
     startTransition(async () => {
       try {
-        const newData = await getFinancialKpiData(organizationId, newSafraId);
+        const newData = await getFinancialKpiData(organizationId, newSafraId, projectionId);
         setData(newData);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);

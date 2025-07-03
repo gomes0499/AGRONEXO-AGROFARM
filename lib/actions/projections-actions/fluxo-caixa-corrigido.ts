@@ -360,9 +360,9 @@ export async function getFluxoCaixaCorrigido(
       }
     }
 
-    // 4. Buscar outras despesas usando valores manuais do usuário
+    // 4. Buscar outras despesas usando valores manuais do usuário (sempre da tabela base)
     const { data: outrasDespesas } = await supabase
-      .from(projectionId ? "outras_despesas_projections" : "outras_despesas")
+      .from("outras_despesas")
       .select("*")
       .eq("organizacao_id", organizationId);
 
@@ -405,9 +405,9 @@ export async function getFluxoCaixaCorrigido(
       const safraId = safra.id;
       const ano = safra.nome;
 
-      // Dívidas bancárias
+      // Dívidas bancárias (sempre da tabela base)
       const { data: dividasBancarias } = await supabase
-        .from(projectionId ? "dividas_bancarias_projections" : "dividas_bancarias")
+        .from("dividas_bancarias")
         .select("fluxo_pagamento_anual")
         .eq("organizacao_id", organizationId);
 
@@ -419,23 +419,23 @@ export async function getFluxoCaixaCorrigido(
         });
       }
 
-      // Dívidas de fornecedores
-      const { data: dividasFornecedores } = await supabase
-        .from(projectionId ? "dividas_fornecedores_projections" : "dividas_fornecedores")
+      // Dívidas de fornecedores (sempre da tabela base - fornecedores)
+      const { data: fornecedores } = await supabase
+        .from("fornecedores")
         .select("valores_por_ano")
         .eq("organizacao_id", organizationId);
 
-      if (dividasFornecedores) {
-        dividasFornecedores.forEach(divida => {
-          const valores = divida.valores_por_ano || {};
+      if (fornecedores) {
+        fornecedores.forEach(fornecedor => {
+          const valores = fornecedor.valores_por_ano || {};
           const pagamento = Number(valores[safraId]) || 0;
           fluxoData.servico_divida.fornecedores[ano] += pagamento;
         });
       }
 
-      // Dívidas de terras/imóveis
+      // Dívidas de terras/imóveis (sempre da tabela base)
       const { data: dividasTerras } = await supabase
-        .from(projectionId ? "dividas_imoveis_projections" : "dividas_imoveis")
+        .from("dividas_imoveis")
         .select("fluxo_pagamento_anual")
         .eq("organizacao_id", organizationId);
 
@@ -454,9 +454,9 @@ export async function getFluxoCaixaCorrigido(
         fluxoData.servico_divida.terras[ano];
     }
 
-    // 6. Buscar investimentos usando dados reais
+    // 6. Buscar investimentos usando dados reais (sempre da tabela base)
     const { data: investimentos } = await supabase
-      .from(projectionId ? "investimentos_projections" : "investimentos")
+      .from("investimentos")
       .select("*")
       .eq("organizacao_id", organizationId);
 
@@ -495,9 +495,9 @@ export async function getFluxoCaixaCorrigido(
       anoToSafraId[safra.nome] = safra.id;
     });
 
-    // Buscar novas linhas de crédito
+    // Buscar novas linhas de crédito (sempre da tabela base)
     const { data: financeirasData } = await supabase
-      .from(projectionId ? "financeiras_projections" : "financeiras")
+      .from("financeiras")
       .select("*")
       .eq("organizacao_id", organizationId)
       .eq("categoria", "NOVAS_LINHAS_CREDITO")

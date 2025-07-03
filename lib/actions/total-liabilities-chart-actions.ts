@@ -63,28 +63,18 @@ export async function getTotalLiabilitiesChartData(
       }
     }
 
-    // Determine table names based on projectionId
-    const dividasTable = projectionId ? "dividas_bancarias_projections" : "dividas_bancarias";
-    const caixaTable = projectionId ? "caixa_disponibilidades_projections" : "caixa_disponibilidades";
-
-    // Build queries
-    const dividasQuery = supabase
-      .from(dividasTable)
-      .select("*")
-      .eq("organizacao_id", organizationId);
-    
-    const caixaQuery = supabase
-      .from(caixaTable)
-      .select("*")
-      .eq("organizacao_id", organizationId);
-
-    if (projectionId) {
-      dividasQuery.eq("projection_id", projectionId);
-      caixaQuery.eq("projection_id", projectionId);
-    }
-
+    // Sempre usar tabelas base, dados financeiros não mudam com cenários
     const [dividasBancariasResult, caixaDisponibilidadesResult] =
-      await Promise.all([dividasQuery, caixaQuery]);
+      await Promise.all([
+        supabase
+          .from("dividas_bancarias")
+          .select("*")
+          .eq("organizacao_id", organizationId),
+        supabase
+          .from("caixa_disponibilidades")
+          .select("*")
+          .eq("organizacao_id", organizationId)
+      ]);
 
     const dividasBancarias = dividasBancariasResult.data || [];
     const caixaDisponibilidades = caixaDisponibilidadesResult.data || [];

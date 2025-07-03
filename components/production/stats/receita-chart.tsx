@@ -32,6 +32,7 @@ import type { RevenueData } from "@/lib/actions/production-chart-actions";
 import type { ReceitaChartData } from "@/lib/actions/receita-chart-actions";
 import { getReceitaChartData } from "@/lib/actions/receita-chart-actions";
 import { useChartColors } from "@/contexts/chart-colors-context";
+import { useScenario } from "@/contexts/scenario-context-v2";
 
 interface ReceitaChartClientProps {
   organizationId: string;
@@ -75,6 +76,7 @@ export function ReceitaChartClient({
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [isPending, startTransition] = useTransition();
   const { colors } = useChartColors();
+  const { currentScenario, getProjectedValue } = useScenario();
 
   // Process chart configuration based on data and colors
   useEffect(() => {
@@ -155,6 +157,82 @@ export function ReceitaChartClient({
 
     setChartConfig(config);
   }, [data, colors, initialData?.culturaColors]);
+
+  // Apply scenario adjustments to data
+  useEffect(() => {
+    let processedData = initialData?.chartData || [];
+    
+    if (currentScenario && currentScenario.cultureData && initialData?.safras) {
+      processedData = processedData.map((item) => {
+        const safra = initialData.safras.find(s => s.nome === item.safra);
+        if (!safra) return item;
+        
+        let adjustedItem = { ...item };
+        
+        // Get culture data for this harvest
+        const harvestCultureData = currentScenario.cultureData[safra.id] || [];
+        
+        // For each culture in the item, apply scenario adjustments
+        Object.keys(item).forEach((key) => {
+          if (key !== "safra" && key !== "total" && typeof item[key] === "number") {
+            // Try to find matching scenario data for this culture
+            const scenarioData = harvestCultureData.find((cd: any) => 
+              cd.culture_name?.toLowerCase().includes(key.toLowerCase()) ||
+              key.toLowerCase().includes(cd.culture_name?.toLowerCase() || '')
+            );
+            
+            if (scenarioData) {
+              // Calculate projected value based on scenario changes
+              const originalValue = item[key] as number;
+              
+              // Apply price changes if available
+              if (scenarioData.price_per_unit && scenarioData.price_per_unit > 0) {
+                const priceMultiplier = getProjectedValue(
+                  safra.id, 
+                  scenarioData.culture_id, 
+                  scenarioData.system_id, 
+                  'price_per_unit', 
+                  1
+                );
+                adjustedItem[key] = originalValue * priceMultiplier;
+              }
+              
+              // Apply area and productivity changes
+              const areaMultiplier = getProjectedValue(
+                safra.id, 
+                scenarioData.culture_id, 
+                scenarioData.system_id, 
+                'area_hectares', 
+                1
+              );
+              
+              const productivityMultiplier = getProjectedValue(
+                safra.id, 
+                scenarioData.culture_id, 
+                scenarioData.system_id, 
+                'productivity', 
+                1
+              );
+              
+              adjustedItem[key] = (adjustedItem[key] as number) * areaMultiplier * productivityMultiplier;
+            }
+          }
+        });
+        
+        // Recalculate total
+        adjustedItem.total = Object.keys(adjustedItem).reduce((sum, key) => {
+          if (key !== "safra" && key !== "total" && typeof adjustedItem[key] === "number") {
+            return sum + (adjustedItem[key] as number);
+          }
+          return sum;
+        }, 0);
+        
+        return adjustedItem;
+      });
+    }
+    
+    setData(processedData);
+  }, [currentScenario, initialData?.chartData, initialData?.safras, getProjectedValue]);
 
   // Refresh data when filters change
   useEffect(() => {

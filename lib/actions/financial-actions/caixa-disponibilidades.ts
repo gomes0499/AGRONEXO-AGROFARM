@@ -11,40 +11,12 @@ export async function getCaixaDisponibilidades(organizacaoId: string, projection
   const supabase = await createClient();
 
   try {
-    let data = null;
-    let error = null;
-    
-    // Try projection table first if projectionId is provided
-    if (projectionId) {
-      const projectionTableName = "caixa_disponibilidades_projections";
-      const projectionQuery = supabase
-        .from(projectionTableName)
-        .select("*")
-        .eq("organizacao_id", organizacaoId)
-        .eq("projection_id", projectionId)
-        .order("categoria", { ascending: true });
-      
-      const projectionResult = await projectionQuery;
-      
-      // If projection table doesn't exist or has no data, fall back to base table
-      if (!projectionResult.error && projectionResult.data?.length > 0) {
-        data = projectionResult.data;
-        error = projectionResult.error;
-      }
-    }
-    
-    // If no projection data found or no projectionId, use base table
-    if (!data || data.length === 0) {
-      const baseQuery = supabase
-        .from("caixa_disponibilidades")
-        .select("*")
-        .eq("organizacao_id", organizacaoId)
-        .order("categoria", { ascending: true });
-      
-      const baseResult = await baseQuery;
-      data = baseResult.data;
-      error = baseResult.error;
-    }
+    // Sempre usar a tabela base, caixa e disponibilidades não mudam com cenários
+    const { data, error } = await supabase
+      .from("caixa_disponibilidades")
+      .select("*")
+      .eq("organizacao_id", organizacaoId)
+      .order("categoria", { ascending: true });
 
     if (error) {
       console.error("Erro ao buscar caixa e disponibilidades:", error);
