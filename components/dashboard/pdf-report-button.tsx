@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Download, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { generateDefinitiveReport } from "@/lib/actions/definitive-report-actions";
+import { sendDefinitiveReportByEmail } from "@/lib/actions/email-definitive-report-actions";
 import { getProjections, type Projection } from "@/lib/actions/projections-actions";
 import {
   Dialog,
@@ -52,6 +53,7 @@ export function PDFReportButton({
   const [emailMessage, setEmailMessage] = useState("");
   const [selectedProjection, setSelectedProjection] = useState<string>("base");
   const [projections, setProjections] = useState<Projection[]>([]);
+  const [emailResults, setEmailResults] = useState<{ email: string; success: boolean; error?: string }[]>([]);
 
   useEffect(() => {
     if (isDialogOpen) {
@@ -110,8 +112,38 @@ export function PDFReportButton({
           return;
         }
 
-        // TODO: Implementar envio por email
-        toast.info("Função de envio por email será implementada em breve.");
+        // Enviar por email
+        setProgress(30);
+        
+        const result = await sendDefinitiveReportByEmail(
+          organizationId,
+          organizationName,
+          validEmails,
+          emailSubject || `Relatório Completo - ${organizationName}`,
+          emailMessage,
+          selectedProjection !== 'base' ? selectedProjection : undefined
+        );
+        
+        setProgress(90);
+        
+        if (result.success) {
+          setEmailResults(result.results || []);
+          
+          if (result.successCount === validEmails.length) {
+            toast.success(`Relatório enviado com sucesso para ${result.successCount} destinatário(s)!`);
+          } else {
+            toast.warning(`Relatório enviado para ${result.successCount} de ${validEmails.length} destinatários. ${result.failedCount} falharam.`);
+            
+            // Mostrar detalhes dos erros
+            const failedEmails = result.results?.filter(r => !r.success) || [];
+            failedEmails.forEach(failed => {
+              toast.error(`Falha ao enviar para ${failed.email}: ${failed.error || 'Erro desconhecido'}`);
+            });
+          }
+        } else {
+          toast.error("Erro ao enviar o relatório por email.");
+        }
+        
         setProgress(100);
       } else {
         // Download direto
@@ -157,6 +189,7 @@ export function PDFReportButton({
       setEmailList([""]);
       setEmailSubject("");
       setEmailMessage("");
+      setEmailResults([]);
     } catch (error) {
       console.error("Erro ao gerar relatório:", error);
       toast.error("Erro ao gerar o relatório. Tente novamente.");
@@ -165,9 +198,26 @@ export function PDFReportButton({
       setProgress(0);
     }
   };
+  
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    // Resetar tudo
+    setSendByEmail(false);
+    setEmailList([""]);
+    setEmailSubject("");
+    setEmailMessage("");
+    setEmailResults([]);
+    setProgress(0);
+  };
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+    <Dialog open={isDialogOpen} onOpenChange={(open) => {
+      if (!open) {
+        handleCloseDialog();
+      } else {
+        setIsDialogOpen(true);
+      }
+    }}>
       <DialogTrigger asChild>
         <Button 
           variant={variant} 
@@ -293,7 +343,7 @@ export function PDFReportButton({
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
-              onClick={() => setIsDialogOpen(false)}
+              onClick={handleCloseDialog}
               disabled={isGenerating}
             >
               Cancelar
