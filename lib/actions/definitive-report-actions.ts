@@ -2,7 +2,7 @@
 
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { 
-  DefinitivePDFReportService, 
+  DefinitivePDFReportService,
   PropertiesStats, 
   PlantingAreaData, 
   PlantingAreaTableRow, 

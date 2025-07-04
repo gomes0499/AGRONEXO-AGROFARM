@@ -559,6 +559,32 @@ export async function deleteInvestment(id: string) {
   }
 }
 
+export async function deleteInvestmentsByCategory(organizationId: string, categoria: string, tipo?: string) {
+  try {
+    const supabase = await createClient();
+    
+    // Construir query base
+    let query = supabase
+      .from("investimentos")
+      .delete()
+      .eq("organizacao_id", organizationId)
+      .eq("categoria", categoria);
+    
+    // Se tipo foi especificado, adicionar ao filtro
+    if (tipo) {
+      query = query.eq("tipo", tipo);
+    }
+    
+    const { error } = await query;
+    
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
 export async function createInvestmentsBatch(investments: any[]) {
   try {
     if (!Array.isArray(investments) || investments.length === 0) {

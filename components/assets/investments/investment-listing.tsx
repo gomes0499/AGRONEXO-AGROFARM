@@ -37,7 +37,7 @@ import { Plus, TrendingUp, MoreHorizontal, Edit2Icon, Trash2 } from "lucide-reac
 import { InvestmentFormV2 } from "./investment-form-v2";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import { EmptyState } from "@/components/ui/empty-state";
-import { deleteInvestment, getInvestments } from "@/lib/actions/patrimonio-actions";
+import { deleteInvestment, deleteInvestmentsByCategory, getInvestments } from "@/lib/actions/patrimonio-actions";
 import { toast } from "sonner";
 
 interface InvestmentListingProps {
@@ -56,6 +56,7 @@ export function InvestmentListing({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<{categoria: string, tipo?: string} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
 
@@ -88,6 +89,39 @@ export function InvestmentListing({
     } catch (error) {
       console.error("Erro ao excluir investimento:", error);
       toast.error("Erro ao excluir investimento");
+    }
+  };
+
+  const handleDeleteCategory = async (categoria: string, tipo?: string) => {
+    setDeletingCategory({ categoria, tipo });
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!deletingCategory) return;
+    
+    try {
+      const result = await deleteInvestmentsByCategory(
+        organizationId, 
+        deletingCategory.categoria, 
+        deletingCategory.tipo
+      );
+      
+      if ('error' in result) {
+        toast.error(result.error);
+        return;
+      }
+      
+      // Filtrar os investimentos removidos
+      setInvestments(investments.filter((investment) => 
+        !(investment.categoria === deletingCategory.categoria && 
+          (!deletingCategory.tipo || investment.tipo === deletingCategory.tipo))
+      ));
+      
+      setDeletingCategory(null);
+      toast.success("Todos os investimentos da categoria foram excluídos com sucesso!");
+    } catch (error) {
+      console.error("Erro ao excluir investimentos:", error);
+      toast.error("Erro ao excluir investimentos da categoria");
     }
   };
 
@@ -313,20 +347,11 @@ export function InvestmentListing({
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onClick={() => {
-                                  // Find all investments of this group to delete
-                                  const groupInvestments = investments.filter(
-                                    inv => inv.categoria === group.categoria && inv.tipo === group.tipo
-                                  );
-                                  if (groupInvestments.length > 0) {
-                                    // For now, delete the first one. You may want to implement batch deletion
-                                    if (groupInvestments[0].id) {
-                                      handleDelete(groupInvestments[0].id);
-                                    }
-                                  }
+                                  handleDeleteCategory(group.categoria, group.tipo);
                                 }}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Excluir
+                                Excluir Todos
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -394,6 +419,32 @@ export function InvestmentListing({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog 
+        open={!!deletingCategory} 
+        onOpenChange={(open) => !open && setDeletingCategory(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão de categoria</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Todos os investimentos da categoria 
+              <strong> {deletingCategory?.categoria}</strong>
+              {deletingCategory?.tipo && <> do tipo <strong>{deletingCategory.tipo}</strong></>} 
+              serão removidos permanentemente de todos os anos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteCategory}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir Todos
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

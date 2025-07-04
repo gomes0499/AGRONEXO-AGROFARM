@@ -1,4 +1,5 @@
 [] CRIAR CONTA (LUCIO, DIOGENES, REINALDO)
+[] MELHORAR GERACAO DE PDF
 
 Para tornar o sistema completamente dinâmico no futuro:
 
