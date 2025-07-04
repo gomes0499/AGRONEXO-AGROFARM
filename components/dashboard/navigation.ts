@@ -6,7 +6,8 @@ import { BuildingIcon,
   FileText,
   FileSpreadsheet,
   Download,
-  Eye
+  Eye,
+  Sparkles
 } from "lucide-react";
 import { LayoutDashboardIcon } from "lucide-react";
 

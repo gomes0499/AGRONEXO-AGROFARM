@@ -25,8 +25,10 @@ import {
   InvestmentCategoryData,
   CashFlowProjectionData,
   DREData,
-  BalanceSheetData
+  BalanceSheetData,
+  ReportData
 } from "@/lib/services/definitive-pdf-report-service";
+import { HtmlPdfReportService } from "@/lib/services/html-pdf-report";
 import { createClient } from "@/lib/supabase/server";
 
 export async function generateDefinitiveReport(organizationId: string, projectionId?: string) {
@@ -802,3 +804,415 @@ export async function generateDefinitiveReport(organizationId: string, projectio
     };
   }
 }
+
+/**
+ * Gera relatório usando HTML/CSS com Puppeteer para maior qualidade visual
+ */
+export async function generateHtmlPdfReport(organizationId: string, projectionId?: string) {
+  try {
+    // Verificar permissão do usuário
+    await verifyUserPermission();
+    
+    // Buscar dados da organização
+    const supabase = await createClient();
+    const { data: organization, error } = await supabase
+      .from("organizacoes")
+      .select("*")
+      .eq("id", organizationId)
+      .single();
+
+    if (error || !organization) {
+      throw new Error("Organização não encontrada");
+    }
+
+    // Buscar dados das propriedades
+    const { data: properties } = await supabase
+      .from("propriedades")
+      .select("*")
+      .eq("organizacao_id", organizationId);
+
+    const { data: benfeitorias } = await supabase
+      .from("benfeitorias")
+      .select("*")
+      .eq("organizacao_id", organizationId);
+
+    // Calcular estatísticas
+    const totalFazendas = properties?.length || 0;
+    const areaTotal = properties?.reduce((sum, prop) => sum + (prop.area_total || 0), 0) || 0;
+    
+    const propriasProprias = properties?.filter(p => p.tipo === "PROPRIO") || [];
+    const propriasArrendadas = properties?.filter(p => p.tipo === "ARRENDADO") || [];
+    
+    const totalProprias = propriasProprias.length;
+    const totalArrendadas = propriasArrendadas.length;
+    
+    const areaPropria = propriasProprias.reduce((sum, prop) => sum + (prop.area_total || 0), 0);
+    const areaArrendada = propriasArrendadas.reduce((sum, prop) => sum + (prop.area_total || 0), 0);
+    
+    const areaPercentualPropria = areaTotal > 0 ? (areaPropria / areaTotal) * 100 : 0;
+    const areaPercentualArrendada = areaTotal > 0 ? (areaArrendada / areaTotal) * 100 : 0;
+    
+    const valorPropriedades = properties?.reduce((sum, prop) => sum + (prop.valor_atual || 0), 0) || 0;
+    const valorBenfeitorias = benfeitorias?.reduce((sum, benf) => sum + (benf.valor || 0), 0) || 0;
+    const valorPatrimonial = valorPropriedades + valorBenfeitorias;
+    
+    const areaCultivavel = properties?.reduce((sum, prop) => sum + (prop.area_cultivada || 0), 0) || 0;
+
+    const propertiesStats: PropertiesStats = {
+      totalFazendas,
+      totalProprias,
+      totalArrendadas,
+      areaTotal,
+      areaPropria,
+      areaArrendada,
+      areaPercentualPropria,
+      areaPercentualArrendada,
+      valorPatrimonial,
+      areaCultivavel,
+      properties: properties?.map(p => ({
+        nome: p.nome,
+        valor_atual: p.valor_atual || 0
+      })) || []
+    };
+
+    // COPIAR TODA A LÓGICA DE BUSCA DE DADOS DA VERSÃO ORIGINAL
+    
+    // Buscar dados de áreas de plantio
+    const { data: safras } = await supabase
+      .from("safras")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .order("ano_inicio");
+
+    // Use projection table if projectionId is provided
+    const areasTable = projectionId ? "areas_plantio_projections" : "areas_plantio";
+    const areasQuery = supabase
+      .from(areasTable)
+      .select(`
+        *,
+        culturas (nome),
+        sistemas (nome),
+        ciclos (nome)
+      `)
+      .eq("organizacao_id", organizationId);
+    
+    if (projectionId) {
+      areasQuery.eq("projection_id", projectionId);
+    }
+    
+    const { data: areas } = await areasQuery;
+
+    // Processar dados para o gráfico
+    const chartData: PlantingAreaData[] = [];
+    const tableRows: PlantingAreaTableRow[] = [];
+    
+    if (safras && areas) {
+      // Processar dados do gráfico
+      safras.forEach(safra => {
+        const safraData: PlantingAreaData = {
+          safra: safra.nome,
+          total: 0,
+          culturas: {}
+        };
+
+        areas.forEach(area => {
+          const areaValue = area.areas_por_safra[safra.id] || 0;
+          if (areaValue > 0) {
+            // Normalizar nome da cultura - remover "IRRIGADO" ou "SEQUEIRO" do nome se estiver junto
+            let culturaNome = area.culturas?.nome || "OUTRA";
+            
+            // Se tiver IRRIGADO ou SEQUEIRO no nome da cultura, mover para o sistema
+            if (culturaNome.includes("IRRIGADO") || culturaNome.includes("SEQUEIRO")) {
+              culturaNome = culturaNome.replace(/\s*(IRRIGADO|SEQUEIRO)\s*/g, "").trim();
+            }
+            
+            // Casos especiais de normalização
+            if (culturaNome === "MILHO SAFRINHA" || culturaNome === "MILHO/SAFRINHA") {
+              culturaNome = "MILHO";
+            }
+            
+            safraData.culturas[culturaNome] = (safraData.culturas[culturaNome] || 0) + areaValue;
+            safraData.total += areaValue;
+          }
+        });
+
+        if (safraData.total > 0) {
+          chartData.push(safraData);
+        }
+      });
+
+      // Processar dados da tabela
+      const groupedData: { [key: string]: PlantingAreaTableRow } = {};
+      
+      areas.forEach(area => {
+        const key = `${area.culturas?.nome || ""}-${area.sistemas?.nome || ""}-${area.ciclos?.nome || ""}`;
+        
+        if (!groupedData[key]) {
+          groupedData[key] = {
+            cultura: area.culturas?.nome || "",
+            sistema: area.sistemas?.nome || "",
+            ciclo: area.ciclos?.nome || "",
+            areas: {}
+          };
+        }
+
+        safras.forEach(safra => {
+          const areaValue = area.areas_por_safra[safra.id] || 0;
+          groupedData[key].areas[safra.nome] = (groupedData[key].areas[safra.nome] || 0) + areaValue;
+        });
+      });
+
+      tableRows.push(...Object.values(groupedData).filter(row => 
+        Object.values(row.areas).some(v => v > 0)
+      ));
+    }
+
+    // Buscar dados de produtividade
+    const produtividadesTable = projectionId ? "produtividades_projections" : "produtividades";
+    const produtividadesQuery = supabase
+      .from(produtividadesTable)
+      .select(`
+        *,
+        culturas (nome),
+        sistemas (nome)
+      `)
+      .eq("organizacao_id", organizationId);
+    
+    if (projectionId) {
+      produtividadesQuery.eq("projection_id", projectionId);
+    }
+    
+    const { data: produtividades } = await produtividadesQuery;
+
+    // Processar dados de produtividade
+    const prodChartData: ProductivityData[] = [];
+    const prodTableRows: ProductivityTableRow[] = [];
+    
+    if (safras && produtividades) {
+      // Processar dados do gráfico de produtividade
+      safras.forEach(safra => {
+        const safraData: ProductivityData = {
+          safra: safra.nome,
+          culturas: {}
+        };
+
+        produtividades.forEach(prod => {
+          const prodValue = prod.produtividades_por_safra[safra.id];
+          if (prodValue) {
+            const culturaNome = `${prod.culturas?.nome || ""}/${prod.sistemas?.nome || ""}`;
+            const valor = typeof prodValue === 'object' ? prodValue.produtividade : prodValue;
+            safraData.culturas[culturaNome] = valor;
+          }
+        });
+
+        if (Object.keys(safraData.culturas).length > 0) {
+          prodChartData.push(safraData);
+        }
+      });
+
+      // Processar dados da tabela
+      const groupedProd: { [key: string]: ProductivityTableRow } = {};
+      
+      produtividades.forEach(prod => {
+        const key = `${prod.culturas?.nome || ""}-${prod.sistemas?.nome || ""}`;
+        
+        if (!groupedProd[key]) {
+          groupedProd[key] = {
+            cultura: prod.culturas?.nome || "",
+            sistema: prod.sistemas?.nome || "",
+            produtividades: {}
+          };
+        }
+
+        safras.forEach(safra => {
+          const prodValue = prod.produtividades_por_safra[safra.id];
+          if (prodValue) {
+            const valor = typeof prodValue === 'object' ? prodValue.produtividade : prodValue;
+            const unidade = typeof prodValue === 'object' ? prodValue.unidade : 'sc/ha';
+            groupedProd[key].produtividades[safra.nome] = { valor, unidade };
+          }
+        });
+      });
+
+      prodTableRows.push(...Object.values(groupedProd));
+    }
+
+    // Buscar dados de receitas do fluxo de caixa
+    const { getFluxoCaixaSimplificado } = await import("@/lib/actions/projections-actions/fluxo-caixa-simplificado");
+    const fluxoCaixaData = await getFluxoCaixaSimplificado(organizationId);
+    
+    // Preparar dados de receita para o gráfico
+    const revenueChartData: RevenueData[] = [];
+    const revenueTableData: RevenueTableRow[] = [];
+    
+    if (fluxoCaixaData && fluxoCaixaData.anos.length > 0) {
+      // Dados para o gráfico de barras empilhadas
+      fluxoCaixaData.anos.forEach(ano => {
+        const culturas: { [key: string]: number } = {};
+        let total = 0;
+        
+        // Agregar receitas por cultura
+        Object.entries(fluxoCaixaData.receitas_agricolas.culturas).forEach(([cultura, valores]) => {
+          if (valores[ano] && valores[ano] > 0) {
+            culturas[cultura] = valores[ano];
+            total += valores[ano];
+          }
+        });
+        
+        revenueChartData.push({
+          safra: ano,
+          total,
+          culturas
+        });
+      });
+    }
+
+    // Preparar dados do relatório com dados reais
+    const reportData: ReportData = {
+      organizationId,
+      organizationName: organization.nome,
+      generatedAt: new Date(),
+      propertiesStats,
+      // Dados reais de área de plantio
+      plantingAreaData: {
+        chartData,
+        tableData: tableRows
+      },
+      // Dados reais de produtividade
+      productivityData: {
+        chartData: prodChartData,
+        tableData: prodTableRows
+      },
+      // Dados reais de receita
+      revenueData: {
+        chartData: revenueChartData,
+        tableData: revenueTableData
+      },
+      financialEvolutionData: [],
+      liabilitiesData: {
+        debtBySafra: [],
+        debtDistribution2025: [],
+        debtDistributionConsolidated: []
+      },
+      economicIndicatorsData: {
+        debtPositionTable: [],
+        indicators: []
+      },
+      liabilitiesAnalysisData: {
+        ltvData: { 
+          ltv: 0,
+          ltvLiquido: 0,
+          imoveis: 0,
+          dividaBancos: 0,
+          dividaLiquida: 0
+        },
+        balanceSheetData: []
+      },
+      investmentsData: {
+        yearlyInvestments: [],
+        categoryDistribution: [],
+        totalRealized: 0,
+        totalProjected: 0,
+        averageRealized: 0,
+        averageProjected: 0
+      },
+      cashFlowProjectionData: {
+        safras: [],
+        receitasAgricolas: {
+          total: {},
+          despesas: {},
+          margem: {}
+        },
+        outrasDespesas: {
+          arrendamento: {},
+          proLabore: {},
+          caixaMinimo: {},
+          financeiras: {},
+          tributaria: {},
+          outras: {},
+          total: {}
+        },
+        investimentos: {
+          terras: {},
+          maquinarios: {},
+          outros: {},
+          total: {}
+        },
+        custosFinanceiros: {
+          servicoDivida: {},
+          pagamentos: {},
+          novasLinhas: {},
+          saldoPosicaoDivida: {}
+        },
+        fluxoCaixaFinal: {},
+        fluxoCaixaAcumulado: {}
+      },
+      dreData: {
+        safras: [],
+        receitaOperacionalBruta: {},
+        impostosVendas: {},
+        receitaOperacionalLiquida: {},
+        custos: {},
+        margemOperacional: {},
+        lucroBruto: {},
+        despesasOperacionais: {},
+        ebitda: {},
+        margemEbitda: {},
+        depreciacaoAmortizacao: {},
+        ebit: {},
+        resultadoFinanceiro: {},
+        lucroAnteIR: {},
+        impostosLucro: {},
+        lucroLiquido: {},
+        margemLiquida: {}
+      },
+      balanceSheetData: {
+        safras: [],
+        ativo: {
+          circulante: {},
+          naoCirculante: {},
+          total: {}
+        },
+        passivo: {
+          circulante: {},
+          naoCirculante: {},
+          emprestimosBancarios: {},
+          adiantamentosClientes: {},
+          obrigacoesFiscais: {},
+          outrasDividas: {},
+          emprestimosTerceiros: {},
+          financiamentosTerras: {},
+          arrendamentosPagar: {},
+          outrasObrigacoes: {}
+        },
+        patrimonioLiquido: {
+          capitalSocial: {},
+          reservas: {},
+          lucrosAcumulados: {},
+          total: {}
+        },
+        totalPassivoPL: {}
+      }
+    };
+
+    // Gerar o PDF usando HTML/CSS
+    const htmlPdfService = new HtmlPdfReportService();
+    const pdfBuffer = await htmlPdfService.generateReport(reportData);
+    
+    // Converter para base64
+    const base64 = pdfBuffer.toString('base64');
+    
+    return {
+      success: true,
+      data: base64,
+      filename: `Relatorio_Premium_${organization.nome.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`
+    };
+  } catch (error) {
+    console.error("Erro ao gerar relatório HTML/PDF:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erro desconhecido"
+    };
+  }
+}
+

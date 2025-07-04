@@ -17,6 +17,7 @@ import { formatCurrency, formatArea } from "@/lib/utils/property-formatters";
 import { getFluxoCaixaCorrigido } from "@/lib/actions/projections-actions/fluxo-caixa-corrigido";
 import { getDREDataUpdated } from "@/lib/actions/projections-actions/dre-data-updated";
 import { getBalancoPatrimonialCorrigido } from "@/lib/actions/projections-actions/balanco-patrimonial-corrigido";
+import { fetchDashboardData } from "@/lib/actions/dashboard/dashboard-actions";
 
 export interface ExportData {
   properties: any[];
@@ -43,8 +44,9 @@ export interface ExportData {
 
 export async function generateExcelExport(organizationId: string): Promise<Blob> {
   try {
-    // Buscar todos os dados da organização
+    // Buscar todos os dados da organização incluindo dashboard
     const [
+      dashboardData,
       properties,
       productionData,
       plantingAreasData,
@@ -61,6 +63,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
       dreData,
       balanceSheetData,
     ] = await Promise.all([
+      fetchDashboardData(organizationId).catch(() => null),
       getProperties(organizationId).catch(() => []),
       getProductionDataUnified(organizationId).catch(() => ({ properties: [], cultures: [], systems: [], cycles: [], safras: [] })),
       getPlantingAreasUnified(organizationId).catch(() => ({ plantingAreas: [], safras: [] })),
@@ -87,7 +90,145 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
   // Criar workbook
   const wb = XLSX.utils.book_new();
 
-  // 1. Aba Propriedades
+  // 1. Aba Resumo Executivo (Visão Geral)
+  if (dashboardData) {
+    const resumoData = [
+      {
+        "Categoria": "KPIs PRINCIPAIS",
+        "Item": "",
+        "Valor": "",
+        "Observação": ""
+      },
+      {
+        "Categoria": "Área Total",
+        "Item": "Hectares",
+        "Valor": dashboardData.overviewKpis?.sicarData?.totalArea ? `${dashboardData.overviewKpis.sicarData.totalArea.toLocaleString('pt-BR')} ha` : "N/A",
+        "Observação": "Total de área de todas as propriedades"
+      },
+      {
+        "Categoria": "Receita Total",
+        "Item": "Valor Anual",
+        "Valor": dashboardData.overviewKpis?.financialData?.receitaTotal ? formatCurrency(dashboardData.overviewKpis.financialData.receitaTotal) : "N/A",
+        "Observação": dashboardData.overviewKpis?.financialData?.receitaVariacao ? `Variação: ${dashboardData.overviewKpis.financialData.receitaVariacao > 0 ? '+' : ''}${dashboardData.overviewKpis.financialData.receitaVariacao.toFixed(1)}%` : ""
+      },
+      {
+        "Categoria": "EBITDA",
+        "Item": "Valor",
+        "Valor": dashboardData.overviewKpis?.financialData?.ebitda ? formatCurrency(dashboardData.overviewKpis.financialData.ebitda) : "N/A",
+        "Observação": dashboardData.overviewKpis?.financialData?.ebitdaMargem ? `Margem: ${dashboardData.overviewKpis.financialData.ebitdaMargem.toFixed(1)}%` : ""
+      },
+      {
+        "Categoria": "Dívida Líquida",
+        "Item": "Valor Total",
+        "Valor": dashboardData.overviewKpis?.extendedFinancialData?.dividaTotal ? formatCurrency(dashboardData.overviewKpis.extendedFinancialData.dividaTotal) : "N/A",
+        "Observação": "Dívida total da organização"
+      },
+      {
+        "Categoria": "Produtividade Média",
+        "Item": "sc/ha",
+        "Valor": dashboardData.overviewKpis?.productionData?.produtividade ? `${dashboardData.overviewKpis.productionData.produtividade.toFixed(1)} sc/ha` : "N/A",
+        "Observação": "Produtividade média das culturas"
+      },
+      {
+        "Categoria": "Conformidade Ambiental",
+        "Item": "Percentual",
+        "Valor": dashboardData.overviewKpis?.sicarData?.percentualAreaProtegida ? `${dashboardData.overviewKpis.sicarData.percentualAreaProtegida.toFixed(1)}%` : "N/A",
+        "Observação": "Reserva Legal + APP"
+      },
+      {
+        "Categoria": "",
+        "Item": "",
+        "Valor": "",
+        "Observação": ""
+      },
+      {
+        "Categoria": "INDICADORES FINANCEIROS",
+        "Item": "",
+        "Valor": "",
+        "Observação": ""
+      },
+      {
+        "Categoria": "Dívida/EBITDA",
+        "Item": "Índice",
+        "Valor": dashboardData.overviewKpis?.extendedFinancialData?.dividaEbitda ? `${dashboardData.overviewKpis.extendedFinancialData.dividaEbitda.toFixed(2)}x` : "N/A",
+        "Observação": "Indicador de alavancagem"
+      },
+      {
+        "Categoria": "Dívida/Receita",
+        "Item": "Percentual",
+        "Valor": dashboardData.overviewKpis?.extendedFinancialData?.dividaReceita ? `${dashboardData.overviewKpis.extendedFinancialData.dividaReceita.toFixed(1)}%` : "N/A",
+        "Observação": "Comprometimento da receita"
+      },
+      {
+        "Categoria": "Prazo Médio Dívidas",
+        "Item": "Anos",
+        "Valor": "N/A",
+        "Observação": "Prazo médio ponderado"
+      },
+    ];
+
+    // Adicionar dados de distribuição bancária se disponível
+    if (dashboardData.bankDistribution && dashboardData.bankDistribution.data && dashboardData.bankDistribution.data.length > 0) {
+      resumoData.push(
+        {
+          "Categoria": "",
+          "Item": "",
+          "Valor": "",
+          "Observação": ""
+        },
+        {
+          "Categoria": "DISTRIBUIÇÃO BANCÁRIA",
+          "Item": "",
+          "Valor": "",
+          "Observação": ""
+        }
+      );
+      
+      dashboardData.bankDistribution.data.forEach((bank: any) => {
+        resumoData.push({
+          "Categoria": bank.banco || "Banco",
+          "Item": "Valor da Dívida",
+          "Valor": formatCurrency(bank.valor || 0),
+          "Observação": bank.percentual ? `${bank.percentual.toFixed(1)}% do total` : ""
+        });
+      });
+    }
+
+    // Adicionar estatísticas de produção se disponível
+    if (dashboardData.productionStats) {
+      resumoData.push(
+        {
+          "Categoria": "",
+          "Item": "",
+          "Valor": "",
+          "Observação": ""
+        },
+        {
+          "Categoria": "ESTATÍSTICAS DE PRODUÇÃO",
+          "Item": "",
+          "Valor": "",
+          "Observação": ""
+        },
+        {
+          "Categoria": "Área Plantada",
+          "Item": "Hectares",
+          "Valor": dashboardData.productionStats.areaPlantada ? `${dashboardData.productionStats.areaPlantada.toLocaleString('pt-BR')} ha` : "N/A",
+          "Observação": "Total área cultivada"
+        },
+        {
+          "Categoria": "Área Plantada Total",
+          "Item": "Hectares",
+          "Valor": dashboardData.productionStats?.areaPlantada ? `${dashboardData.productionStats.areaPlantada.toLocaleString('pt-BR')} ha` : "N/A",
+          "Observação": "Total de área cultivada"
+        }
+      );
+    }
+
+    const wsResumo = XLSX.utils.json_to_sheet(resumoData);
+    XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo Executivo");
+  }
+
+  // 2. Aba Propriedades
   const propertiesData = properties.map(p => ({
     "Nome": p.nome || "N/A",
     "Tipo": p.tipo === "PROPRIO" ? "Próprio" : p.tipo === "ARRENDADO" ? "Arrendado" : p.tipo || "N/A",
@@ -103,7 +244,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
   const wsProperties = XLSX.utils.json_to_sheet(propertiesData);
   XLSX.utils.book_append_sheet(wb, wsProperties, "Propriedades");
 
-  // 2. Aba Áreas de Plantio
+  // 3. Aba Áreas de Plantio
   if (plantingAreas && plantingAreas.length > 0) {
     const plantingData: any[] = [];
     
@@ -153,7 +294,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
     XLSX.utils.book_append_sheet(wb, wsPlanting, "Áreas de Plantio");
   }
 
-  // 3. Aba Produtividades
+  // 4. Aba Produtividades
   if (productivities && productivities.length > 0) {
     const productivityData: any[] = [];
     
@@ -194,7 +335,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
     XLSX.utils.book_append_sheet(wb, wsProductivity, "Produtividades");
   }
 
-  // 4. Aba Custos de Produção
+  // 5. Aba Custos de Produção
   if (productionCosts && productionCosts.length > 0) {
     const costsData: any[] = [];
     
@@ -235,7 +376,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
     XLSX.utils.book_append_sheet(wb, wsCosts, "Custos de Produção");
   }
 
-  // 5. Aba Dívidas Bancárias
+  // 6. Aba Dívidas Bancárias
   const bankDebtsData = bankDebts.map(d => {
     const valores = d.valores_por_ano || {};
     return {
@@ -256,7 +397,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
   const wsBankDebts = XLSX.utils.json_to_sheet(bankDebtsData);
   XLSX.utils.book_append_sheet(wb, wsBankDebts, "Dívidas Bancárias");
 
-  // 6. Aba Dívidas de Terras
+  // 7. Aba Dívidas de Terras
   const landDebtsData = landDebts.map(d => {
     const valores = d.valores_por_safra || d.valores_por_ano || {};
     return {
@@ -278,7 +419,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
   const wsLandDebts = XLSX.utils.json_to_sheet(landDebtsData);
   XLSX.utils.book_append_sheet(wb, wsLandDebts, "Dívidas de Terras");
 
-  // 7. Aba Dívidas Fornecedores
+  // 8. Aba Dívidas Fornecedores
   const supplierDebtsData = supplierDebts.map(d => {
     const valores = d.valores_por_safra || {};
     return {
@@ -302,7 +443,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
   const wsSupplierDebts = XLSX.utils.json_to_sheet(supplierDebtsData);
   XLSX.utils.book_append_sheet(wb, wsSupplierDebts, "Dívidas Fornecedores");
 
-  // 8. Aba Caixa e Disponibilidades
+  // 9. Aba Caixa e Disponibilidades
   const cashData = cashAvailability.map(c => {
     const valores = c.valores_por_safra || c.valores_por_ano || {};
     const categoriaMap = {
@@ -345,7 +486,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
   const wsCash = XLSX.utils.json_to_sheet(cashData);
   XLSX.utils.book_append_sheet(wb, wsCash, "Caixa e Disponibilidades");
 
-  // 9. Aba Operações Financeiras
+  // 10. Aba Operações Financeiras
   const financialOpsData = financialOperations.map(f => {
     const valores = f.valores_por_safra || f.valores_por_ano || {};
     const categoriaMap = {
@@ -385,7 +526,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
   const wsFinancialOps = XLSX.utils.json_to_sheet(financialOpsData);
   XLSX.utils.book_append_sheet(wb, wsFinancialOps, "Operações Financeiras");
 
-  // 10. Aba Outras Despesas
+  // 11. Aba Outras Despesas
   const otherExpensesData = otherExpenses.map(e => {
     const valores = e.valores_por_safra || e.valores_por_ano || {};
     const categoriaMap = {
@@ -436,7 +577,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
   const wsOtherExpenses = XLSX.utils.json_to_sheet(otherExpensesData);
   XLSX.utils.book_append_sheet(wb, wsOtherExpenses, "Outras Despesas");
 
-  // 11. Aba Receitas Financeiras
+  // 12. Aba Receitas Financeiras
   const revenuesData = financialRevenues.map(r => {
     const categoriaMap = {
       "VENDA_PRODUCAO": "Venda de Produção",
@@ -459,7 +600,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
   const wsRevenues = XLSX.utils.json_to_sheet(revenuesData);
   XLSX.utils.book_append_sheet(wb, wsRevenues, "Receitas Financeiras");
 
-  // 12. Aba Fluxo de Caixa Completo
+  // 13. Aba Fluxo de Caixa Completo
   if (cashFlowData && (cashFlowData as any).length > 0) {
     const cashFlowFormatted = (cashFlowData as any).map((row: any) => {
       const formattedRow: any = {
@@ -482,7 +623,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
     XLSX.utils.book_append_sheet(wb, wsCashFlow, "Fluxo de Caixa Completo");
   }
 
-  // 13. Aba DRE (Demonstração de Resultados)
+  // 14. Aba DRE (Demonstração de Resultados)
   if (dreData && (dreData as any).length > 0) {
     const dreFormatted = (dreData as any).map((row: any) => {
       const formattedRow: any = {
@@ -505,7 +646,7 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
     XLSX.utils.book_append_sheet(wb, wsDRE, "DRE Completo");
   }
 
-  // 14. Aba Balanço Patrimonial
+  // 15. Aba Balanço Patrimonial
   if (balanceSheetData && (balanceSheetData as any).length > 0) {
     const balanceFormatted = (balanceSheetData as any).map((row: any) => {
       const formattedRow: any = {
@@ -526,6 +667,230 @@ export async function generateExcelExport(organizationId: string): Promise<Blob>
     
     const wsBalance = XLSX.utils.json_to_sheet(balanceFormatted);
     XLSX.utils.book_append_sheet(wb, wsBalance, "Balanço Patrimonial");
+  }
+
+  // 16. Aba Dados de Mercado e Clima
+  if (dashboardData) {
+    const marketClimateData = [];
+
+    // Seção de Dados de Mercado
+    marketClimateData.push({
+      "Categoria": "DADOS DE MERCADO",
+      "Item": "",
+      "Valor": "",
+      "Unidade": "",
+      "Data/Período": "",
+      "Observação": ""
+    });
+
+    if (dashboardData.marketData) {
+      const marketData = dashboardData.marketData as any;
+      
+      // Adicionar cotações se disponível
+      if (marketData.cotacoes) {
+        Object.entries(marketData.cotacoes).forEach(([produto, dados]: [string, any]) => {
+          marketClimateData.push({
+            "Categoria": "Cotação",
+            "Item": produto,
+            "Valor": dados.valor ? formatCurrency(dados.valor) : "N/A",
+            "Unidade": dados.unidade || "R$/sc",
+            "Data/Período": dados.data || "N/A",
+            "Observação": dados.variacao ? `Variação: ${dados.variacao > 0 ? '+' : ''}${dados.variacao}%` : ""
+          });
+        });
+      }
+
+      // Adicionar preços históricos se disponível
+      if (marketData.precos_historicos) {
+        Object.entries(marketData.precos_historicos).forEach(([periodo, valor]: [string, any]) => {
+          marketClimateData.push({
+            "Categoria": "Preço Histórico",
+            "Item": "Soja",
+            "Valor": formatCurrency(valor || 0),
+            "Unidade": "R$/sc",
+            "Data/Período": periodo,
+            "Observação": "Série histórica"
+          });
+        });
+      }
+    }
+
+    // Seção de Dados Climáticos
+    marketClimateData.push(
+      {
+        "Categoria": "",
+        "Item": "",
+        "Valor": "",
+        "Unidade": "",
+        "Data/Período": "",
+        "Observação": ""
+      },
+      {
+        "Categoria": "DADOS CLIMÁTICOS",
+        "Item": "",
+        "Valor": "",
+        "Unidade": "",
+        "Data/Período": "",
+        "Observação": ""
+      }
+    );
+
+    if (dashboardData.weatherData) {
+      const weatherData = dashboardData.weatherData as any;
+      
+      if (weatherData.temperatura) {
+        marketClimateData.push({
+          "Categoria": "Temperatura",
+          "Item": "Atual",
+          "Valor": weatherData.temperatura.toString(),
+          "Unidade": "°C",
+          "Data/Período": weatherData.data || new Date().toLocaleDateString('pt-BR'),
+          "Observação": weatherData.condicao || ""
+        });
+      }
+
+      if (weatherData.umidade) {
+        marketClimateData.push({
+          "Categoria": "Umidade",
+          "Item": "Relativa",
+          "Valor": weatherData.umidade.toString(),
+          "Unidade": "%",
+          "Data/Período": weatherData.data || new Date().toLocaleDateString('pt-BR'),
+          "Observação": ""
+        });
+      }
+
+      if (weatherData.precipitacao) {
+        marketClimateData.push({
+          "Categoria": "Precipitação",
+          "Item": "Acumulada",
+          "Valor": weatherData.precipitacao.toString(),
+          "Unidade": "mm",
+          "Data/Período": weatherData.periodo || "Último mês",
+          "Observação": ""
+        });
+      }
+    }
+
+    const wsMarketClimate = XLSX.utils.json_to_sheet(marketClimateData);
+    XLSX.utils.book_append_sheet(wb, wsMarketClimate, "Mercado e Clima");
+  }
+
+  // 17. Aba Indicadores Consolidados
+  if (dashboardData && dashboardData.financialMetrics) {
+    const indicatorsData = [
+      {
+        "Categoria": "LIQUIDEZ",
+        "Indicador": "",
+        "Valor": "",
+        "Status": "",
+        "Observação": ""
+      }
+    ];
+
+    const metrics = dashboardData.financialMetrics as any;
+    
+    // Adicionar métricas financeiras disponíveis
+    if (metrics.liquidezCorrente) {
+      indicatorsData.push({
+        "Categoria": "Liquidez",
+        "Indicador": "Liquidez Corrente",
+        "Valor": metrics.liquidezCorrente.toFixed(2),
+        "Status": metrics.liquidezCorrente >= 1.5 ? "Bom" : metrics.liquidezCorrente >= 1.0 ? "Regular" : "Crítico",
+        "Observação": "Ativo Circulante / Passivo Circulante"
+      });
+    }
+
+    if (metrics.liquidezSeca) {
+      indicatorsData.push({
+        "Categoria": "Liquidez",
+        "Indicador": "Liquidez Seca",
+        "Valor": metrics.liquidezSeca.toFixed(2),
+        "Status": metrics.liquidezSeca >= 1.0 ? "Bom" : metrics.liquidezSeca >= 0.7 ? "Regular" : "Crítico",
+        "Observação": "(Ativo Circulante - Estoques) / Passivo Circulante"
+      });
+    }
+
+    // Adicionar seção de rentabilidade
+    indicatorsData.push(
+      {
+        "Categoria": "",
+        "Indicador": "",
+        "Valor": "",
+        "Status": "",
+        "Observação": ""
+      },
+      {
+        "Categoria": "RENTABILIDADE",
+        "Indicador": "",
+        "Valor": "",
+        "Status": "",
+        "Observação": ""
+      }
+    );
+
+    if (metrics.margemLiquida) {
+      indicatorsData.push({
+        "Categoria": "Rentabilidade",
+        "Indicador": "Margem Líquida",
+        "Valor": `${metrics.margemLiquida.toFixed(1)}%`,
+        "Status": metrics.margemLiquida >= 15 ? "Excelente" : metrics.margemLiquida >= 10 ? "Bom" : metrics.margemLiquida >= 5 ? "Regular" : "Baixo",
+        "Observação": "Lucro Líquido / Receita Total"
+      });
+    }
+
+    if (metrics.roe) {
+      indicatorsData.push({
+        "Categoria": "Rentabilidade",
+        "Indicador": "ROE",
+        "Valor": `${metrics.roe.toFixed(1)}%`,
+        "Status": metrics.roe >= 15 ? "Excelente" : metrics.roe >= 10 ? "Bom" : metrics.roe >= 5 ? "Regular" : "Baixo",
+        "Observação": "Return on Equity - Retorno sobre Patrimônio"
+      });
+    }
+
+    // Adicionar seção de endividamento
+    indicatorsData.push(
+      {
+        "Categoria": "",
+        "Indicador": "",
+        "Valor": "",
+        "Status": "",
+        "Observação": ""
+      },
+      {
+        "Categoria": "ENDIVIDAMENTO",
+        "Indicador": "",
+        "Valor": "",
+        "Status": "",
+        "Observação": ""
+      }
+    );
+
+    if (dashboardData.overviewKpis?.extendedFinancialData?.dividaEbitda) {
+      const dividaEbitda = dashboardData.overviewKpis.extendedFinancialData.dividaEbitda;
+      indicatorsData.push({
+        "Categoria": "Endividamento",
+        "Indicador": "Dívida/EBITDA",
+        "Valor": `${dividaEbitda.toFixed(2)}x`,
+        "Status": dividaEbitda <= 2 ? "Excelente" : dividaEbitda <= 3 ? "Bom" : dividaEbitda <= 4 ? "Atenção" : "Crítico",
+        "Observação": "Múltiplo de dívida sobre EBITDA"
+      });
+    }
+
+    if (dashboardData.overviewKpis?.extendedFinancialData?.dividaReceita) {
+      const dividaReceita = dashboardData.overviewKpis.extendedFinancialData.dividaReceita;
+      indicatorsData.push({
+        "Categoria": "Endividamento",
+        "Indicador": "Dívida/Receita",
+        "Valor": `${dividaReceita.toFixed(1)}%`,
+        "Status": dividaReceita <= 30 ? "Excelente" : dividaReceita <= 50 ? "Bom" : dividaReceita <= 70 ? "Atenção" : "Crítico",
+        "Observação": "Percentual da receita comprometida com dívidas"
+      });
+    }
+
+    const wsIndicators = XLSX.utils.json_to_sheet(indicatorsData);
+    XLSX.utils.book_append_sheet(wb, wsIndicators, "Indicadores");
   }
 
     // Gerar arquivo Excel

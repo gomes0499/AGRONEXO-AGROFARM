@@ -104,6 +104,8 @@ export function NavSecondary({
               );
             }
             
+            
+            
             // Special handling for Rating report (não mostrar para membros)
             if (item.isRatingReport && organizationId && !isMember) {
               return (

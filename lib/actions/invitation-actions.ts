@@ -105,7 +105,7 @@ export async function sendInvitation({
     }
 
     // Prepara os dados para o email
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.srconsultoria.online';
     const acceptUrl = `${baseUrl}/auth/invite?token=${token}`;
     const roleName = getRoleName(role);
     const inviterName = inviter.nome || inviter.email.split('@')[0] || 'Administrador';
@@ -221,6 +221,9 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
       user_metadata: {
         name: email.split('@')[0], // Nome inicial baseado no email
         onboarding_complete: false // Usuário precisa completar onboarding
+      },
+      app_metadata: {
+        is_super_admin: true // Marca como super admin
       }
     });
     
@@ -248,7 +251,7 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
     }
     
     // Envia o email com as credenciais
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.srconsultoria.online';
     const loginUrl = `${baseUrl}/auth/login`;
     
     // Vamos implementar uma abordagem mais simples e direta para o envio de email
@@ -264,7 +267,7 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
         
         // Nome da empresa para exibição nos emails
         const COMPANY_NAME = 'SR-Consultoria';
-        const DEFAULT_FROM_EMAIL = `${COMPANY_NAME} <noreply@byteconta.com.br>`;
+        const DEFAULT_FROM_EMAIL = `${COMPANY_NAME} <noreply@srconsultoria.online>`;
         
         // Envia o email diretamente
         const data = await resend.emails.send({
@@ -289,7 +292,7 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
     // Revalida a página de membros
     revalidatePath(`/dashboard/organization/${organizacaoId}`);
     
-    return { success: true, message: `Conta administrativa criada com sucesso para ${email}` };
+    return { success: true, message: `Conta administrativa criada com sucesso para ${email}. Email de boas-vindas enviado!` };
   } catch (error) {
     logError('Erro ao criar conta de administrador', { error, organizacaoId, email });
     return { 
@@ -411,7 +414,10 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
       email,
       password,
       email_confirm: true, // Marca o email como verificado
-      user_metadata: userMetadata
+      user_metadata: userMetadata,
+      app_metadata: funcao === UserRole.ADMINISTRADOR ? {
+        is_super_admin: true // Marca como super admin se for administrador
+      } : {}
     });
     
     if (adminError) {
@@ -438,7 +444,7 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
     }
     
     // Envia o email com as credenciais
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.srconsultoria.online';
     const loginUrl = `${baseUrl}/auth/login`;
     
     // Envia o email diretamente (sem setTimeout)
@@ -448,14 +454,14 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
       const emailResult = await sendEmail({
         to: email,
         subject: `Sua conta na ${organization.nome} foi criada`,
-        html: MemberAccountEmail({
+        react: MemberAccountEmail({
           organizationName: organization.nome,
           userEmail: email,
           password: password,
           loginUrl: loginUrl,
           userName: nome || email.split('@')[0]
         }),
-      } as any);
+      });
       
       if (!emailResult.success) {
         console.error('Failed to send member account email:', (emailResult as any).error);
@@ -473,7 +479,7 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
     
     return { 
       success: true, 
-      message: `Conta criada com sucesso para ${nome || email}`,
+      message: `Conta criada com sucesso para ${nome || email}. Email de boas-vindas enviado!`,
       userId: adminAuthData.user.id
     };
   } catch (error) {
