@@ -108,8 +108,8 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
       </div>
 
       {/* Spouse Information */}
-      {(form.watch("estadoCivil") === "CASADO" ||
-        form.watch("estadoCivil") === "UNIAO_ESTAVEL") && (
+      {(form.watch("estadoCivil") === "casado" ||
+        form.watch("estadoCivil") === "uniao_estavel") && (
         <>
           <Separator />
           <div className="space-y-4">

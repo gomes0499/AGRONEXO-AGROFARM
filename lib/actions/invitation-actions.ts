@@ -254,40 +254,31 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.srconsultoria.online';
     const loginUrl = `${baseUrl}/auth/login`;
     
-    // Vamos implementar uma abordagem mais simples e direta para o envio de email
-    setTimeout(async () => {
-      try {
-        
-        // Importamos os módulos necessários
-        const { Resend } = await import('resend');
-        const AdminAccountEmail = (await import('@/emails/templates/admin-account')).default;
-        
-        // Cria uma nova instância do Resend diretamente
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        
-        // Nome da empresa para exibição nos emails
-        const COMPANY_NAME = 'SR-Consultoria';
-        const DEFAULT_FROM_EMAIL = `${COMPANY_NAME} <noreply@srconsultoria.online>`;
-        
-        // Envia o email diretamente
-        const data = await resend.emails.send({
-          from: DEFAULT_FROM_EMAIL,
-          to: email,
-          subject: `Sua conta administrativa para ${organization.nome}`,
-          react: AdminAccountEmail({
-            organizationName: organization.nome,
-            userEmail: email,
-            password: password,
-            loginUrl: loginUrl
-          }),
-        });
-        
-      } catch (emailError) {
-        console.error("Erro ao enviar email de admin:", emailError);
-        // Não lançamos erro aqui para não impedir a criação do usuário
-        // O usuário foi criado com sucesso, apenas o email falhou
+    // Envia o email com as credenciais
+    try {
+      console.log('Attempting to send admin account email to:', email);
+      
+      const emailResult = await sendEmail({
+        to: email,
+        subject: `Sua conta administrativa para ${organization.nome}`,
+        react: AdminAccountEmail({
+          organizationName: organization.nome,
+          userEmail: email,
+          password: password,
+          loginUrl: loginUrl
+        }),
+      });
+      
+      if (!emailResult.success) {
+        console.error('Failed to send admin account email:', (emailResult as any).error);
+      } else {
+        console.log('Admin account email sent successfully to:', email);
       }
-    }, 500); // Um pequeno delay para garantir que todas as operações anteriores foram concluídas
+    } catch (emailError) {
+      console.error("Erro ao enviar email de admin:", emailError);
+      // Não lançamos erro aqui para não impedir a criação do usuário
+      // O usuário foi criado com sucesso, apenas o email falhou
+    }
     
     // Revalida a página de membros
     revalidatePath(`/dashboard/organization/${organizacaoId}`);

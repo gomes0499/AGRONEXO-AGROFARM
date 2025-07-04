@@ -118,7 +118,7 @@ export function PersonalDataForm({
   // Atualizar visibilidade dos campos do cônjuge com base no estado civil
   useEffect(() => {
     setShowSpouseFields(
-      estadoCivil === "CASADO" || estadoCivil === "UNIAO_ESTAVEL"
+      estadoCivil === "casado" || estadoCivil === "uniao_estavel"
     );
   }, [estadoCivil]);
 
@@ -293,11 +293,11 @@ export function PersonalDataForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="SOLTEIRO">Solteiro(a)</SelectItem>
-                      <SelectItem value="CASADO">Casado(a)</SelectItem>
-                      <SelectItem value="DIVORCIADO">Divorciado(a)</SelectItem>
-                      <SelectItem value="VIUVO">Viúvo(a)</SelectItem>
-                      <SelectItem value="UNIAO_ESTAVEL">
+                      <SelectItem value="solteiro">Solteiro(a)</SelectItem>
+                      <SelectItem value="casado">Casado(a)</SelectItem>
+                      <SelectItem value="divorciado">Divorciado(a)</SelectItem>
+                      <SelectItem value="viuvo">Viúvo(a)</SelectItem>
+                      <SelectItem value="uniao_estavel">
                         União estável
                       </SelectItem>
                     </SelectContent>
