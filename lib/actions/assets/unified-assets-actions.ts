@@ -6,7 +6,6 @@ import {
   getAssetSales,
   getInvestments,
   getEquipments,
-  getLandPlans,
 } from "@/lib/actions/patrimonio-actions";
 
 import { getSafras } from "@/lib/actions/production-actions";
@@ -24,7 +23,6 @@ export interface AssetsPageData {
   assetSales: Awaited<ReturnType<typeof getAssetSales>>;
   investments: Awaited<ReturnType<typeof getInvestments>>;
   equipment: Awaited<ReturnType<typeof getEquipments>>;
-  landPlans: Awaited<ReturnType<typeof getLandPlans>>;
   
   // Form data
   safras: Awaited<ReturnType<typeof getSafras>>;
@@ -54,13 +52,11 @@ export const fetchAssetsPageData = cache(
       assetSales,
       investments,
       equipment,
-      landPlans,
       safras,
     ] = await Promise.all([
       getAssetSales(organizationId),
       getInvestments(organizationId),
       getEquipments(organizationId),
-      getLandPlans(organizationId),
       getSafras(organizationId),
     ]);
 
@@ -68,7 +64,6 @@ export const fetchAssetsPageData = cache(
       assetSales,
       investments,
       equipment,
-      landPlans,
       safras,
       filters: appliedFilters,
     };

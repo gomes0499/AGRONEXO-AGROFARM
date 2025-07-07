@@ -401,17 +401,19 @@ export async function getBalancoPatrimonialCorrigido(
         });
       }
 
-      // Dívidas de imóveis/terras (não circulante) - sempre da tabela base
-      const { data: dividasImoveis } = await supabase
-        .from("dividas_imoveis")
-        .select("fluxo_pagamento_anual")
+      // Dívidas de terras (não circulante) - sempre da tabela base
+      const { data: dividasTerras } = await supabase
+        .from("aquisicao_terras")
+        .select("valor_total, ano")
         .eq("organizacao_id", organizationId);
 
-      if (dividasImoveis) {
-        dividasImoveis.forEach(divida => {
-          const fluxo = divida.fluxo_pagamento_anual || {};
-          const valor = Number(fluxo[safraId]) || 0;
-          balancoData.passivo.nao_circulante.dividas_imoveis[ano] += valor;
+      if (dividasTerras) {
+        dividasTerras.forEach(terra => {
+          // Para aquisicao_terras, usar o valor_total no ano de aquisição
+          if (terra.ano && safra.ano_inicio === terra.ano) {
+            const valor = Number(terra.valor_total) || 0;
+            balancoData.passivo.nao_circulante.dividas_imoveis[ano] += valor;
+          }
         });
       }
 

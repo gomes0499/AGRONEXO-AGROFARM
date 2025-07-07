@@ -69,8 +69,8 @@ export function FinancialPageContent({
       content: (
         <DividasTerrasListing
           key={`terras-${safras.length}`}
+          initialLandPlans={dividasTerras}
           organization={organization}
-          initialDividas={dividasTerras}
           safras={safras}
         />
       ),
@@ -213,7 +213,7 @@ export function FinancialPageContent({
             <TabsContent value="dividas-terras" className="space-y-4">
               <DividasTerrasListing
                 organization={organization}
-                initialDividas={dividasTerras}
+                initialLandPlans={dividasTerras}
                 safras={safras}
               />
             </TabsContent>

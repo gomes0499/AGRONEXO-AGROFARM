@@ -4,7 +4,6 @@ export * from "./common";
 // Import schemas específicos
 // Novos schemas para o módulo financeiro reestruturado
 export * from "./dividas_bancarias";
-export * from "./dividas_terras";
 export * from "./dividas_fornecedores";
 export * from "./caixa_disponibilidades";
 export * from "./outras_despesas";

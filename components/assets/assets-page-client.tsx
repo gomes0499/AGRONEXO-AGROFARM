@@ -13,7 +13,6 @@ import {
   Wrench,
   TrendingUp,
   ShoppingCart,
-  Map,
 } from "lucide-react";
 import { MobileTabs } from "@/components/ui/mobile-tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -22,7 +21,6 @@ import { PropertiesListing } from "@/components/assets/properties/properties-lis
 import { EquipmentListing } from "@/components/assets/equipment/equipment-listing";
 import { InvestmentListing } from "@/components/assets/investments/investment-listing";
 import { AssetSaleListing } from "@/components/assets/asset-sales/asset-sale-listing";
-import { LandPlanListing } from "@/components/assets/land-plans/land-plan-listing";
 import type { AssetsPageData } from "@/lib/actions/assets/unified-assets-actions";
 
 interface AssetsPageClientProps {
@@ -42,7 +40,7 @@ export function AssetsPageClient({
 }: AssetsPageClientProps) {
   const isMobile = useIsMobile();
 
-  const { assetSales, investments, equipment, landPlans, safras } = initialData;
+  const { assetSales, investments, equipment, safras } = initialData;
 
   const tabs = [
     {
@@ -91,17 +89,6 @@ export function AssetsPageClient({
         />
       ),
     },
-    {
-      value: "land-plans",
-      label: isMobile ? "Aquisições" : "Aquisição de Áreas",
-      icon: Map,
-      content: (
-        <LandPlanListing
-          initialLandPlans={(landPlans as any).data || landPlans || []}
-          organizationId={organizationId}
-        />
-      ),
-    },
   ];
 
   if (isMobile) {
@@ -138,9 +125,6 @@ export function AssetsPageClient({
               </TabsTriggerPrimary>
               <TabsTriggerPrimary value="asset-sales">
                 Vendas de Ativos
-              </TabsTriggerPrimary>
-              <TabsTriggerPrimary value="land-plans">
-                Aquisição de Áreas
               </TabsTriggerPrimary>
             </TabsList>
           </div>
@@ -193,13 +177,6 @@ export function AssetsPageClient({
                 initialAssetSales={(assetSales as any).data || assetSales || []}
                 organizationId={organizationId}
                 safras={safras || []}
-              />
-            </TabsContent>
-
-            <TabsContent value="land-plans" className="space-y-4">
-              <LandPlanListing
-                initialLandPlans={(landPlans as any).data || landPlans || []}
-                organizationId={organizationId}
               />
             </TabsContent>
           </Suspense>

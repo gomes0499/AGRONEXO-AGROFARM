@@ -200,7 +200,7 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   // Buscar dados financeiros com tratamento de erro individual
   let dividasBancarias: Record<string, any>[] = [];
   let dividasTrading: Record<string, any>[] = [];
-  let dividasImoveis: Record<string, any>[] = [];
+  let dividasTerras: Record<string, any>[] = [];
   let arrendamentos: Record<string, any>[] = [];
   let fornecedores: Record<string, any>[] = [];
   let fatoresLiquidez: Record<string, any>[] = [];
@@ -232,13 +232,13 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   try {
     [
       dividasBancarias,
-      dividasImoveis,
+      dividasTerras,
       arrendamentos,
       fornecedores,
       fatoresLiquidez, // Agora contém todos os dados de caixa_disponibilidades
     ] = await Promise.all([
       buscarTabela("dividas_bancarias"),
-      buscarTabela("dividas_imoveis"),
+      buscarTabela("aquisicao_terras"),
       buscarTabela("arrendamentos"),
       buscarTabela("dividas_fornecedores"),
       buscarTabela("caixa_disponibilidades"),
@@ -553,40 +553,28 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       valores[ano] = 0;
     });
     
-    // Calcular total geral de dívidas de terras
-    // considerando apenas safras a partir de 2023/24
-    let totalGeralTerras = 0;
-    
-    // Só considerar safras a partir de 2023/24
-    const safrasValidas = safras.filter(s => {
-      const anoInicio = parseInt(s.ano_inicio);
-      return anoInicio >= 2023; // Incluir apenas safras a partir de 2023/24
-    });
-    
-    const safrasValidasIds = safrasValidas.map(s => s.id);
-    const anosValidos = safrasValidas.map(s => s.nome);
-    
-    // Processar cada dívida de imóvel
-    dividasImoveis?.forEach(imovel => {
-      // Verificar se valores_por_ano ou fluxo_pagamento_anual existe e usar o que estiver disponível
-      const valoresField = imovel.valores_por_ano || imovel.fluxo_pagamento_anual;
-      const valoresDivida = typeof valoresField === 'string'
-        ? JSON.parse(valoresField)
-        : valoresField || {};
-      
-      // Somar TODOS os valores desta dívida (apenas das safras válidas)
-      Object.keys(valoresDivida).forEach(safraId => {
-        // Verificar se a safra está na lista de safras válidas
-        if (safrasValidasIds.includes(safraId)) {
-          totalGeralTerras += valoresDivida[safraId] || 0;
+    // Processar cada dívida de terra
+    dividasTerras?.forEach(terra => {
+      // Para aquisicao_terras, usar o campo valor_total diretamente
+      // e associar ao ano da aquisição
+      if (terra.valor_total && terra.ano) {
+        // Encontrar a safra que COMEÇA no ano da aquisição
+        const safra = safras.find(s => {
+          const anoInicio = parseInt(s.ano_inicio);
+          const anoTerra = parseInt(terra.ano);
+          
+          // A safra deve começar no ano da aquisição
+          return anoInicio === anoTerra;
+        });
+        
+        if (safra) {
+          const anoNome = safra.nome;
+          // Adicionar o valor apenas no ano específico da aquisição
+          if (valores[anoNome] !== undefined) {
+            valores[anoNome] += terra.valor_total || 0;
+          }
         }
-      });
-    });
-    
-    // Mostrar o total geral apenas nas colunas de safras válidas (>= 2023/24)
-    // Safras anteriores ficam com valor 0
-    anosValidos.forEach(ano => {
-      valores[ano] = totalGeralTerras;
+      }
     });
     
     return valores;
