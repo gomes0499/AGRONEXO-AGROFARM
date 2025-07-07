@@ -48,7 +48,7 @@ export function LandPlanForm({
   onCancel,
 }: LandPlanFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string }>>(
+  const [harvests, setHarvests] = useState<Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number }>>(
     []
   );
   const [isLoadingHarvests, setIsLoadingHarvests] = useState(false);
@@ -60,7 +60,7 @@ export function LandPlanForm({
       try {
         setIsLoadingHarvests(true);
         const harvestsData = await getSafras(organizationId);
-        setHarvests(harvestsData.map((h) => ({ id: h.id, nome: h.nome })));
+        setHarvests(harvestsData.map((h) => ({ id: h.id, nome: h.nome, ano_inicio: h.ano_inicio, ano_fim: h.ano_fim })));
       } catch (error) {
         console.error("Erro ao carregar safras:", error);
       } finally {
@@ -80,7 +80,7 @@ export function LandPlanForm({
       // Forçar tipo a ser um valor válido para tipo_aquisicao_terra
       tipo:
         initialData?.tipo &&
-        ["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(
+        ["COMPRA", "PARCERIA", "OUTROS"].includes(
           initialData.tipo
         )
           ? initialData.tipo
@@ -98,7 +98,7 @@ export function LandPlanForm({
   useEffect(() => {
     const currentTipo = form.getValues("tipo");
     if (
-      !["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(
+      !["COMPRA", "PARCERIA", "OUTROS"].includes(
         currentTipo
       )
     ) {
@@ -106,6 +106,17 @@ export function LandPlanForm({
       form.setValue("tipo", "COMPRA");
     }
   }, [form]);
+
+  // Atualizar o ano quando a safra for selecionada
+  const selectedSafraId = form.watch("safra_id");
+  useEffect(() => {
+    if (selectedSafraId && selectedSafraId !== "") {
+      const selectedSafra = harvests.find(h => h.id === selectedSafraId);
+      if (selectedSafra) {
+        form.setValue("ano", selectedSafra.ano_inicio);
+      }
+    }
+  }, [selectedSafraId, harvests, form]);
 
   const totalSacasCalculated = useMemo(() => {
     return hectares * sacas;
@@ -128,7 +139,7 @@ export function LandPlanForm({
         );
         tipoValido = "COMPRA";
       } else if (
-        !["COMPRA", "ARRENDAMENTO_LONGO_PRAZO", "PARCERIA", "OUTROS"].includes(
+        !["COMPRA", "PARCERIA", "OUTROS"].includes(
           tipoValido
         )
       ) {
@@ -193,9 +204,6 @@ export function LandPlanForm({
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="COMPRA">Compra</SelectItem>
-                  <SelectItem value="ARRENDAMENTO_LONGO_PRAZO">
-                    Arrendamento de Longo Prazo
-                  </SelectItem>
                   <SelectItem value="PARCERIA">Parceria</SelectItem>
                   <SelectItem value="OUTROS">Outros</SelectItem>
                 </SelectContent>

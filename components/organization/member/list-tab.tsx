@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Clock, UserCircle2, Shield, PlusCircle } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  UserCircle2,
+  Shield,
+  PlusCircle,
+  UserPlus,
+} from "lucide-react";
 import { UserRole } from "@/lib/auth/roles";
 import { MemberActions } from "./actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +25,7 @@ import { TableHeaderPrimary } from "../common/data-display/table-header-primary"
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { MemberFormDrawer } from "./form-drawer";
 import { MemberDetailsModal } from "./details-modal";
+import { AddExistingMemberModal } from "../add-existing-member-modal";
 
 interface Member {
   id: string;
@@ -48,6 +56,7 @@ export function OrganizationDetailMembers({
   organizationName,
 }: OrganizationDetailMembersProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAddExistingMemberOpen, setIsAddExistingMemberOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   const [isAdminCreateOpen, setIsAdminCreateOpen] = useState(false);
   const [isMemberDrawerOpen, setIsMemberDrawerOpen] = useState(false);
@@ -192,15 +201,26 @@ export function OrganizationDetailMembers({
         title="Membros"
         description="Pessoas com acesso à organização"
         action={
-          <Button
-            variant="outline"
-            className="gap-1 bg-white text-black hover:bg-gray-100"
-            size="default"
-            onClick={() => setIsMemberDrawerOpen(true)}
-          >
-            <PlusCircle className="h-4 w-4 mr-1" />
-            Novo Membro
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="gap-1 bg-white text-black hover:bg-gray-100"
+              size="default"
+              onClick={() => setIsAddExistingMemberOpen(true)}
+            >
+              <UserPlus className="h-4 w-4 mr-1" />
+              Adicionar Existente
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-1 bg-white text-black hover:bg-gray-100"
+              size="default"
+              onClick={() => setIsMemberDrawerOpen(true)}
+            >
+              <PlusCircle className="h-4 w-4 mr-1" />
+              Novo Membro
+            </Button>
+          </div>
         }
       />
       <CardContent className="mt-4">
@@ -386,6 +406,16 @@ export function OrganizationDetailMembers({
         memberId={selectedMemberId}
         organizationId={organizationId}
         organizationName={organizationName}
+      />
+
+      {/* Modal para Adicionar Membro Existente */}
+      <AddExistingMemberModal
+        organizationId={organizationId}
+        isOpen={isAddExistingMemberOpen}
+        onClose={() => setIsAddExistingMemberOpen(false)}
+        onSuccess={() => {
+          setIsAddExistingMemberOpen(false);
+        }}
       />
     </Card>
   );

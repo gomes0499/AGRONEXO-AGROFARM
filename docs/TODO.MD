@@ -1,6 +1,8 @@
 [] CRIAR CONTA (LUCIO, DIOGENES, REINALDO)
 [] MELHORAR GERACAO DE PDF
 
+[] 
+
 Para tornar o sistema completamente dinâmico no futuro:
 
 1. Migrar todos os preços para usar cultura_id/sistema_id
