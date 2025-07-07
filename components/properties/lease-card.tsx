@@ -32,13 +32,18 @@ export function LeaseCard({ lease, propertyName, safras = [] }: LeaseCardProps) 
           .select("commodity_type, precos_por_ano")
           .eq("organizacao_id", lease.organizacao_id)
           .eq("commodity_type", "SOJA_SEQUEIRO")
-          .single();
+          .limit(1);
 
         if (error) {
           console.error("Erro ao buscar preços:", error);
-        } else if (data && data.precos_por_ano) {
-          setSoyPrices(data.precos_por_ano);
-          console.log("Preços de soja carregados diretamente:", data.precos_por_ano);
+          // Usar preços padrão se não encontrar
+          setSoyPrices({});
+        } else if (data && data.length > 0 && data[0].precos_por_ano) {
+          setSoyPrices(data[0].precos_por_ano);
+          console.log("Preços de soja carregados:", data[0].precos_por_ano);
+        } else {
+          console.log("Nenhum preço encontrado, usando valores padrão");
+          setSoyPrices({});
         }
       } catch (error) {
         console.error("Erro ao buscar preços da soja:", error);
@@ -59,10 +64,10 @@ export function LeaseCard({ lease, propertyName, safras = [] }: LeaseCardProps) 
     if (!lease.custos_por_ano) return 0;
     let totalReais = 0;
     
-    Object.entries(lease.custos_por_ano).forEach(([safraId, sacas]) => {
-      const sacasValue = typeof sacas === 'number' ? sacas : 0;
-      const precoSoja = soyPrices[safraId] || 125; // Default para R$ 125,00/saca se não encontrar
-      totalReais += sacasValue * precoSoja;
+    Object.entries(lease.custos_por_ano).forEach(([safraId, valorReais]) => {
+      const valorReaisNum = typeof valorReais === 'number' ? valorReais : 0;
+      // O valor já está em reais, não precisa multiplicar
+      totalReais += valorReaisNum;
     });
     
     return totalReais;
@@ -150,9 +155,10 @@ export function LeaseCard({ lease, propertyName, safras = [] }: LeaseCardProps) 
                     .map(([safraId, valor]) => {
                       const safra = safras.find(s => s.id === safraId);
                       const safraName = safra ? safra.nome : "Safra";
-                      const sacas = typeof valor === 'number' ? valor : 0;
+                      const valorReais = typeof valor === 'number' ? valor : 0;
                       const precoSoja = soyPrices[safraId] || 125; // Default para R$ 125,00/saca
-                      const valorReais = sacas * precoSoja;
+                      // Calcular sacas baseado no valor em reais e preço da soja
+                      const sacas = precoSoja > 0 ? valorReais / precoSoja : 0;
                       
                       return (
                         <div key={safraId} className="bg-muted/50 rounded-lg p-3">

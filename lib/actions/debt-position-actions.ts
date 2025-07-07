@@ -405,12 +405,12 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     return valores;
   };
 
-  // Consolidar arrendamentos - convertendo sacas para reais
+  // Consolidar arrendamentos - lidar com valores em sacas ou reais
   const consolidarArrendamentos = async (): Promise<Record<string, number>> => {
     const valores: Record<string, number> = {};
     anos.forEach(ano => valores[ano] = 0);
 
-    // Buscar preços da soja para converter sacas em reais
+    // Buscar preços da soja para converter sacas em reais quando necessário
     let soyPrices: Record<string, number> = {};
     try {
       const { data: priceData, error } = await supabase
@@ -418,11 +418,10 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
         .select("commodity_type, precos_por_ano")
         .eq("organizacao_id", organizationId)
         .eq("commodity_type", "SOJA_SEQUEIRO")
-        .is("projection_id", projectionId ? projectionId : null)
-        .single();
+        .limit(1);
 
-      if (!error && priceData && priceData.precos_por_ano) {
-        soyPrices = priceData.precos_por_ano;
+      if (!error && priceData && priceData.length > 0 && priceData[0].precos_por_ano) {
+        soyPrices = priceData[0].precos_por_ano;
       }
     } catch (error) {
       console.warn("⚠️ Erro ao buscar preços da soja para arrendamentos:", error);
@@ -435,12 +434,24 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
         ? JSON.parse(custosField)
         : custosField || {};
 
+      // Calcular o total de sacas esperado para este arrendamento
+      const sacasEsperadas = (arrendamento.area_arrendada || 0) * (arrendamento.custo_hectare || 0);
+
       Object.keys(custos).forEach(safraId => {
         const anoNome = safraToYear[safraId];
         if (anoNome && valores[anoNome] !== undefined) {
-          const sacas = custos[safraId] || 0;
-          const precoSoja = soyPrices[safraId] || 125; // Default R$ 125,00/saca
-          const valorReais = sacas * precoSoja;
+          const valor = custos[safraId] || 0;
+          
+          // Heurística: se o valor é menor que 100.000, provavelmente está em sacas
+          // Se for maior, provavelmente já está em reais
+          let valorReais = valor;
+          
+          if (valor < 100000 && valor > 0) {
+            // Provavelmente está em sacas, converter para reais
+            const precoSoja = soyPrices[safraId] || 125; // Default R$ 125,00/saca
+            valorReais = valor * precoSoja;
+          }
+          
           valores[anoNome] += valorReais;
         }
       });
@@ -822,7 +833,7 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
 
   // Calcular valores consolidados
   const bancos = consolidarBancos(); // Apenas tipo = BANCO + tabela dividas_trading
-  const arrendamento = await consolidarArrendamentos(); // Agora é assíncrono
+  const arrendamento = await consolidarArrendamentos(); // Converter sacas para reais quando necessário
   const fornecedoresValues = consolidarFornecedores();
   const tradingsValues = consolidarTradingsFromBancarias(); // Apenas tipo = TRADING
   const terrasValues = consolidarTerras();

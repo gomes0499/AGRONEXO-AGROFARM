@@ -111,7 +111,7 @@ export function PropertyDetailsModal({
           <Icon className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">{label}</span>
         </div>
-        <p className="font-medium pl-5">{value}</p>
+        <div className="font-medium pl-5">{value}</div>
       </div>
     );
   };
