@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import {
@@ -14,6 +14,7 @@ import {
 import { TrendingDown, TrendingUp, CircleDollarSign, DollarSign, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { getCostCategoryName, COST_CATEGORIES } from "@/lib/utils/cost-categories";
 import type { FluxoCaixaData } from "@/lib/actions/projections-actions/fluxo-caixa-simplificado";
 import type { FluxoCaixaCorrigidoData } from "@/lib/actions/projections-actions/fluxo-caixa-corrigido";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ interface FluxoCaixaTableProps {
 export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
   const [selectedYear, setSelectedYear] = useState<string | undefined>();
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [expandedCosts, setExpandedCosts] = useState<Record<string, boolean>>({});
   if (!data || !data.anos || data.anos.length === 0) {
     return (
       <Card className="shadow-sm border-border/50 hover:shadow-md transition-shadow">
@@ -322,21 +324,100 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
                   </TableRow>
 
                   {/* Linhas de despesas por cultura */}
-                  {!isSectionCollapsed('despesas') && dataFiltrada.despesas_agricolas?.culturas && Object.keys(dataFiltrada.despesas_agricolas.culturas).map((cultura) => (
-                    <TableRow key={`despesa-cultura-${cultura}`} className="hover:bg-muted/20 dark:hover:bg-gray-700/20 transition-colors">
-                      <TableCell className="font-medium text-sm min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8 text-gray-700 dark:text-gray-300">
-                        {cultura}
-                      </TableCell>
-                      {dataFiltrada.anos.map((ano) => (
-                        <TableCell 
-                          key={ano} 
-                          className="text-center min-w-[120px] w-[120px] text-red-700 dark:text-red-400 font-medium"
-                        >
-                          {formatCurrency((dataFiltrada.despesas_agricolas?.culturas?.[cultura]?.[ano]) || 0)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
+                  {!isSectionCollapsed('despesas') && dataFiltrada.despesas_agricolas?.culturas && Object.keys(dataFiltrada.despesas_agricolas.culturas).map((cultura) => {
+                    const culturaKey = `despesa-${cultura}`;
+                    const isExpanded = expandedCosts[culturaKey];
+                    
+                    return (
+                      <React.Fragment key={culturaKey}>
+                        <TableRow className="hover:bg-muted/20 dark:hover:bg-gray-700/20 transition-colors">
+                          <TableCell className="font-medium text-sm min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-gray-900 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8 text-gray-700 dark:text-gray-300">
+                            <div className="flex items-center justify-between">
+                              <span>{cultura}</span>
+                              {'culturas_detalhado' in dataFiltrada.despesas_agricolas && dataFiltrada.despesas_agricolas.culturas_detalhado?.[cultura] && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setExpandedCosts(prev => ({ ...prev, [culturaKey]: !prev[culturaKey] }))}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                          {dataFiltrada.anos.map((ano) => {
+                            const valor = (dataFiltrada.despesas_agricolas?.culturas?.[cultura]?.[ano]) || 0;
+                            const temDetalhes = 'culturas_detalhado' in dataFiltrada.despesas_agricolas ? dataFiltrada.despesas_agricolas.culturas_detalhado?.[cultura]?.[ano] : undefined;
+                            
+                            return (
+                              <TableCell 
+                                key={ano} 
+                                className="text-center min-w-[120px] w-[120px]"
+                              >
+                                {temDetalhes ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="cursor-help text-red-700 dark:text-red-400 font-medium">
+                                        {formatCurrency(valor)}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <div className="text-sm">
+                                        <p className="font-medium mb-1">{cultura} - {ano}</p>
+                                        <p className="text-xs text-muted-foreground">Clique para ver detalhes por categoria</p>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <span className="text-red-700 dark:text-red-400 font-medium">
+                                    {formatCurrency(valor)}
+                                  </span>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                        
+                        {/* Detalhes expandidos por categoria */}
+                        {isExpanded && 'culturas_detalhado' in dataFiltrada.despesas_agricolas && dataFiltrada.despesas_agricolas.culturas_detalhado?.[cultura] && (
+                          <>
+                            {Object.entries(COST_CATEGORIES).map(([categoria, nomeCategoria]) => {
+                              const temValorCategoria = dataFiltrada.anos.some(
+                                ano => 'culturas_detalhado' in dataFiltrada.despesas_agricolas && dataFiltrada.despesas_agricolas.culturas_detalhado?.[cultura]?.[ano]?.[categoria] && dataFiltrada.despesas_agricolas.culturas_detalhado[cultura][ano][categoria] > 0
+                              );
+                              
+                              if (!temValorCategoria) return null;
+                              
+                              return (
+                                <TableRow key={`${culturaKey}-${categoria}`} className="bg-gray-50/50 dark:bg-gray-800/30">
+                                  <TableCell className="text-xs min-w-[250px] w-[250px] sticky left-0 bg-gray-50/50 dark:bg-gray-800/30 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-16 text-gray-600 dark:text-gray-400">
+                                    {getCostCategoryName(categoria)}
+                                  </TableCell>
+                                  {dataFiltrada.anos.map((ano) => {
+                                    const valorCategoria = 'culturas_detalhado' in dataFiltrada.despesas_agricolas ? (dataFiltrada.despesas_agricolas.culturas_detalhado?.[cultura]?.[ano]?.[categoria] || 0) : 0;
+                                    
+                                    return (
+                                      <TableCell 
+                                        key={ano} 
+                                        className="text-center min-w-[120px] w-[120px] text-xs text-gray-600 dark:text-gray-400"
+                                      >
+                                        {valorCategoria > 0 ? formatCurrency(valorCategoria) : '-'}
+                                      </TableCell>
+                                    );
+                                  })}
+                                </TableRow>
+                              );
+                            })}
+                          </>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                   
                   {/* Total de despesas */}
                   <TableRow className="bg-gray-50 dark:bg-gray-800/50 font-semibold border-y">

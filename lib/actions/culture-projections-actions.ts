@@ -17,6 +17,10 @@ export interface CultureProjectionData {
     receita: number;
     custo_ha?: number;
     custo_total: number;
+    custo_detalhado?: Record<string, { // Novo campo para custos por categoria
+      valor_ha: number;
+      valor_total: number;
+    }>;
     ebitda: number;
     ebitda_percent: number;
   }>;
@@ -203,11 +207,21 @@ export async function getCultureProjections(organizationId: string, projectionId
       c.ciclo_id === ciclos.id
     ) || [];
 
-    // Agregar custos de todas as categorias
+    // Agregar custos de todas as categorias e manter detalhamento
     const custoAgregado: Record<string, number> = {};
+    const custoDetalhado: Record<string, Record<string, number>> = {};
+    
     custosRelacionados.forEach(c => {
+      const categoria = c.categoria;
       Object.entries(c.custos_por_safra || {}).forEach(([safraId, valor]) => {
-        custoAgregado[safraId] = (custoAgregado[safraId] || 0) + (Number(valor) || 0);
+        const valorNum = Number(valor) || 0;
+        custoAgregado[safraId] = (custoAgregado[safraId] || 0) + valorNum;
+        
+        // Manter detalhamento por categoria
+        if (!custoDetalhado[safraId]) {
+          custoDetalhado[safraId] = {};
+        }
+        custoDetalhado[safraId][categoria] = (custoDetalhado[safraId][categoria] || 0) + valorNum;
       });
     });
 
@@ -338,6 +352,17 @@ export async function getCultureProjections(organizationId: string, projectionId
 
       anosSet.add(anoNome);
 
+      // Criar custo detalhado para este ano
+      const custoDetalhadoAno: Record<string, { valor_ha: number; valor_total: number }> = {};
+      if (custoDetalhado[safraId]) {
+        Object.entries(custoDetalhado[safraId]).forEach(([categoria, valorHa]) => {
+          custoDetalhadoAno[categoria] = {
+            valor_ha: valorHa,
+            valor_total: valorHa * areaSafra
+          };
+        });
+      }
+
       projectionsByYear[anoNome] = {
         area_plantada: areaSafra,
         produtividade: produtividadeSafra,
@@ -346,6 +371,7 @@ export async function getCultureProjections(organizationId: string, projectionId
         receita,
         custo_ha: custoSafra,
         custo_total: custoTotal,
+        custo_detalhado: custoDetalhadoAno,
         ebitda,
         ebitda_percent: ebitdaPercent,
       };

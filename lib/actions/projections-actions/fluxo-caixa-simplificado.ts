@@ -14,6 +14,7 @@ export interface FluxoCaixaData {
   };
   despesas_agricolas: {
     culturas: Record<string, Record<string, number>>;
+    culturas_detalhado?: Record<string, Record<string, Record<string, number>>>; // cultura -> ano -> categoria -> valor
     total_por_ano: Record<string, number>;
   };
   outras_despesas: {
@@ -68,6 +69,7 @@ export async function getFluxoCaixaSimplificado(
   // 2. Inicializar estruturas de dados
   const receitasAgricolas: Record<string, Record<string, number>> = {};
   const despesasAgricolas: Record<string, Record<string, number>> = {};
+  const despesasAgricolasDetalhado: Record<string, Record<string, Record<string, number>>> = {};
   const totalReceitasPorAno: Record<string, number> = {};
   const totalDespesasPorAno: Record<string, number> = {};
   
@@ -82,6 +84,7 @@ export async function getFluxoCaixaSimplificado(
     const culturaNome = formatarNomeCultura(projection);
     receitasAgricolas[culturaNome] = {};
     despesasAgricolas[culturaNome] = {};
+    despesasAgricolasDetalhado[culturaNome] = {};
     
     anosFiltrados.forEach(ano => {
       const dadosAno = projection.projections_by_year[ano];
@@ -95,6 +98,14 @@ export async function getFluxoCaixaSimplificado(
         const despesa = dadosAno.custo_total || 0;
         despesasAgricolas[culturaNome][ano] = despesa;
         totalDespesasPorAno[ano] += despesa;
+        
+        // Custos detalhados por categoria
+        if (dadosAno.custo_detalhado) {
+          despesasAgricolasDetalhado[culturaNome][ano] = {};
+          Object.entries(dadosAno.custo_detalhado).forEach(([categoria, valores]) => {
+            despesasAgricolasDetalhado[culturaNome][ano][categoria] = valores.valor_total;
+          });
+        }
       } else {
         receitasAgricolas[culturaNome][ano] = 0;
         despesasAgricolas[culturaNome][ano] = 0;
@@ -409,6 +420,7 @@ export async function getFluxoCaixaSimplificado(
     },
     despesas_agricolas: {
       culturas: despesasAgricolas,
+      culturas_detalhado: despesasAgricolasDetalhado,
       total_por_ano: totalDespesasPorAno
     },
     outras_despesas: outrasDespesas,

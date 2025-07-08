@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { updateOrganizationChartColors } from "@/lib/actions/organization-chart-colors-actions";
 import { ChartColors } from "@/lib/constants/chart-colors";
 import { useOrganization } from "@/components/auth/organization-provider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTriggerPrimary } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 // Paletas de cores predefinidas
@@ -242,9 +242,9 @@ export function ChartColorsConfig() {
 
           <div className="flex-1 overflow-y-auto py-6">
             <Tabs defaultValue="palettes" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="palettes">Paletas</TabsTrigger>
-                <TabsTrigger value="custom">Personalizar</TabsTrigger>
+              <TabsList>
+                <TabsTriggerPrimary value="palettes">Paletas</TabsTriggerPrimary>
+                <TabsTriggerPrimary value="custom">Personalizar</TabsTriggerPrimary>
               </TabsList>
               
               <TabsContent value="palettes" className="space-y-4 mt-4">

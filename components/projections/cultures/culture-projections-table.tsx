@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
 import {
@@ -17,9 +18,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
-import { BarChart3, TrendingUp } from "lucide-react";
+import { BarChart3, TrendingUp, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CultureProjectionData } from "@/lib/actions/culture-projections-actions";
+import { getCostCategoryName, COST_CATEGORIES } from "@/lib/utils/cost-categories";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface CultureProjectionsTableProps {
   organizationId: string;
@@ -38,6 +47,9 @@ export function CultureProjectionsTable({ organizationId, initialProjections, sa
   const { projections, sementes, consolidado, anos } = initialProjections;
   // Filtrar anos para remover 2030/31 e 2031/32
   const anosFiltrados = anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
+  
+  // Estado para controlar expansão de custos
+  const [expandedCosts, setExpandedCosts] = useState<Record<string, boolean>>({});
 
   const formatNumber = (value: number, decimals: number = 2) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -57,6 +69,13 @@ export function CultureProjectionsTable({ organizationId, initialProjections, sa
 
   const formatPercent = (value: number) => {
     return `${value.toFixed(2)}%`;
+  };
+
+  const toggleCostExpansion = (projectionKey: string) => {
+    setExpandedCosts(prev => ({
+      ...prev,
+      [projectionKey]: !prev[projectionKey]
+    }));
   };
 
   // Renderizar componente para cada seção de projeção usando accordion
@@ -101,7 +120,7 @@ export function CultureProjectionsTable({ organizationId, initialProjections, sa
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {renderTableRows(projection)}
+                {renderTableRows(projection, String(key))}
               </TableBody>
             </Table>
           </div>
@@ -111,7 +130,7 @@ export function CultureProjectionsTable({ organizationId, initialProjections, sa
   );
 
   // Função para renderizar linhas da tabela baseada no tipo
-  const renderTableRows = (projection: CultureProjectionData) => {
+  const renderTableRows = (projection: CultureProjectionData, projectionKey: string) => {
     if (projection.tipo === 'sementes') {
       // Para vendas de sementes, mostrar apenas receita, custo total e EBITDA
       return (
@@ -422,10 +441,33 @@ export function CultureProjectionsTable({ organizationId, initialProjections, sa
           ))}
         </TableRow>
 
-        {/* Custo por hectare */}
+        {/* Custo por hectare com expansão */}
         <TableRow className="hover:bg-muted/30">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            Custo
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => toggleCostExpansion(projectionKey)}
+                    >
+                      {expandedCosts[projectionKey] ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Clique para ver detalhamento por categoria</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <span>Custo</span>
+            </div>
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px]">
             R$/ha
@@ -443,10 +485,70 @@ export function CultureProjectionsTable({ organizationId, initialProjections, sa
           ))}
         </TableRow>
 
-        {/* Custo total */}
+        {/* Detalhamento de custos expandido */}
+        {expandedCosts[projectionKey] && (
+          <>
+            {Object.entries(COST_CATEGORIES).map(([categoria, nomeCategoria]) => {
+              // Verificar se existe custo para esta categoria em algum ano
+              const temCusto = anosFiltrados.some(ano => {
+                const yearData = projection.projections_by_year[ano];
+                return yearData?.custo_detalhado?.[categoria]?.valor_ha && yearData.custo_detalhado[categoria].valor_ha > 0;
+              });
+              
+              if (!temCusto) return null;
+              
+              return (
+                <TableRow key={categoria} className="hover:bg-muted/30 bg-muted/10">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-muted/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-12 text-sm">
+                    {nomeCategoria}
+                  </TableCell>
+                  <TableCell className="text-center min-w-[100px] w-[100px] bg-muted/10 text-sm">
+                    R$/ha
+                  </TableCell>
+                  {anosFiltrados.map((ano) => (
+                    <TableCell 
+                      key={ano} 
+                      className="text-center min-w-[120px] w-[120px] bg-muted/10 text-sm"
+                    >
+                      {projection.projections_by_year[ano]?.custo_detalhado?.[categoria]?.valor_ha 
+                        ? formatNumber(projection.projections_by_year[ano].custo_detalhado[categoria].valor_ha, 2)
+                        : '-'
+                      }
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
+          </>
+        )}
+
+        {/* Custo total com expansão */}
         <TableRow className="hover:bg-muted/30">
           <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            Custo Total
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => toggleCostExpansion(projectionKey + '-total')}
+                    >
+                      {expandedCosts[projectionKey + '-total'] ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Clique para ver detalhamento por categoria</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <span>Custo Total</span>
+            </div>
           </TableCell>
           <TableCell className="text-center min-w-[100px] w-[100px]">
             R$
@@ -463,6 +565,43 @@ export function CultureProjectionsTable({ organizationId, initialProjections, sa
             </TableCell>
           ))}
         </TableRow>
+
+        {/* Detalhamento de custos totais expandido */}
+        {expandedCosts[projectionKey + '-total'] && (
+          <>
+            {Object.entries(COST_CATEGORIES).map(([categoria, nomeCategoria]) => {
+              // Verificar se existe custo para esta categoria em algum ano
+              const temCusto = anosFiltrados.some(ano => {
+                const yearData = projection.projections_by_year[ano];
+                return yearData?.custo_detalhado?.[categoria]?.valor_total && yearData.custo_detalhado[categoria].valor_total > 0;
+              });
+              
+              if (!temCusto) return null;
+              
+              return (
+                <TableRow key={categoria} className="hover:bg-muted/30 bg-muted/10">
+                  <TableCell className="font-medium min-w-[200px] w-[200px] sticky left-0 bg-muted/10 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-12 text-sm">
+                    {nomeCategoria}
+                  </TableCell>
+                  <TableCell className="text-center min-w-[100px] w-[100px] bg-muted/10 text-sm">
+                    R$
+                  </TableCell>
+                  {anosFiltrados.map((ano) => (
+                    <TableCell 
+                      key={ano} 
+                      className="text-center min-w-[120px] w-[120px] bg-muted/10 text-sm"
+                    >
+                      {projection.projections_by_year[ano]?.custo_detalhado?.[categoria]?.valor_total 
+                        ? formatNumber(projection.projections_by_year[ano].custo_detalhado[categoria].valor_total, 0)
+                        : '-'
+                      }
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
+          </>
+        )}
 
         {/* EBITDA */}
         <TableRow className="hover:bg-muted/30 bg-primary/5">
