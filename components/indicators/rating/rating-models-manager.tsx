@@ -103,15 +103,16 @@ export function RatingModelsManager({ organizationId }: RatingModelsManagerProps
   };
 
   const handleDeleteModel = async (modelId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este modelo?")) return;
-
     try {
       await deleteRatingModel(modelId);
-      toast.success("Modelo excluído com sucesso");
-      loadData();
+      // Reset selection to "new" after deletion
+      setSelectedModelId("new");
+      setSelectedModel(null);
+      // Reload data
+      await loadData();
     } catch (error) {
       console.error("Error deleting model:", error);
-      toast.error("Erro ao excluir modelo");
+      throw error; // Re-throw to let the editor handle the error
     }
   };
 
@@ -156,6 +157,7 @@ export function RatingModelsManager({ organizationId }: RatingModelsManagerProps
               organizationId={organizationId}
               modelId={selectedModel?.id}
               onSave={handleSaveModel}
+              onDelete={handleDeleteModel}
               availableMetrics={metrics}
               initialModel={selectedModel}
               models={models}

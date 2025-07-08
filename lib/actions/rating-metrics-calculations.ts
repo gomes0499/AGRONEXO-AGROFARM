@@ -178,10 +178,20 @@ export async function calculateQuantitativeMetrics(
     }
     
     // 4. DIVIDA_PATRIMONIO_LIQUIDO
-    metrics.DIVIDA_PATRIMONIO_LIQUIDO = patrimonioLiquido > 0 ? dividaTotal / patrimonioLiquido : (dividaTotal > 0 ? 999 : 0);
+    // Ajustar cálculo para considerar valor absoluto do patrimônio líquido
+    // Se patrimônio líquido for negativo, a métrica deve ser alta (ruim)
+    if (patrimonioLiquido < 0) {
+      // Patrimônio líquido negativo = situação crítica
+      metrics.DIVIDA_PATRIMONIO_LIQUIDO = 999;
+    } else if (patrimonioLiquido > 0) {
+      metrics.DIVIDA_PATRIMONIO_LIQUIDO = dividaTotal / patrimonioLiquido;
+    } else {
+      // Patrimônio líquido zero
+      metrics.DIVIDA_PATRIMONIO_LIQUIDO = dividaTotal > 0 ? 999 : 0;
+    }
     
-    // 5. LTV
-    metrics.LTV = ltv;
+    // 5. LTV - já vem em porcentagem da posição de dívida
+    metrics.LTV = ltv / 100; // Converter de porcentagem para decimal (0-1)
     
     // 6. MARGEM_EBITDA
     metrics.MARGEM_EBITDA = receita > 0 ? (ebitda / receita) * 100 : 0;

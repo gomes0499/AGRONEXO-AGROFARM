@@ -11,15 +11,22 @@ import ReactFlow, {
   NodeTypes,
   Controls,
   Background,
-  MiniMap,
   Panel,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -28,7 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Save, Trash2, Calculator, Star } from "lucide-react";
+import { Plus, Save, Calculator, Star, ChevronLeft, ChevronRight, Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { MetricNode } from "./nodes/metric-node";
 import { OutputNode } from "./nodes/output-node";
 import { CreateMetricDialog } from "./create-metric-dialog";
@@ -49,6 +56,7 @@ interface RatingModelEditorProps {
   organizationId: string;
   modelId?: string;
   onSave: (modelData: any) => void;
+  onDelete?: (modelId: string) => void;
   availableMetrics: RatingMetric[];
   initialModel?: RatingModel | null;
   models?: RatingModel[];
@@ -60,15 +68,15 @@ const initialNodes: Node[] = [
   {
     id: "output",
     type: "output",
-    position: { x: 400, y: 300 },
+    position: { x: 600, y: 300 },
     data: { label: "Rating Final", score: 0 },
   },
 ];
 
 export function RatingModelEditor({
   organizationId,
-  modelId,
   onSave,
+  onDelete,
   availableMetrics,
   initialModel,
   models = [],
@@ -84,7 +92,49 @@ export function RatingModelEditor({
   const [showResultModal, setShowResultModal] = useState(false);
   const [ratingResult, setRatingResult] = useState<any>(null);
   const [selectedMetricType, setSelectedMetricType] = useState<"quantitative" | "qualitative">("quantitative");
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [isCalculatingRating, setIsCalculatingRating] = useState(false);
+  const [organizationName, setOrganizationName] = useState<string>("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [totalWeight, setTotalWeight] = useState(0);
 
+
+  // Fetch organization name
+  useEffect(() => {
+    const fetchOrganizationName = async () => {
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        
+        const { data, error } = await supabase
+          .from("organizacoes")
+          .select("nome")
+          .eq("id", organizationId)
+          .single();
+          
+        if (data && !error) {
+          setOrganizationName(data.nome);
+        }
+      } catch (error) {
+        console.error("Error fetching organization name:", error);
+      }
+    };
+    
+    if (organizationId) {
+      fetchOrganizationName();
+    }
+  }, [organizationId]);
+
+  // Calculate total weight whenever nodes or edges change
+  useEffect(() => {
+    const connectedNodes = nodes.filter((node) => 
+      node.type === "metric" && 
+      edges.some((edge) => edge.source === node.id && edge.target === "output")
+    );
+    
+    const total = connectedNodes.reduce((sum, node) => sum + (node.data.weight || 0), 0);
+    setTotalWeight(total);
+  }, [nodes, edges]);
 
   useEffect(() => {
     if (initialModel) {
@@ -100,7 +150,17 @@ export function RatingModelEditor({
           
           if (flowData.nodes && flowData.edges) {
             setNodes(flowData.nodes);
-            setEdges(flowData.edges);
+            // Apply consistent style to loaded edges
+            const styledEdges = flowData.edges.map((edge: Edge) => ({
+              ...edge,
+              type: 'smoothstep',
+              animated: true,
+              style: {
+                strokeWidth: 3,
+                stroke: '#6366f1',
+              },
+            }));
+            setEdges(styledEdges);
           } else {
             setNodes(initialNodes);
             setEdges([]);
@@ -133,6 +193,10 @@ export function RatingModelEditor({
           ...params,
           type: 'smoothstep',
           animated: true,
+          style: {
+            strokeWidth: 3,
+            stroke: '#6366f1',
+          },
         }, eds));
       }
     },
@@ -143,7 +207,7 @@ export function RatingModelEditor({
     const newNode: Node = {
       id: `metric-${Date.now()}`,
       type: "metric",
-      position: { x: 100 + Math.random() * 200, y: 100 + Math.random() * 200 },
+      position: { x: 450 + Math.random() * 100, y: 100 + Math.random() * 300 },
       data: {
         metric,
         weight: 20,
@@ -154,10 +218,6 @@ export function RatingModelEditor({
     setNodes((nds) => nds.concat(newNode));
   }, [setNodes]);
 
-  const deleteNode = (nodeId: string) => {
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-  };
 
   const handleShowCalculateModal = () => {
     // Check if there are connected nodes
@@ -171,11 +231,22 @@ export function RatingModelEditor({
       return;
     }
 
+    // Check if total weight is 100%
+    if (totalWeight !== 100) {
+      toast.warning(
+        totalWeight > 100 
+          ? `O peso total está em ${totalWeight}%. Ajuste para 100% antes de calcular.`
+          : `O peso total está em ${totalWeight}%. Complete até 100% antes de calcular.`
+      );
+      return;
+    }
+
     setShowCalculateModal(true);
   };
 
   const calculateFinalScore = async (safraId: string, scenarioId: string | null) => {
     try {
+      setIsCalculatingRating(true);
       // Get all metric nodes connected to output
       const connectedNodes = nodes.filter((node) => 
         node.type === "metric" && 
@@ -308,12 +379,15 @@ export function RatingModelEditor({
         ratingColor: rating.color,
         metrics: metricResults,
         calculatedAt: new Date(),
+        organizationName: organizationName,
       });
       
       setShowResultModal(true);
     } catch (error) {
       console.error("Error calculating score:", error);
       toast.error("Erro ao calcular pontuação");
+    } finally {
+      setIsCalculatingRating(false);
     }
   };
 
@@ -337,6 +411,30 @@ export function RatingModelEditor({
     return sortedThresholds[sortedThresholds.length - 1]?.pontuacao || 0;
   };
 
+  const handleDelete = async () => {
+    if (!initialModel?.id || !onDelete) return;
+    
+    if (initialModel.is_default) {
+      toast.error("Não é possível excluir o modelo padrão");
+      return;
+    }
+    
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!initialModel?.id || !onDelete) return;
+    
+    try {
+      onDelete(initialModel.id);
+      toast.success("Modelo excluído com sucesso");
+      setShowDeleteDialog(false);
+    } catch (error) {
+      console.error("Error deleting model:", error);
+      toast.error("Erro ao excluir modelo");
+    }
+  };
+
   const handleSave = async () => {
     if (!modelName) {
       toast.error("Informe o nome do modelo");
@@ -356,6 +454,17 @@ export function RatingModelEditor({
 
     if (connectedMetrics.length === 0) {
       toast.error("Adicione e conecte pelo menos uma métrica ao nó Rating Final");
+      return;
+    }
+
+    // Check if total weight is 100%
+    const totalWeight = connectedMetrics.reduce((sum, metric) => sum + metric.peso, 0);
+    if (totalWeight !== 100) {
+      toast.error(
+        totalWeight > 100 
+          ? `O peso total está em ${totalWeight}%. Ajuste para exatamente 100%.`
+          : `O peso total está em ${totalWeight}%. Complete até 100% antes de salvar.`
+      );
       return;
     }
 
@@ -382,11 +491,69 @@ export function RatingModelEditor({
         fitView
       >
         <Background />
-        <Controls />
-        <MiniMap />
+        <Controls position="bottom-right" />
         
-        <Panel position="top-left" className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border w-96 max-h-[90vh] overflow-hidden flex flex-col">
-          <div className="p-4 flex-1 overflow-y-auto space-y-4">
+        {/* Loading overlay */}
+        {isCalculatingRating && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-background rounded-lg p-6 shadow-xl flex flex-col items-center gap-4 dark:bg-gray-900 dark:border dark:border-gray-700">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-lg font-medium">Calculando Rating...</p>
+              <p className="text-sm text-muted-foreground">Analisando métricas e indicadores</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Action buttons top-right */}
+        <Panel position="top-right" className="mr-2">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleShowCalculateModal}
+              size="sm"
+              className="bg-background shadow-sm dark:bg-gray-800 dark:hover:bg-gray-700"
+            >
+              <Calculator className="h-4 w-4 mr-2" />
+              Calcular
+            </Button>
+            
+            <Button 
+              onClick={handleSave} 
+              size="sm"
+              className="shadow-sm"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Salvar Modelo
+            </Button>
+            
+            {initialModel && selectedModelId !== "new" && !initialModel.is_default && (
+              <Button 
+                onClick={handleDelete}
+                variant="destructive"
+                size="sm"
+                className="shadow-sm"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </Button>
+            )}
+          </div>
+        </Panel>
+        
+        <Panel position="top-left" className={`bg-background/95 dark:bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border dark:border-gray-700 h-[80vh] my-4 flex flex-col transition-all duration-300 ${isPanelCollapsed ? 'w-12' : 'w-96'}`}>
+          {/* Collapse/Expand Button */}
+          <div className={`flex justify-end p-2 border-b ${isPanelCollapsed ? 'border-transparent' : ''}`}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+              className="h-8 w-8 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              {isPanelCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+          </div>
+          
+          <div className={`p-4 flex-1 overflow-y-auto space-y-4 min-h-0 ${isPanelCollapsed ? 'hidden' : ''}`}>
             <div>
               <Label className="text-sm font-medium">Selecionar Modelo</Label>
               <Select value={selectedModelId} onValueChange={onModelChange}>
@@ -451,7 +618,7 @@ export function RatingModelEditor({
                 </SelectContent>
               </Select>
 
-              <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto border rounded-md p-2">
+              <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto border dark:border-gray-700 rounded-md p-2 dark:bg-gray-900/50">
                 {availableMetrics
                   .filter((m) => m.tipo === selectedMetricType.toUpperCase())
                   .map((metric) => (
@@ -479,34 +646,40 @@ export function RatingModelEditor({
               </Button>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-xs space-y-1">
-              <p className="font-semibold text-blue-900 mb-1">Como usar:</p>
-              <p className="text-blue-700">1. Clique em uma métrica acima para adicionar</p>
-              <p className="text-blue-700">2. Arraste do ponto ● direito da métrica</p>
-              <p className="text-blue-700">3. Solte no ponto ● esquerdo do "Rating Final"</p>
-              <p className="text-blue-700">4. Ajuste o peso de cada métrica (0-100%)</p>
-              <p className="text-blue-700">5. Clique em Calcular para ver o resultado</p>
+            {/* Weight validation warning */}
+            {totalWeight > 0 && (
+              <div className={`p-3 rounded-md border text-sm flex items-start gap-2 ${
+                totalWeight > 100 
+                  ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
+                  : totalWeight === 100
+                  ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
+                  : "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300"
+              }`}>
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">Peso total: {totalWeight}%</p>
+                  <p className="text-xs mt-1">
+                    {totalWeight > 100 
+                      ? "O peso total excede 100%. Ajuste os pesos para que a soma seja exatamente 100%."
+                      : totalWeight === 100
+                      ? "Perfeito! O peso total está correto."
+                      : `Faltam ${100 - totalWeight}% para completar 100%.`
+                    }
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 text-xs space-y-1">
+              <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">Como usar:</p>
+              <p className="text-blue-700 dark:text-blue-300">1. Clique em uma métrica acima para adicionar</p>
+              <p className="text-blue-700 dark:text-blue-300">2. Arraste do ponto ● direito da métrica</p>
+              <p className="text-blue-700 dark:text-blue-300">3. Solte no ponto ● esquerdo do "Rating Final"</p>
+              <p className="text-blue-700 dark:text-blue-300">4. Ajuste o peso de cada métrica (0-100%)</p>
+              <p className="text-blue-700 dark:text-blue-300">5. Clique em Calcular para ver o resultado</p>
             </div>
           </div>
 
-          <div className="p-4 border-t bg-white">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleShowCalculateModal}
-                className="flex-1"
-                size="sm"
-              >
-                <Calculator className="h-4 w-4 mr-2" />
-                Calcular
-              </Button>
-              
-              <Button onClick={handleSave} className="flex-1" size="sm">
-                <Save className="h-4 w-4 mr-2" />
-                Salvar Modelo
-              </Button>
-            </div>
-          </div>
         </Panel>
       </ReactFlow>
 
@@ -532,6 +705,23 @@ export function RatingModelEditor({
         onClose={() => setShowResultModal(false)}
         result={ratingResult}
       />
+      
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o modelo "{initialModel?.nome}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

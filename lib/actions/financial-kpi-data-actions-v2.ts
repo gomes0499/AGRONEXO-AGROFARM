@@ -84,8 +84,12 @@ export async function getFinancialKpiDataV2(
     } 
     
     if (!currentSafra) {
-      // Find default safra (2025/26 or most recent)
-      currentSafra = safrasList.find((s: any) => s.nome === "2025/26") || safrasList[0] || null;
+      // Find default safra - prioritize safras with actual data (2023/24 or 2024/25)
+      // First try to find a safra with recent data
+      currentSafra = safrasList.find((s: any) => s.nome === "2024/25") || 
+                    safrasList.find((s: any) => s.nome === "2023/24") ||
+                    safrasList.find((s: any) => s.nome === "2025/26") || 
+                    safrasList[0] || null;
     }
 
     if (currentSafra) {
@@ -103,11 +107,6 @@ export async function getFinancialKpiDataV2(
         // Find the correct safra name in the debt position data
         const safraName = currentSafra.nome; // e.g., "2025/26"
         
-        console.log("Debug - Safra atual:", safraName);
-        console.log("Debug - Available years:", debtPosition.anos);
-        console.log("Debug - Indicadores calculados:", debtPosition.indicadores.indicadores_calculados);
-        console.log("Debug - Dividida receita para", safraName, ":", debtPosition.indicadores.indicadores_calculados.divida_receita[safraName]);
-        console.log("Debug - Dividida EBITDA para", safraName, ":", debtPosition.indicadores.indicadores_calculados.divida_ebitda[safraName]);
 
         // Get values for current safra
         const dividaTotalAtual = debtPosition.indicadores.endividamento_total[safraName] || 0;

@@ -171,12 +171,34 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
     let receita = 0;
     let ebitda = 0;
     
-    if (consolidado && consolidado.projections_by_year && consolidado.projections_by_year[safraAtual]) {
+    // Primeiro, tentar buscar dos indicadores da posição de dívida (mais confiável)
+    if (debtPosition.indicadores.receita_ano_safra && debtPosition.indicadores.receita_ano_safra[safraAtual]) {
+      receita = debtPosition.indicadores.receita_ano_safra[safraAtual];
+      ebitda = debtPosition.indicadores.ebitda_ano_safra[safraAtual] || 0;
+    } 
+    // Se não houver, tentar das projeções de cultura
+    else if (consolidado && consolidado.projections_by_year && consolidado.projections_by_year[safraAtual]) {
       receita = consolidado.projections_by_year[safraAtual].receita || 0;
       ebitda = consolidado.projections_by_year[safraAtual].ebitda || 0;
-    } else {
-      receita = 350000000; // Exemplo: R$ 350 milhões
-      ebitda = 135000000;  // Exemplo: R$ 135 milhões
+    }
+    // Se ainda não houver dados, tentar buscar de qualquer safra com dados
+    else {
+      // Buscar primeira safra com dados válidos
+      for (const ano of debtPosition.anos) {
+        const receitaAno = debtPosition.indicadores.receita_ano_safra[ano] || 0;
+        const ebitdaAno = debtPosition.indicadores.ebitda_ano_safra[ano] || 0;
+        if (receitaAno > 0 && ebitdaAno > 0) {
+          receita = receitaAno;
+          ebitda = ebitdaAno;
+          break;
+        }
+      }
+      
+      // Se ainda não encontrou, usar valores padrão
+      if (receita === 0) {
+        receita = 350000000; // Exemplo: R$ 350 milhões
+        ebitda = 135000000;  // Exemplo: R$ 135 milhões
+      }
     }
     
     // Verificar se há indicadores calculados na posição de dívida

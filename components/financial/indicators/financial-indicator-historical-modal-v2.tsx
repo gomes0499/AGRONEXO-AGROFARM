@@ -31,7 +31,11 @@ interface FinancialIndicatorHistoricalModalV2Props {
   isOpen: boolean;
   onClose: () => void;
   organizationId: string;
-  indicatorType: "divida_receita" | "divida_ebitda" | "divida_liquida_receita" | "divida_liquida_ebitda";
+  indicatorType:
+    | "divida_receita"
+    | "divida_ebitda"
+    | "divida_liquida_receita"
+    | "divida_liquida_ebitda";
   indicatorTitle: string;
 }
 
@@ -58,8 +62,17 @@ export function FinancialIndicatorHistoricalModalV2({
     setError(null);
     try {
       const result = await getIndicatorChartData(organizationId, indicatorType);
-      
+
       // Process data to match the production modal format
+      // Find the last valid value (greater than 0)
+      let currentValue = 0;
+      for (let i = result.chartData.length - 1; i >= 0; i--) {
+        if (result.chartData[i].value > 0) {
+          currentValue = result.chartData[i].value;
+          break;
+        }
+      }
+
       const processedData: {
         metricName: string;
         unit: string;
@@ -75,28 +88,36 @@ export function FinancialIndicatorHistoricalModalV2({
         metricName: indicatorTitle,
         unit: getUnit(),
         data: result.chartData,
-        currentValue: result.chartData.length > 0 ? result.chartData[result.chartData.length - 1].value : 0,
-        realizadoData: result.chartData.filter(item => item.year <= 2024),
-        projetadoData: result.chartData.filter(item => item.year > 2024),
+        currentValue: currentValue,
+        realizadoData: result.chartData.filter((item) => item.year <= 2024),
+        projetadoData: result.chartData.filter((item) => item.year > 2024),
         crescimentoRealizado: 0,
         periodoRealizado: "",
         crescimentoProjetado: 0,
         periodoProjetado: "",
       };
 
-      // Calculate growth rates
-      if (processedData.realizadoData.length >= 2) {
-        const first = processedData.realizadoData[0].value;
-        const last = processedData.realizadoData[processedData.realizadoData.length - 1].value;
-        processedData.crescimentoRealizado = first > 0 ? ((last - first) / first) * 100 : 0;
-        processedData.periodoRealizado = `${processedData.realizadoData[0].safra} - ${processedData.realizadoData[processedData.realizadoData.length - 1].safra}`;
+      // Calculate growth rates - only consider data with valid values
+      const realizadoComDados = processedData.realizadoData.filter(
+        (item) => item.value > 0
+      );
+      if (realizadoComDados.length >= 2) {
+        const first = realizadoComDados[0].value;
+        const last = realizadoComDados[realizadoComDados.length - 1].value;
+        processedData.crescimentoRealizado =
+          first > 0 ? ((last - first) / first) * 100 : 0;
+        processedData.periodoRealizado = `${realizadoComDados[0].safra} - ${realizadoComDados[realizadoComDados.length - 1].safra}`;
       }
 
-      if (processedData.projetadoData.length >= 2) {
-        const first = processedData.projetadoData[0].value;
-        const last = processedData.projetadoData[processedData.projetadoData.length - 1].value;
-        processedData.crescimentoProjetado = first > 0 ? ((last - first) / first) * 100 : 0;
-        processedData.periodoProjetado = `${processedData.projetadoData[0].safra} - ${processedData.projetadoData[processedData.projetadoData.length - 1].safra}`;
+      const projetadoComDados = processedData.projetadoData.filter(
+        (item) => item.value > 0
+      );
+      if (projetadoComDados.length >= 2) {
+        const first = projetadoComDados[0].value;
+        const last = projetadoComDados[projetadoComDados.length - 1].value;
+        processedData.crescimentoProjetado =
+          first > 0 ? ((last - first) / first) * 100 : 0;
+        processedData.periodoProjetado = `${projetadoComDados[0].safra} - ${projetadoComDados[projetadoComDados.length - 1].safra}`;
       }
 
       setData(processedData);
@@ -109,7 +130,10 @@ export function FinancialIndicatorHistoricalModalV2({
   };
 
   const getUnit = () => {
-    if (indicatorType === "divida_receita" || indicatorType === "divida_liquida_receita") {
+    if (
+      indicatorType === "divida_receita" ||
+      indicatorType === "divida_liquida_receita"
+    ) {
       return "ratio";
     }
     return "ratio"; // All indicators are ratios
@@ -196,11 +220,9 @@ export function FinancialIndicatorHistoricalModalV2({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[70vw] sm:w-[90vw] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            Evolução Histórica - {indicatorTitle}
-          </DialogTitle>
+          <DialogTitle>Evolução Histórica - {indicatorTitle}</DialogTitle>
           <DialogDescription>
             Histórico do indicador por safra (2021/22 - 2029/30)
           </DialogDescription>
@@ -250,34 +272,42 @@ export function FinancialIndicatorHistoricalModalV2({
                   {/* Resumo das métricas */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="bg-muted/30 p-4 rounded-lg">
-                      <div className="text-sm font-medium text-muted-foreground">Valor Atual</div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Valor Atual
+                      </div>
                       <div className="text-2xl font-bold mt-1">
                         {formatValue(data.currentValue)}
                       </div>
                     </div>
                     <div className="bg-muted/30 p-4 rounded-lg">
-                      <div className="text-sm font-medium text-muted-foreground">Crescimento YoY</div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Crescimento YoY
+                      </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-2xl font-bold">
-                          {data.crescimentoRealizado >= 0 ? '+' : ''}{data.crescimentoRealizado.toFixed(1)}%
+                          {data.crescimentoRealizado >= 0 ? "+" : ""}
+                          {data.crescimentoRealizado.toFixed(1)}%
                         </span>
-                        {data.crescimentoRealizado >= 0 ? (
-                          <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        {data.crescimentoRealizado < 0 ? (
+                          <TrendingDown className="h-5 w-5 text-emerald-500" />
                         ) : (
-                          <TrendingDown className="h-5 w-5 text-red-500" />
+                          <TrendingUp className="h-5 w-5 text-red-500" />
                         )}
                       </div>
                     </div>
                     <div className="bg-muted/30 p-4 rounded-lg">
-                      <div className="text-sm font-medium text-muted-foreground">Período</div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Período
+                      </div>
                       <div className="text-lg font-bold mt-1">
-                        {data.periodoRealizado || `${data.data[0]?.safra} - ${data.data[data.data.length - 1]?.safra}`}
+                        {data.periodoRealizado ||
+                          `${data.data[0]?.safra} - ${data.data[data.data.length - 1]?.safra}`}
                       </div>
                     </div>
                   </div>
 
                   {/* Gráfico de linha */}
-                  <div className="h-96 w-full">
+                  <div className="h-[60vh] w-full">
                     <ChartContainer
                       config={chartConfig}
                       className="w-full h-full"
@@ -306,7 +336,7 @@ export function FinancialIndicatorHistoricalModalV2({
                             fontSize={12}
                             width={60}
                           />
-                          <ChartTooltip 
+                          <ChartTooltip
                             content={<ChartTooltipContent />}
                             formatter={(value, name) => [
                               formatValue(Number(value)),
@@ -343,24 +373,59 @@ export function FinancialIndicatorHistoricalModalV2({
                         <div className="flex items-start gap-2">
                           <div className="w-3 h-3 rounded-full bg-primary mt-1 flex-shrink-0"></div>
                           <div>
-                            <span className="font-medium text-primary">Dados Realizados:</span>
+                            <span className="font-medium text-primary">
+                              Dados Realizados:
+                            </span>
                             {data.realizadoData.length >= 2 ? (
                               <>
-                                {Math.abs(data.crescimentoRealizado) > 10 && data.crescimentoRealizado < 0 && (
-                                  <span> ✅ Melhora significativa de {Math.abs(data.crescimentoRealizado).toFixed(1)}% no período {data.periodoRealizado} (redução do indicador é positiva).</span>
-                                )}
-                                {Math.abs(data.crescimentoRealizado) <= 10 && data.crescimentoRealizado < 0 && (
-                                  <span> 📈 Melhora moderada de {Math.abs(data.crescimentoRealizado).toFixed(1)}% no período {data.periodoRealizado}.</span>
-                                )}
-                                {data.crescimentoRealizado >= 0 && data.crescimentoRealizado <= 10 && (
-                                  <span> ⚠️ Aumento moderado de {data.crescimentoRealizado.toFixed(1)}% no período {data.periodoRealizado}.</span>
-                                )}
+                                {Math.abs(data.crescimentoRealizado) > 10 &&
+                                  data.crescimentoRealizado < 0 && (
+                                    <span>
+                                      {" "}
+                                      ✅ Melhora significativa de{" "}
+                                      {Math.abs(
+                                        data.crescimentoRealizado
+                                      ).toFixed(1)}
+                                      % no período {data.periodoRealizado}{" "}
+                                      (redução do indicador é positiva).
+                                    </span>
+                                  )}
+                                {Math.abs(data.crescimentoRealizado) <= 10 &&
+                                  data.crescimentoRealizado < 0 && (
+                                    <span>
+                                      {" "}
+                                      📈 Melhora moderada de{" "}
+                                      {Math.abs(
+                                        data.crescimentoRealizado
+                                      ).toFixed(1)}
+                                      % no período {data.periodoRealizado}.
+                                    </span>
+                                  )}
+                                {data.crescimentoRealizado >= 0 &&
+                                  data.crescimentoRealizado <= 10 && (
+                                    <span>
+                                      {" "}
+                                      ⚠️ Aumento moderado de{" "}
+                                      {data.crescimentoRealizado.toFixed(1)}% no
+                                      período {data.periodoRealizado}.
+                                    </span>
+                                  )}
                                 {data.crescimentoRealizado > 10 && (
-                                  <span> 📉 Aumento significativo de {data.crescimentoRealizado.toFixed(1)}% no período {data.periodoRealizado} (atenção ao endividamento).</span>
+                                  <span>
+                                    {" "}
+                                    📉 Aumento significativo de{" "}
+                                    {data.crescimentoRealizado.toFixed(1)}% no
+                                    período {data.periodoRealizado} (atenção ao
+                                    endividamento).
+                                  </span>
                                 )}
                               </>
                             ) : (
-                              <span> Apenas {data.realizadoData.length} safra com dados realizados.</span>
+                              <span>
+                                {" "}
+                                Apenas {data.realizadoData.length} safra com
+                                dados realizados.
+                              </span>
                             )}
                           </div>
                         </div>
@@ -371,21 +436,48 @@ export function FinancialIndicatorHistoricalModalV2({
                         <div className="flex items-start gap-2">
                           <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 flex-shrink-0"></div>
                           <div>
-                            <span className="font-medium text-blue-700">Dados Projetados:</span>
+                            <span className="font-medium text-blue-700">
+                              Dados Projetados:
+                            </span>
                             {data.periodoProjetado ? (
                               <>
-                                {Math.abs(data.crescimentoProjetado) > 10 && data.crescimentoProjetado < 0 && (
-                                  <span> 🚀 Melhora projetada significativa de {Math.abs(data.crescimentoProjetado).toFixed(1)}% para o período {data.periodoProjetado}.</span>
-                                )}
-                                {Math.abs(data.crescimentoProjetado) <= 10 && data.crescimentoProjetado < 0 && (
-                                  <span> 📊 Melhora projetada moderada de {Math.abs(data.crescimentoProjetado).toFixed(1)}% para o período {data.periodoProjetado}.</span>
-                                )}
+                                {Math.abs(data.crescimentoProjetado) > 10 &&
+                                  data.crescimentoProjetado < 0 && (
+                                    <span>
+                                      {" "}
+                                      🚀 Melhora projetada significativa de{" "}
+                                      {Math.abs(
+                                        data.crescimentoProjetado
+                                      ).toFixed(1)}
+                                      % para o período {data.periodoProjetado}.
+                                    </span>
+                                  )}
+                                {Math.abs(data.crescimentoProjetado) <= 10 &&
+                                  data.crescimentoProjetado < 0 && (
+                                    <span>
+                                      {" "}
+                                      📊 Melhora projetada moderada de{" "}
+                                      {Math.abs(
+                                        data.crescimentoProjetado
+                                      ).toFixed(1)}
+                                      % para o período {data.periodoProjetado}.
+                                    </span>
+                                  )}
                                 {data.crescimentoProjetado >= 0 && (
-                                  <span> ⚠️ Aumento projetado de {data.crescimentoProjetado.toFixed(1)}% para o período {data.periodoProjetado}.</span>
+                                  <span>
+                                    {" "}
+                                    ⚠️ Aumento projetado de{" "}
+                                    {data.crescimentoProjetado.toFixed(1)}% para
+                                    o período {data.periodoProjetado}.
+                                  </span>
                                 )}
                               </>
                             ) : (
-                              <span> {data.projetadoData.length} safra(s) com projeções disponíveis.</span>
+                              <span>
+                                {" "}
+                                {data.projetadoData.length} safra(s) com
+                                projeções disponíveis.
+                              </span>
                             )}
                           </div>
                         </div>
@@ -393,7 +485,17 @@ export function FinancialIndicatorHistoricalModalV2({
 
                       {/* Resumo geral */}
                       <div className="pt-2 border-t border-muted-foreground/20">
-                        <span>📊 Análise baseada em <strong>{data.realizadoData.length} safras realizadas</strong> e <strong>{data.projetadoData.length} safras projetadas</strong>.</span>
+                        <span>
+                          📊 Análise baseada em{" "}
+                          <strong>
+                            {data.realizadoData.length} safras realizadas
+                          </strong>{" "}
+                          e{" "}
+                          <strong>
+                            {data.projetadoData.length} safras projetadas
+                          </strong>
+                          .
+                        </span>
                       </div>
                     </div>
                   </div>

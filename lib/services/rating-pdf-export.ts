@@ -21,6 +21,7 @@ interface RatingResult {
   ratingColor: string;
   metrics: MetricResult[];
   calculatedAt: Date;
+  organizationName?: string;
 }
 
 export function exportRatingToPDF(result: RatingResult) {
@@ -35,20 +36,27 @@ export function exportRatingToPDF(result: RatingResult) {
   doc.setTextColor(primaryColor);
   doc.text('Relatório de Rating', 105, 20, { align: 'center' });
   
+  // Organization name (if provided)
+  if (result.organizationName) {
+    doc.setFontSize(14);
+    doc.setTextColor(secondaryColor);
+    doc.text(result.organizationName, 105, 30, { align: 'center' });
+  }
+  
   // Subtitle
   doc.setFontSize(12);
   doc.setTextColor(100);
-  doc.text(`${result.modelName} • Safra ${result.safraName} • ${result.scenarioName}`, 105, 30, { align: 'center' });
+  doc.text(`${result.modelName} • Safra ${result.safraName} • ${result.scenarioName}`, 105, result.organizationName ? 38 : 30, { align: 'center' });
   
   // Date
   doc.setFontSize(10);
   doc.text(
     `Gerado em: ${new Date(result.calculatedAt).toLocaleDateString('pt-BR')} às ${new Date(result.calculatedAt).toLocaleTimeString('pt-BR')}`,
-    105, 37, { align: 'center' }
+    105, result.organizationName ? 45 : 37, { align: 'center' }
   );
   
   // Rating Box
-  const boxY = 50;
+  const boxY = result.organizationName ? 58 : 50;
   doc.setFillColor(245, 245, 245);
   doc.roundedRect(60, boxY, 90, 40, 5, 5, 'F');
   

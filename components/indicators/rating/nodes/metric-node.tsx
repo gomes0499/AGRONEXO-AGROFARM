@@ -58,70 +58,72 @@ export function MetricNode({ data, id }: NodeProps<MetricNodeData>) {
   const isQuantitative = data.metric.tipo === "QUANTITATIVE";
 
   return (
-    <Card className="p-4 min-w-[250px] bg-white shadow-lg">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold text-sm">{data.metric.nome}</h4>
-          <Badge variant={isQuantitative ? "default" : "secondary"}>
-            {isQuantitative ? "Quantitativa" : "Qualitativa"}
-          </Badge>
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          {data.metric.descricao}
-        </div>
-
-        {/* Weight control */}
-        <div className="space-y-1">
-          <Label className="text-xs">Peso (%)</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              min="0"
-              max="100"
-              step="5"
-              value={data.weight}
-              onChange={(e) => handleWeightChange(e.target.value)}
-              className="h-8 text-sm"
-            />
-            <span className="text-xs text-muted-foreground">%</span>
+    <div className="relative">
+      <Card className="p-4 min-w-[250px] bg-background shadow-lg border-border dark:bg-gray-900 dark:border-gray-700">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold text-sm">{data.metric.nome}</h4>
+            <Badge variant={isQuantitative ? "default" : "secondary"}>
+              {isQuantitative ? "Quantitativa" : "Qualitativa"}
+            </Badge>
           </div>
-        </div>
 
-        {/* Value input for qualitative metrics */}
-        {!isQuantitative && (
+          <div className="text-xs text-muted-foreground">
+            {data.metric.descricao}
+          </div>
+
+          {/* Weight control */}
           <div className="space-y-1">
-            <Label className="text-xs">Valor (0-100)</Label>
-            <Input
-              type="number"
-              min="0"
-              max="100"
-              value={data.value || 0}
-              onChange={(e) => handleValueChange(e.target.value)}
-              className="h-8 text-sm"
-            />
-          </div>
-        )}
-
-        {/* Current score display */}
-        {data.score !== undefined && (
-          <div className="pt-2 border-t">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Pontuação:</span>
-              <span className="font-semibold">
-                {typeof data.score === 'number' ? data.score.toFixed(1) : '0.0'}
-              </span>
+            <Label className="text-xs">Peso (%)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="5"
+                value={data.weight}
+                onChange={(e) => handleWeightChange(e.target.value)}
+                className="h-8 text-sm"
+              />
+              <span className="text-xs text-muted-foreground">%</span>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Value input for qualitative metrics */}
+          {!isQuantitative && (
+            <div className="space-y-1">
+              <Label className="text-xs">Valor (0-100)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={data.value || 0}
+                onChange={(e) => handleValueChange(e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+          )}
+
+          {/* Current score display */}
+          {data.score !== undefined && (
+            <div className="pt-2 border-t">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Pontuação:</span>
+                <span className="font-semibold">
+                  {typeof data.score === 'number' ? data.score.toFixed(1) : '0.0'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
 
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 bg-primary border-2 border-white shadow-md hover:w-4 hover:h-4 transition-all cursor-crosshair"
+        className="absolute top-1/2 -translate-y-1/2 -right-2 w-4 h-4 bg-primary border-2 border-background dark:border-gray-900 shadow-lg hover:scale-125 transition-transform cursor-crosshair"
         title="Arraste para conectar ao Rating Final"
       />
-    </Card>
+    </div>
   );
 }

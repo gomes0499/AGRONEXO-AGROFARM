@@ -170,7 +170,11 @@ export function FinancialKpiCards({
   const [data, setData] = useState(initialData);
   
   // Use external safra if provided, otherwise use default
-  const defaultSafraId = initialData.safras?.find(s => s.nome === "2025/26")?.id || initialData.currentSafra?.id || "";
+  // Prioritize safras with actual data (2023/24 or 2024/25)
+  const defaultSafraId = initialData.safras?.find(s => s.nome === "2024/25")?.id || 
+                        initialData.safras?.find(s => s.nome === "2023/24")?.id ||
+                        initialData.safras?.find(s => s.nome === "2025/26")?.id || 
+                        initialData.currentSafra?.id || "";
   const [internalSelectedSafraId, setInternalSelectedSafraId] = useState(defaultSafraId);
   const selectedSafraId = externalSelectedSafraId !== undefined ? externalSelectedSafraId : internalSelectedSafraId;
   

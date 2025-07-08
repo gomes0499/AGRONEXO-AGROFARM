@@ -1,20 +1,27 @@
 "use client";
 
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Award, FileText, X, Save } from "lucide-react";
+import { Award, FileText, X, Save, Mail, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { exportRatingToPDF } from "@/lib/services/rating-pdf-export";
+import { sendRatingResultByEmail } from "@/lib/actions/email-rating-actions";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface MetricResult {
   nome: string;
@@ -40,10 +47,18 @@ interface RatingResultModalProps {
     ratingColor: string;
     metrics: MetricResult[];
     calculatedAt: Date;
+    organizationName?: string;
   } | null;
 }
 
 export function RatingResultModal({ isOpen, onClose, onSave, result }: RatingResultModalProps) {
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [sendByEmail, setSendByEmail] = useState(false);
+  const [emailList, setEmailList] = useState<string[]>([""]);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
   if (!result) return null;
 
   const getRatingDescription = (rating: string) => {
@@ -69,6 +84,86 @@ export function RatingResultModal({ isOpen, onClose, onSave, result }: RatingRes
       return value.toFixed(2) + "x";
     }
     return value.toFixed(2) + (unidade ? ` ${unidade}` : "");
+  };
+
+  const addEmail = () => {
+    setEmailList([...emailList, ""]);
+  };
+
+  const removeEmail = (index: number) => {
+    if (emailList.length > 1) {
+      setEmailList(emailList.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateEmail = (index: number, value: string) => {
+    const newEmails = [...emailList];
+    newEmails[index] = value;
+    setEmailList(newEmails);
+  };
+
+  const validateEmails = () => {
+    const validEmails = emailList.filter(email => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email.trim());
+    });
+    return validEmails;
+  };
+
+  const handleEmailSend = async () => {
+    try {
+      const validEmails = validateEmails();
+      if (validEmails.length === 0) {
+        toast.error("Por favor, insira pelo menos um email válido.");
+        return;
+      }
+
+      setIsSending(true);
+
+      // Generate PDF first
+      const { generateRatingPDF } = await import("@/lib/services/rating-pdf-generator");
+      const pdfBlob = await generateRatingPDF(result);
+      const pdfBuffer = await pdfBlob.arrayBuffer();
+      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+
+      // Send email with the rating data
+      const emailResult = await sendRatingResultByEmail(
+        result.organizationName || "Organização",
+        result,
+        validEmails,
+        emailSubject || `Relatório de Rating - ${result.modelName}`,
+        emailMessage,
+        pdfBase64
+      );
+
+      if (emailResult.success) {
+        if (emailResult.successCount === validEmails.length) {
+          toast.success(
+            `✓ Relatório enviado com sucesso para todos os ${emailResult.successCount} destinatário(s)!`
+          );
+        } else {
+          toast.success(
+            `✓ Relatório enviado para ${emailResult.successCount} de ${validEmails.length} destinatário(s).`
+          );
+          if (emailResult.failedCount > 0) {
+            toast.warning(
+              `⚠️ Falha ao enviar para ${emailResult.failedCount} destinatário(s).`
+            );
+          }
+        }
+        setShowEmailDialog(false);
+        setEmailList([""]);
+        setEmailSubject("");
+        setEmailMessage("");
+      } else {
+        toast.error("❌ Erro ao enviar o relatório por email.");
+      }
+    } catch (error) {
+      console.error("Erro ao enviar email:", error);
+      toast.error("Erro ao enviar email");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -218,6 +313,10 @@ export function RatingResultModal({ isOpen, onClose, onSave, result }: RatingRes
               )}
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowEmailDialog(true)}>
+                <Mail className="mr-2 h-4 w-4" />
+                Enviar por Email
+              </Button>
               <Button variant="outline" onClick={() => {
                 if (result) {
                   try {
@@ -237,6 +336,113 @@ export function RatingResultModal({ isOpen, onClose, onSave, result }: RatingRes
           </div>
         </div>
       </DialogContent>
+
+      {/* Email Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Enviar Relatório por Email</DialogTitle>
+            <DialogDescription>
+              O relatório de rating será enviado em formato PDF para os destinatários.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="subject">Assunto (opcional)</Label>
+              <Input
+                id="subject"
+                placeholder={`Relatório de Rating - ${result.modelName}`}
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="message">Mensagem (opcional)</Label>
+              <Textarea
+                id="message"
+                placeholder="Digite uma mensagem personalizada para acompanhar o relatório..."
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Destinatários</Label>
+              {emailList.map((email, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    value={email}
+                    onChange={(e) => updateEmail(index, e.target.value)}
+                  />
+                  {emailList.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeEmail(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addEmail}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar destinatário
+              </Button>
+            </div>
+
+            <div className="border-t pt-4 space-y-2">
+              <h4 className="text-sm font-medium">Conteúdo do relatório:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                <li>• Classificação: {result.rating} ({result.finalScore.toFixed(1)} pontos)</li>
+                <li>• Modelo: {result.modelName}</li>
+                <li>• Safra: {result.safraName}</li>
+                <li>• Cenário: {result.scenarioName}</li>
+                <li>• Análise detalhada de {result.metrics.length} métricas</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowEmailDialog(false)}
+              disabled={isSending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleEmailSend}
+              disabled={isSending}
+              className="gap-2"
+            >
+              {isSending ? (
+                <>
+                  <Mail className="h-4 w-4 animate-pulse" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4" />
+                  Enviar Email
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

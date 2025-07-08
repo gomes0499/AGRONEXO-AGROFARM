@@ -157,36 +157,46 @@ export async function getFinancialHistoricalMetricData(
     let periodoRealizado = "";
     let periodoProjetado = "";
 
-    // Crescimento realizado YoY (última vs penúltima safra)
-    if (realizadoData.length >= 2) {
-      const penultimaRealizada = realizadoData[realizadoData.length - 2];
-      const ultimaRealizada = realizadoData[realizadoData.length - 1];
-      if (penultimaRealizada.valor > 0) {
-        crescimentoRealizado = ((ultimaRealizada.valor - penultimaRealizada.valor) / penultimaRealizada.valor) * 100;
+    // Crescimento realizado - comparar primeira e última safra com dados válidos
+    const realizadoComDados = realizadoData.filter(item => item.valor > 0);
+    if (realizadoComDados.length >= 2) {
+      const primeiraRealizada = realizadoComDados[0];
+      const ultimaRealizada = realizadoComDados[realizadoComDados.length - 1];
+      if (primeiraRealizada.valor > 0) {
+        crescimentoRealizado = ((ultimaRealizada.valor - primeiraRealizada.valor) / primeiraRealizada.valor) * 100;
       }
-      periodoRealizado = `${penultimaRealizada.safra} vs ${ultimaRealizada.safra}`;
+      periodoRealizado = `${primeiraRealizada.safra} - ${ultimaRealizada.safra}`;
     }
 
-    // Crescimento projetado (última realizada vs primeira projetada, ou YoY entre projetadas)
-    if (projetadoData.length >= 2) {
-      // Se há múltiplas projeções, calcular YoY entre as duas primeiras
-      const primeiraProjetada = projetadoData[0];
-      const segundaProjetada = projetadoData[1];
+    // Crescimento projetado
+    const projetadoComDados = projetadoData.filter(item => item.valor > 0);
+    if (projetadoComDados.length >= 2) {
+      // Se há múltiplas projeções com dados, calcular entre primeira e última
+      const primeiraProjetada = projetadoComDados[0];
+      const ultimaProjetada = projetadoComDados[projetadoComDados.length - 1];
       if (primeiraProjetada.valor > 0) {
-        crescimentoProjetado = ((segundaProjetada.valor - primeiraProjetada.valor) / primeiraProjetada.valor) * 100;
+        crescimentoProjetado = ((ultimaProjetada.valor - primeiraProjetada.valor) / primeiraProjetada.valor) * 100;
       }
-      periodoProjetado = `${primeiraProjetada.safra} vs ${segundaProjetada.safra}`;
-    } else if (projetadoData.length >= 1 && realizadoData.length >= 1) {
+      periodoProjetado = `${primeiraProjetada.safra} - ${ultimaProjetada.safra}`;
+    } else if (projetadoComDados.length >= 1 && realizadoComDados.length >= 1) {
       // Se há apenas uma projeção, comparar com o último dado realizado
-      const lastRealizado = realizadoData[realizadoData.length - 1];
-      const firstProjetado = projetadoData[0];
+      const lastRealizado = realizadoComDados[realizadoComDados.length - 1];
+      const firstProjetado = projetadoComDados[0];
       if (lastRealizado.valor > 0) {
         crescimentoProjetado = ((firstProjetado.valor - lastRealizado.valor) / lastRealizado.valor) * 100;
       }
-      periodoProjetado = `${lastRealizado.safra} vs ${firstProjetado.safra}`;
+      periodoProjetado = `${lastRealizado.safra} - ${firstProjetado.safra}`;
     }
 
-    const currentValue = historicalData[historicalData.length - 1]?.valor || 0;
+    // Valor atual - pegar o último valor válido (maior que 0)
+    let currentValue = 0;
+    // Procurar de trás para frente o último valor válido
+    for (let i = historicalData.length - 1; i >= 0; i--) {
+      if (historicalData[i].valor > 0) {
+        currentValue = historicalData[i].valor;
+        break;
+      }
+    }
 
     return {
       data: historicalData,

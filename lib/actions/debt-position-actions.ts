@@ -880,14 +880,15 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     dividaLiquida[ano] = endividamentoTotal[ano] - caixasDisponibilidades[ano];
     
     // Patrimônio Líquido = Ativos Totais - Passivos Totais
-    // Por enquanto simplificado: caixas - dívidas
-    // TODO: Incluir valor das propriedades e outros ativos fixos quando disponíveis
-    patrimonioLiquido[ano] = caixasDisponibilidades[ano] - endividamentoTotal[ano];
+    // Por enquanto simplificado: assumindo que ativos totais = caixas + 2x endividamento (para representar ativos fixos)
+    // TODO: Incluir valor real das propriedades e outros ativos fixos quando disponíveis
+    const ativosEstimados = caixasDisponibilidades[ano] + (endividamentoTotal[ano] * 2);
+    patrimonioLiquido[ano] = ativosEstimados - endividamentoTotal[ano];
     
     // LTV (Loan to Value) = Dívida Total / Valor dos Ativos
-    // Usando caixas e disponibilidades como proxy para valor dos ativos
-    // TODO: Incluir valor das propriedades quando disponível
-    ltv[ano] = caixasDisponibilidades[ano] > 0 ? (endividamentoTotal[ano] / caixasDisponibilidades[ano]) * 100 : 0;
+    // Usando estimativa de ativos totais (incluindo estimativa de ativos fixos)
+    // TODO: Incluir valor real das propriedades quando disponível
+    ltv[ano] = ativosEstimados > 0 ? (endividamentoTotal[ano] / ativosEstimados) * 100 : 0;
     
     // Converter para dólar usando a cotação de Dólar Fechamento
     const cotacaoDolar = dolarFechamento[ano] || 5.70; // Valor padrão se não houver cotação

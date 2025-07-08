@@ -53,15 +53,8 @@ async function _getFinancialIndicatorHistoricalData(
   }
 }
 
-// Cached version of the function
-export const getFinancialIndicatorHistoricalData = unstable_cache(
-  _getFinancialIndicatorHistoricalData,
-  ["financial-indicator-historical"],
-  {
-    revalidate: 60, // Cache for 1 minute
-    tags: ["financial-indicators"],
-  }
-);
+// Export directly without caching for now to debug
+export const getFinancialIndicatorHistoricalData = _getFinancialIndicatorHistoricalData;
 
 // Get specific indicator data for chart
 export async function getIndicatorChartData(
