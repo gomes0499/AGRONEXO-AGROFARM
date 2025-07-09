@@ -62,6 +62,7 @@ interface DebtMetricsProps {
   dividasBancarias: DividaBancaria[];
   dividasTerras: DividaTerra[];
   dividasFornecedores: DividaFornecedor[];
+  safras?: any[];
 }
 
 interface KpiItemProps {
@@ -125,7 +126,8 @@ function KpiItem({
 export function DebtMetrics({ 
   dividasBancarias = [], 
   dividasTerras = [], 
-  dividasFornecedores = [] 
+  dividasFornecedores = [],
+  safras = []
 }: DebtMetricsProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [metrics, setMetrics] = useState({
@@ -147,8 +149,13 @@ export function DebtMetrics({
       }
 
       // Calcular total de dívidas bancárias
-      const totalBancarias = dividasBancarias.reduce((sum, divida) => {
+      const totalBancarias = dividasBancarias.reduce((sum, divida: any) => {
         try {
+          // Usar o campo total se existir
+          if (divida.total) {
+            return sum + divida.total;
+          }
+          
           // Se tem saldo devedor, usa ele, senão calcula do fluxo
           if (divida.saldo_devedor) {
             return sum + divida.saldo_devedor;
@@ -175,8 +182,13 @@ export function DebtMetrics({
     }, 0);
 
     // Calcular total de dívidas de fornecedores
-    const totalFornecedores = dividasFornecedores.reduce((sum, fornecedor) => {
+    const totalFornecedores = dividasFornecedores.reduce((sum, fornecedor: any) => {
       try {
+        // Usar o campo total se existir
+        if (fornecedor.total) {
+          return sum + fornecedor.total;
+        }
+        
         let valores = {};
         if (fornecedor.valores_por_ano) {
           valores = typeof fornecedor.valores_por_ano === 'string'
@@ -200,12 +212,14 @@ export function DebtMetrics({
     let totalBRL = 0;
 
     // Dívidas bancárias
-    dividasBancarias.forEach(divida => {
+    dividasBancarias.forEach((divida: any) => {
       try {
         let valor = 0;
         
-        // Se tem saldo devedor, usa ele, senão calcula do fluxo
-        if (divida.saldo_devedor) {
+        // Usar o campo total se existir
+        if (divida.total) {
+          valor = divida.total;
+        } else if (divida.saldo_devedor) {
           valor = divida.saldo_devedor;
         } else if (divida.fluxo_pagamento_anual) {
           let fluxo = {};
@@ -236,16 +250,21 @@ export function DebtMetrics({
     });
 
     // Dívidas de fornecedores
-    dividasFornecedores.forEach(fornecedor => {
+    dividasFornecedores.forEach((fornecedor: any) => {
       try {
-        let valores = {};
-        if (fornecedor.valores_por_ano) {
+        let total = 0;
+        
+        // Usar o campo total se existir
+        if (fornecedor.total) {
+          total = fornecedor.total;
+        } else if (fornecedor.valores_por_ano) {
+          let valores = {};
           valores = typeof fornecedor.valores_por_ano === 'string'
             ? JSON.parse(fornecedor.valores_por_ano)
             : fornecedor.valores_por_ano || {};
+          
+          total = Object.values(valores).reduce<number>((s, v) => s + (Number(v) || 0), 0);
         }
-        
-        const total = Object.values(valores).reduce<number>((s, v) => s + (Number(v) || 0), 0);
         
         if (fornecedor.moeda === 'USD') {
           totalUSD += total;
@@ -259,18 +278,6 @@ export function DebtMetrics({
 
     const percentualUSD = totalDividas > 0 ? (totalUSD / totalDividas) * 100 : 0;
     const percentualBRL = totalDividas > 0 ? (totalBRL / totalDividas) * 100 : 0;
-    
-    // Debug para entender a distribuição de moedas
-    console.log('Distribuição de moedas:', {
-      totalUSD,
-      totalBRL,
-      totalDividas,
-      percentualUSD,
-      percentualBRL,
-      dividasBancarias: dividasBancarias.map(d => ({ moeda: d.moeda, valor: d.saldo_devedor || 'fluxo' })),
-      dividasTerras: dividasTerras.map(d => ({ moeda: d.moeda, valor: d.valor_total })),
-      dividasFornecedores: dividasFornecedores.map(f => ({ moeda: f.moeda, nome: f.nome }))
-    });
 
     // Calcular taxa média de juros (apenas dívidas bancárias)
     const taxaMediaJuros = dividasBancarias.length > 0
@@ -282,8 +289,39 @@ export function DebtMetrics({
     let totalPrazos = 0;
     let countPrazos = 0;
 
-    dividasTerras.forEach(divida => {
-      if (divida.data_vencimento) {
+    // Considerar dívidas bancárias - assumir prazo baseado no fluxo de pagamentos
+    dividasBancarias.forEach((divida: any) => {
+      if (divida.fluxo_pagamento_anual) {
+        const fluxo = typeof divida.fluxo_pagamento_anual === 'string' 
+          ? JSON.parse(divida.fluxo_pagamento_anual) 
+          : divida.fluxo_pagamento_anual || {};
+        
+        // Encontrar o último ano com pagamento
+        const anos = Object.keys(fluxo).map(safraId => {
+          // Extrair o ano da safra (assumindo que está no formato YYYY/YY)
+          const safra = safras?.find((s: any) => s.id === safraId);
+          return safra ? safra.ano_fim : 0;
+        }).filter(ano => ano > currentYear);
+        
+        if (anos.length > 0) {
+          const ultimoAno = Math.max(...anos);
+          const anosRestantes = ultimoAno - currentYear;
+          if (anosRestantes > 0) {
+            totalPrazos += anosRestantes;
+            countPrazos++;
+          }
+        }
+      }
+    });
+
+    // Considerar dívidas de terras
+    dividasTerras.forEach((divida: any) => {
+      // Se tem ano definido, usar ele
+      if (divida.ano && divida.ano > currentYear) {
+        const anosRestantes = divida.ano - currentYear;
+        totalPrazos += anosRestantes;
+        countPrazos++;
+      } else if (divida.data_vencimento) {
         const vencimento = new Date(divida.data_vencimento).getFullYear();
         const anosRestantes = vencimento - currentYear;
         if (anosRestantes > 0) {

@@ -145,6 +145,7 @@ export function FinancialPageContent({
           dividasBancarias={dividasBancarias}
           dividasTerras={dividasTerras}
           dividasFornecedores={dividasFornecedores}
+          safras={safras}
         />
 
         <MobileTabs
@@ -193,6 +194,7 @@ export function FinancialPageContent({
             dividasBancarias={dividasBancarias}
             dividasTerras={dividasTerras}
             dividasFornecedores={dividasFornecedores}
+            safras={safras}
           />
 
           <Suspense

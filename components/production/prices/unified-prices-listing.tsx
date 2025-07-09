@@ -108,9 +108,8 @@ export function UnifiedPricesListing({
     price => !deletedIds.has(price.id)
   );
 
-  // Filter and sort safras for display
+  // Sort all safras for display (no filtering)
   const displaySafras = safras
-    .filter(s => s.ano_inicio >= 2021 && s.ano_inicio <= 2029)
     .sort((a, b) => a.ano_inicio - b.ano_inicio);
 
   // Exchange rate types for identification
@@ -193,23 +192,31 @@ export function UnifiedPricesListing({
         }
       });
 
-      // Set current price as the first safra price
+      // Set current price as the first safra price (pode ser 0)
       const currentPrice = precosPorAno[displaySafras[0]?.id] || 0;
 
       const isExchangeRate = EXCHANGE_RATE_TYPES.includes(
         price.commodity_type || ""
       ) || price.tipo_moeda;
 
+      let result;
       if (isExchangeRate) {
-        await updateExchangeRateProjection(priceId, {
+        result = await updateExchangeRateProjection(priceId, {
           cotacao_atual: currentPrice,
           cotacoes_por_ano: precosPorAno,
         }, projectionId);
       } else {
-        await updateCommodityPriceProjection(priceId, {
+        result = await updateCommodityPriceProjection(priceId, {
           current_price: currentPrice,
           precos_por_ano: precosPorAno,
         }, projectionId);
+      }
+
+      if (result.error) {
+        const errorMessage = typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as any).message 
+          : "Erro ao atualizar";
+        throw new Error(errorMessage);
       }
 
       toast.success("Preço atualizado com sucesso");
