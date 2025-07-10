@@ -414,13 +414,29 @@ export class DefinitivePDFReportService {
     this.currentY = 60;
     this.doc.setFontSize(24);
     this.doc.setFont("helvetica", "bold");
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
     this.doc.text("PROPRIEDADES RURAIS", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Análise completa do patrimônio imobiliário e distribuição de valor por propriedade", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
 
-    // KPIs em cards
-    this.currentY = 90;
-    const cardWidth = 40;
-    const cardHeight = 25;
-    const cardSpacing = 5;
+    // KPIs em cards - Layout melhorado
+    this.currentY = 95;
+    const cardWidth = 45;
+    const cardHeight = 30;
+    const cardSpacing = 3;
     const startX = (this.pageWidth - (4 * cardWidth + 3 * cardSpacing)) / 2;
 
     const stats = data.propertiesStats;
@@ -441,7 +457,7 @@ export class DefinitivePDFReportService {
       },
       {
         title: "ÁREA PATRIMONIAL",
-        value: `R$ ${(stats.valorPatrimonial / 1000000000).toFixed(2)} Bi`,
+        value: this.formatPatrimonialValue(stats.valorPatrimonial),
         subtitle: "patrimônio",
         color: { r: 66, g: 56, b: 157 } // Roxo
       },
@@ -456,38 +472,53 @@ export class DefinitivePDFReportService {
     kpis.forEach((kpi, index) => {
       const x = startX + index * (cardWidth + cardSpacing);
       
-      // Card background - mais claro
-      this.doc.setFillColor(248, 248, 252);
-      this.doc.roundedRect(x, this.currentY, cardWidth, cardHeight, 3, 3, 'F');
+      // Card background com gradiente simulado
+      this.doc.setFillColor(245, 243, 255); // Roxo muito claro
+      this.doc.roundedRect(x, this.currentY, cardWidth, cardHeight, 4, 4, 'F');
       
-      // Círculo com ícone (simulado com um pequeno círculo colorido)
-      this.doc.setFillColor(kpi.color.r, kpi.color.g, kpi.color.b);
-      this.doc.circle(x + 5, this.currentY + 5, 2, 'F');
+      // Borda sutil
+      this.doc.setDrawColor(66, 56, 157); // Roxo
+      this.doc.setLineWidth(0.5);
+      this.doc.roundedRect(x, this.currentY, cardWidth, cardHeight, 4, 4, 'S');
       
-      // Título do KPI
+      // Círculo com ícone maior e mais visível
+      this.doc.setFillColor(66, 56, 157); // Roxo sólido
+      this.doc.circle(x + cardWidth/2, this.currentY + 7, 3.5, 'F');
+      
+      // Ícone simulado (ponto branco dentro do círculo)
+      this.doc.setFillColor(255, 255, 255);
+      this.doc.circle(x + cardWidth/2, this.currentY + 7, 1.5, 'F');
+      
+      // Título do KPI - centralizado
+      this.doc.setFontSize(8);
+      this.doc.setFont("helvetica", "normal");
+      this.doc.setTextColor(66, 56, 157); // Roxo para o título
+      this.doc.text(kpi.title, x + cardWidth / 2, this.currentY + 14, { align: "center" });
+      
+      // Valor principal - maior e mais destacado
+      this.doc.setFontSize(18);
+      this.doc.setFont("helvetica", "bold");
+      this.doc.setTextColor(20, 20, 20);
+      this.doc.text(kpi.value, x + cardWidth / 2, this.currentY + 22, { align: "center" });
+      
+      // Subtítulo - melhor posicionado
       this.doc.setFontSize(7);
       this.doc.setFont("helvetica", "normal");
       this.doc.setTextColor(100, 100, 100);
-      this.doc.text(kpi.title, x + 10, this.currentY + 5);
-      
-      // Valor principal
-      this.doc.setFontSize(14);
-      this.doc.setFont("helvetica", "bold");
-      this.doc.setTextColor(0, 0, 0);
-      this.doc.text(kpi.value, x + cardWidth / 2, this.currentY + 14, { align: "center" });
-      
-      // Subtítulo
-      this.doc.setFontSize(6);
-      this.doc.setFont("helvetica", "normal");
-      this.doc.setTextColor(100, 100, 100);
-      const lines = this.doc.splitTextToSize(kpi.subtitle, cardWidth - 4);
+      const lines = this.doc.splitTextToSize(kpi.subtitle, cardWidth - 6);
       lines.forEach((line: string, i: number) => {
-        this.doc.text(line, x + cardWidth / 2, this.currentY + 19 + (i * 3), { align: "center" });
+        this.doc.text(line, x + cardWidth / 2, this.currentY + 27 + (i * 3), { align: "center" });
       });
     });
 
+    // Linha divisória entre seções
+    this.currentY = 135;
+    this.doc.setDrawColor(220, 220, 220);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin + 20, this.currentY, this.pageWidth - this.margin - 20, this.currentY);
+
     // Gráfico de barras - Valor por Propriedade
-    this.currentY = 130;
+    this.currentY = 145;
     
     // Título do gráfico
     this.doc.setFillColor(66, 56, 157);
@@ -502,9 +533,9 @@ export class DefinitivePDFReportService {
     this.doc.setFont("helvetica", "normal");
     this.doc.text("Ranking patrimonial das propriedades", this.pageWidth - this.margin - 5, this.currentY + 7, { align: "right" });
 
-    // Área do gráfico
-    this.currentY += 15;
-    const graphHeight = 80;
+    // Área do gráfico - com melhor espaçamento
+    this.currentY += 20;
+    const graphHeight = 75;
     const graphWidth = this.contentWidth;
     
     // Ordenar propriedades por valor (maiores primeiro) - TODAS as propriedades
@@ -516,12 +547,17 @@ export class DefinitivePDFReportService {
       const maxValue = Math.max(...sortedProperties.map(p => p.valor_atual));
       const barWidth = graphWidth / sortedProperties.length;
       
-      // Background do gráfico
-      this.doc.setFillColor(250, 250, 250);
+      // Background do gráfico - mais sutil
+      this.doc.setFillColor(252, 252, 254);
       this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'F');
       
-      // Grid lines horizontais
-      this.doc.setDrawColor(240, 240, 240);
+      // Borda do gráfico
+      this.doc.setDrawColor(230, 230, 240);
+      this.doc.setLineWidth(0.5);
+      this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'S');
+      
+      // Grid lines horizontais - mais sutis
+      this.doc.setDrawColor(240, 240, 250);
       this.doc.setLineWidth(0.1);
       
       // Valores do eixo Y - dinâmico baseado no valor máximo
@@ -539,27 +575,33 @@ export class DefinitivePDFReportService {
           this.doc.line(this.margin, y, this.margin + graphWidth, y);
         }
         
-        // Labels do eixo Y
+        // Labels do eixo Y - usando cor da marca
         this.doc.setFontSize(7);
-        this.doc.setTextColor(150, 150, 150);
+        this.doc.setFont("helvetica", "normal");
+        this.doc.setTextColor(66, 56, 157); // Roxo
         this.doc.text(`${value / 1000000}M`, this.margin - 5, y + 2, { align: "right" });
       });
       
-      // Barras com gradiente de cor
+      // Barras monocromáticas em tons de roxo
       sortedProperties.forEach((prop, index) => {
         const barHeight = (prop.valor_atual / yMax) * graphHeight;
         const x = this.margin + index * barWidth + barWidth * 0.1;
         const y = this.currentY + graphHeight - barHeight;
         const actualBarWidth = barWidth * 0.8; // 80% do espaço para a barra
         
-        // Gradiente de cor - do azul escuro ao roxo
-        const colorProgress = index / (sortedProperties.length - 1);
-        const r = Math.round(50 + (66 - 50) * colorProgress);
-        const g = Math.round(50 + (56 - 50) * colorProgress);
-        const b = Math.round(100 + (157 - 100) * colorProgress);
+        // Tons monocromáticos de roxo - mais escuro para valores maiores
+        const intensity = 1 - (index / sortedProperties.length) * 0.4; // De 100% a 60% de intensidade
+        const r = Math.round(66 * intensity);
+        const g = Math.round(56 * intensity);
+        const b = Math.round(157 * intensity);
         
         this.doc.setFillColor(r, g, b);
         this.doc.rect(x, y, actualBarWidth, barHeight, 'F');
+        
+        // Adicionar borda sutil nas barras
+        this.doc.setDrawColor(66, 56, 157);
+        this.doc.setLineWidth(0.2);
+        this.doc.rect(x, y, actualBarWidth, barHeight, 'S');
         
         // Valor acima de cada barra - mostrar valores estrategicamente
         let showValue = false;
@@ -579,10 +621,20 @@ export class DefinitivePDFReportService {
         }
         
         if (showValue && barHeight > 3) { // Mostrar se a barra for minimamente visível
-          this.doc.setFontSize(5);
-          this.doc.setTextColor(60, 60, 60);
+          this.doc.setFontSize(6);
+          this.doc.setFont("helvetica", "bold");
+          this.doc.setTextColor(66, 56, 157); // Roxo para combinar
           const valueText = `${(prop.valor_atual / 1000000).toFixed(1)}M`;
-          this.doc.text(valueText, x + actualBarWidth / 2, y - 1, { align: "center" });
+          this.doc.text(valueText, x + actualBarWidth / 2, y - 2, { align: "center" });
+          
+          // Nome da propriedade dentro da barra (se couber)
+          if (barHeight > 15 && sortedProperties.length <= 20) {
+            this.doc.setFontSize(5);
+            this.doc.setFont("helvetica", "normal");
+            this.doc.setTextColor(255, 255, 255);
+            const nome = prop.nome.length > 12 ? prop.nome.substring(0, 12) + '..' : prop.nome;
+            this.doc.text(nome, x + actualBarWidth / 2, y + barHeight - 3, { align: "center" });
+          }
         }
         
         // Nome da propriedade abaixo (rotacionado) - não mostrar para deixar mais limpo
@@ -614,12 +666,56 @@ export class DefinitivePDFReportService {
       this.doc.setLineWidth(0.5);
       this.doc.line(this.margin, this.currentY + graphHeight, this.margin + graphWidth, this.currentY + graphHeight);
       
-      // Valor total abaixo do gráfico
-      this.currentY += graphHeight + 20;
-      this.doc.setFontSize(8);
-      this.doc.setTextColor(100, 100, 100);
-      this.doc.text(this.formatCurrency(stats.valorPatrimonial), this.pageWidth - this.margin, this.currentY, { align: "right" });
+      // Valor total abaixo do gráfico com melhor formatação
+      this.currentY += graphHeight + 10;
+      
+      // Box para o valor total
+      const totalBoxWidth = 80;
+      const totalBoxHeight = 12;
+      const totalBoxX = this.pageWidth - this.margin - totalBoxWidth;
+      
+      this.doc.setFillColor(245, 243, 255); // Roxo muito claro
+      this.doc.roundedRect(totalBoxX, this.currentY - 8, totalBoxWidth, totalBoxHeight, 2, 2, 'F');
+      
+      this.doc.setFontSize(7);
+      this.doc.setFont("helvetica", "normal");
+      this.doc.setTextColor(66, 56, 157);
+      this.doc.text("Valor Total do Patrimônio", totalBoxX + totalBoxWidth/2, this.currentY - 3, { align: "center" });
+      
+      this.doc.setFontSize(10);
+      this.doc.setFont("helvetica", "bold");
+      this.doc.setTextColor(20, 20, 20);
+      this.doc.text(this.formatCurrency(stats.valorPatrimonial), totalBoxX + totalBoxWidth/2, this.currentY + 2, { align: "center" });
     }
+    
+    // Rodapé da página com informações adicionais
+    this.currentY = this.pageHeight - 30;
+    
+    // Linha divisória do rodapé
+    this.doc.setDrawColor(220, 220, 220);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
+    
+    // Informações resumidas no rodapé
+    this.currentY += 5;
+    this.doc.setFontSize(8);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    const footerInfo = [
+      `${stats.totalFazendas} fazendas`,
+      `${this.formatNumber(stats.areaTotal)} hectares totais`,
+      `${stats.areaPercentualPropria.toFixed(0)}% área própria`,
+      `${stats.areaPercentualArrendada.toFixed(0)}% área arrendada`
+    ];
+    
+    this.doc.text(footerInfo.join(" • "), this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Número da página
+    this.currentY += 5;
+    this.doc.setFontSize(7);
+    this.doc.setTextColor(150, 150, 150);
+    this.doc.text("Página 2", this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   private addPage3(data: ReportData): void {
@@ -652,10 +748,27 @@ export class DefinitivePDFReportService {
     this.currentY = 60;
     this.doc.setFontSize(24);
     this.doc.setFont("helvetica", "bold");
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
     this.doc.text("EVOLUÇÃO DA ÁREA PLANTADA", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Análise temporal da distribuição de culturas e crescimento da área cultivada", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
 
     // Gráfico de barras empilhadas
-    this.currentY = 80;
+    this.currentY = 85;
+    const chartData = data.plantingAreaData.chartData;
     
     // Título do gráfico
     this.doc.setFillColor(66, 56, 157);
@@ -668,15 +781,14 @@ export class DefinitivePDFReportService {
     
     this.doc.setFontSize(8);
     this.doc.setFont("helvetica", "normal");
-    const chartData = data.plantingAreaData.chartData;
     if (chartData.length > 0) {
       const subtitle = `Área plantada por cultura em hectares (${chartData[0].safra} - ${chartData[chartData.length - 1].safra})`;
       this.doc.text(subtitle, this.pageWidth - this.margin - 5, this.currentY + 7, { align: "right" });
     }
 
-    // Área do gráfico
+    // Área do gráfico - com melhor espaçamento
     this.currentY += 15;
-    const graphHeight = 60;
+    const graphHeight = 65;
     const graphWidth = this.contentWidth;
     
     if (chartData.length > 0) {
@@ -684,27 +796,36 @@ export class DefinitivePDFReportService {
       const maxTotal = Math.max(...chartData.map(d => d.total));
       const yMax = Math.ceil(maxTotal / 8000) * 8000; // Arredondar para múltiplo de 8k
       
-      // Cores para cada cultura (ajustadas para corresponder à imagem)
+      // Cores para cada cultura - paleta monocromática roxa/violeta
       const cultureColors: { [key: string]: { r: number; g: number; b: number } } = {
-        'SOJA': { r: 91, g: 33, b: 182 },        // Roxo escuro (base)
-        'MILHO': { r: 124, g: 58, b: 237 },       // Roxo médio
-        'MILHO SAFRINHA': { r: 147, g: 91, b: 234 }, // Roxo claro
-        'ALGODAO': { r: 156, g: 163, b: 175 },    // Cinza
-        'ALGODÃO': { r: 156, g: 163, b: 175 },    // Cinza (com acento)
-        'SORGO': { r: 99, g: 102, b: 241 },       // Roxo/azul
-        'ARROZ': { r: 196, g: 181, b: 253 },      // Lilás claro
-        'FEIJAO': { r: 209, g: 213, b: 219 },     // Cinza claro
-        'FEIJÃO': { r: 209, g: 213, b: 219 },     // Cinza claro (com acento)
-        'MILHETO': { r: 180, g: 160, b: 255 },
-        'TRIGO': { r: 200, g: 190, b: 255 },
-        'GIRASSOL': { r: 255, g: 200, b: 100 },
-        'DEFAULT': { r: 180, g: 180, b: 180 }
+        'SOJA': { r: 66, g: 56, b: 157 },         // Roxo principal (mais escuro)
+        'MILHO': { r: 99, g: 91, b: 179 },        // Roxo médio
+        'MILHO SAFRINHA': { r: 132, g: 126, b: 201 }, // Roxo médio claro
+        'ALGODAO': { r: 165, g: 161, b: 223 },    // Roxo claro
+        'ALGODÃO': { r: 165, g: 161, b: 223 },    // Roxo claro (com acento)
+        'SORGO': { r: 198, g: 196, b: 245 },      // Lilás
+        'ARROZ': { r: 214, g: 211, b: 250 },      // Lilás muito claro
+        'FEIJAO': { r: 230, g: 229, b: 252 },     // Quase branco roxo
+        'FEIJÃO': { r: 230, g: 229, b: 252 },     // Quase branco roxo (com acento)
+        'MILHETO': { r: 115, g: 103, b: 240 },    // Azul violeta
+        'TRIGO': { r: 140, g: 130, b: 250 },      // Azul violeta claro
+        'GIRASSOL': { r: 180, g: 170, b: 255 },   // Periwinkle
+        'DEFAULT': { r: 200, g: 200, b: 220 }     // Cinza azulado
       };
       
       const barWidth = graphWidth / chartData.length;
       
-      // Grid lines
-      this.doc.setDrawColor(240, 240, 240);
+      // Background do gráfico - sutil
+      this.doc.setFillColor(252, 252, 254);
+      this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'F');
+      
+      // Borda do gráfico
+      this.doc.setDrawColor(230, 230, 240);
+      this.doc.setLineWidth(0.5);
+      this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'S');
+      
+      // Grid lines horizontais - mais sutis
+      this.doc.setDrawColor(240, 240, 250);
       this.doc.setLineWidth(0.1);
       
       // Valores do eixo Y
@@ -713,10 +834,14 @@ export class DefinitivePDFReportService {
         const value = (yMax / ySteps) * i;
         const y = this.currentY + graphHeight - (value / yMax) * graphHeight;
         
-        this.doc.line(this.margin, y, this.margin + graphWidth, y);
+        if (i > 0) {
+          this.doc.line(this.margin, y, this.margin + graphWidth, y);
+        }
         
+        // Labels do eixo Y - usando cor da marca
         this.doc.setFontSize(7);
-        this.doc.setTextColor(150, 150, 150);
+        this.doc.setFont("helvetica", "normal");
+        this.doc.setTextColor(66, 56, 157); // Roxo
         this.doc.text(`${value / 1000}k`, this.margin - 5, y + 2, { align: "right" });
       }
       
@@ -771,12 +896,13 @@ export class DefinitivePDFReportService {
           }
         });
         
-        // Valor total acima da barra
+        // Valor total acima da barra - melhor formatação
         if (data.total > 0) {
-          this.doc.setFontSize(6);
-          this.doc.setTextColor(60, 60, 60);
-          const totalText = `${(data.total / 1000).toFixed(1)}k`;
-          this.doc.text(totalText, x + actualBarWidth / 2, this.currentY - 2, { align: "center" });
+          this.doc.setFontSize(7);
+          this.doc.setFont("helvetica", "bold");
+          this.doc.setTextColor(66, 56, 157); // Roxo
+          const totalText = `${(data.total / 1000).toFixed(1)}k ha`;
+          this.doc.text(totalText, x + actualBarWidth / 2, this.currentY - 3, { align: "center" });
         }
         
         // Safra abaixo
@@ -791,7 +917,7 @@ export class DefinitivePDFReportService {
       this.doc.line(this.margin, this.currentY + graphHeight, this.margin + graphWidth, this.currentY + graphHeight);
       
       // Legenda
-      this.currentY += graphHeight + 15;
+      this.currentY += graphHeight + 10;
       
       // Coletar culturas únicas presentes nos dados
       const uniqueCultures = new Set<string>();
@@ -813,33 +939,38 @@ export class DefinitivePDFReportService {
         const col = index % legendCols;
         const row = Math.floor(index / legendCols);
         const x = this.margin + col * legendColWidth;
-        const y = legendY + row * 8;
+        const y = legendY + row * 6;
         
         // Obter cor
         const color = cultureColors[culture] || cultureColors[culture.replace('Ã', 'A').replace('Ç', 'C')] || cultureColors['DEFAULT'];
         
         // Quadrado colorido
         this.doc.setFillColor(color.r, color.g, color.b);
-        this.doc.rect(x, y - 2, 4, 4, 'F');
+        this.doc.rect(x, y - 1.5, 3, 3, 'F');
         
         // Nome da cultura
-        this.doc.setFontSize(7);
+        this.doc.setFontSize(6);
         this.doc.setTextColor(80, 80, 80);
-        this.doc.text(culture, x + 6, y);
+        this.doc.text(culture, x + 5, y);
       });
       
       // Nota sobre crescimento - ajustar posição baseado no número de linhas da legenda
       const legendRows = Math.ceil(legendOrder.length / legendCols);
-      this.currentY = legendY + (legendRows * 8) + 10;
+      this.currentY = legendY + (legendRows * 6) + 8;
+      
+      // Calcular crescimento real
+      const growthPercent = chartData.length > 0 ? 
+        ((chartData[chartData.length - 1].total - chartData[0].total) / chartData[0].total) * 100 : 0;
+      
       this.doc.setFontSize(8);
       this.doc.setTextColor(100, 100, 100);
-      this.doc.text("Crescimento total de 30.5% em área plantada", this.margin, this.currentY);
+      this.doc.text(`Crescimento total de ${growthPercent.toFixed(1)}% em área plantada`, this.margin, this.currentY);
       this.doc.text(`Mostrando evolução da área plantada por cultura entre ${chartData[0].safra} e ${chartData[chartData.length - 1].safra}`, 
         this.pageWidth - this.margin, this.currentY, { align: "right" });
     }
 
     // Tabela de dados
-    this.currentY += 15;
+    this.currentY += 10;
     
     // Cabeçalho da tabela
     this.doc.setFillColor(66, 56, 157);
@@ -863,24 +994,31 @@ export class DefinitivePDFReportService {
     
     // Linhas da tabela
     const tableData = data.plantingAreaData.tableData;
-    const rowHeight = 6;
+    const rowHeight = 5;
     
     tableData.forEach((row, rowIndex) => {
       // Fundo alternado
       if (rowIndex % 2 === 1) {
-        this.doc.setFillColor(248, 248, 252);
+        this.doc.setFillColor(250, 249, 255); // Roxo muito claro
         this.doc.rect(this.margin, this.currentY, this.contentWidth, rowHeight, 'F');
       }
       
-      // Nome da cultura/sistema/ciclo
+      // Nome da cultura/sistema/ciclo - usando tons monocromáticos
       this.doc.setFontSize(7);
       this.doc.setFont("helvetica", "bold");
       this.doc.setTextColor(255, 255, 255);
-      this.doc.setFillColor(row.cultura.includes('MILHO') ? 100 : 66, row.cultura.includes('MILHO') ? 86 : 56, row.cultura.includes('MILHO') ? 200 : 157);
+      
+      // Tons monocromáticos de roxo baseados no índice
+      const intensity = 0.8 - (rowIndex % 4) * 0.15; // Varia de 80% a 35%
+      const r = Math.round(66 * intensity);
+      const g = Math.round(56 * intensity);
+      const b = Math.round(157 * intensity);
+      
+      this.doc.setFillColor(r, g, b);
       this.doc.roundedRect(this.margin, this.currentY, 48, rowHeight - 1, 1, 1, 'F');
       
       const label = `${row.cultura} - ${row.sistema} - ${row.ciclo}`;
-      this.doc.text(label.length > 30 ? label.substring(0, 30) + '..' : label, this.margin + 2, this.currentY + 4);
+      this.doc.text(label.length > 30 ? label.substring(0, 30) + '..' : label, this.margin + 2, this.currentY + 3.5);
       
       // Valores por safra
       safras.forEach((safra, index) => {
@@ -892,20 +1030,56 @@ export class DefinitivePDFReportService {
         
         if (value && value > 0) {
           const text = value >= 1000 ? `${(value / 1000).toFixed(1)}k ha` : `${value} ha`;
-          this.doc.text(text, x, this.currentY + 4, { align: "center" });
+          this.doc.text(text, x, this.currentY + 3.5, { align: "center" });
         } else {
-          this.doc.text("-", x, this.currentY + 4, { align: "center" });
+          this.doc.setTextColor(150, 150, 150);
+          this.doc.text("-", x, this.currentY + 3.5, { align: "center" });
         }
       });
       
       this.currentY += rowHeight;
       
       // Quebra de página se necessário
-      if (this.currentY > this.pageHeight - this.margin - 20 && rowIndex < tableData.length - 1) {
+      if (this.currentY > this.pageHeight - this.margin - 40 && rowIndex < tableData.length - 1) {
         this.doc.addPage();
         this.currentY = this.margin;
       }
     });
+    
+    // Rodapé da página com informações adicionais
+    this.currentY = this.pageHeight - 30;
+    
+    // Linha divisória do rodapé
+    this.doc.setDrawColor(220, 220, 220);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
+    
+    // Informações resumidas no rodapé
+    this.currentY += 5;
+    this.doc.setFontSize(8);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    if (chartData.length > 0) {
+      const totalArea = chartData[chartData.length - 1].total;
+      const culturas = Object.keys(chartData[chartData.length - 1].culturas).length;
+      const growthPercent = ((chartData[chartData.length - 1].total - chartData[0].total) / chartData[0].total) * 100;
+      
+      const footerInfo = [
+        `${culturas} culturas`,
+        `${this.formatNumber(totalArea)} hectares plantados`,
+        `${growthPercent.toFixed(1)}% de crescimento`,
+        `${chartData.length} safras analisadas`
+      ];
+      
+      this.doc.text(footerInfo.join(" • "), this.pageWidth / 2, this.currentY, { align: "center" });
+    }
+    
+    // Número da página
+    this.currentY += 5;
+    this.doc.setFontSize(7);
+    this.doc.setTextColor(150, 150, 150);
+    this.doc.text("Página 3", this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   private addPage4(data: ReportData): void {
@@ -938,10 +1112,26 @@ export class DefinitivePDFReportService {
     this.currentY = 60;
     this.doc.setFontSize(24);
     this.doc.setFont("helvetica", "bold");
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
     this.doc.text("PRODUTIVIDADE", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Evolução da produtividade das culturas e análise de eficiência operacional", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
 
     // Gráfico de linhas
-    this.currentY = 80;
+    this.currentY = 95;
     
     // Título do gráfico
     this.doc.setFillColor(66, 56, 157);
@@ -966,25 +1156,28 @@ export class DefinitivePDFReportService {
     const graphWidth = this.contentWidth;
     
     if (chartData.length > 0) {
-      // Cores para cada cultura (paleta consistente)
+      // Cores para cada cultura - paleta monocromática roxa
       const cultureColors: { [key: string]: { r: number; g: number; b: number } } = {
-        'MILHO SAFRINHA/IRRIGADO': { r: 59, g: 130, b: 246 },    // Azul
-        'MILHO/SEQUEIRO': { r: 251, g: 146, b: 60 },             // Laranja
-        'SORGO/SEQUEIRO': { r: 239, g: 68, b: 68 },              // Vermelho
-        'SOJA/SEQUEIRO': { r: 91, g: 33, b: 182 },               // Roxo escuro
-        'SOJA/IRRIGADO': { r: 168, g: 85, b: 247 },              // Roxo claro
-        'ARROZ/IRRIGADO': { r: 147, g: 91, b: 234 },             // Roxo médio claro
-        'FEIJAO/SEQUEIRO': { r: 156, g: 163, b: 175 },           // Cinza médio
-        'ALGODAO/SEQUEIRO': { r: 209, g: 213, b: 219 },          // Cinza claro
-        'DEFAULT': { r: 180, g: 180, b: 180 }
+        'SOJA/SEQUEIRO': { r: 66, g: 56, b: 157 },               // Roxo principal
+        'MILHO/SEQUEIRO': { r: 99, g: 91, b: 179 },              // Roxo médio
+        'FEIJÃO/SEQUEIRO': { r: 132, g: 126, b: 201 },           // Roxo médio claro
+        'SORGO/SEQUEIRO': { r: 165, g: 161, b: 223 },            // Roxo claro
+        'MILHO SAFRINHA/IRRIGADO': { r: 115, g: 103, b: 240 },   // Azul violeta
+        'ALGODAO/SEQUEIRO': { r: 198, g: 196, b: 245 },          // Lilás
+        'DEFAULT': { r: 140, g: 130, b: 210 }                     // Roxo padrão
       };
       
       // Background do gráfico
-      this.doc.setFillColor(250, 250, 250);
+      this.doc.setFillColor(252, 252, 254);
       this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'F');
       
-      // Grid lines
-      this.doc.setDrawColor(240, 240, 240);
+      // Borda do gráfico
+      this.doc.setDrawColor(230, 230, 240);
+      this.doc.setLineWidth(0.5);
+      this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'S');
+      
+      // Grid lines horizontais
+      this.doc.setDrawColor(240, 240, 250);
       this.doc.setLineWidth(0.1);
       
       // Valores do eixo Y (0 a 180)
@@ -994,10 +1187,13 @@ export class DefinitivePDFReportService {
         const value = (yMax / ySteps) * i;
         const y = this.currentY + graphHeight - (value / yMax) * graphHeight;
         
-        this.doc.line(this.margin, y, this.margin + graphWidth, y);
+        if (i > 0) {
+          this.doc.line(this.margin, y, this.margin + graphWidth, y);
+        }
         
         this.doc.setFontSize(7);
-        this.doc.setTextColor(150, 150, 150);
+        this.doc.setFont("helvetica", "normal");
+        this.doc.setTextColor(66, 56, 157); // Roxo
         this.doc.text(`${value}`, this.margin - 5, y + 2, { align: "right" });
       }
       
@@ -1008,10 +1204,14 @@ export class DefinitivePDFReportService {
       });
       
       // Desenhar linhas para cada cultura
-      allCultures.forEach(culture => {
-        const color = cultureColors[culture] || cultureColors['DEFAULT'];
+      Array.from(allCultures).forEach((culture, cultureIndex) => {
+        // Atribuir cor baseada no índice para garantir variedade
+        const colorKeys = Object.keys(cultureColors).filter(k => k !== 'DEFAULT');
+        const colorKey = colorKeys[cultureIndex % colorKeys.length];
+        const color = cultureColors[culture] || cultureColors[colorKey] || cultureColors['DEFAULT'];
+        
         this.doc.setDrawColor(color.r, color.g, color.b);
-        this.doc.setLineWidth(1.5);
+        this.doc.setLineWidth(2);
         
         let firstPoint = true;
         let lastX = 0, lastY = 0;
@@ -1059,7 +1259,7 @@ export class DefinitivePDFReportService {
       this.doc.line(this.margin, this.currentY + graphHeight, this.margin + graphWidth, this.currentY + graphHeight);
       
       // Legenda
-      this.currentY += graphHeight + 15;
+      this.currentY += graphHeight + 10;
       const legendItems = Array.from(allCultures);
       const legendCols = 4;
       const legendWidth = this.contentWidth / legendCols;
@@ -1068,27 +1268,24 @@ export class DefinitivePDFReportService {
         const col = index % legendCols;
         const row = Math.floor(index / legendCols);
         const x = this.margin + col * legendWidth;
-        const y = this.currentY + row * 5;
+        const y = this.currentY + row * 6;
         
-        // Quadrado colorido
-        let color = cultureColors[culture];
-        if (!color) {
-          // Try matching just the crop name
-          const cropName = culture.split(' ')[0];
-          const matchingKey = Object.keys(cultureColors).find(key => key.includes(cropName));
-          color = matchingKey ? cultureColors[matchingKey] : cultureColors['DEFAULT'];
-        }
+        // Atribuir cor baseada no índice
+        const colorKeys = Object.keys(cultureColors).filter(k => k !== 'DEFAULT');
+        const colorKey = colorKeys[index % colorKeys.length];
+        const color = cultureColors[culture] || cultureColors[colorKey] || cultureColors['DEFAULT'];
+        
         this.doc.setFillColor(color.r, color.g, color.b);
-        this.doc.rect(x, y - 2, 3, 3, 'F');
+        this.doc.rect(x, y - 1.5, 3, 3, 'F');
         
         // Nome da cultura
-        this.doc.setFontSize(7);
+        this.doc.setFontSize(6);
         this.doc.setTextColor(80, 80, 80);
         this.doc.text(culture, x + 5, y);
       });
       
       // Nota sobre crescimento
-      this.currentY += Math.ceil(legendItems.length / legendCols) * 5 + 10;
+      this.currentY += Math.ceil(legendItems.length / legendCols) * 6 + 8;
       this.doc.setFontSize(8);
       this.doc.setTextColor(100, 100, 100);
       this.doc.text("Crescimento médio de 23.0% na produtividade", this.margin, this.currentY);
@@ -1097,7 +1294,7 @@ export class DefinitivePDFReportService {
     }
 
     // Tabela de dados
-    this.currentY += 15;
+    this.currentY += 10;
     
     // Cabeçalho da tabela
     this.doc.setFillColor(66, 56, 157);
@@ -1121,24 +1318,31 @@ export class DefinitivePDFReportService {
     
     // Linhas da tabela
     const tableData = data.productivityData.tableData;
-    const rowHeight = 6;
+    const rowHeight = 5;
     
     tableData.forEach((row, rowIndex) => {
       // Fundo alternado
       if (rowIndex % 2 === 1) {
-        this.doc.setFillColor(248, 248, 252);
+        this.doc.setFillColor(250, 249, 255); // Roxo muito claro
         this.doc.rect(this.margin, this.currentY, this.contentWidth, rowHeight, 'F');
       }
       
-      // Nome da cultura/sistema
+      // Nome da cultura/sistema - usando tons monocromáticos
       this.doc.setFontSize(7);
       this.doc.setFont("helvetica", "bold");
       this.doc.setTextColor(255, 255, 255);
-      this.doc.setFillColor(66, 56, 157);
+      
+      // Tons monocromáticos de roxo baseados no índice
+      const intensity = 0.8 - (rowIndex % 4) * 0.15;
+      const r = Math.round(66 * intensity);
+      const g = Math.round(56 * intensity);
+      const b = Math.round(157 * intensity);
+      
+      this.doc.setFillColor(r, g, b);
       this.doc.roundedRect(this.margin, this.currentY, 43, rowHeight - 1, 1, 1, 'F');
       
       const label = `${row.cultura} - ${row.sistema}`;
-      this.doc.text(label.length > 25 ? label.substring(0, 25) + '..' : label, this.margin + 2, this.currentY + 4);
+      this.doc.text(label.length > 25 ? label.substring(0, 25) + '..' : label, this.margin + 2, this.currentY + 3.5);
       
       // Valores por safra
       safras.forEach((safra, index) => {
@@ -1149,22 +1353,56 @@ export class DefinitivePDFReportService {
         this.doc.setTextColor(80, 80, 80);
         
         if (prod && prod.valor > 0) {
-          const text = `${prod.valor.toFixed(2)}\n${prod.unidade}`;
           this.doc.setFontSize(6);
-          this.doc.text(text, x, this.currentY + 3, { align: "center" });
+          this.doc.text(`${prod.valor.toFixed(1)} ${prod.unidade}`, x, this.currentY + 3.5, { align: "center" });
         } else {
-          this.doc.text("-", x, this.currentY + 4, { align: "center" });
+          this.doc.setTextColor(150, 150, 150);
+          this.doc.text("-", x, this.currentY + 3.5, { align: "center" });
         }
       });
       
       this.currentY += rowHeight;
       
       // Quebra de página se necessário
-      if (this.currentY > this.pageHeight - this.margin - 20 && rowIndex < tableData.length - 1) {
+      if (this.currentY > this.pageHeight - this.margin - 40 && rowIndex < tableData.length - 1) {
         this.doc.addPage();
         this.currentY = this.margin;
       }
     });
+    
+    // Rodapé da página com informações adicionais
+    this.currentY = this.pageHeight - 30;
+    
+    // Linha divisória do rodapé
+    this.doc.setDrawColor(220, 220, 220);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
+    
+    // Informações resumidas no rodapé
+    this.currentY += 5;
+    this.doc.setFontSize(8);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    if (chartData.length > 0) {
+      const culturas = tableData.length;
+      const safrasCount = chartData.length;
+      
+      const footerInfo = [
+        `${culturas} culturas monitoradas`,
+        `${safrasCount} safras analisadas`,
+        `Crescimento médio de 23%`,
+        `Dados de produtividade por hectare`
+      ];
+      
+      this.doc.text(footerInfo.join(" • "), this.pageWidth / 2, this.currentY, { align: "center" });
+    }
+    
+    // Número da página
+    this.currentY += 5;
+    this.doc.setFontSize(7);
+    this.doc.setTextColor(150, 150, 150);
+    this.doc.text("Página 4", this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   private addPage5(data: ReportData): void {
@@ -1186,29 +1424,58 @@ export class DefinitivePDFReportService {
       console.error('Error adding logo:', error);
     }
 
-    // Data
-    this.doc.setFontSize(10);
-    this.doc.setTextColor(100, 100, 100);
-    this.doc.text(new Date().toLocaleDateString('pt-BR'), this.pageWidth - this.margin, this.margin + 10, { align: 'right' });
-
-    // Título
-    this.currentY = this.margin + 30;
-    this.doc.setFontSize(20);
-    this.doc.setFont("helvetica", "bold");
+    // Data no canto superior direito
+    this.doc.setFontSize(12);
     this.doc.setTextColor(0, 0, 0);
-    this.doc.text("RECEITA PROJETADA", this.pageWidth / 2, this.currentY, { align: 'center' });
-    
-    this.currentY += 10;
-    this.doc.setFontSize(10);
-    this.doc.setTextColor(100, 100, 100);
-    this.doc.text("Projeção de receitas por cultura", this.pageWidth / 2, this.currentY, { align: 'center' });
+    const dateText = data.generatedAt.toLocaleDateString('pt-BR');
+    const dateWidth = this.doc.getTextWidth(dateText);
+    this.doc.text(dateText, this.pageWidth - this.margin - dateWidth, this.margin + 10);
 
-    // Gráfico
-    this.currentY += 20;
+    // Título da página
+    this.currentY = 60;
+    this.doc.setFontSize(24);
+    this.doc.setFont("helvetica", "bold");
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
+    this.doc.text("RECEITA PROJETADA", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Projeção de receitas por cultura e análise de crescimento do faturamento", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
+
+    // Gráfico de barras empilhadas
+    this.currentY = 95;
+    
+    // Título do gráfico
+    this.doc.setFillColor(66, 56, 157);
+    this.doc.roundedRect(this.margin, this.currentY, this.contentWidth, 10, 3, 3, 'F');
+    
+    this.doc.setFontSize(10);
+    this.doc.setFont("helvetica", "bold");
+    this.doc.setTextColor(255, 255, 255);
+    this.doc.text("Projeção de receitas por cultura", this.margin + 5, this.currentY + 7);
+    
     const chartData = data.revenueData.chartData;
     
     if (chartData && chartData.length > 0) {
-      const graphHeight = 80;
+      const subtitle = `Valores projetados (${chartData[0].safra} - ${chartData[chartData.length - 1].safra})`;
+      this.doc.setFontSize(8);
+      this.doc.setFont("helvetica", "normal");
+      this.doc.text(subtitle, this.pageWidth - this.margin - 5, this.currentY + 7, { align: "right" });
+      
+      // Área do gráfico
+      this.currentY += 12;
+      const graphHeight = 55;
       const graphWidth = this.contentWidth;
       const barWidth = graphWidth / chartData.length * 0.7;
       const barSpacing = graphWidth / chartData.length * 0.3;
@@ -1216,19 +1483,32 @@ export class DefinitivePDFReportService {
       // Encontrar valor máximo
       const maxValue = Math.max(...chartData.map(d => d.total));
       
-      // Eixos do gráfico
-      this.doc.setDrawColor(200, 200, 200);
-      this.doc.setLineWidth(0.5);
+      // Background do gráfico
+      this.doc.setFillColor(252, 252, 254);
+      this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'F');
       
-      // Linhas horizontais
+      // Borda do gráfico
+      this.doc.setDrawColor(230, 230, 240);
+      this.doc.setLineWidth(0.5);
+      this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'S');
+      
+      // Grid lines horizontais
+      this.doc.setDrawColor(240, 240, 250);
+      this.doc.setLineWidth(0.1);
+      
+      // Linhas horizontais e labels
       for (let i = 0; i <= 5; i++) {
         const y = this.currentY + (i * graphHeight / 5);
-        this.doc.line(this.margin, y, this.margin + graphWidth, y);
         
-        // Labels do eixo Y (em milhões)
+        if (i > 0) {
+          this.doc.line(this.margin, y, this.margin + graphWidth, y);
+        }
+        
+        // Labels do eixo Y (em milhões) - cor roxa
         const value = ((5 - i) / 5) * maxValue;
         this.doc.setFontSize(7);
-        this.doc.setTextColor(100, 100, 100);
+        this.doc.setFont("helvetica", "normal");
+        this.doc.setTextColor(66, 56, 157); // Roxo
         const label = value >= 1000000000 ? `R$ ${(value / 1000000000).toFixed(1)}B` : `R$ ${(value / 1000000).toFixed(0)}M`;
         this.doc.text(label, this.margin - 2, y + 2, { align: 'right' });
       }
@@ -1239,17 +1519,16 @@ export class DefinitivePDFReportService {
         Object.keys(d.culturas).forEach(cultura => allCultures.add(cultura));
       });
       
-      // Cores para culturas (conforme imagem)
+      // Cores para culturas - paleta monocromática roxa
       const cultureColors: { [key: string]: { r: number; g: number; b: number } } = {
-        'MILHO SAFRINHA 2ª SAFRA IRRIGADO': { r: 91, g: 33, b: 182 },    // Roxo escuro
-        'SORGO 3ª SAFRA SEQUEIRO': { r: 124, g: 58, b: 237 },            // Roxo médio
-        'SOJA 1ª SAFRA SEQUEIRO': { r: 147, g: 91, b: 234 },             // Roxo claro
-        'SOJA 1ª SAFRA IRRIGADO': { r: 156, g: 163, b: 175 },            // Cinza
-        'MILHO 1ª SAFRA SEQUEIRO': { r: 99, g: 102, b: 241 },            // Roxo/azul
-        'ARROZ 1ª SAFRA IRRIGADO': { r: 196, g: 181, b: 253 },           // Lilás claro
-        'FEIJAO 2ª SAFRA SEQUEIRO': { r: 209, g: 213, b: 219 },          // Cinza claro
-        'ALGODAO 2ª SAFRA SEQUEIRO': { r: 229, g: 231, b: 235 },         // Cinza muito claro
-        'DEFAULT': { r: 128, g: 128, b: 128 }
+        'SOJA': { r: 66, g: 56, b: 157 },         // Roxo principal (mais escuro)
+        'MILHO': { r: 99, g: 91, b: 179 },        // Roxo médio
+        'FEIJÃO': { r: 132, g: 126, b: 201 },     // Roxo médio claro
+        'SORGO': { r: 165, g: 161, b: 223 },      // Roxo claro
+        'ALGODÃO': { r: 198, g: 196, b: 245 },    // Lilás
+        'ARROZ': { r: 214, g: 211, b: 250 },      // Lilás muito claro
+        'MILHO SAFRINHA': { r: 115, g: 103, b: 240 }, // Azul violeta
+        'DEFAULT': { r: 140, g: 130, b: 210 }     // Roxo padrão
       };
       
       // Desenhar barras empilhadas
@@ -1257,26 +1536,36 @@ export class DefinitivePDFReportService {
         const x = this.margin + index * (barWidth + barSpacing) + barSpacing / 2;
         let currentHeight = 0;
         
-        // Ordenar culturas para consistência
-        const sortedCultures = Array.from(allCultures).sort();
+        // Ordenar culturas por valor decrescente para melhor visualização
+        const sortedCultures = Object.entries(yearData.culturas)
+          .sort(([, a], [, b]) => b - a)
+          .map(([cultura]) => cultura);
         
-        sortedCultures.forEach(cultura => {
+        sortedCultures.forEach((cultura, culturaIndex) => {
           const value = yearData.culturas[cultura] || 0;
           if (value > 0) {
             const barHeight = (value / maxValue) * graphHeight;
             const y = this.currentY + graphHeight - currentHeight - barHeight;
             
-            // Try exact match first, then fallback to simpler patterns
-            let color = cultureColors[cultura];
-            if (!color) {
-              // Try matching just the crop name
-              const cropName = cultura.split(' ')[0];
-              const matchingKey = Object.keys(cultureColors).find(key => key.includes(cropName));
-              color = matchingKey ? cultureColors[matchingKey] : cultureColors['DEFAULT'];
-            }
+            // Normalizar nome da cultura para cores
+            let colorKey = cultura.toUpperCase();
+            if (colorKey.includes('SOJA')) colorKey = 'SOJA';
+            else if (colorKey.includes('MILHO') && colorKey.includes('SAFRINHA')) colorKey = 'MILHO SAFRINHA';
+            else if (colorKey.includes('MILHO')) colorKey = 'MILHO';
+            else if (colorKey.includes('FEIJ')) colorKey = 'FEIJÃO';
+            else if (colorKey.includes('SORGO')) colorKey = 'SORGO';
+            else if (colorKey.includes('ALGOD')) colorKey = 'ALGODÃO';
+            else if (colorKey.includes('ARROZ')) colorKey = 'ARROZ';
+            
+            const color = cultureColors[colorKey] || cultureColors['DEFAULT'];
             
             this.doc.setFillColor(color.r, color.g, color.b);
             this.doc.rect(x, y, barWidth, barHeight, 'F');
+            
+            // Adicionar borda sutil nas barras
+            this.doc.setDrawColor(66, 56, 157);
+            this.doc.setLineWidth(0.1);
+            this.doc.rect(x, y, barWidth, barHeight, 'S');
             
             currentHeight += barHeight;
           }
@@ -1284,31 +1573,31 @@ export class DefinitivePDFReportService {
         
         // Valor total acima da barra
         if (yearData.total > 0) {
-          this.doc.setFontSize(8);
+          this.doc.setFontSize(7);
           this.doc.setFont("helvetica", "bold");
-          this.doc.setTextColor(80, 80, 80);
+          this.doc.setTextColor(66, 56, 157); // Roxo
           const totalLabel = yearData.total >= 1000000000 ? 
-            `R$ ${(yearData.total / 1000000000).toFixed(2)}B` : 
+            `R$ ${(yearData.total / 1000000000).toFixed(1)}B` : 
             `R$ ${(yearData.total / 1000000).toFixed(0)}M`;
           this.doc.text(totalLabel, x + barWidth / 2, this.currentY - 3, { align: 'center' });
         }
         
         // Label do ano
-        this.doc.setFontSize(8);
+        this.doc.setFontSize(7);
         this.doc.setFont("helvetica", "normal");
         this.doc.setTextColor(100, 100, 100);
         this.doc.text(yearData.safra, x + barWidth / 2, this.currentY + graphHeight + 5, { align: 'center' });
       });
       
       // Linha base
-      this.doc.setDrawColor(100, 100, 100);
+      this.doc.setDrawColor(200, 200, 200);
       this.doc.setLineWidth(0.5);
       this.doc.line(this.margin, this.currentY + graphHeight, this.margin + graphWidth, this.currentY + graphHeight);
       
       // Legenda
-      this.currentY += graphHeight + 15;
+      this.currentY += graphHeight + 8;
       const legendItems = Array.from(allCultures);
-      const legendCols = 4;
+      const legendCols = 5;
       const legendWidth = this.contentWidth / legendCols;
       
       legendItems.forEach((culture, index) => {
@@ -1317,26 +1606,30 @@ export class DefinitivePDFReportService {
         const x = this.margin + col * legendWidth;
         const y = this.currentY + row * 5;
         
-        // Quadrado colorido
-        let color = cultureColors[culture];
-        if (!color) {
-          // Try matching just the crop name
-          const cropName = culture.split(' ')[0];
-          const matchingKey = Object.keys(cultureColors).find(key => key.includes(cropName));
-          color = matchingKey ? cultureColors[matchingKey] : cultureColors['DEFAULT'];
-        }
+        // Normalizar nome da cultura para cores
+        let colorKey = culture.toUpperCase();
+        if (colorKey.includes('SOJA')) colorKey = 'SOJA';
+        else if (colorKey.includes('MILHO') && colorKey.includes('SAFRINHA')) colorKey = 'MILHO SAFRINHA';
+        else if (colorKey.includes('MILHO')) colorKey = 'MILHO';
+        else if (colorKey.includes('FEIJ')) colorKey = 'FEIJÃO';
+        else if (colorKey.includes('SORGO')) colorKey = 'SORGO';
+        else if (colorKey.includes('ALGOD')) colorKey = 'ALGODÃO';
+        else if (colorKey.includes('ARROZ')) colorKey = 'ARROZ';
+        
+        const color = cultureColors[colorKey] || cultureColors['DEFAULT'];
+        
         this.doc.setFillColor(color.r, color.g, color.b);
-        this.doc.rect(x, y - 2, 3, 3, 'F');
+        this.doc.rect(x, y - 1, 2.5, 2.5, 'F');
         
         // Nome da cultura
-        this.doc.setFontSize(7);
+        this.doc.setFontSize(5.5);
         this.doc.setTextColor(80, 80, 80);
-        this.doc.text(culture, x + 5, y);
+        this.doc.text(culture, x + 4, y);
       });
       
       // Nota sobre crescimento
-      this.currentY += Math.ceil(legendItems.length / legendCols) * 5 + 10;
-      this.doc.setFontSize(8);
+      this.currentY += Math.ceil(legendItems.length / legendCols) * 5 + 6;
+      this.doc.setFontSize(7);
       this.doc.setTextColor(100, 100, 100);
       
       // Calcular crescimento percentual
@@ -1350,7 +1643,7 @@ export class DefinitivePDFReportService {
     }
 
     // Tabela de dados
-    this.currentY += 15;
+    this.currentY += 8;
     
     // Cabeçalho da tabela
     this.doc.setFillColor(66, 56, 157);
@@ -1374,33 +1667,37 @@ export class DefinitivePDFReportService {
     
     // Linhas da tabela
     const tableData = data.revenueData.tableData;
-    const rowHeight = 6;
+    const rowHeight = 5;
     
     tableData.forEach((row, rowIndex) => {
       // Fundo alternado
       if (rowIndex % 2 === 1) {
-        this.doc.setFillColor(248, 248, 252);
+        this.doc.setFillColor(250, 249, 255); // Roxo muito claro
         this.doc.rect(this.margin, this.currentY, this.contentWidth, rowHeight, 'F');
       }
       
-      // Nome da categoria
+      // Nome da categoria - usando tons monocromáticos
       this.doc.setFontSize(7);
       this.doc.setFont("helvetica", "bold");
       this.doc.setTextColor(255, 255, 255);
       
-      // Cores diferentes por tipo de categoria
+      // Cores monocromáticas baseadas no tipo
       let categoryColor = { r: 66, g: 56, b: 157 }; // Roxo padrão
       if (row.categoria.includes('RECEITA')) {
-        categoryColor = { r: 34, g: 139, b: 34 }; // Verde para receitas
-      } else if (row.categoria.includes('DESPESA') || row.categoria.includes('CUSTO')) {
-        categoryColor = { r: 220, g: 53, b: 69 }; // Vermelho para despesas
+        categoryColor = { r: 66, g: 56, b: 157 }; // Roxo escuro para receitas
+      } else if (row.categoria.includes('DESPESA')) {
+        categoryColor = { r: 132, g: 126, b: 201 }; // Roxo médio claro para despesas
+      } else if (row.categoria.includes('OUTRAS')) {
+        categoryColor = { r: 165, g: 161, b: 223 }; // Roxo claro para outras
+      } else if (row.categoria.includes('FLUXO')) {
+        categoryColor = { r: 99, g: 91, b: 179 }; // Roxo médio para fluxo
       }
       
       this.doc.setFillColor(categoryColor.r, categoryColor.g, categoryColor.b);
       this.doc.roundedRect(this.margin, this.currentY, 38, rowHeight - 1, 1, 1, 'F');
       
       this.doc.text(row.categoria.length > 20 ? row.categoria.substring(0, 20) + '..' : row.categoria, 
-        this.margin + 2, this.currentY + 4);
+        this.margin + 2, this.currentY + 3.5);
       
       // Valores por safra
       safras.forEach((safra, index) => {
@@ -1412,25 +1709,61 @@ export class DefinitivePDFReportService {
         
         if (value && value !== 0) {
           const text = Math.abs(value) >= 1000000000 ? 
-            `R$ ${(value / 1000000000).toFixed(2)}B` : 
+            `R$ ${(value / 1000000000).toFixed(1)}B` : 
             Math.abs(value) >= 1000000 ?
-            `R$ ${(value / 1000000).toFixed(1)}M` :
+            `R$ ${(value / 1000000).toFixed(0)}M` :
             `R$ ${(value / 1000).toFixed(0)}k`;
           this.doc.setFontSize(6);
-          this.doc.text(text, x, this.currentY + 4, { align: "center" });
+          this.doc.text(text, x, this.currentY + 3.5, { align: "center" });
         } else {
-          this.doc.text("-", x, this.currentY + 4, { align: "center" });
+          this.doc.setTextColor(150, 150, 150);
+          this.doc.text("-", x, this.currentY + 3.5, { align: "center" });
         }
       });
       
       this.currentY += rowHeight;
       
       // Quebra de página se necessário
-      if (this.currentY > this.pageHeight - this.margin - 20) {
+      if (this.currentY > this.pageHeight - this.margin - 40) {
         this.doc.addPage();
         this.currentY = this.margin;
       }
     });
+    
+    // Rodapé da página com informações adicionais
+    this.currentY = this.pageHeight - 30;
+    
+    // Linha divisória do rodapé
+    this.doc.setDrawColor(220, 220, 220);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
+    
+    // Informações resumidas no rodapé
+    this.currentY += 5;
+    this.doc.setFontSize(8);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    if (chartData && chartData.length > 0) {
+      const firstYear = chartData[0];
+      const lastYear = chartData[chartData.length - 1];
+      const growthPercent = ((lastYear.total - firstYear.total) / firstYear.total * 100).toFixed(1);
+      
+      const footerInfo = [
+        `${chartData.length} safras projetadas`,
+        `Crescimento de ${growthPercent}%`,
+        `De R$ ${(firstYear.total / 1000000).toFixed(0)}M a R$ ${(lastYear.total / 1000000).toFixed(0)}M`,
+        `Análise por cultura`
+      ];
+      
+      this.doc.text(footerInfo.join(" • "), this.pageWidth / 2, this.currentY, { align: "center" });
+    }
+    
+    // Número da página
+    this.currentY += 5;
+    this.doc.setFontSize(7);
+    this.doc.setTextColor(150, 150, 150);
+    this.doc.text("Página 5", this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   private addPage6(data: ReportData): void {
@@ -1452,45 +1785,67 @@ export class DefinitivePDFReportService {
       console.error('Error adding logo:', error);
     }
 
-    // Data
-    this.doc.setFontSize(10);
-    this.doc.setTextColor(100, 100, 100);
-    this.doc.text(new Date().toLocaleDateString('pt-BR'), this.pageWidth - this.margin, this.margin + 10, { align: 'right' });
-
-    // Título
-    this.currentY = this.margin + 30;
-    this.doc.setFontSize(20);
-    this.doc.setFont("helvetica", "bold");
+    // Data no canto superior direito
+    this.doc.setFontSize(12);
     this.doc.setTextColor(0, 0, 0);
-    this.doc.text("EVOLUÇÃO FINANCEIRA", this.pageWidth / 2, this.currentY, { align: 'center' });
+    const dateText = data.generatedAt.toLocaleDateString('pt-BR');
+    const dateWidth = this.doc.getTextWidth(dateText);
+    this.doc.text(dateText, this.pageWidth - this.margin - dateWidth, this.margin + 10);
 
-    // Gráfico
-    this.currentY += 20;
+    // Título da página
+    this.currentY = 60;
+    this.doc.setFontSize(24);
+    this.doc.setFont("helvetica", "bold");
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
+    this.doc.text("EVOLUÇÃO FINANCEIRA", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Análise temporal dos principais indicadores financeiros e margens", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
+
+    // Gráfico de linhas
+    this.currentY = 85; // Reduzido de 95 para usar mais espaço da página
     const chartData = data.financialEvolutionData;
     
-    // Card com título do gráfico
+    // Título do gráfico
     this.doc.setFillColor(66, 56, 157);
-    this.doc.roundedRect(this.margin, this.currentY, this.contentWidth, 15, 3, 3, 'F');
+    this.doc.roundedRect(this.margin, this.currentY, this.contentWidth, 10, 3, 3, 'F');
     
     this.doc.setFontSize(10);
     this.doc.setFont("helvetica", "bold");
     this.doc.setTextColor(255, 255, 255);
-    this.doc.text("Evolução Financeira", this.margin + 5, this.currentY + 5);
+    this.doc.text("Evolução Financeira", this.margin + 5, this.currentY + 7);
+    
     this.doc.setFontSize(8);
     this.doc.setFont("helvetica", "normal");
     this.doc.text(`Receita, Custo, EBITDA e Lucro Líquido por safra (${chartData[0].safra} - ${chartData[chartData.length - 1].safra})`, 
-      this.margin + 5, this.currentY + 10);
+      this.pageWidth - this.margin - 5, this.currentY + 7, { align: "right" });
     
+    // Área do gráfico
     this.currentY += 20;
-    
-    // Configurações do gráfico
-    const graphHeight = 80;
+    const graphHeight = 140; // Aumentado de 100 para 140 para melhor visualização dos labels
     const graphWidth = this.contentWidth;
     const padding = 10;
     
     // Background do gráfico
-    this.doc.setFillColor(250, 250, 252);
+    this.doc.setFillColor(252, 252, 254);
     this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'F');
+    
+    // Borda do gráfico
+    this.doc.setDrawColor(230, 230, 240);
+    this.doc.setLineWidth(0.5);
+    this.doc.rect(this.margin, this.currentY, graphWidth, graphHeight, 'S');
     
     // Encontrar valores máximos e mínimos
     const allValues = chartData.flatMap(d => [d.receita, d.custo, d.ebitda, d.lucro]);
@@ -1498,8 +1853,8 @@ export class DefinitivePDFReportService {
     const minValue = Math.min(...allValues);
     const valueRange = maxValue - minValue;
     
-    // Desenhar grade
-    this.doc.setDrawColor(240, 240, 240);
+    // Grid lines horizontais
+    this.doc.setDrawColor(240, 240, 250);
     this.doc.setLineWidth(0.1);
     
     // Valores fixos do eixo Y (conforme imagem)
@@ -1507,14 +1862,29 @@ export class DefinitivePDFReportService {
     const yValues = [243000000, 187000000, 132000000, 76000000, 21000000, -34637000];
     
     // Linhas horizontais da grade
-    for (let i = 0; i <= 5; i++) {
-      const y = this.currentY + (i * graphHeight / 5);
-      this.doc.line(this.margin, y, this.margin + graphWidth, y);
+    const gridLines = 10; // Aumentado para 10 linhas para melhor granularidade
+    for (let i = 0; i <= gridLines; i++) {
+      const y = this.currentY + (i * graphHeight / gridLines);
       
-      // Labels do eixo Y
-      this.doc.setFontSize(7);
-      this.doc.setTextColor(100, 100, 100);
-      this.doc.text(yLabels[i], this.margin - 2, y + 2, { align: 'right' });
+      if (i > 0) {
+        this.doc.line(this.margin, y, this.margin + graphWidth, y);
+      }
+      
+      // Labels do eixo Y - cor roxa (mostrar todos os valores importantes)
+      if (i === 0 || i === 2 || i === 4 || i === 6 || i === 8 || i === 10) {
+        this.doc.setFontSize(7);
+        this.doc.setFont("helvetica", "normal");
+        this.doc.setTextColor(66, 56, 157); // Roxo
+        
+        // Calcular valores dinamicamente baseado nos dados
+        const value = maxValue - (i * valueRange / gridLines);
+        const label = value >= 1000000000 ? `R$ ${(value / 1000000000).toFixed(1)}B` : 
+                      value >= 1000000 ? `R$ ${(value / 1000000).toFixed(0)}M` : 
+                      value >= 1000 ? `R$ ${(value / 1000).toFixed(0)}k` :
+                      value < 0 ? `-R$ ${Math.abs(value / 1000).toFixed(0)}k` :
+                      `R$ 0`;
+        this.doc.text(label, this.margin - 2, y + 2, { align: 'right' });
+      }
     }
     
     // Preparar pontos para as linhas
@@ -1529,16 +1899,16 @@ export class DefinitivePDFReportService {
       return this.currentY + graphHeight - ((value - yMin) / yRange * graphHeight);
     };
     
-    // Cores das linhas (conforme imagem)
+    // Cores das linhas - paleta monocromática roxa
     const lineColors = {
-      receita: { r: 34, g: 197, b: 94 },      // Verde
-      custo: { r: 251, g: 146, b: 60 },       // Laranja
-      ebitda: { r: 59, g: 130, b: 246 },      // Azul
-      lucro: { r: 91, g: 33, b: 182 }         // Roxo escuro
+      receita: { r: 66, g: 56, b: 157 },      // Roxo principal (mais escuro)
+      custo: { r: 132, g: 126, b: 201 },      // Roxo médio claro
+      ebitda: { r: 115, g: 103, b: 240 },     // Azul violeta
+      lucro: { r: 165, g: 161, b: 223 }       // Roxo claro
     };
     
     // Desenhar linhas
-    this.doc.setLineWidth(3);
+    this.doc.setLineWidth(2.5);
     
     // Linha de Receita
     this.doc.setDrawColor(lineColors.receita.r, lineColors.receita.g, lineColors.receita.b);
@@ -1584,78 +1954,96 @@ export class DefinitivePDFReportService {
     chartData.forEach((data, index) => {
       const x = this.margin + index * xStep;
       
-      // Ponto e valor de Receita (Verde)
+      // Ponto e valor de Receita
       this.doc.setFillColor(lineColors.receita.r, lineColors.receita.g, lineColors.receita.b);
-      this.doc.circle(x, getY(data.receita), 3, 'F');
+      this.doc.circle(x, getY(data.receita), 2, 'F');
       
       // Adicionar valores para receita em todos os pontos
       this.doc.setFontSize(7);
       this.doc.setFont("helvetica", "bold");
       this.doc.setTextColor(lineColors.receita.r, lineColors.receita.g, lineColors.receita.b);
       const receitaLabel = data.receita >= 1000000 ? `${(data.receita / 1000000).toFixed(0)}M` : `${(data.receita / 1000).toFixed(0)}k`;
-      this.doc.text(receitaLabel, x, getY(data.receita) - 5, { align: 'center' });
+      this.doc.text(receitaLabel, x, getY(data.receita) - 8, { align: 'center' });
       
-      // Ponto e valor de Custo (Laranja)
+      // Ponto de Custo
       this.doc.setFillColor(lineColors.custo.r, lineColors.custo.g, lineColors.custo.b);
-      this.doc.circle(x, getY(data.custo), 3, 'F');
+      this.doc.circle(x, getY(data.custo), 2, 'F');
       
-      // Adicionar valores para custo em pontos estratégicos
-      if (index === 0 || index === 4 || index === chartData.length - 1) {
+      // Adicionar valores para custo em pontos estratégicos (alternados com EBITDA)
+      if ((index % 3 === 1 || index === 0) && index !== chartData.length - 1) {
+        this.doc.setFontSize(6);
+        this.doc.setFont("helvetica", "normal");
         this.doc.setTextColor(lineColors.custo.r, lineColors.custo.g, lineColors.custo.b);
         const custoLabel = data.custo >= 1000000 ? `${(data.custo / 1000000).toFixed(0)}M` : `${(data.custo / 1000).toFixed(0)}k`;
-        this.doc.text(custoLabel, x, getY(data.custo) + 10, { align: 'center' });
+        this.doc.text(custoLabel, x, getY(data.custo) + 8, { align: 'center' });
       }
       
-      // Ponto e valor de EBITDA (Azul)
+      // Ponto de EBITDA
       this.doc.setFillColor(lineColors.ebitda.r, lineColors.ebitda.g, lineColors.ebitda.b);
-      this.doc.circle(x, getY(data.ebitda), 3, 'F');
+      this.doc.circle(x, getY(data.ebitda), 2, 'F');
       
       // Adicionar valores para EBITDA em pontos estratégicos
-      if (index === 0 || index === 4 || index === chartData.length - 1) {
+      if (index % 2 === 0 || index === chartData.length - 1) {
+        this.doc.setFontSize(6);
+        this.doc.setFont("helvetica", "normal");
         this.doc.setTextColor(lineColors.ebitda.r, lineColors.ebitda.g, lineColors.ebitda.b);
         const ebitdaLabel = data.ebitda >= 1000000 ? `${(data.ebitda / 1000000).toFixed(0)}M` : `${(data.ebitda / 1000).toFixed(0)}k`;
-        this.doc.text(ebitdaLabel, x, getY(data.ebitda) - 5, { align: 'center' });
+        const ebitdaPercent = data.receita > 0 ? `${((data.ebitda / data.receita) * 100).toFixed(0)}%` : '';
+        
+        // Posicionar o label acima ou abaixo dependendo do espaço
+        const yOffset = (index === 0 || index === chartData.length - 1) ? -8 : 8;
+        this.doc.text(ebitdaLabel, x, getY(data.ebitda) + yOffset, { align: 'center' });
+        
+        if (ebitdaPercent && (index === 0 || index === chartData.length - 1)) {
+          this.doc.setFontSize(5);
+          const percentOffset = yOffset < 0 ? -13 : 13;
+          this.doc.text(`(${ebitdaPercent})`, x, getY(data.ebitda) + percentOffset, { align: 'center' });
+        }
       }
       
-      // Ponto e valor de Lucro (Roxo)
+      // Ponto de Lucro
       this.doc.setFillColor(lineColors.lucro.r, lineColors.lucro.g, lineColors.lucro.b);
-      this.doc.circle(x, getY(data.lucro), 3, 'F');
+      this.doc.circle(x, getY(data.lucro), 2, 'F');
       
-      // Adicionar valores para lucro - mostrar em pontos específicos
-      // Mostrar valores negativos e alguns pontos estratégicos
-      if (index === 0 || index === 2 || index === 3 || index === 4 || index === 5 || index === 6 || index === 7 || index === 8) {
+      // Adicionar valores para lucro em pontos com valores negativos ou extremos
+      if (data.lucro < 0 || index === 0 || index === chartData.length - 1 || (index % 3 === 2 && index !== chartData.length - 1)) {
+        this.doc.setFontSize(6);
+        this.doc.setFont("helvetica", "normal");
         this.doc.setTextColor(lineColors.lucro.r, lineColors.lucro.g, lineColors.lucro.b);
         let lucroLabel = '';
         
         if (data.lucro < 0) {
-          // Valores negativos
           lucroLabel = `-${Math.abs(data.lucro / 1000).toFixed(0)}k`;
         } else if (data.lucro >= 1000000) {
-          // Valores em milhões
           lucroLabel = `${(data.lucro / 1000000).toFixed(0)}M`;
         } else {
-          // Valores em milhares
           lucroLabel = `${(data.lucro / 1000).toFixed(0)}k`;
         }
         
-        // Ajustar posição vertical baseado no valor
-        const yOffset = data.lucro < 0 ? 10 : -5;
+        // Posição inteligente para evitar sobreposição
+        let yOffset = 8;
+        if (data.lucro < 0) {
+          yOffset = 12; // Abaixo quando negativo
+        } else if (index === 0 || index === chartData.length - 1) {
+          yOffset = -8; // Acima no início e fim
+        }
+        
         this.doc.text(lucroLabel, x, getY(data.lucro) + yOffset, { align: 'center' });
       }
       
       // Labels dos anos
-      this.doc.setFontSize(8);
+      this.doc.setFontSize(7);
       this.doc.setTextColor(100, 100, 100);
-      this.doc.text(data.safra, x, this.currentY + graphHeight + 10, { align: 'center' });
+      this.doc.text(data.safra, x, this.currentY + graphHeight + 8, { align: 'center' });
     });
     
     // Linha base
-    this.doc.setDrawColor(100, 100, 100);
+    this.doc.setDrawColor(200, 200, 200);
     this.doc.setLineWidth(0.5);
     this.doc.line(this.margin, this.currentY + graphHeight, this.margin + graphWidth, this.currentY + graphHeight);
     
     // Legenda
-    this.currentY += graphHeight + 20;
+    this.currentY += graphHeight + 15;
     
     // Criar items de legenda em linha
     const legendItems = [
@@ -1667,33 +2055,73 @@ export class DefinitivePDFReportService {
     ];
     
     // Ajustar layout para acomodar todas as legendas
-    const legendStartX = this.margin;
-    const legendSpacing = 45;
+    const legendCols = 4;
+    const legendWidth = this.contentWidth / legendCols;
     
     legendItems.forEach((item, index) => {
-      const x = legendStartX + index * legendSpacing;
+      const col = index % legendCols;
+      const row = Math.floor(index / legendCols);
+      const x = this.margin + col * legendWidth;
+      const y = this.currentY + row * 6;
       
       // Círculo colorido
       this.doc.setFillColor(item.color.r, item.color.g, item.color.b);
-      this.doc.circle(x, this.currentY, 3, 'F');
+      this.doc.circle(x, y, 2.5, 'F');
       
       // Texto
-      this.doc.setFontSize(7);
+      this.doc.setFontSize(6);
       this.doc.setTextColor(80, 80, 80);
-      this.doc.text(item.label, x + 6, this.currentY);
+      this.doc.text(item.label, x + 5, y);
       
       if (item.sublabel) {
-        this.doc.setFontSize(6);
+        this.doc.setFontSize(5);
         this.doc.setTextColor(120, 120, 120);
-        this.doc.text(item.sublabel, x + 6, this.currentY + 3.5);
+        this.doc.text(item.sublabel, x + 5, y + 3);
       }
     });
     
     // Nota
-    this.currentY += 15;
-    this.doc.setFontSize(8);
+    const legendRows = Math.ceil(legendItems.length / legendCols);
+    this.currentY += legendRows * 6 + 10;
+    this.doc.setFontSize(7);
     this.doc.setTextColor(100, 100, 100);
     this.doc.text("Margens médias calculadas sobre a receita total por período", this.pageWidth / 2, this.currentY, { align: 'center' });
+    
+    // Rodapé da página com informações adicionais
+    this.currentY = this.pageHeight - 30;
+    
+    // Linha divisória do rodapé
+    this.doc.setDrawColor(220, 220, 220);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
+    
+    // Informações resumidas no rodapé
+    this.currentY += 5;
+    this.doc.setFontSize(8);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    if (chartData && chartData.length > 0) {
+      const firstYear = chartData[0];
+      const lastYear = chartData[chartData.length - 1];
+      const receitaGrowth = ((lastYear.receita - firstYear.receita) / firstYear.receita * 100).toFixed(1);
+      const margemEbitda = ((lastYear.ebitda / lastYear.receita) * 100).toFixed(1);
+      
+      const footerInfo = [
+        `${chartData.length} safras analisadas`,
+        `Crescimento de receita: ${receitaGrowth}%`,
+        `Margem EBITDA atual: ${margemEbitda}%`,
+        `Análise financeira completa`
+      ];
+      
+      this.doc.text(footerInfo.join(" • "), this.pageWidth / 2, this.currentY, { align: "center" });
+    }
+    
+    // Número da página
+    this.currentY += 5;
+    this.doc.setFontSize(7);
+    this.doc.setTextColor(150, 150, 150);
+    this.doc.text("Página 6", this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   private addPage7(data: ReportData): void {
@@ -1720,12 +2148,27 @@ export class DefinitivePDFReportService {
     this.doc.setTextColor(100, 100, 100);
     this.doc.text(new Date().toLocaleDateString('pt-BR'), this.pageWidth - this.margin, this.margin + 10, { align: 'right' });
 
-    // Título
-    this.currentY = this.margin + 30;
-    this.doc.setFontSize(20);
+    // Título da página
+    this.currentY = 60;
+    this.doc.setFontSize(24);
     this.doc.setFont("helvetica", "bold");
-    this.doc.setTextColor(0, 0, 0);
-    this.doc.text("PASSIVOS TOTAIS", this.pageWidth / 2, this.currentY, { align: 'center' });
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
+    this.doc.text("PASSIVOS TOTAIS", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Análise detalhada do endividamento e estrutura de passivos", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
 
     // Grid layout - 1x2 for consolidated only
     this.currentY += 20;
@@ -1771,14 +2214,24 @@ export class DefinitivePDFReportService {
       const barHeight = (item.valor / maxValue) * chartHeight * 0.8;
       const barY = chartY + chartHeight - barHeight;
       
-      // Bar with consistent purple color
-      this.doc.setFillColor(124, 58, 237);  // Roxo médio
+      // Cores monocromáticas baseadas no índice
+      const colors = [
+        { r: 66, g: 56, b: 157 },    // Roxo principal (mais escuro)
+        { r: 99, g: 91, b: 179 },    // Roxo médio
+        { r: 132, g: 126, b: 201 },  // Roxo médio claro
+        { r: 165, g: 161, b: 223 },  // Roxo claro
+        { r: 198, g: 196, b: 245 },  // Lilás
+        { r: 214, g: 211, b: 250 }   // Lilás muito claro
+      ];
+      
+      const color = colors[index % colors.length];
+      this.doc.setFillColor(color.r, color.g, color.b);
       this.doc.rect(barX, barY, barWidth, barHeight, 'F');
       
       // Value label
       this.doc.setFontSize(7);
       this.doc.setFont("helvetica", "bold");
-      this.doc.setTextColor(60, 60, 60);
+      this.doc.setTextColor(color.r, color.g, color.b);
       const valueLabel = item.valor >= 1000000 ? `${(item.valor / 1000000).toFixed(0)}M` : `${(item.valor / 1000).toFixed(0)}k`;
       this.doc.text(valueLabel, barX + barWidth/2, barY - 2, { align: 'center' });
       
@@ -1833,21 +2286,21 @@ export class DefinitivePDFReportService {
       const total = custeio.valor + investimentos.valor;
       const custeioAngle = (custeio.valor / total) * 360;
       
-      // Custeio slice - roxo claro
-      this.doc.setFillColor(168, 85, 247);
+      // Custeio slice - roxo médio
+      this.doc.setFillColor(132, 126, 201);
       this.drawPieSlice(centerX, centerY, radius, 0, custeioAngle);
       
-      // Investimentos slice - roxo escuro
-      this.doc.setFillColor(91, 33, 182);
+      // Investimentos slice - roxo principal
+      this.doc.setFillColor(66, 56, 157);
       this.drawPieSlice(centerX, centerY, radius, custeioAngle, 360);
       
       // Labels
       this.doc.setFontSize(8);
       this.doc.setFont("helvetica", "bold");
-      this.doc.setTextColor(168, 85, 247);
+      this.doc.setTextColor(132, 126, 201);
       this.doc.text(`Custeio: ${custeio.percentual.toFixed(1)}%`, x + width - 5, centerY - 5, { align: 'right' });
       
-      this.doc.setTextColor(91, 33, 182);
+      this.doc.setTextColor(66, 56, 157);
       this.doc.text(`Investimentos: ${investimentos.percentual.toFixed(1)}%`, x + width - 5, centerY + 5, { align: 'right' });
       
       // Total
@@ -1927,10 +2380,10 @@ export class DefinitivePDFReportService {
     // Legend
     const legendY = this.currentY - 5;
     const legendItems = [
-      { label: 'Dívida Passivos', color: { r: 91, g: 33, b: 182 } },      // Roxo escuro
-      { label: 'Dívida Bancária', color: { r: 168, g: 85, b: 247 } },     // Roxo claro
-      { label: 'Dívida Líquida', color: { r: 59, g: 130, b: 246 } },      // Azul
-      { label: 'Dívida Total', color: { r: 251, g: 146, b: 60 } }         // Laranja
+      { label: 'Dívida Passivos', color: { r: 66, g: 56, b: 157 } },      // Roxo principal
+      { label: 'Dívida Bancária', color: { r: 132, g: 126, b: 201 } },    // Roxo médio claro
+      { label: 'Dívida Líquida', color: { r: 115, g: 103, b: 240 } },     // Azul violeta
+      { label: 'Dívida Total', color: { r: 198, g: 196, b: 245 } }        // Lilás
     ];
     
     legendItems.forEach((item, index) => {
@@ -1946,35 +2399,35 @@ export class DefinitivePDFReportService {
     debtData.forEach((data, index) => {
       const groupX = this.margin + index * groupWidth;
       
-      // Dívida Total (laranja)
+      // Dívida Total (lilás)
       const totalHeight = (data.dividaTotal / maxValue) * chartHeight * 0.9;
-      this.doc.setFillColor(251, 146, 60);
+      this.doc.setFillColor(198, 196, 245);
       this.doc.rect(groupX + barSpacing, chartY + chartHeight - totalHeight, barWidth, totalHeight, 'F');
       
       // Value label for Dívida Total
       this.doc.setFontSize(6);
       this.doc.setFont("helvetica", "bold");
-      this.doc.setTextColor(251, 146, 60);
+      this.doc.setTextColor(66, 56, 157); // Roxo escuro para contraste
       const totalLabel = `${(data.dividaTotal / 1000000).toFixed(0)}`;
       this.doc.text(totalLabel, groupX + barSpacing + barWidth/2, chartY + chartHeight - totalHeight - 2, { align: 'center' });
       
-      // Dívida Bancária (roxo claro)
+      // Dívida Bancária (roxo médio claro)
       const bancariaHeight = (data.dividaBancaria / maxValue) * chartHeight * 0.9;
-      this.doc.setFillColor(168, 85, 247);
+      this.doc.setFillColor(132, 126, 201);
       this.doc.rect(groupX + barSpacing + barWidth + barSpacing, chartY + chartHeight - bancariaHeight, barWidth, bancariaHeight, 'F');
       
       // Value label for Dívida Bancária
-      this.doc.setTextColor(168, 85, 247);
+      this.doc.setTextColor(66, 56, 157); // Roxo escuro para contraste
       const bancariaLabel = `${(data.dividaBancaria / 1000000).toFixed(0)}`;
       this.doc.text(bancariaLabel, groupX + barSpacing + barWidth + barSpacing + barWidth/2, chartY + chartHeight - bancariaHeight - 2, { align: 'center' });
       
-      // Dívida Líquida (azul)
+      // Dívida Líquida (azul violeta)
       const liquidaHeight = (data.dividaLiquida / maxValue) * chartHeight * 0.9;
-      this.doc.setFillColor(59, 130, 246);
+      this.doc.setFillColor(115, 103, 240);
       this.doc.rect(groupX + barSpacing + 2 * (barWidth + barSpacing), chartY + chartHeight - liquidaHeight, barWidth, liquidaHeight, 'F');
       
       // Value label for Dívida Líquida
-      this.doc.setTextColor(59, 130, 246);
+      this.doc.setTextColor(66, 56, 157); // Roxo escuro para contraste
       const liquidaLabel = `${(data.dividaLiquida / 1000000).toFixed(0)}`;
       this.doc.text(liquidaLabel, groupX + barSpacing + 2 * (barWidth + barSpacing) + barWidth/2, chartY + chartHeight - liquidaHeight - 2, { align: 'center' });
       
@@ -1988,6 +2441,42 @@ export class DefinitivePDFReportService {
     this.doc.setDrawColor(100, 100, 100);
     this.doc.setLineWidth(0.5);
     this.doc.line(this.margin, chartY + chartHeight, this.margin + chartWidth, chartY + chartHeight);
+    
+    // Rodapé da página com informações adicionais
+    this.currentY = this.pageHeight - 30;
+    
+    // Linha divisória do rodapé
+    this.doc.setDrawColor(220, 220, 220);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
+    
+    // Informações resumidas no rodapé
+    this.currentY += 5;
+    this.doc.setFontSize(8);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    if (debtData && debtData.length > 0) {
+      const lastData = debtData[debtData.length - 1];
+      const totalDebt = lastData.dividaTotal;
+      const bankDebt = lastData.dividaBancaria;
+      const netDebt = lastData.dividaLiquida;
+      
+      const footerInfo = [
+        `Dívida Total: R$ ${(totalDebt / 1000000).toFixed(0)}M`,
+        `Dívida Bancária: R$ ${(bankDebt / 1000000).toFixed(0)}M`,
+        `Dívida Líquida: R$ ${(netDebt / 1000000).toFixed(0)}M`,
+        `${debtData.length} safras analisadas`
+      ];
+      
+      this.doc.text(footerInfo.join(" • "), this.pageWidth / 2, this.currentY, { align: "center" });
+    }
+    
+    // Número da página
+    this.currentY += 5;
+    this.doc.setFontSize(7);
+    this.doc.setTextColor(150, 150, 150);
+    this.doc.text("Página 7", this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   private addPage8(data: ReportData): void {
@@ -2014,12 +2503,27 @@ export class DefinitivePDFReportService {
     this.doc.setTextColor(100, 100, 100);
     this.doc.text(new Date().toLocaleDateString('pt-BR'), this.pageWidth - this.margin, this.margin + 10, { align: 'right' });
 
-    // Título
-    this.currentY = this.margin + 30;
-    this.doc.setFontSize(20);
+    // Título da página
+    this.currentY = 60;
+    this.doc.setFontSize(24);
     this.doc.setFont("helvetica", "bold");
-    this.doc.setTextColor(0, 0, 0);
-    this.doc.text("INDICADORES ECONÔMICOS", this.pageWidth / 2, this.currentY, { align: 'center' });
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
+    this.doc.text("INDICADORES ECONÔMICOS", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Análise de alavancagem financeira e evolução do endividamento", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
 
     // Gráfico único de indicadores
     this.currentY += 20;
@@ -2034,7 +2538,13 @@ export class DefinitivePDFReportService {
     this.doc.text("Indicadores de Endividamento", this.margin + 5, this.currentY + 5);
     this.doc.setFontSize(8);
     this.doc.setFont("helvetica", "normal");
-    this.doc.text("Evolução dos indicadores de alavancagem financeira (2024 - 2030)", 
+    // Dinâmicamente obter o período com base nos dados
+    const indicatorYears = data.economicIndicatorsData.indicators.map(i => i.year).sort();
+    const firstYear = indicatorYears[0] || 2020;
+    const lastYear = indicatorYears[indicatorYears.length - 1] || 2031;
+    const periodText = `${firstYear.toString().slice(-2)}/${(firstYear + 1).toString().slice(-2)} - ${lastYear.toString().slice(-2)}/${(lastYear + 1).toString().slice(-2)}`;
+    
+    this.doc.text(`Evolução dos indicadores de alavancagem financeira (${periodText})`, 
       this.margin + 5, this.currentY + 10);
     
     this.currentY += 20;
@@ -2046,11 +2556,11 @@ export class DefinitivePDFReportService {
         ['dividaReceita', 'dividaEbitda', 'dividaLiquidaReceita', 'dividaLiquidaEbitda'],
         ['Dívida/Receita', 'Dívida/Ebitda', 'Dívida Líquida/Receita', 'Dívida Líquida/Ebitda'],
         this.currentY,
-        80
+        70 // Reduzido de 80 para 70
       );
     }
     
-    this.currentY += 100;
+    this.currentY += 90; // Reduzido de 100 para 90
     
     // Tabela de Posição da Dívida
     this.drawDebtPositionTable(data.economicIndicatorsData.debtPositionTable);
@@ -2105,30 +2615,35 @@ export class DefinitivePDFReportService {
     const chartWidth = this.contentWidth;
     const chartY = yPosition;
     
-    // Background do gráfico (mesmo tom do gráfico de evolução)
-    this.doc.setFillColor(250, 250, 252);
+    // Background do gráfico
+    this.doc.setFillColor(252, 252, 254);
     this.doc.rect(this.margin, chartY, chartWidth, chartHeight, 'F');
     
-    // Cores para as linhas (paleta similar ao gráfico de evolução)
+    // Borda do gráfico
+    this.doc.setDrawColor(230, 230, 240);
+    this.doc.setLineWidth(0.5);
+    this.doc.rect(this.margin, chartY, chartWidth, chartHeight, 'S');
+    
+    // Cores para as linhas - paleta monocromática roxa
     const lineColors = [
-      { r: 91, g: 33, b: 182 },    // Roxo escuro - Dívida/Receita
+      { r: 66, g: 56, b: 157 },    // Roxo principal - Dívida/Receita
       { r: 124, g: 58, b: 237 },   // Roxo médio - Dívida/Ebitda
-      { r: 59, g: 130, b: 246 },   // Azul - Dívida Líquida/Receita
-      { r: 16, g: 185, b: 129 }    // Verde água - Dívida Líquida/Ebitda
+      { r: 115, g: 103, b: 240 },  // Azul violeta - Dívida Líquida/Receita
+      { r: 165, g: 161, b: 223 }   // Roxo claro - Dívida Líquida/Ebitda
     ];
     
     // Desenhar grade (estilo similar ao gráfico de evolução)
     this.doc.setDrawColor(240, 240, 240);
     this.doc.setLineWidth(0.1);
     
-    // Anos no eixo X - usar apenas anos de 2024 a 2030
-    const startYear = 2024;
-    const endYear = 2030;
-    const yearCount = endYear - startYear + 1;
+    // Anos no eixo X - usar todos os anos disponíveis
+    const years = [...new Set(indicators.map(ind => ind.year))].sort();
+    const startYear = years[0];
+    const endYear = years[years.length - 1];
+    const yearCount = years.length;
     const xStep = chartWidth / (yearCount - 1);
     
-    for (let i = 0; i < yearCount; i++) {
-      const year = startYear + i;
+    years.forEach((year, i) => {
       const x = this.margin + i * xStep;
       
       // Linha vertical da grade
@@ -2139,8 +2654,10 @@ export class DefinitivePDFReportService {
       // Label do ano
       this.doc.setFontSize(8);
       this.doc.setTextColor(100, 100, 100);
-      this.doc.text(year.toString(), x, chartY + chartHeight + 5, { align: 'center' });
-    }
+      // Formato 20/21 ao invés de 2024
+      const yearLabel = year.toString().slice(-2) + '/' + (year + 1).toString().slice(-2);
+      this.doc.text(yearLabel, x, chartY + chartHeight + 5, { align: 'center' });
+    });
     
     // Encontrar valores máximos para escala
     const allValues = indicators.flatMap(ind => 
@@ -2163,7 +2680,7 @@ export class DefinitivePDFReportService {
       
       // Label do eixo Y
       this.doc.setFontSize(7);
-      this.doc.setTextColor(100, 100, 100);
+      this.doc.setTextColor(66, 56, 157); // Roxo
       this.doc.text(value.toFixed(2), this.margin - 5, y + 2, { align: 'right' });
     }
     
@@ -2181,8 +2698,9 @@ export class DefinitivePDFReportService {
       
       indicators.forEach((indicator) => {
         const year = indicator.year;
-        if (year >= startYear && year <= endYear) {
-          const x = this.margin + (year - startYear) * xStep;
+        const yearIndex = years.indexOf(year);
+        if (yearIndex !== -1) {
+          const x = this.margin + yearIndex * xStep;
           const value = (indicator as any)[metric] || 0;
           const y = chartY + chartHeight - ((value - minValue) / (maxValue - minValue)) * chartHeight;
           
@@ -2195,9 +2713,9 @@ export class DefinitivePDFReportService {
       // Ordenar pontos por ano
       points.sort((a, b) => a.year - b.year);
       
-      // Desenhar linha (estilo mais grosso como no gráfico de evolução)
+      // Desenhar linha
       this.doc.setDrawColor(color.r, color.g, color.b);
-      this.doc.setLineWidth(3);
+      this.doc.setLineWidth(2.5);
       
       if (points.length > 1) {
         for (let i = 0; i < points.length - 1; i++) {
@@ -2212,29 +2730,43 @@ export class DefinitivePDFReportService {
       
       // Desenhar pontos e valores
       points.forEach((point, index) => {
-        // Ponto (estilo sólido como no gráfico de evolução)
+        // Ponto
         this.doc.setFillColor(color.r, color.g, color.b);
-        this.doc.circle(point.x, point.y, 3, 'F');
+        this.doc.circle(point.x, point.y, 2, 'F');
         
         // Valor próximo ao ponto
         this.doc.setFontSize(7);
         this.doc.setFont("helvetica", "bold");
         this.doc.setTextColor(color.r, color.g, color.b);
         
-        // Mostrar valores apenas em pontos estratégicos para evitar poluição visual
-        const showValue = index === 0 || index === points.length - 1 || 
-                         index === 2 || // 2026 - pico dos valores
-                         (metricIndex === 0 && index === 4); // Mostrar mais um ponto para a primeira linha
+        // Mostrar valores em pontos estratégicos
+        let showValue = false;
+        let yOffset = 0;
+        
+        // Estratégia de posicionamento por métrica
+        if (metricIndex === 0) { // Dívida/Receita (linha inferior - roxo escuro)
+          showValue = index === 0 || index === 2 || index === points.length - 1; // 2024, 2026 e 2030
+          yOffset = 8;
+        } else if (metricIndex === 1) { // Dívida/Ebitda (linha superior - roxo médio)
+          showValue = index === 2; // Apenas 2026 (pico)
+          yOffset = -8;
+        } else if (metricIndex === 2) { // Dívida Líquida/Receita (terceira linha - azul violeta)
+          showValue = index === 2 || index === points.length - 1; // 2026 e 2030
+          yOffset = -8;
+        } else if (metricIndex === 3) { // Dívida Líquida/Ebitda (segunda linha - roxo claro)
+          showValue = index === 0 || index === points.length - 1; // 2024 e 2030
+          yOffset = -8;
+        }
         
         if (showValue) {
-          const yOffset = metricIndex % 2 === 0 ? -5 : 10;
+          this.doc.setFontSize(6);
           this.doc.text(point.value.toFixed(2), point.x, point.y + yOffset, { align: 'center' });
         }
       });
     });
     
-    // Adicionar legenda embaixo do gráfico (estilo similar ao gráfico de evolução)
-    const legendY = chartY + chartHeight + 20;
+    // Adicionar legenda embaixo do gráfico
+    const legendY = chartY + chartHeight + 15;
     const legendItemWidth = chartWidth / 4;
     
     labels.forEach((label, index) => {
@@ -2243,12 +2775,12 @@ export class DefinitivePDFReportService {
       
       // Círculo colorido
       this.doc.setFillColor(color.r, color.g, color.b);
-      this.doc.circle(x, legendY, 3, 'F');
+      this.doc.circle(x, legendY, 2.5, 'F');
       
       // Texto da legenda
-      this.doc.setFontSize(8);
+      this.doc.setFontSize(7);
       this.doc.setTextColor(80, 80, 80);
-      this.doc.text(label, x + 8, legendY);
+      this.doc.text(label, x + 6, legendY);
     });
   }
 
@@ -2268,8 +2800,8 @@ export class DefinitivePDFReportService {
     this.currentY += 15;
     
     // Cabeçalho da tabela
-    const colWidth = this.contentWidth / 10;
-    const rowHeight = 6;
+    const colWidth = this.contentWidth / 12; // Ajustado para mais colunas
+    const rowHeight = 5; // Reduzido de 6 para 5
     
     // Header row
     this.doc.setFillColor(248, 248, 252);
@@ -2280,13 +2812,18 @@ export class DefinitivePDFReportService {
     this.doc.setTextColor(80, 80, 80);
     
     // Coluna de métrica
-    this.doc.text("", this.margin + 2, this.currentY + 4);
+    this.doc.setFontSize(6);
+    this.doc.text("Métrica", this.margin + 2, this.currentY + 3.5);
     
     // Colunas de anos
     const years = Object.keys(tableData[0].values).sort();
     years.forEach((year, index) => {
-      const x = this.margin + colWidth * 2 + index * colWidth * 0.9;
-      this.doc.text(year, x, this.currentY + 4, { align: 'center' });
+      const x = this.margin + colWidth * 2.5 + index * colWidth * 0.8;
+      this.doc.setFontSize(6);
+      // Formato 20/21 ao invés de 2024
+      const yearNum = parseInt(year);
+      const yearLabel = yearNum.toString().slice(-2) + '/' + (yearNum + 1).toString().slice(-2);
+      this.doc.text(yearLabel, x, this.currentY + 3.5, { align: 'center' });
     });
     
     this.currentY += rowHeight;
@@ -2300,27 +2837,62 @@ export class DefinitivePDFReportService {
       }
       
       // Nome da métrica
-      this.doc.setFontSize(7);
+      this.doc.setFontSize(6);
       this.doc.setFont("helvetica", "bold");
-      this.doc.setTextColor(0, 0, 0);
-      this.doc.text(row.metric, this.margin + 2, this.currentY + 4);
+      this.doc.setTextColor(66, 56, 157); // Roxo para os nomes das métricas
+      this.doc.text(row.metric, this.margin + 2, this.currentY + 3.5);
       
       // Valores
       years.forEach((year, index) => {
-        const x = this.margin + colWidth * 2 + index * colWidth * 0.9;
+        const x = this.margin + colWidth * 2.5 + index * colWidth * 0.8;
         const value = row.values[year];
         
         this.doc.setFont("helvetica", "normal");
         this.doc.setTextColor(80, 80, 80);
-        this.doc.setFontSize(6);
+        this.doc.setFontSize(5.5);
         
         if (value !== undefined) {
-          this.doc.text(value.toFixed(2), x, this.currentY + 4, { align: 'center' });
+          this.doc.text(value.toFixed(2), x, this.currentY + 3.5, { align: 'center' });
         }
       });
       
       this.currentY += rowHeight;
     });
+    
+    // Rodapé da página com informações adicionais
+    this.currentY = this.pageHeight - 30;
+    
+    // Linha divisória do rodapé
+    this.doc.setDrawColor(220, 220, 220);
+    this.doc.setLineWidth(0.3);
+    this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
+    
+    // Informações resumidas no rodapé
+    this.currentY += 5;
+    this.doc.setFontSize(8);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    // Obter período dos dados da tabela
+    const tableYears = Object.keys(tableData[0].values).sort();
+    const firstTableYear = parseInt(tableYears[0]);
+    const lastTableYear = parseInt(tableYears[tableYears.length - 1]);
+    const periodFooter = `${firstTableYear.toString().slice(-2)}/${(firstTableYear + 1).toString().slice(-2)} - ${lastTableYear.toString().slice(-2)}/${(lastTableYear + 1).toString().slice(-2)}`;
+    
+    const footerInfo = [
+      `Análise de indicadores financeiros`,
+      `Período: ${periodFooter}`,
+      `Alavancagem e endividamento`,
+      `Monitoramento contínuo`
+    ];
+    
+    this.doc.text(footerInfo.join(" • "), this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Número da página
+    this.currentY += 5;
+    this.doc.setFontSize(7);
+    this.doc.setTextColor(150, 150, 150);
+    this.doc.text("Página 8", this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   private addPage9(data: ReportData): void {
@@ -2806,12 +3378,27 @@ export class DefinitivePDFReportService {
     this.doc.setTextColor(100, 100, 100);
     this.doc.text(new Date().toLocaleDateString('pt-BR'), this.pageWidth - this.margin, this.margin + 10, { align: 'right' });
 
-    // Título
-    this.currentY = this.margin + 30;
-    this.doc.setFontSize(20);
+    // Título da página
+    this.currentY = 60;
+    this.doc.setFontSize(24);
     this.doc.setFont("helvetica", "bold");
-    this.doc.setTextColor(0, 0, 0);
-    this.doc.text("FLUXO DE CAIXA PROJETADO", this.pageWidth / 2, this.currentY, { align: 'center' });
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
+    this.doc.text("FLUXO DE CAIXA PROJETADO", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Projeção detalhada de entradas e saídas por safra", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
 
     // Tabela de fluxo de caixa
     this.currentY += 20;
@@ -2846,6 +3433,24 @@ export class DefinitivePDFReportService {
     }
   }
 
+  private formatPatrimonialValue(value: number): string {
+    if (value === 0) return 'R$ 0';
+    
+    const absValue = Math.abs(value);
+    const isNegative = value < 0;
+    
+    // Para valores patrimoniais, mostrar em milhões quando menor que 1 bilhão
+    if (absValue >= 1000000000) {
+      return `R$ ${isNegative ? '-' : ''}${(absValue / 1000000000).toFixed(2)} Bi`;
+    } else if (absValue >= 1000000) {
+      return `R$ ${isNegative ? '-' : ''}${(absValue / 1000000).toFixed(1)} Mi`;
+    } else if (absValue >= 1000) {
+      return `R$ ${isNegative ? '-' : ''}${(absValue / 1000).toFixed(0)}k`;
+    } else {
+      return `R$ ${isNegative ? '-' : ''}${absValue.toFixed(0)}`;
+    }
+  }
+
   private drawCashFlowTable(data: CashFlowProjectionData) {
     // Configurações da tabela
     const tableX = this.margin;
@@ -2857,10 +3462,10 @@ export class DefinitivePDFReportService {
     const labelWidth = 45;
     const colWidth = (tableWidth - labelWidth) / Math.min(data.safras.length, 10);
     
-    // Cores
-    const headerBgColor = { r: 66, g: 56, b: 157 };
-    const sectionBgColor = { r: 240, g: 240, b: 250 };
-    const totalBgColor = { r: 220, g: 220, b: 240 };
+    // Cores - paleta monocromática roxa
+    const headerBgColor = { r: 66, g: 56, b: 157 };     // Roxo principal
+    const sectionBgColor = { r: 245, g: 243, b: 255 };  // Roxo muito claro
+    const totalBgColor = { r: 220, g: 218, b: 250 };    // Lilás claro
     
     // Função helper para desenhar linha
     const drawRow = (label: string, values: { [safra: string]: number }, bgColor?: { r: number; g: number; b: number }, isTotal?: boolean, isSection?: boolean) => {
@@ -2874,10 +3479,12 @@ export class DefinitivePDFReportService {
       this.doc.setFontSize(5.5);
       this.doc.setFont("helvetica", isTotal || isSection ? "bold" : "normal");
       
-      if (isTotal) {
-        this.doc.setTextColor(bgColor?.r === 66 ? 255 : 0, bgColor?.r === 66 ? 255 : 0, bgColor?.r === 66 ? 255 : 0);
+      if (isTotal && bgColor?.r === 66) {
+        this.doc.setTextColor(255, 255, 255); // Branco para totais finais
+      } else if (isTotal) {
+        this.doc.setTextColor(66, 56, 157); // Roxo escuro para outros totais
       } else {
-        this.doc.setTextColor(0, 0, 0);
+        this.doc.setTextColor(0, 0, 0); // Preto para texto normal
       }
       
       this.doc.text(label, tableX + 2, this.currentY + rowHeight - 2);
@@ -2897,12 +3504,14 @@ export class DefinitivePDFReportService {
                           label.includes("Maquinários") || label.includes("Pagamentos") ||
                           (label.includes("Total") && (label.includes("Despesas") || label.includes("Investimentos")));
           
-          if (value < 0 || isExpense) {
-            this.doc.setTextColor(220, 38, 38); // Vermelho
-          } else if (isTotal && bgColor?.r === 66) {
+          if (isTotal && bgColor?.r === 66) {
             this.doc.setTextColor(255, 255, 255); // Branco para totais finais
+          } else if (isTotal) {
+            this.doc.setTextColor(66, 56, 157); // Roxo escuro para outros totais
+          } else if (value < 0 || isExpense) {
+            this.doc.setTextColor(200, 80, 80); // Vermelho suave para despesas
           } else {
-            this.doc.setTextColor(0, 0, 0); // Preto padrão
+            this.doc.setTextColor(80, 80, 80); // Cinza escuro para receitas
           }
           
           const formattedValue = this.formatCurrency(Math.abs(value), true); // Usar valor absoluto
@@ -2925,7 +3534,11 @@ export class DefinitivePDFReportService {
     this.doc.setFontSize(6);
     data.safras.slice(0, 10).forEach((safra, index) => {
       const x = tableX + labelWidth + index * colWidth;
-      this.doc.text(safra, x + colWidth / 2, this.currentY + headerHeight - 3, { align: 'center' });
+      // Formato 20/21 ao invés de 2020/21
+      const safraLabel = safra.includes('/') ? 
+        safra.split('/')[0].slice(-2) + '/' + safra.split('/')[1].slice(-2) : 
+        safra;
+      this.doc.text(safraLabel, x + colWidth / 2, this.currentY + headerHeight - 3, { align: 'center' });
     });
     
     this.currentY += headerHeight;
@@ -2971,6 +3584,20 @@ export class DefinitivePDFReportService {
     this.currentY += 3;
     drawRow("Fluxo de Caixa Final", data.fluxoCaixaFinal, { r: 66, g: 56, b: 157 }, true);
     drawRow("Fluxo de Caixa Acumulado", data.fluxoCaixaAcumulado, { r: 66, g: 56, b: 157 }, true);
+    
+    // Adicionar nota de rodapé abaixo da tabela
+    this.currentY += 10;
+    this.doc.setFontSize(7);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    // Período dinâmico
+    const firstSafra = data.safras[0];
+    const lastSafra = data.safras[data.safras.length - 1];
+    const periodo = `${firstSafra.split('/')[0].slice(-2)}/${firstSafra.split('/')[1].slice(-2)} - ${lastSafra.split('/')[0].slice(-2)}/${lastSafra.split('/')[1].slice(-2)}`;
+    
+    this.doc.text(`Projeção de fluxo de caixa • Período: ${periodo} • Receitas, despesas e investimentos • Análise consolidada`, 
+      this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   private addPage12(data: ReportData) {
@@ -2996,12 +3623,27 @@ export class DefinitivePDFReportService {
     this.doc.setTextColor(100, 100, 100);
     this.doc.text(new Date().toLocaleDateString('pt-BR'), this.pageWidth - this.margin, this.margin + 10, { align: 'right' });
 
-    // Título
-    this.currentY = this.margin + 30;
-    this.doc.setFontSize(20);
+    // Título da página
+    this.currentY = 60;
+    this.doc.setFontSize(24);
     this.doc.setFont("helvetica", "bold");
-    this.doc.setTextColor(0, 0, 0);
-    this.doc.text("DRE", this.pageWidth / 2, this.currentY, { align: 'center' });
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
+    this.doc.text("DRE", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Demonstração do Resultado do Exercício por safra", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
 
     // Tabela DRE
     this.currentY += 20;
@@ -3019,10 +3661,10 @@ export class DefinitivePDFReportService {
     const labelWidth = 65;
     const colWidth = (tableWidth - labelWidth) / Math.min(data.safras.length, 10);
     
-    // Cores
-    const headerBgColor = { r: 66, g: 56, b: 157 };
-    const sectionBgColor = { r: 240, g: 240, b: 250 };
-    const totalBgColor = { r: 220, g: 220, b: 240 };
+    // Cores - paleta monocromática roxa
+    const headerBgColor = { r: 66, g: 56, b: 157 };     // Roxo principal
+    const sectionBgColor = { r: 245, g: 243, b: 255 };  // Roxo muito claro
+    const totalBgColor = { r: 220, g: 218, b: 250 };    // Lilás claro
     
     // Função helper para desenhar linha
     const drawRow = (label: string, values: { [safra: string]: number }, bgColor?: { r: number; g: number; b: number }, isTotal?: boolean, isPercentage?: boolean, isNegative?: boolean) => {
@@ -3038,8 +3680,10 @@ export class DefinitivePDFReportService {
       
       if (isTotal && bgColor?.r === 66) {
         this.doc.setTextColor(255, 255, 255); // Branco para LUCRO LÍQUIDO
+      } else if (isTotal) {
+        this.doc.setTextColor(66, 56, 157); // Roxo escuro para outros totais
       } else {
-        this.doc.setTextColor(0, 0, 0);
+        this.doc.setTextColor(0, 0, 0); // Preto para texto normal
       }
       
       this.doc.text(label, tableX + 2, this.currentY + rowHeight - 2);
@@ -3065,10 +3709,14 @@ export class DefinitivePDFReportService {
         // Cores para valores
         if (isTotal && bgColor?.r === 66) {
           this.doc.setTextColor(255, 255, 255); // Branco para valores do LUCRO LÍQUIDO
+        } else if (isTotal) {
+          this.doc.setTextColor(66, 56, 157); // Roxo escuro para outros totais
         } else if (isNegative || value < 0) {
-          this.doc.setTextColor(220, 38, 38); // Vermelho para negativos
+          this.doc.setTextColor(200, 80, 80); // Vermelho suave para negativos
+        } else if (isPercentage) {
+          this.doc.setTextColor(115, 103, 240); // Azul violeta para percentuais
         } else {
-          this.doc.setTextColor(0, 0, 0); // Preto padrão
+          this.doc.setTextColor(80, 80, 80); // Cinza escuro padrão
         }
         
         this.doc.text(formattedValue, x + colWidth - 2, this.currentY + rowHeight - 2, { align: 'right' });
@@ -3089,7 +3737,11 @@ export class DefinitivePDFReportService {
     this.doc.setFontSize(7);
     data.safras.slice(0, 10).forEach((safra, index) => {
       const x = tableX + labelWidth + index * colWidth;
-      this.doc.text(safra, x + colWidth / 2, this.currentY + headerHeight - 3, { align: 'center' });
+      // Formato 20/21 ao invés de 2020/21
+      const safraLabel = safra.includes('/') ? 
+        safra.split('/')[0].slice(-2) + '/' + safra.split('/')[1].slice(-2) : 
+        safra;
+      this.doc.text(safraLabel, x + colWidth / 2, this.currentY + headerHeight - 3, { align: 'center' });
     });
     
     this.currentY += headerHeight;
@@ -3135,6 +3787,20 @@ export class DefinitivePDFReportService {
     this.currentY += 3;
     drawRow("LUCRO LÍQUIDO", data.lucroLiquido, { r: 66, g: 56, b: 157 }, true);
     drawRow("Margem Líquida (%)", data.margemLiquida, undefined, false, true);
+    
+    // Adicionar nota de rodapé abaixo da tabela
+    this.currentY += 10;
+    this.doc.setFontSize(7);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    // Período dinâmico
+    const firstSafra = data.safras[0];
+    const lastSafra = data.safras[data.safras.length - 1];
+    const periodo = `${firstSafra.split('/')[0].slice(-2)}/${firstSafra.split('/')[1].slice(-2)} - ${lastSafra.split('/')[0].slice(-2)}/${lastSafra.split('/')[1].slice(-2)}`;
+    
+    this.doc.text(`Demonstração de resultado • Período: ${periodo} • Análise completa de receitas, custos e despesas`, 
+      this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   private addPage13(data: ReportData) {
@@ -3160,12 +3826,27 @@ export class DefinitivePDFReportService {
     this.doc.setTextColor(100, 100, 100);
     this.doc.text(new Date().toLocaleDateString('pt-BR'), this.pageWidth - this.margin, this.margin + 10, { align: 'right' });
 
-    // Título
-    this.currentY = this.margin + 30;
-    this.doc.setFontSize(20);
+    // Título da página
+    this.currentY = 60;
+    this.doc.setFontSize(24);
     this.doc.setFont("helvetica", "bold");
-    this.doc.setTextColor(0, 0, 0);
-    this.doc.text("BALANÇO PATRIMONIAL", this.pageWidth / 2, this.currentY, { align: 'center' });
+    this.doc.setTextColor(66, 56, 157); // Título em roxo
+    this.doc.text("BALANÇO PATRIMONIAL", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Subtítulo descritivo
+    this.currentY += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.text("Demonstração da posição patrimonial e financeira por safra", this.pageWidth / 2, this.currentY, { align: "center" });
+    
+    // Linha divisória decorativa
+    this.currentY += 10;
+    this.doc.setDrawColor(66, 56, 157);
+    this.doc.setLineWidth(0.5);
+    const lineWidth = 60;
+    const lineX = (this.pageWidth - lineWidth) / 2;
+    this.doc.line(lineX, this.currentY, lineX + lineWidth, this.currentY);
 
     // Tabela Balanço
     this.currentY += 20;
@@ -3183,10 +3864,10 @@ export class DefinitivePDFReportService {
     const labelWidth = 65;
     const colWidth = (tableWidth - labelWidth) / Math.min(data.safras.length, 10);
     
-    // Cores
-    const headerBgColor = { r: 66, g: 56, b: 157 };
-    const sectionBgColor = { r: 240, g: 240, b: 250 };
-    const totalBgColor = { r: 220, g: 220, b: 240 };
+    // Cores - paleta monocromática roxa
+    const headerBgColor = { r: 66, g: 56, b: 157 };     // Roxo principal
+    const sectionBgColor = { r: 245, g: 243, b: 255 };  // Roxo muito claro
+    const totalBgColor = { r: 220, g: 218, b: 250 };    // Lilás claro
     
     // Função helper para desenhar linha
     const drawRow = (label: string, values: { [safra: string]: number }, bgColor?: { r: number; g: number; b: number }, isTotal?: boolean, indent?: boolean) => {
@@ -3202,8 +3883,10 @@ export class DefinitivePDFReportService {
       
       if (isTotal && bgColor?.r === 66) {
         this.doc.setTextColor(255, 255, 255); // Branco para totais principais
+      } else if (isTotal) {
+        this.doc.setTextColor(66, 56, 157); // Roxo escuro para outros totais
       } else {
-        this.doc.setTextColor(0, 0, 0);
+        this.doc.setTextColor(0, 0, 0); // Preto para texto normal
       }
       
       const labelX = tableX + 2 + (indent ? 10 : 0);
@@ -3222,8 +3905,10 @@ export class DefinitivePDFReportService {
         // Cores para valores
         if (isTotal && bgColor?.r === 66) {
           this.doc.setTextColor(255, 255, 255); // Branco para valores totais principais
+        } else if (isTotal) {
+          this.doc.setTextColor(66, 56, 157); // Roxo escuro para outros totais
         } else {
-          this.doc.setTextColor(0, 0, 0); // Preto padrão
+          this.doc.setTextColor(80, 80, 80); // Cinza escuro padrão
         }
         
         this.doc.text(formattedValue, x + colWidth - 2, this.currentY + rowHeight - 2, { align: 'right' });
@@ -3244,7 +3929,11 @@ export class DefinitivePDFReportService {
     this.doc.setFontSize(7);
     data.safras.slice(0, 10).forEach((safra, index) => {
       const x = tableX + labelWidth + index * colWidth;
-      this.doc.text(safra, x + colWidth / 2, this.currentY + headerHeight - 3, { align: 'center' });
+      // Formato 20/21 ao invés de 2020/21
+      const safraLabel = safra.includes('/') ? 
+        safra.split('/')[0].slice(-2) + '/' + safra.split('/')[1].slice(-2) : 
+        safra;
+      this.doc.text(safraLabel, x + colWidth / 2, this.currentY + headerHeight - 3, { align: 'center' });
     });
     
     this.currentY += headerHeight;
@@ -3289,6 +3978,20 @@ export class DefinitivePDFReportService {
     
     this.currentY += 3;
     drawRow("TOTAL DO PASSIVO + PL", data.totalPassivoPL, { r: 66, g: 56, b: 157 }, true);
+    
+    // Adicionar nota de rodapé abaixo da tabela
+    this.currentY += 10;
+    this.doc.setFontSize(7);
+    this.doc.setFont("helvetica", "normal");
+    this.doc.setTextColor(100, 100, 100);
+    
+    // Período dinâmico
+    const firstSafra = data.safras[0];
+    const lastSafra = data.safras[data.safras.length - 1];
+    const periodo = `${firstSafra.split('/')[0].slice(-2)}/${firstSafra.split('/')[1].slice(-2)} - ${lastSafra.split('/')[0].slice(-2)}/${lastSafra.split('/')[1].slice(-2)}`;
+    
+    this.doc.text(`Balanço patrimonial consolidado • Período: ${periodo} • Ativos, passivos e patrimônio líquido`, 
+      this.pageWidth / 2, this.currentY, { align: "center" });
   }
 
   public async generateReport(data: ReportData): Promise<Blob> {

@@ -337,6 +337,29 @@ export function UnifiedPlantingAreaListing({
                     </tr>
                   );
                 })}
+                {/* Linha de totais */}
+                {filteredPlantingAreas.length > 0 && (
+                  <tr className="bg-gray-50 border-t-2 font-semibold">
+                    <td colSpan={2} className="p-3 text-right border-r">
+                      Total por Safra:
+                    </td>
+                    {filteredSafras.map(safra => {
+                      // Calcular total para esta safra
+                      const total = filteredPlantingAreas.reduce((sum, area) => {
+                        return sum + (area.areas_por_safra[safra.id] || 0);
+                      }, 0);
+                      
+                      return (
+                        <td key={safra.id} className="p-3 border-r text-center">
+                          <span className="text-primary font-bold">
+                            {total > 0 ? formatAreaValue(total) : "-"}
+                          </span>
+                        </td>
+                      );
+                    })}
+                    <td className="p-3"></td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

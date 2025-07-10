@@ -146,6 +146,17 @@ export function PlantingAreaList({
     return sistemaA.localeCompare(sistemaB);
   });
 
+  // Calcular totais por safra
+  const totalsBySafra = sortedAreas.reduce((acc, area) => {
+    Object.entries(area.areas_por_safra || {}).forEach(([safraId, areaValue]) => {
+      if (!acc[safraId]) {
+        acc[safraId] = 0;
+      }
+      acc[safraId] += areaValue;
+    });
+    return acc;
+  }, {} as { [safraId: string]: number });
+
   // Função para obter nomes de referência
   const getRefNames = (area: PlantingArea): ReferenceNames => {
     return {
@@ -270,6 +281,24 @@ export function PlantingAreaList({
                       </TableRow>
                     );
                   })}
+                  {/* Linha de totais */}
+                  <TableRow className="border-t-2 bg-gray-50 font-semibold">
+                    <TableCell colSpan={5} className="text-right">
+                      Total por Safra:
+                    </TableCell>
+                    <TableCell>
+                      {Object.entries(totalsBySafra).map(([safraId, total], index) => {
+                        const safra = harvests.find((h) => h.id === safraId);
+                        return (
+                          <div key={safraId} className="text-sm">
+                            <span className="font-medium">{safra?.nome || safraId}:</span>{" "}
+                            <span className="text-primary">{formatArea(total)}</span>
+                          </div>
+                        );
+                      })}
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
               
