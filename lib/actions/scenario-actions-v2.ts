@@ -17,6 +17,9 @@ export interface HarvestScenarioData {
   scenario_id: string;
   harvest_id: string;
   dollar_rate: number;
+  dollar_rate_algodao?: number;
+  dollar_rate_fechamento?: number;
+  dollar_rate_soja?: number;
   notes?: string;
 }
 
@@ -143,7 +146,7 @@ export async function getScenarioById(id: string) {
   return data;
 }
 
-// Nova função para salvar dados de safra (apenas dólar)
+// Nova função para salvar dados de safra (taxas de câmbio)
 export async function saveHarvestDollarRate(data: HarvestScenarioData) {
   const supabase = await createClient();
 
@@ -153,6 +156,9 @@ export async function saveHarvestDollarRate(data: HarvestScenarioData) {
       scenario_id: data.scenario_id,
       harvest_id: data.harvest_id,
       dollar_rate: data.dollar_rate,
+      dollar_rate_algodao: data.dollar_rate_algodao,
+      dollar_rate_fechamento: data.dollar_rate_fechamento,
+      dollar_rate_soja: data.dollar_rate_soja,
       notes: data.notes,
       updated_at: new Date().toISOString(),
     }, {

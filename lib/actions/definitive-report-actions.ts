@@ -261,7 +261,7 @@ export async function generateDefinitiveReport(organizationId: string, projectio
 
     // Buscar dados de receitas do fluxo de caixa
     const { getFluxoCaixaSimplificado } = await import("@/lib/actions/projections-actions/fluxo-caixa-simplificado");
-    const fluxoCaixaData = await getFluxoCaixaSimplificado(organizationId);
+    const fluxoCaixaData = await getFluxoCaixaSimplificado(organizationId, projectionId);
     
     // Preparar dados de receita para o gráfico
     const revenueChartData: RevenueData[] = [];
@@ -392,7 +392,7 @@ export async function generateDefinitiveReport(organizationId: string, projectio
 
     // Buscar dados de posição da dívida
     const { getDebtPosition } = await import("@/lib/actions/debt-position-actions");
-    const debtPositionData = await getDebtPosition(organizationId);
+    const debtPositionData = await getDebtPosition(organizationId, projectionId);
     
     // Preparar indicadores econômicos
     const indicators: EconomicIndicator[] = [];
@@ -456,8 +456,8 @@ export async function generateDefinitiveReport(organizationId: string, projectio
     };
 
     // Preparar dados para análise de passivos (LTV e Balanço Patrimonial)
-    const { getBalancoPatrimonialData } = await import("@/lib/actions/projections-actions/balanco-patrimonial-data");
-    const balancoData = await getBalancoPatrimonialData(organizationId);
+    const { getBalancoPatrimonialDataV2 } = await import("@/lib/actions/projections-actions/balanco-patrimonial-data-v2");
+    const balancoData = await getBalancoPatrimonialDataV2(organizationId, projectionId);
     
     // Calcular LTV
     const imoveis = properties?.reduce((sum, prop) => sum + (prop.valor_atual || 0), 0) || 0;
@@ -606,8 +606,8 @@ export async function generateDefinitiveReport(organizationId: string, projectio
     };
 
     // Preparar dados de fluxo de caixa projetado (Página 11)
-    const { getFluxoCaixaCompleto } = await import("@/lib/actions/projections-actions/fluxo-caixa-completo");
-    const fluxoCaixaCompleto = await getFluxoCaixaCompleto(organizationId);
+    // Usar o mesmo fluxo de caixa simplificado que já foi buscado anteriormente
+    const fluxoCaixaCompleto = fluxoCaixaData;
     
     // Calcular margem bruta (receitas - despesas)
     const margemBruta: Record<string, number> = {};
@@ -658,22 +658,31 @@ export async function generateDefinitiveReport(organizationId: string, projectio
         }, {} as { [safra: string]: number })
       },
       investimentos: {
-        terras: {}, // Not available in current data structure
-        maquinarios: {}, // Not available in current data structure 
-        outros: {}, // Not available in current data structure
-        total: Object.keys(fluxoCaixaCompleto.investimentos || {}).reduce((acc, safra) => {
-          acc[safra] = -(fluxoCaixaCompleto.investimentos[safra] || 0);
+        terras: fluxoCaixaCompleto.investimentos?.terras ? Object.keys(fluxoCaixaCompleto.investimentos.terras).reduce((acc, safra) => {
+          acc[safra] = -(fluxoCaixaCompleto.investimentos!.terras[safra] || 0);
           return acc;
-        }, {} as { [safra: string]: number })
+        }, {} as { [safra: string]: number }) : {},
+        maquinarios: fluxoCaixaCompleto.investimentos?.maquinarios ? Object.keys(fluxoCaixaCompleto.investimentos.maquinarios).reduce((acc, safra) => {
+          acc[safra] = -(fluxoCaixaCompleto.investimentos!.maquinarios[safra] || 0);
+          return acc;
+        }, {} as { [safra: string]: number }) : {},
+        outros: fluxoCaixaCompleto.investimentos?.outros ? Object.keys(fluxoCaixaCompleto.investimentos.outros).reduce((acc, safra) => {
+          acc[safra] = -(fluxoCaixaCompleto.investimentos!.outros[safra] || 0);
+          return acc;
+        }, {} as { [safra: string]: number }) : {},
+        total: fluxoCaixaCompleto.investimentos?.total ? Object.keys(fluxoCaixaCompleto.investimentos.total).reduce((acc, safra) => {
+          acc[safra] = -(fluxoCaixaCompleto.investimentos!.total[safra] || 0);
+          return acc;
+        }, {} as { [safra: string]: number }) : {}
       },
       custosFinanceiros: {
-        servicoDivida: {}, // Not available in current data structure
-        pagamentos: Object.keys(fluxoCaixaCompleto.financiamentos?.amortizacoes || {}).reduce((acc, safra) => {
-          acc[safra] = -(fluxoCaixaCompleto.financiamentos?.amortizacoes[safra] || 0);
+        servicoDivida: fluxoCaixaCompleto.financeiras?.servico_divida || {},
+        pagamentos: fluxoCaixaCompleto.financeiras?.pagamentos_bancos ? Object.keys(fluxoCaixaCompleto.financeiras.pagamentos_bancos).reduce((acc, safra) => {
+          acc[safra] = -(fluxoCaixaCompleto.financeiras!.pagamentos_bancos[safra] || 0);
           return acc;
-        }, {} as { [safra: string]: number }),
-        novasLinhas: fluxoCaixaCompleto.financiamentos?.captacoes || {},
-        saldoPosicaoDivida: fluxoCaixaCompleto.financiamentos?.variacao_liquida || {}
+        }, {} as { [safra: string]: number }) : {},
+        novasLinhas: fluxoCaixaCompleto.financeiras?.novas_linhas_credito || {},
+        saldoPosicaoDivida: {} // Will need to calculate this
       },
       fluxoCaixaFinal: fluxoCaixaCompleto.fluxo_liquido || {},
       fluxoCaixaAcumulado: fluxoCaixaCompleto.fluxo_acumulado || {}
@@ -681,7 +690,7 @@ export async function generateDefinitiveReport(organizationId: string, projectio
 
     // Preparar dados da DRE (Página 12)
     const { getDREDataUpdated } = await import("@/lib/actions/projections-actions/dre-data-updated");
-    const dreDataRaw = await getDREDataUpdated(organizationId);
+    const dreDataRaw = await getDREDataUpdated(organizationId, projectionId);
     
     const dreData: DREData = {
       safras: dreDataRaw.anos || [],
@@ -1039,7 +1048,7 @@ export async function generateHtmlPdfReport(organizationId: string, projectionId
 
     // Buscar dados de receitas do fluxo de caixa
     const { getFluxoCaixaSimplificado } = await import("@/lib/actions/projections-actions/fluxo-caixa-simplificado");
-    const fluxoCaixaData = await getFluxoCaixaSimplificado(organizationId);
+    const fluxoCaixaData = await getFluxoCaixaSimplificado(organizationId, projectionId);
     
     // Preparar dados de receita para o gráfico
     const revenueChartData: RevenueData[] = [];

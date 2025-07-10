@@ -59,6 +59,7 @@ export async function getFluxoCaixaSimplificado(
 ): Promise<FluxoCaixaData> {
   const supabase = await createClient();
   
+  
   // 1. Buscar projeções de culturas
   const cultureProjections = await getCultureProjections(organizationId, projectionId);
   const anos = cultureProjections.anos;
@@ -94,6 +95,7 @@ export async function getFluxoCaixaSimplificado(
         receitasAgricolas[culturaNome][ano] = receita;
         totalReceitasPorAno[ano] += receita;
         
+        
         // Despesas
         const despesa = dadosAno.custo_total || 0;
         despesasAgricolas[culturaNome][ano] = despesa;
@@ -112,6 +114,7 @@ export async function getFluxoCaixaSimplificado(
       }
     });
   });
+  
   
   // 4. Buscar safras para mapear IDs para nomes
   const { data: safras, error: safrasError } = await supabase

@@ -102,13 +102,17 @@ export function ScenarioSelectorBar({
         const scenarioData = {
           scenarioId: scenario.id,
           scenarioName: scenario.name,
-          dollarRates: {} as Record<string, number>,
+          dollarRates: {} as Record<string, {algodao: number, fechamento: number, soja: number}>,
           cultureData: {} as Record<string, any[]>,
         };
 
         // Processar taxas de dólar
         fullScenario.harvest_data?.forEach((hd: any) => {
-          scenarioData.dollarRates[hd.harvest_id] = hd.dollar_rate;
+          scenarioData.dollarRates[hd.harvest_id] = {
+            algodao: hd.dollar_rate_algodao || hd.dollar_rate || 5.45,
+            fechamento: hd.dollar_rate_fechamento || 5.70,
+            soja: hd.dollar_rate_soja || 5.20
+          };
         });
 
         // Processar dados de cultura por safra
@@ -186,11 +190,15 @@ export function ScenarioSelectorBar({
       }
 
       // Salvar taxas de dólar
-      for (const [harvestId, dollarRate] of Object.entries(scenarioData.dollarRates)) {
+      for (const [harvestId, rates] of Object.entries(scenarioData.dollarRates)) {
+        const ratesObj = rates as {algodao: number, fechamento: number, soja: number};
         await saveHarvestDollarRate({
           scenario_id: scenarioId,
           harvest_id: harvestId,
-          dollar_rate: dollarRate as number,
+          dollar_rate: ratesObj.algodao || 5.45, // usando algodão como padrão por retrocompatibilidade
+          dollar_rate_algodao: ratesObj.algodao || 5.45,
+          dollar_rate_fechamento: ratesObj.fechamento || 5.70,
+          dollar_rate_soja: ratesObj.soja || 5.20,
         });
       }
 

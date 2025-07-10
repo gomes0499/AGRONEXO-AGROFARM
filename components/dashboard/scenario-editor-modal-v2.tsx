@@ -58,7 +58,7 @@ export function ScenarioEditorModal({
   const [cultures, setCultures] = useState<CultureData[]>([]);
   const [systems, setSystems] = useState<SystemData[]>([]);
   const [selectedSafra, setSelectedSafra] = useState<string>("");
-  const [dollarRates, setDollarRates] = useState<Record<string, number>>({});
+  const [dollarRates, setDollarRates] = useState<Record<string, {algodao: number, fechamento: number, soja: number}>>({});
   const [cultureData, setCultureData] = useState<Record<string, CultureScenarioData[]>>({});
   const [loading, setLoading] = useState(false);
 
@@ -89,9 +89,13 @@ export function ScenarioEditorModal({
       // Se editando, carregar dados existentes
       if (scenario) {
         // Carregar taxas de dólar
-        const rates: Record<string, number> = {};
+        const rates: Record<string, {algodao: number, fechamento: number, soja: number}> = {};
         scenario.harvest_data?.forEach((hd: any) => {
-          rates[hd.harvest_id] = hd.dollar_rate;
+          rates[hd.harvest_id] = {
+            algodao: hd.dollar_rate_algodao || 5.45,
+            fechamento: hd.dollar_rate_fechamento || 5.70,
+            soja: hd.dollar_rate_soja || 5.20
+          };
         });
         setDollarRates(rates);
 
@@ -246,23 +250,70 @@ export function ScenarioEditorModal({
                   Taxa de Câmbio
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <Label htmlFor={`dollar-${safra.id}`} className="min-w-[100px]">
-                    Dólar (R$)
+                  <Label htmlFor={`dollar-algodao-${safra.id}`} className="min-w-[150px]">
+                    Dólar Algodão (R$)
                   </Label>
                   <Input
-                    id={`dollar-${safra.id}`}
+                    id={`dollar-algodao-${safra.id}`}
                     type="number"
                     step="0.01"
-                    value={dollarRates[safra.id] || 5.0}
+                    value={dollarRates[safra.id]?.algodao || 5.45}
                     onChange={(e) =>
                       setDollarRates(prev => ({
                         ...prev,
-                        [safra.id]: parseFloat(e.target.value) || 0,
+                        [safra.id]: {
+                          ...prev[safra.id],
+                          algodao: parseFloat(e.target.value) || 0,
+                        },
                       }))
                     }
-                    placeholder="5.00"
+                    placeholder="5.45"
+                    className="max-w-[150px]"
+                  />
+                </div>
+                <div className="flex items-center gap-4">
+                  <Label htmlFor={`dollar-fechamento-${safra.id}`} className="min-w-[150px]">
+                    Dólar Fechamento (R$)
+                  </Label>
+                  <Input
+                    id={`dollar-fechamento-${safra.id}`}
+                    type="number"
+                    step="0.01"
+                    value={dollarRates[safra.id]?.fechamento || 5.70}
+                    onChange={(e) =>
+                      setDollarRates(prev => ({
+                        ...prev,
+                        [safra.id]: {
+                          ...prev[safra.id],
+                          fechamento: parseFloat(e.target.value) || 0,
+                        },
+                      }))
+                    }
+                    placeholder="5.70"
+                    className="max-w-[150px]"
+                  />
+                </div>
+                <div className="flex items-center gap-4">
+                  <Label htmlFor={`dollar-soja-${safra.id}`} className="min-w-[150px]">
+                    Dólar Soja (R$)
+                  </Label>
+                  <Input
+                    id={`dollar-soja-${safra.id}`}
+                    type="number"
+                    step="0.01"
+                    value={dollarRates[safra.id]?.soja || 5.20}
+                    onChange={(e) =>
+                      setDollarRates(prev => ({
+                        ...prev,
+                        [safra.id]: {
+                          ...prev[safra.id],
+                          soja: parseFloat(e.target.value) || 0,
+                        },
+                      }))
+                    }
+                    placeholder="5.20"
                     className="max-w-[150px]"
                   />
                 </div>

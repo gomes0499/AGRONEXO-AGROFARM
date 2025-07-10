@@ -31,7 +31,7 @@ import {
   getAdiantamentos,
 } from "@/lib/actions/assets-actions";
 
-export async function generateExcelExportV2(organizationId: string): Promise<Blob> {
+export async function generateExcelExportV2(organizationId: string, projectionId?: string): Promise<Blob> {
   try {
     // Buscar todos os dados da organização incluindo dashboard e tabelas adicionais
     const [
@@ -63,12 +63,12 @@ export async function generateExcelExportV2(organizationId: string): Promise<Blo
       cotacoesCambio,
       adiantamentos,
     ] = await Promise.all([
-      fetchDashboardData(organizationId).catch(() => null),
+      fetchDashboardData(organizationId, projectionId).catch(() => null),
       getProperties(organizationId).catch(() => []),
       getProductionDataUnified(organizationId).catch(() => ({ properties: [], cultures: [], systems: [], cycles: [], safras: [] })),
-      getPlantingAreasUnified(organizationId).catch(() => ({ plantingAreas: [], safras: [] })),
-      getProductivitiesUnified(organizationId).catch(() => ({ productivities: [], safras: [] })),
-      getProductionCostsUnified(organizationId).catch(() => ({ productionCosts: [], safras: [] })),
+      getPlantingAreasUnified(organizationId, projectionId).catch(() => ({ plantingAreas: [], safras: [] })),
+      getProductivitiesUnified(organizationId, projectionId).catch(() => ({ productivities: [], safras: [] })),
+      getProductionCostsUnified(organizationId, projectionId).catch(() => ({ productionCosts: [], safras: [] })),
       getDividasBancarias(organizationId).catch(() => []),
       getDividasTerras(organizationId).catch(() => []),
       getDividasFornecedores(organizationId).catch(() => []),
@@ -76,9 +76,9 @@ export async function generateExcelExportV2(organizationId: string): Promise<Blo
       getFinanceiras(organizationId).catch(() => []),
       getOutrasDespesas(organizationId).catch(() => []),
       getReceitasFinanceiras(organizationId).catch(() => []),
-      getFluxoCaixaCorrigido(organizationId).catch(() => null),
-      getDREDataUpdated(organizationId).catch(() => null),
-      getBalancoPatrimonialCorrigido(organizationId).catch(() => null),
+      getFluxoCaixaCorrigido(organizationId, projectionId).catch(() => null),
+      getDREDataUpdated(organizationId, projectionId).catch(() => null),
+      getBalancoPatrimonialCorrigido(organizationId, projectionId).catch(() => null),
       // Novos dados
       getMaquinasEquipamentos(organizationId).catch(() => []),
       getBenfeitorias(organizationId).catch(() => []),
