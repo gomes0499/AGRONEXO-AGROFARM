@@ -187,22 +187,27 @@ export function ExcelExportButton({
           <DialogTitle>Exportar Dados para Excel</DialogTitle>
           <DialogDescription>
             Exporte todos os dados da organização em formato Excel (.xlsx).
-            A planilha incluirá informações de propriedades, produção,
-            financeiro e indicadores.
+            A planilha incluirá informações completas de propriedades, produção,
+            ativos, financeiro e análises detalhadas.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <h4 className="text-sm font-medium">Dados incluídos:</h4>
+            <h4 className="text-sm font-medium">Dados incluídos (27 abas):</h4>
             <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-              <li>• Dados da Organização</li>
+              <li>• Resumo Executivo com KPIs</li>
               <li>• Propriedades e Arrendamentos</li>
-              <li>• Áreas de Plantio por Safra</li>
+              <li>• Áreas de Plantio com Totais</li>
               <li>• Produtividade e Custos</li>
-              <li>• Dívidas e Financiamentos</li>
-              <li>• Indicadores Financeiros</li>
-              <li>• Fluxo de Caixa</li>
-              <li>• DRE e Balanço Patrimonial</li>
+              <li>• Preços e Cotações</li>
+              <li>• Máquinas e Equipamentos</li>
+              <li>• Benfeitorias e Investimentos</li>
+              <li>• Rebanhos e Associações</li>
+              <li>• Dívidas Detalhadas</li>
+              <li>• Caixa e Disponibilidades</li>
+              <li>• Fluxo de Caixa e DRE</li>
+              <li>• Balanço Patrimonial</li>
+              <li>• Indicadores e Análise de Sensibilidade</li>
             </ul>
           </div>
 

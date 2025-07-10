@@ -105,6 +105,7 @@ export const propertySchema = z.object({
   imagem: z.string().nullable().optional(),
   cartorio_registro: z.string().nullable().optional(),
   numero_car: z.string().nullable().optional(),
+  numero_itr: z.string().nullable().optional(),
   data_inicio: z.coerce.date().nullable().optional(),
   data_termino: z.coerce.date().nullable().optional(),
   tipo_anuencia: z.string().nullable().optional(),

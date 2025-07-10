@@ -1,4 +1,4 @@
-import { MapPin, FileText, MoreHorizontal } from "lucide-react";
+import { MapPin, FileText, MoreHorizontal, TreePine } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -134,6 +134,40 @@ export function LocationStep({ form }: LocationStepProps) {
                   {...field}
                   value={field.value ?? ""}
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="numero_car"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-1.5">
+                <TreePine className="h-3.5 w-3.5 text-muted-foreground" />
+                Número do CAR
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="Ex: XX-0000000-00000000000000000000000000000000" {...field} value={field.value || ""} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="numero_itr"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                Número do ITR
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="Ex: 123456789" {...field} value={(field.value as string) || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -18,8 +18,8 @@ export async function sendExcelByEmail(
     // Verificar permissão do usuário
     await verifyUserPermission();
     
-    // Gerar arquivo Excel
-    const excelData = await exportOrganizationDataToExcel(organizationId);
+    // Gerar arquivo Excel usando a versão V2 melhorada
+    const excelData = await exportOrganizationDataToExcel(organizationId, true);
     
     // Converter base64 para buffer
     const excelBuffer = Buffer.from(excelData.data, 'base64');
@@ -117,13 +117,17 @@ export async function sendExcelByEmail(
                                 <strong style="color: #475569;">Conteúdo:</strong>
                               </td>
                               <td style="color: #64748b; padding: 5px 0;">
-                                • Propriedades e Terras<br>
-                                • Áreas de Plantio<br>
-                                • Produtividades<br>
-                                • Custos de Produção<br>
-                                • Informações Financeiras<br>
-                                • Dívidas e Compromissos<br>
-                                • Caixa e Disponibilidades
+                                • Resumo Executivo com KPIs<br>
+                                • Propriedades e Arrendamentos<br>
+                                • Áreas de Plantio com Totais<br>
+                                • Produtividades e Custos<br>
+                                • Máquinas e Equipamentos<br>
+                                • Benfeitorias e Investimentos<br>
+                                • Dívidas Detalhadas<br>
+                                • Fluxo de Caixa e DRE<br>
+                                • Balanço Patrimonial<br>
+                                • Indicadores Financeiros<br>
+                                • Análise de Sensibilidade
                               </td>
                             </tr>
                           </table>
