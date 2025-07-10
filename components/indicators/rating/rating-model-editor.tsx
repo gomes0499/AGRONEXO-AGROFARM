@@ -204,6 +204,16 @@ export function RatingModelEditor({
   );
 
   const addMetricNode = useCallback((metric: RatingMetric) => {
+    // Verificar se a métrica já foi adicionada
+    const metricAlreadyExists = nodes.some(
+      (node) => node.type === "metric" && node.data?.metric?.id === metric.id
+    );
+
+    if (metricAlreadyExists) {
+      toast.error(`A métrica "${metric.nome}" já foi adicionada ao modelo`);
+      return;
+    }
+
     const newNode: Node = {
       id: `metric-${Date.now()}`,
       type: "metric",
@@ -216,7 +226,7 @@ export function RatingModelEditor({
       },
     };
     setNodes((nds) => nds.concat(newNode));
-  }, [setNodes]);
+  }, [setNodes, nodes]);
 
 
   const handleShowCalculateModal = () => {
@@ -621,18 +631,30 @@ export function RatingModelEditor({
               <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto border dark:border-gray-700 rounded-md p-2 dark:bg-gray-900/50">
                 {availableMetrics
                   .filter((m) => m.tipo === selectedMetricType.toUpperCase())
-                  .map((metric) => (
-                    <Button
-                      key={metric.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addMetricNode(metric)}
-                      className="justify-start text-xs"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      {metric.nome}
-                    </Button>
-                  ))}
+                  .map((metric) => {
+                    const isAlreadyAdded = nodes.some(
+                      (node) => node.type === "metric" && node.data?.metric?.id === metric.id
+                    );
+                    
+                    return (
+                      <Button
+                        key={metric.id}
+                        variant={isAlreadyAdded ? "secondary" : "outline"}
+                        size="sm"
+                        onClick={() => addMetricNode(metric)}
+                        className={`justify-start text-xs ${
+                          isAlreadyAdded ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                        disabled={isAlreadyAdded}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        {metric.nome}
+                        {isAlreadyAdded && (
+                          <span className="ml-auto text-xs text-muted-foreground">(Adicionada)</span>
+                        )}
+                      </Button>
+                    );
+                  })}
               </div>
 
               <Button

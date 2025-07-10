@@ -73,9 +73,19 @@ export function DividasTerrasListing({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   
-  const totalPages = Math.ceil((landPlans || []).length / itemsPerPage);
+  // Ordenar os dados: primeiro por nome da fazenda, depois por ano (decrescente)
+  const sortedLandPlans = [...landPlans].sort((a, b) => {
+    // Primeiro, ordenar por nome da fazenda
+    const fazendaCompare = a.nome_fazenda.localeCompare(b.nome_fazenda);
+    if (fazendaCompare !== 0) return fazendaCompare;
+    
+    // Se a fazenda for a mesma, ordenar por ano (mais recente primeiro)
+    return b.ano - a.ano;
+  });
+
+  const totalPages = Math.ceil((sortedLandPlans || []).length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedItems = landPlans.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedItems = sortedLandPlans.slice(startIndex, startIndex + itemsPerPage);
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -143,15 +153,15 @@ export function DividasTerrasListing({
     }
   };
 
-  const totalValue = Array.isArray(landPlans) ? landPlans.reduce(
+  const totalValue = Array.isArray(sortedLandPlans) ? sortedLandPlans.reduce(
     (total, landPlan) => total + landPlan.valor_total,
     0
   ) : 0;
-  const totalHectares = Array.isArray(landPlans) ? landPlans.reduce(
+  const totalHectares = Array.isArray(sortedLandPlans) ? sortedLandPlans.reduce(
     (total, landPlan) => total + landPlan.hectares,
     0
   ) : 0;
-  const totalSacas = Array.isArray(landPlans) ? landPlans.reduce(
+  const totalSacas = Array.isArray(sortedLandPlans) ? sortedLandPlans.reduce(
     (total, landPlan) => total + (landPlan.total_sacas || 0),
     0
   ) : 0;
