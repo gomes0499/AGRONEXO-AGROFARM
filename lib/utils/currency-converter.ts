@@ -53,9 +53,9 @@ export function formatCurrencyWithConversion(
 }
 
 /**
- * Obtém a taxa de câmbio para uma safra específica
+ * Obtém a taxa de câmbio para uma safra específica a partir de configurações
  */
-export function getExchangeRateForSafra(
+export function getExchangeRateForSafraFromConfig(
   safraId: string,
   currencyConfigs: CurrencyConfig[]
 ): number {
@@ -72,4 +72,67 @@ export function getMainCurrencyForSafra(
 ): "BRL" | "USD" {
   const config = currencyConfigs.find(c => c.safraId === safraId);
   return config?.moedaPrincipal || "BRL"; // BRL como padrão
+}
+
+/**
+ * Formata valor com múltiplas moedas usando taxa de câmbio
+ */
+export function formatWithExchangeRate(
+  value: number, 
+  currency: string, 
+  exchangeRate: number
+): { primary: string; secondary: string } {
+  const formatCurrency = (val: number, curr: string) => {
+    const formatter = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: curr === 'USD' ? 'USD' : 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    
+    if (curr === 'USD') {
+      return formatter.format(val).replace('US$', 'US$');
+    } else if (curr === 'SOJA') {
+      return `${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} sc`;
+    }
+    return formatter.format(val);
+  };
+
+  const primary = formatCurrency(value, currency);
+  let secondary = '';
+  
+  if (currency === 'USD') {
+    secondary = formatCurrency(value * exchangeRate, 'BRL');
+  } else if (currency === 'BRL') {
+    secondary = formatCurrency(value / exchangeRate, 'USD');
+  }
+  
+  return { primary, secondary };
+}
+
+/**
+ * Obtém taxa de câmbio para uma safra específica
+ */
+export function getExchangeRateForSafra(cotacoes: any[], safraId: string): number {
+  // Find exchange rate for DOLAR_FECHAMENTO for the safra
+  const cotacao = cotacoes.find(c => 
+    c.safra_id === safraId && 
+    c.tipo_moeda === "DOLAR_FECHAMENTO"
+  );
+  
+  if (cotacao && cotacao.cotacoes_por_ano) {
+    // If has yearly rates, get the rate for the safraId
+    const cotacoesPorAno = typeof cotacao.cotacoes_por_ano === 'string' 
+      ? JSON.parse(cotacao.cotacoes_por_ano)
+      : cotacao.cotacoes_por_ano;
+      
+    // Get the first available rate or default
+    const anos = Object.keys(cotacoesPorAno).sort();
+    if (anos.length > 0) {
+      return cotacoesPorAno[anos[0]] || 5.7;
+    }
+  }
+  
+  // Fallback to current rate or default
+  return cotacao?.cotacao_atual || 5.7;
 }
