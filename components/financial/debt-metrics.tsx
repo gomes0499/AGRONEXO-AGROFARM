@@ -27,6 +27,8 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { convertCurrency } from "@/lib/utils/currency-converter";
+import { getCurrentExchangeRate } from "@/lib/actions/financial-exchange-rate-actions";
 
 interface DividaBancaria {
   id: string;
@@ -63,6 +65,7 @@ interface DebtMetricsProps {
   dividasTerras: DividaTerra[];
   dividasFornecedores: DividaFornecedor[];
   safras?: any[];
+  organizationId: string;
 }
 
 interface KpiItemProps {
@@ -127,9 +130,11 @@ export function DebtMetrics({
   dividasBancarias = [], 
   dividasTerras = [], 
   dividasFornecedores = [],
-  safras = []
+  safras = [],
+  organizationId
 }: DebtMetricsProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [exchangeRate, setExchangeRate] = useState(5.7); // Taxa padrão
   const [metrics, setMetrics] = useState({
     totalDividas: 0,
     totalBancarias: 0,
@@ -142,62 +147,99 @@ export function DebtMetrics({
   });
 
   useEffect(() => {
+    const loadExchangeRate = async () => {
+      try {
+        const { exchangeRate: rate } = await getCurrentExchangeRate(organizationId);
+        setExchangeRate(rate);
+      } catch (error) {
+        console.error('Erro ao carregar taxa de câmbio:', error);
+        setExchangeRate(5.7); // Fallback
+      }
+    };
+
+    loadExchangeRate();
+  }, [organizationId]);
+
+  useEffect(() => {
     try {
       // Verificar se os arrays existem
       if (!dividasBancarias || !dividasTerras || !dividasFornecedores) {
         return;
       }
 
-      // Calcular total de dívidas bancárias
+      // Calcular total de dívidas bancárias (em BRL)
       const totalBancarias = dividasBancarias.reduce((sum, divida: any) => {
         try {
+          let valor = 0;
+          
           // Usar o campo total se existir
           if (divida.total) {
-            return sum + divida.total;
-          }
-          
+            valor = divida.total;
+          } 
           // Se tem saldo devedor, usa ele, senão calcula do fluxo
-          if (divida.saldo_devedor) {
-            return sum + divida.saldo_devedor;
+          else if (divida.saldo_devedor) {
+            valor = divida.saldo_devedor;
+          }
+          else {
+            let fluxo = {};
+            if (divida.fluxo_pagamento_anual) {
+              fluxo = typeof divida.fluxo_pagamento_anual === 'string' 
+                ? JSON.parse(divida.fluxo_pagamento_anual) 
+                : divida.fluxo_pagamento_anual || {};
+            }
+            
+            valor = Object.values(fluxo).reduce<number>((s, v) => s + (Number(v) || 0), 0);
           }
           
-          let fluxo = {};
-          if (divida.fluxo_pagamento_anual) {
-            fluxo = typeof divida.fluxo_pagamento_anual === 'string' 
-              ? JSON.parse(divida.fluxo_pagamento_anual) 
-              : divida.fluxo_pagamento_anual || {};
+          // Converter USD para BRL se necessário
+          if (divida.moeda === 'USD') {
+            valor = convertCurrency(valor, 'USD', 'BRL', exchangeRate);
           }
           
-          const totalFluxo = Object.values(fluxo).reduce<number>((s, v) => s + (Number(v) || 0), 0);
-          return sum + totalFluxo;
+          return sum + valor;
         } catch (error) {
           console.error('Erro ao processar dívida bancária:', error);
           return sum;
         }
       }, 0);
 
-    // Calcular total de dívidas de terras
+    // Calcular total de dívidas de terras (em BRL)
     const totalTerras = dividasTerras.reduce((sum, divida) => {
-      return sum + (divida.valor_total || 0);
+      let valor = divida.valor_total || 0;
+      
+      // Converter USD para BRL se necessário
+      if (divida.moeda === 'USD') {
+        valor = convertCurrency(valor, 'USD', 'BRL', exchangeRate);
+      }
+      
+      return sum + valor;
     }, 0);
 
-    // Calcular total de dívidas de fornecedores
+    // Calcular total de dívidas de fornecedores (em BRL)
     const totalFornecedores = dividasFornecedores.reduce((sum, fornecedor: any) => {
       try {
+        let valor = 0;
+        
         // Usar o campo total se existir
         if (fornecedor.total) {
-          return sum + fornecedor.total;
+          valor = fornecedor.total;
+        } else {
+          let valores = {};
+          if (fornecedor.valores_por_ano) {
+            valores = typeof fornecedor.valores_por_ano === 'string'
+              ? JSON.parse(fornecedor.valores_por_ano)
+              : fornecedor.valores_por_ano || {};
+          }
+          
+          valor = Object.values(valores).reduce<number>((s, v) => s + (Number(v) || 0), 0);
         }
         
-        let valores = {};
-        if (fornecedor.valores_por_ano) {
-          valores = typeof fornecedor.valores_por_ano === 'string'
-            ? JSON.parse(fornecedor.valores_por_ano)
-            : fornecedor.valores_por_ano || {};
+        // Converter USD para BRL se necessário
+        if (fornecedor.moeda === 'USD') {
+          valor = convertCurrency(valor, 'USD', 'BRL', exchangeRate);
         }
         
-        const total = Object.values(valores).reduce<number>((s, v) => s + (Number(v) || 0), 0);
-        return sum + total;
+        return sum + valor;
       } catch (error) {
         console.error('Erro ao processar fornecedor:', error);
         return sum;
@@ -207,9 +249,9 @@ export function DebtMetrics({
     // Calcular total geral
     const totalDividas = totalBancarias + totalTerras + totalFornecedores;
 
-    // Calcular percentual por moeda
-    let totalUSD = 0;
-    let totalBRL = 0;
+    // Calcular percentual por moeda baseado no valor total em BRL
+    let totalUSDOriginal = 0;
+    let totalBRLOriginal = 0;
 
     // Dívidas bancárias
     dividasBancarias.forEach((divida: any) => {
@@ -231,9 +273,9 @@ export function DebtMetrics({
         }
         
         if (divida.moeda === 'USD') {
-          totalUSD += valor;
+          totalUSDOriginal += valor;
         } else {
-          totalBRL += valor;
+          totalBRLOriginal += valor;
         }
       } catch (error) {
         console.error('Erro ao processar moeda da dívida bancária:', error);
@@ -243,9 +285,9 @@ export function DebtMetrics({
     // Dívidas de terras
     dividasTerras.forEach(divida => {
       if (divida.moeda === 'USD') {
-        totalUSD += divida.valor_total;
+        totalUSDOriginal += divida.valor_total;
       } else {
-        totalBRL += divida.valor_total;
+        totalBRLOriginal += divida.valor_total;
       }
     });
 
@@ -267,17 +309,22 @@ export function DebtMetrics({
         }
         
         if (fornecedor.moeda === 'USD') {
-          totalUSD += total;
+          totalUSDOriginal += total;
         } else {
-          totalBRL += total;
+          totalBRLOriginal += total;
         }
       } catch (error) {
         console.error('Erro ao processar moeda do fornecedor:', error);
       }
     });
 
-    const percentualUSD = totalDividas > 0 ? (totalUSD / totalDividas) * 100 : 0;
-    const percentualBRL = totalDividas > 0 ? (totalBRL / totalDividas) * 100 : 0;
+    // Converter USD para BRL para calcular o percentual
+    const totalUSDInBRL = convertCurrency(totalUSDOriginal, 'USD', 'BRL', exchangeRate);
+    const totalBRLInBRL = totalBRLOriginal;
+    const totalGeralInBRL = totalUSDInBRL + totalBRLInBRL;
+
+    const percentualUSD = totalGeralInBRL > 0 ? (totalUSDInBRL / totalGeralInBRL) * 100 : 0;
+    const percentualBRL = totalGeralInBRL > 0 ? (totalBRLInBRL / totalGeralInBRL) * 100 : 0;
 
     // Calcular taxa média de juros (apenas dívidas bancárias)
     const taxaMediaJuros = dividasBancarias.length > 0
@@ -348,7 +395,7 @@ export function DebtMetrics({
     } finally {
       setIsLoading(false);
     }
-  }, [dividasBancarias, dividasTerras, dividasFornecedores]);
+  }, [dividasBancarias, dividasTerras, dividasFornecedores, exchangeRate]);
 
   if (isLoading) {
     return (
