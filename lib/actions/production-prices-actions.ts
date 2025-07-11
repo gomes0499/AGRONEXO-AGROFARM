@@ -361,26 +361,22 @@ export async function getExchangeRateProjections(projectionId?: string) {
     const supabase = await createClient();
     const organizationId = await getOrganizationId();
 
-    // Try RPC function first, fallback to direct query if function doesn't exist
-    try {
-      const { data, error } = await supabase
-        .rpc('get_exchange_rates_with_projection', {
-          p_organizacao_id: organizationId,
-          p_projection_id: projectionId || null
-        });
+    // Use a nova função unificada que funciona para projections e scenarios
+    const { data, error } = await supabase
+      .rpc('get_exchange_rates_unified', {
+        p_organizacao_id: organizationId,
+        p_id: projectionId || null
+      });
 
-      if (!error) {
-        // Transform exchange rates to match expected format
+    if (!error && data) {
+      // Transform exchange rates to match expected format
       const transformedData = (data || []).map((rate: any) => ({
         ...rate,
-        commodity_type: rate.tipo_moeda, // Map tipo_moeda to commodity_type for consistency
-        precos_por_ano: rate.cotacoes_por_ano, // Map cotacoes_por_ano to precos_por_ano for consistency
-        current_price: rate.cotacao_atual, // Map cotacao_atual to current_price for consistency
+        commodity_type: rate.tipo_moeda,
+        precos_por_ano: rate.cotacoes_por_ano,
+        current_price: rate.cotacao_atual,
       }));
       return { data: transformedData, error: null };
-      }
-    } catch (rpcError) {
-      // Silently fallback to direct query
     }
 
     // Fallback to direct query logic (same as RPC function)
@@ -481,42 +477,21 @@ export async function updateExchangeRateProjection(
   updates: {
     cotacao_atual?: number;
     cotacoes_por_ano?: Record<string, number>;
+    commodity_type?: string; // Para identificar o tipo de moeda
   },
   projectionId?: string
 ) {
   try {
     const supabase = await createClient();
-    const organizationId = await getOrganizationId();
-
-    let data, error;
     
-    if (projectionId) {
-      // Atualizar na tabela de projeções
-      ({ data, error } = await supabase
-        .from("cotacoes_cambio")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .eq("organizacao_id", organizationId)
-        .eq("projection_id", projectionId)
-        .select()
-        .single());
-    } else {
-      // Atualizar na tabela principal
-      ({ data, error } = await supabase
-        .from("cotacoes_cambio")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .eq("organizacao_id", organizationId)
-        .is("projection_id", null)
-        .select()
-        .single());
-    }
+    // Usar a função unificada que funciona para projections e scenarios
+    const { data, error } = await supabase
+      .rpc('update_exchange_rate_unified', {
+        p_id: id,
+        p_tipo_moeda: updates.commodity_type || 'DOLAR_ALGODAO',
+        p_cotacao_atual: updates.cotacao_atual !== undefined ? updates.cotacao_atual : null,
+        p_cotacoes_por_ano: updates.cotacoes_por_ano ? JSON.stringify(updates.cotacoes_por_ano) : null
+      });
 
     if (error) {
       console.error("Erro ao atualizar cotação de câmbio:", error);

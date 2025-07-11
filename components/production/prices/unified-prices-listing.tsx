@@ -130,6 +130,11 @@ export function UnifiedPricesListing({
         key = `${price.cultura_id}_${price.sistema_id}_${price.ciclo_id || 'no-cycle'}`;
       }
       
+      // Para câmbios, usar o tipo de moeda como chave única
+      if (price.tipo_moeda) {
+        key = price.tipo_moeda;
+      }
+      
       if (!acc[key]) {
         acc[key] = price;
       }
@@ -145,10 +150,22 @@ export function UnifiedPricesListing({
     if (!editingState[price.id]) {
       const newEditState: Record<string, string> = {};
 
-      // Use safra IDs from precos_por_ano
-      const precosPorAno = price.precos_por_ano || {};
+      // Check if it's an exchange rate
+      const isExchangeRate = EXCHANGE_RATE_TYPES.includes(
+        price.commodity_type || ""
+      ) || price.tipo_moeda;
+      
+      // Use appropriate price data
+      const priceData = isExchangeRate 
+        ? (price.cotacoes_por_ano || price.precos_por_ano || {})
+        : (price.precos_por_ano || {});
+      
       displaySafras.forEach((safra) => {
-        const value = precosPorAno[safra.id] || 0;
+        // For exchange rates, try both year and safra ID as keys
+        const yearKey = safra.ano_inicio?.toString();
+        const value = isExchangeRate && yearKey && priceData[yearKey] !== undefined
+          ? priceData[yearKey]
+          : (priceData[safra.id] || 0);
         newEditState[safra.id] = value.toString();
       });
 
@@ -183,27 +200,36 @@ export function UnifiedPricesListing({
         throw new Error("No edit values found");
       }
 
+      const isExchangeRate = EXCHANGE_RATE_TYPES.includes(
+        price.commodity_type || ""
+      ) || price.tipo_moeda;
+
       // Convert edit state to precos_por_ano format
       const precosPorAno: Record<string, number> = {};
       displaySafras.forEach((safra) => {
         const value = editValues[safra.id];
         if (value !== undefined) {
-          precosPorAno[safra.id] = parseFloat(value) || 0;
+          // Para câmbios, SEMPRE usar o ano_inicio como chave
+          const key = isExchangeRate && safra.ano_inicio ? safra.ano_inicio.toString() : safra.id;
+          precosPorAno[key] = parseFloat(value) || 0;
         }
       });
 
-      // Set current price as the first safra price (pode ser 0)
-      const currentPrice = precosPorAno[displaySafras[0]?.id] || 0;
-
-      const isExchangeRate = EXCHANGE_RATE_TYPES.includes(
-        price.commodity_type || ""
-      ) || price.tipo_moeda;
+      // Set current price as the first safra price with year key
+      const firstSafra = displaySafras[0];
+      const firstSafraKey = isExchangeRate && firstSafra?.ano_inicio 
+        ? firstSafra.ano_inicio.toString() 
+        : firstSafra?.id;
+      const currentPrice = firstSafraKey && precosPorAno[firstSafraKey] !== undefined 
+        ? precosPorAno[firstSafraKey] 
+        : 0;
 
       let result;
       if (isExchangeRate) {
         result = await updateExchangeRateProjection(priceId, {
           cotacao_atual: currentPrice,
           cotacoes_por_ano: precosPorAno,
+          commodity_type: price.commodity_type || price.tipo_moeda,
         }, projectionId);
       } else {
         result = await updateCommodityPriceProjection(priceId, {
@@ -220,6 +246,9 @@ export function UnifiedPricesListing({
       }
 
       toast.success("Preço atualizado com sucesso");
+      
+      // Força uma recarga da página para garantir que os dados sejam atualizados
+      window.location.reload();
     } catch (error) {
       console.error("Error updating price:", error);
       toast.error("Erro ao atualizar preço");
@@ -258,7 +287,32 @@ export function UnifiedPricesListing({
   };
 
   const getPriceValue = (price: Price, safraId: string): number => {
-    const precosPorAno = price.precos_por_ano || price.cotacoes_por_ano || {};
+    let precosPorAno = price.precos_por_ano || price.cotacoes_por_ano || {};
+    
+    // Se for uma string JSON, fazer o parse
+    if (typeof precosPorAno === 'string') {
+      try {
+        precosPorAno = JSON.parse(precosPorAno);
+      } catch (e) {
+        console.error('Erro ao fazer parse de precosPorAno:', e);
+        return 0;
+      }
+    }
+    
+    // Para câmbios, buscar por ano_inicio da safra
+    const isExchangeRate = EXCHANGE_RATE_TYPES.includes(
+      price.commodity_type || ""
+    ) || price.tipo_moeda;
+    
+    if (isExchangeRate) {
+      const safra = displaySafras.find(s => s.id === safraId);
+      if (safra?.ano_inicio) {
+        const yearKey = safra.ano_inicio.toString();
+        return precosPorAno[yearKey] || 0;
+      }
+    }
+    
+    // Para commodities, usar o ID da safra
     return precosPorAno[safraId] || 0;
   };
 

@@ -59,6 +59,8 @@ export async function createScenario(data: ScenarioData) {
     return { error: "Erro ao criar cenário" };
   }
 
+  // Não copiar dados automaticamente - seguir o padrão do sistema
+
   revalidatePath("/dashboard");
   return { data: scenario };
 }
@@ -297,4 +299,170 @@ export async function getCurrentProductionData(
     productivity_unit: productivityData?.unidade || "sc/ha",
     production_cost_per_hectare: totalCost,
   };
+}
+
+// Função para buscar dados de câmbio atuais do módulo de produção
+export async function getCurrentExchangeRates(organizationId: string, safraId: string) {
+  const supabase = await createClient();
+  
+  try {
+    // Buscar pelo safra_id específico primeiro
+    let { data: exchangeRates, error } = await supabase
+      .from("cotacoes_cambio")
+      .select("tipo_moeda, cotacao_atual, cotacoes_por_ano")
+      .eq("organizacao_id", organizationId)
+      .in("tipo_moeda", ["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_FECHAMENTO"])
+      .is("projection_id", null);
+    
+    if (error) {
+      console.error("Erro ao buscar cotações de câmbio:", error);
+      return null;
+    }
+    
+    // Organizar os dados no formato esperado
+    const rates = {
+      algodao: 5.45,
+      fechamento: 5.70,
+      soja: 5.20
+    };
+    
+    // Buscar o ano da safra
+    const { data: safra } = await supabase
+      .from("safras")
+      .select("ano_inicio")
+      .eq("id", safraId)
+      .single();
+    
+    const yearKey = safra?.ano_inicio?.toString();
+    
+    exchangeRates?.forEach(rate => {
+      let valor = parseFloat(rate.cotacao_atual);
+      
+      // Se temos cotacoes_por_ano e o ano da safra, usar o valor específico do ano
+      if (rate.cotacoes_por_ano && yearKey) {
+        let cotacoesPorAno = rate.cotacoes_por_ano;
+        
+        // Se for string, fazer parse
+        if (typeof cotacoesPorAno === 'string') {
+          try {
+            cotacoesPorAno = JSON.parse(cotacoesPorAno);
+          } catch (e) {}
+        }
+        
+        if (cotacoesPorAno[yearKey] !== undefined) {
+          valor = cotacoesPorAno[yearKey];
+        }
+      }
+      
+      if (rate.tipo_moeda === "DOLAR_ALGODAO") {
+        rates.algodao = valor;
+      } else if (rate.tipo_moeda === "DOLAR_FECHAMENTO") {
+        rates.fechamento = valor;
+      } else if (rate.tipo_moeda === "DOLAR_SOJA") {
+        rates.soja = valor;
+      }
+    });
+    
+    return rates;
+  } catch (error) {
+    console.error("Erro ao buscar cotações:", error);
+    return null;
+  }
+}
+
+// Função para copiar dados de câmbio do módulo de produção para o cenário
+export async function copyExchangeRatesToScenario(organizationId: string, scenarioId: string) {
+  const supabase = await createClient();
+  
+  try {
+    console.log("[copyExchangeRatesToScenario] Iniciando cópia de câmbios para cenário:", scenarioId);
+    
+    // Usar SQL direto para copiar os dados, similar ao que funcionou no teste
+    const { data, error } = await supabase.rpc('copy_exchange_rates_to_scenario', {
+      p_organization_id: organizationId,
+      p_scenario_id: scenarioId
+    });
+    
+    if (error) {
+      // Se a função RPC não existir, fazer manualmente
+      console.log("[copyExchangeRatesToScenario] RPC não existe, copiando manualmente");
+      
+      // Buscar todas as cotações agrupadas por safra
+      const { data: cambiosData, error: cambiosError } = await supabase
+        .from("cotacoes_cambio")
+        .select("safra_id, tipo_moeda, cotacao_atual")
+        .eq("organizacao_id", organizationId)
+        .in("tipo_moeda", ["DOLAR_ALGODAO", "DOLAR_SOJA", "DOLAR_FECHAMENTO"]);
+      
+      if (cambiosError) {
+        console.error("[copyExchangeRatesToScenario] Erro ao buscar câmbios:", cambiosError);
+        return;
+      }
+      
+      if (!cambiosData || cambiosData.length === 0) {
+        console.log("[copyExchangeRatesToScenario] Nenhum câmbio encontrado");
+        return;
+      }
+      
+      // Definir tipo para os câmbios agrupados
+      interface ExchangeRatesBySafra {
+        [safraId: string]: {
+          algodao: number;
+          fechamento: number;
+          soja: number;
+        };
+      }
+      
+      // Agrupar por safra
+      const cambiosPorSafra = cambiosData.reduce<ExchangeRatesBySafra>((acc, item: any) => {
+        if (!acc[item.safra_id]) {
+          acc[item.safra_id] = {
+            algodao: 5.45,
+            fechamento: 5.70,
+            soja: 5.20
+          };
+        }
+        
+        const valor = parseFloat(item.cotacao_atual);
+        if (item.tipo_moeda === "DOLAR_ALGODAO") {
+          acc[item.safra_id].algodao = valor;
+        } else if (item.tipo_moeda === "DOLAR_FECHAMENTO") {
+          acc[item.safra_id].fechamento = valor;
+        } else if (item.tipo_moeda === "DOLAR_SOJA") {
+          acc[item.safra_id].soja = valor;
+        }
+        
+        return acc;
+      }, {});
+      
+      console.log("[copyExchangeRatesToScenario] Câmbios agrupados:", cambiosPorSafra);
+      
+      // Inserir dados para cada safra
+      for (const [safraId, rates] of Object.entries(cambiosPorSafra)) {
+        const { error: insertError } = await supabase
+          .from("projection_harvest_data")
+          .upsert({
+            scenario_id: scenarioId,
+            harvest_id: safraId,
+            dollar_rate: rates.algodao,
+            dollar_rate_algodao: rates.algodao,
+            dollar_rate_fechamento: rates.fechamento,
+            dollar_rate_soja: rates.soja,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: "scenario_id,harvest_id"
+          });
+        
+        if (insertError) {
+          console.error("[copyExchangeRatesToScenario] Erro ao inserir câmbio para safra", safraId, insertError);
+        } else {
+          console.log("[copyExchangeRatesToScenario] Câmbio inserido para safra", safraId);
+        }
+      }
+    } else {
+      console.log("[copyExchangeRatesToScenario] Câmbios copiados via RPC com sucesso");
+    }
+  } catch (error) {
+    console.error("[copyExchangeRatesToScenario] Erro geral:", error);
+  }
 }

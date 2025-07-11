@@ -54,6 +54,7 @@ export function ProjectionSelector({
   const searchParams = useSearchParams();
   const { setLoading: setScenarioLoading } = useScenarioLoading();
   const [isPending, startTransition] = useTransition();
+  const [isChangingScenario, setIsChangingScenario] = useState(false);
 
   // Carregar projeções
   const loadProjections = async () => {
@@ -73,16 +74,34 @@ export function ProjectionSelector({
     loadProjections();
   }, []);
 
+  // Monitorar quando a transição termina
+  useEffect(() => {
+    if (isChangingScenario && !isPending) {
+      // A transição terminou, mas vamos aguardar um pouco mais para garantir
+      // que todos os componentes foram atualizados
+      const timer = setTimeout(() => {
+        setScenarioLoading(false);
+        setIsChangingScenario(false);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isPending, isChangingScenario, setScenarioLoading]);
+
   const handleProjectionChange = async (value: string) => {
     const projectionId = value === "current" ? undefined : value;
     
-    // Mostrar loading
+    // Mostrar loading imediatamente
     const selectedProjection = projections.find(p => p.id === value);
     const message = value === "current" 
       ? "Carregando dados atuais..." 
       : `Carregando cenário ${selectedProjection?.nome || ''}...`;
     
     setScenarioLoading(true, message);
+    setIsChangingScenario(true);
+    
+    // Pequeno delay para garantir que o loading apareça antes de iniciar a transição
+    await new Promise(resolve => setTimeout(resolve, 50));
     
     // Criar nova URLSearchParams a partir das atuais
     const params = new URLSearchParams(searchParams.toString());
@@ -99,11 +118,6 @@ export function ProjectionSelector({
     startTransition(() => {
       router.replace(newUrl, { scroll: false });
     });
-    
-    // Aguardar um pouco para garantir que os componentes recarreguem
-    setTimeout(() => {
-      setScenarioLoading(false);
-    }, 1500);
   };
 
   const handleProjectionCreated = () => {
@@ -133,15 +147,13 @@ export function ProjectionSelector({
       // Se o cenário excluído era o atual, redirecionar para dados atuais
       if (currentProjectionId === projectionToDelete.id) {
         setScenarioLoading(true, "Voltando para dados atuais...");
+        setIsChangingScenario(true);
         const params = new URLSearchParams(searchParams.toString());
         params.delete("projection");
         const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
         startTransition(() => {
           router.replace(newUrl, { scroll: false });
         });
-        setTimeout(() => {
-          setScenarioLoading(false);
-        }, 1500);
       }
       
       // Recarregar lista de cenários
@@ -165,7 +177,7 @@ export function ProjectionSelector({
       <Select
         value={currentProjectionId || "current"}
         onValueChange={handleProjectionChange}
-        disabled={isLoading}
+        disabled={isLoading || isChangingScenario || isPending}
       >
         <SelectTrigger className="w-[200px] h-8 text-sm">
           <SelectValue placeholder="Selecione um cenário" />

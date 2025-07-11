@@ -14,13 +14,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, DollarSign, Leaf, Calculator, TrendingUp } from "lucide-react";
+import { Plus, Trash2, DollarSign, Leaf, Calculator, TrendingUp, RefreshCw } from "lucide-react";
 import { getSafras, getCultures, getSistemas } from "@/lib/actions/production-actions";
 import {
   getCurrentProductionData,
+  getCurrentExchangeRates,
   type CultureScenarioData,
 } from "@/lib/actions/scenario-actions-v2";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface SafraData {
   id: string;
@@ -65,6 +67,19 @@ export function ScenarioEditorModal({
   useEffect(() => {
     loadData();
   }, [organizationId]);
+  
+  // Carregar câmbios do módulo de produção para cada safra
+  const loadExchangeRatesForSafra = async (safraId: string) => {
+    const rates = await getCurrentExchangeRates(organizationId, safraId);
+    if (rates) {
+      setDollarRates(prev => ({
+        ...prev,
+        [safraId]: rates
+      }));
+      return true;
+    }
+    return false;
+  };
 
   const loadData = async () => {
     try {
@@ -92,9 +107,9 @@ export function ScenarioEditorModal({
         const rates: Record<string, {algodao: number, fechamento: number, soja: number}> = {};
         scenario.harvest_data?.forEach((hd: any) => {
           rates[hd.harvest_id] = {
-            algodao: hd.dollar_rate_algodao || 5.45,
-            fechamento: hd.dollar_rate_fechamento || 5.70,
-            soja: hd.dollar_rate_soja || 5.20
+            algodao: hd.dollar_rate_algodao || 0,
+            fechamento: hd.dollar_rate_fechamento || 0,
+            soja: hd.dollar_rate_soja || 0
           };
         });
         setDollarRates(rates);
@@ -108,6 +123,17 @@ export function ScenarioEditorModal({
           cultures[cd.harvest_id].push(cd);
         });
         setCultureData(cultures);
+      } else {
+        // Se não está editando, carregar câmbios atuais do módulo de produção para TODAS as safras
+        for (const safra of safrasData || []) {
+          const rates = await getCurrentExchangeRates(organizationId, safra.id);
+          if (rates) {
+            setDollarRates(prev => ({
+              ...prev,
+              [safra.id]: rates
+            }));
+          }
+        }
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -245,9 +271,27 @@ export function ScenarioEditorModal({
             {/* Taxa de Dólar */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Taxa de Câmbio
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Taxa de Câmbio
+                  </div>
+                  {!scenario && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        const loaded = await loadExchangeRatesForSafra(safra.id);
+                        if (loaded) {
+                          toast.success("Câmbios carregados com sucesso");
+                        } else {
+                          toast.error("Erro ao carregar câmbios");
+                        }
+                      }}
+                    >
+                      Carregar Dados Atuais
+                    </Button>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -259,7 +303,7 @@ export function ScenarioEditorModal({
                     id={`dollar-algodao-${safra.id}`}
                     type="number"
                     step="0.01"
-                    value={dollarRates[safra.id]?.algodao || 5.45}
+                    value={dollarRates[safra.id]?.algodao || ""}
                     onChange={(e) =>
                       setDollarRates(prev => ({
                         ...prev,
@@ -281,7 +325,7 @@ export function ScenarioEditorModal({
                     id={`dollar-fechamento-${safra.id}`}
                     type="number"
                     step="0.01"
-                    value={dollarRates[safra.id]?.fechamento || 5.70}
+                    value={dollarRates[safra.id]?.fechamento || ""}
                     onChange={(e) =>
                       setDollarRates(prev => ({
                         ...prev,
@@ -303,7 +347,7 @@ export function ScenarioEditorModal({
                     id={`dollar-soja-${safra.id}`}
                     type="number"
                     step="0.01"
-                    value={dollarRates[safra.id]?.soja || 5.20}
+                    value={dollarRates[safra.id]?.soja || ""}
                     onChange={(e) =>
                       setDollarRates(prev => ({
                         ...prev,

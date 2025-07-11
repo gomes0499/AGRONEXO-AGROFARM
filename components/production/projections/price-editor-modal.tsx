@@ -174,16 +174,32 @@ export function PriceEditorModal({
       if (pricesError) throw pricesError;
       setPrices(pricesData || []);
 
-      // Buscar cotações de câmbio
+      // Buscar cotações de câmbio usando a função RPC unificada
       const { data: exchangeData, error: exchangeError } = await supabase
-        .from("cotacoes_cambio")
-        .select("*")
-        .eq("organizacao_id", organizationId)
-        .eq("projection_id", projectionId)
-        .order("tipo_moeda", { ascending: true });
+        .rpc('get_exchange_rates_unified', {
+          p_organizacao_id: organizationId,
+          p_id: projectionId
+        });
 
-      if (!exchangeError && exchangeData) {
-        setExchangeRates(exchangeData);
+      if (!exchangeError && exchangeData && exchangeData.length > 0) {
+        // Agregar por tipo de moeda se necessário
+        const uniqueRates = exchangeData.reduce((acc: ExchangeRate[], rate: any) => {
+          if (!acc.find(r => r.tipo_moeda === rate.tipo_moeda)) {
+            acc.push({
+              id: rate.id,
+              tipo_moeda: rate.tipo_moeda,
+              unit: rate.unit || 'R$',
+              cotacao_atual: rate.cotacao_atual,
+              cotacoes_por_ano: rate.cotacoes_por_ano
+            });
+          }
+          return acc;
+        }, []);
+        
+        setExchangeRates(uniqueRates);
+        console.log("Cotações de câmbio carregadas:", uniqueRates);
+      } else {
+        console.log("Nenhuma cotação de câmbio encontrada ou erro:", exchangeError);
       }
 
       // Buscar áreas de plantio
@@ -244,7 +260,13 @@ export function PriceEditorModal({
     } else if (type === 'exchange') {
       const rate = exchangeRates.find(r => r.tipo_moeda === itemKey);
       if (rate) {
-        setEditedValues({ ...rate.cotacoes_por_ano });
+        // Converter cotações por ano para valores por safra
+        const valuesBySafra: Record<string, number> = {};
+        safras.forEach(safra => {
+          const yearKey = safra.ano_inicio.toString();
+          valuesBySafra[safra.id] = rate.cotacoes_por_ano[yearKey] || 0;
+        });
+        setEditedValues(valuesBySafra);
       }
     } else if (type === 'area') {
       // Para áreas, verificar se tem estrutura por ano ou por safra
@@ -364,13 +386,24 @@ export function PriceEditorModal({
       } else if (type === 'exchange') {
         const rate = exchangeRates.find(r => r.tipo_moeda === itemKey);
         if (rate) {
+          // Converter valores por safra de volta para valores por ano
+          const cotacoesPorAno: Record<string, number> = {};
+          Object.entries(editedValues).forEach(([safraId, value]) => {
+            const safra = safras.find(s => s.id === safraId);
+            if (safra) {
+              const yearKey = safra.ano_inicio.toString();
+              cotacoesPorAno[yearKey] = value;
+            }
+          });
+
+          // Usar a função RPC para atualizar cotações
           const { error } = await supabase
-            .from("cotacoes_cambio")
-            .update({
-              cotacoes_por_ano: editedValues,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", rate.id);
+            .rpc('update_exchange_rate_unified', {
+              p_id: rate.id,
+              p_tipo_moeda: rate.tipo_moeda,
+              p_cotacao_atual: rate.cotacao_atual,
+              p_cotacoes_por_ano: JSON.stringify(cotacoesPorAno)
+            });
 
           if (error) throw error;
         }

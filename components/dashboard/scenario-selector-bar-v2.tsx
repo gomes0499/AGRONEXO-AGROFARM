@@ -143,11 +143,21 @@ export function ScenarioSelectorBar({
     }
   };
 
-  const handleEditScenario = () => {
+  const handleEditScenario = async () => {
     if (selectedScenario !== "base") {
-      const scenario = scenarios.find((s) => s.id === selectedScenario);
-      setEditingScenario(scenario);
-      setShowEditor(true);
+      try {
+        // Buscar o cenário completo com todos os dados
+        const fullScenario = await getScenarioById(selectedScenario);
+        if (fullScenario) {
+          setEditingScenario(fullScenario);
+          setShowEditor(true);
+        } else {
+          toast.error("Erro ao carregar dados do cenário");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar cenário para edição:", error);
+        toast.error("Erro ao carregar cenário");
+      }
     }
   };
 

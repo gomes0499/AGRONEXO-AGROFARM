@@ -194,17 +194,59 @@ export function ScenarioEditorModal({
       if (pricesError) console.error("Erro ao buscar preços:", pricesError);
       if (pricesData) setPrices(pricesData);
 
-      // Buscar cotações base
+      // Buscar cotações base usando a função RPC unificada
       const { data: exchangeData, error: exchangeError } = await supabase
-        .from("cotacoes_cambio")
-        .select("*")
-        .eq("organizacao_id", organizationId)
-        .is("projection_id", null)
-        .order("tipo_moeda");
+        .rpc('get_exchange_rates_unified', {
+          p_organizacao_id: organizationId,
+          p_id: null
+        });
 
-      console.log("Cotações carregadas:", exchangeData);
-      if (exchangeError) console.error("Erro ao buscar cotações:", exchangeError);
-      if (exchangeData) setExchangeRates(exchangeData);
+      console.log("RPC get_exchange_rates_unified response:", exchangeData);
+      
+      if (exchangeError) {
+        console.error("Erro ao buscar cotações:", exchangeError);
+        
+        // Fallback para busca direta se RPC falhar
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("cotacoes_cambio")
+          .select("*")
+          .eq("organizacao_id", organizationId)
+          .is("projection_id", null)
+          .order("tipo_moeda");
+          
+        console.log("Fallback cotações:", fallbackData);
+        
+        if (!fallbackError && fallbackData && fallbackData.length > 0) {
+          const uniqueRates = fallbackData.reduce((acc: ExchangeRate[], rate) => {
+            if (!acc.find(r => r.tipo_moeda === rate.tipo_moeda)) {
+              acc.push(rate);
+            }
+            return acc;
+          }, []);
+          
+          setExchangeRates(uniqueRates);
+          console.log("ExchangeRates definido via fallback:", uniqueRates);
+        }
+      } else if (exchangeData && exchangeData.length > 0) {
+        // Agregar cotações por tipo de moeda (pegar apenas uma de cada tipo)
+        const uniqueRates = exchangeData.reduce((acc: ExchangeRate[], rate: any) => {
+          if (!acc.find(r => r.tipo_moeda === rate.tipo_moeda)) {
+            acc.push({
+              id: rate.id,
+              tipo_moeda: rate.tipo_moeda,
+              unit: rate.unit || 'R$',
+              cotacao_atual: rate.cotacao_atual,
+              cotacoes_por_ano: rate.cotacoes_por_ano
+            });
+          }
+          return acc;
+        }, []);
+        
+        setExchangeRates(uniqueRates);
+        console.log("ExchangeRates definido:", uniqueRates);
+      } else {
+        console.log("Nenhuma cotação encontrada");
+      }
 
       // Buscar áreas base
       const { data: areasData } = await supabase
