@@ -40,29 +40,12 @@ export const data = {
       icon: WalletIcon,
     },
     {
-      title: "Projeções",
-      url: "/dashboard/projections",
-      icon: LineChartIcon,
-    },
-    {
       title: "Indicadores",
       url: "/dashboard/indicators",
       icon: GaugeIcon,
     },
   ],
   navSecondary: [
-    {
-      title: "Relatório PDF",
-      url: "#pdf-report",
-      icon: FileText,
-      isPdfReport: true,
-    },
-    {
-      title: "Exportar Excel",
-      url: "#excel-export",
-      icon: FileSpreadsheet,
-      isExcelExport: true,
-    },
     {
       title: "Tema",
       url: "#theme",

@@ -21,6 +21,9 @@ import { getProductionDataUnified } from "@/lib/actions/production-actions";
 import { getMarketData } from "@/lib/actions/market-data-actions";
 import { getWeatherData } from "@/lib/actions/weather-data-wrapper";
 import { getUserOrganizations } from "@/lib/actions/user-organizations-actions";
+import { getCultureProjections } from "@/lib/actions/culture-projections-actions";
+import { getDebtPosition } from "@/lib/actions/debt-position-actions";
+import { getSafras } from "@/lib/actions/production-actions";
 
 export interface DashboardData {
   // Overview
@@ -48,6 +51,11 @@ export interface DashboardData {
   cashFlowSummary: Awaited<ReturnType<typeof getFluxoCaixaSimplificado>>;
   dreSummary: Awaited<ReturnType<typeof getDREDataUpdated>>;
   balanceSummary: Awaited<ReturnType<typeof getBalancoPatrimonialDataV2>>;
+  cultureProjections: Awaited<ReturnType<typeof getCultureProjections>>;
+  debtPositions: Awaited<ReturnType<typeof getDebtPosition>>;
+  
+  // Common data
+  safras: Awaited<ReturnType<typeof getSafras>>;
   
   // Market & Weather
   marketData: Awaited<ReturnType<typeof getMarketData>>;
@@ -100,6 +108,9 @@ export const fetchDashboardData = cache(
       cashFlowSummary,
       dreSummary,
       balanceSummary,
+      cultureProjections,
+      debtPositions,
+      safras,
       
       // Market & Weather
       marketData,
@@ -133,6 +144,11 @@ export const fetchDashboardData = cache(
       getFluxoCaixaSimplificado(organizationId, projectionId),
       getDREDataUpdated(organizationId, projectionId),
       getBalancoPatrimonialDataV2(organizationId, projectionId),
+      getCultureProjections(organizationId, projectionId),
+      getDebtPosition(organizationId, projectionId),
+      
+      // Common data
+      getSafras(organizationId),
       
       // Market & Weather
       getMarketData(),
@@ -168,6 +184,9 @@ export const fetchDashboardData = cache(
       cashFlowSummary,
       dreSummary,
       balanceSummary,
+      cultureProjections,
+      debtPositions,
+      safras,
       
       // Market & Weather
       marketData,

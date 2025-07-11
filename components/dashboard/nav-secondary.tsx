@@ -12,13 +12,6 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { useUser } from "@/components/auth/user-provider";
-import { PDFReportButton } from "@/components/dashboard/pdf-report-button";
-import { RatingReportButton } from "@/components/dashboard/rating-report-button";
-import { ExcelExportButton } from "@/components/dashboard/excel-export-button";
-import { useOrganization } from "@/components/auth/organization-provider";
-import { useUserRole } from "@/hooks/use-user-role";
-import { UserRole } from "@/lib/auth/roles";
 
 export function NavSecondary({
   items,
@@ -29,23 +22,9 @@ export function NavSecondary({
     url: string;
     icon: LucideIcon;
     isThemeToggle?: boolean;
-    isReportGenerator?: boolean;
-    isPdfReport?: boolean;
-    isRatingReport?: boolean;
-    isExcelExport?: boolean;
   }[];
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const pathname = usePathname();
-  const { user } = useUser();
-  const { organization } = useOrganization();
-  const { userRole } = useUserRole(organization?.id);
-  
-  // Obter o nome da organização atual para o relatório
-  const organizationName = organization?.nome || user?.user_metadata?.organizacao?.nome || "Minha Organização";
-  const organizationId = organization?.id || user?.user_metadata?.organizacao?.id;
-  
-  // Se for membro, não mostrar botões de geração
-  const isMember = userRole === UserRole.MEMBRO;
 
   // Function to check if a menu item is active
   const isActive = (url: string) => {
@@ -87,62 +66,6 @@ export function NavSecondary({
                 </SidebarMenuItem>
               );
             }
-            
-            // Special handling for PDF report (não mostrar para membros)
-            if (item.isPdfReport && organizationId && !isMember) {
-              return (
-                <SidebarMenuItem key={item.title}>
-                  <PDFReportButton 
-                    organizationId={organizationId}
-                    organizationName={organizationName}
-                    variant="ghost"
-                    size="default"
-                    showIcon={true}
-                    showText={true}
-                  />
-                </SidebarMenuItem>
-              );
-            }
-            
-            
-            
-            // Special handling for Rating report (não mostrar para membros)
-            if (item.isRatingReport && organizationId && !isMember) {
-              return (
-                <SidebarMenuItem key={item.title}>
-                  <RatingReportButton 
-                    organizationId={organizationId}
-                    organizationName={organizationName}
-                    variant="ghost"
-                    size="default"
-                    showIcon={true}
-                    showText={true}
-                  />
-                </SidebarMenuItem>
-              );
-            }
-            
-            // Special handling for Excel export (não mostrar para membros)
-            if (item.isExcelExport && organizationId && !isMember) {
-              return (
-                <SidebarMenuItem key={item.title}>
-                  <ExcelExportButton 
-                    organizationId={organizationId}
-                    organizationName={organizationName}
-                    variant="ghost"
-                    size="default"
-                    showIcon={true}
-                    showText={true}
-                  />
-                </SidebarMenuItem>
-              );
-            }
-            
-            // Se for membro e o item é um botão de geração, pular
-            if (isMember && (item.isPdfReport || item.isRatingReport || item.isExcelExport)) {
-              return null;
-            }
-            
             
             // Standard menu item
             return (

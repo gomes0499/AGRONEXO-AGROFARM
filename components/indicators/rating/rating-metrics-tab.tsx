@@ -176,7 +176,15 @@ export function RatingMetricsTab({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {metrics.map((metric) => {
+                  {metrics
+                    .sort((a, b) => {
+                      // Ordenar por tipo: QUANTITATIVE primeiro, depois QUALITATIVE
+                      if (a.tipo === "QUANTITATIVE" && b.tipo === "QUALITATIVE") return -1;
+                      if (a.tipo === "QUALITATIVE" && b.tipo === "QUANTITATIVE") return 1;
+                      // Se mesmo tipo, ordenar por nome
+                      return a.nome.localeCompare(b.nome);
+                    })
+                    .map((metric) => {
                     const qualitativeValue = getQualitativeValue(metric.id!);
 
                     return (
@@ -232,7 +240,11 @@ export function RatingMetricsTab({
                           )}
                         </TableCell>
                         <TableCell>
-                          {metric.tipo === "QUALITATIVE" ? (
+                          {metric.source_type === "MANUAL" && metric.is_predefined ? (
+                            <Badge variant="secondary" className="text-xs">
+                              score
+                            </Badge>
+                          ) : metric.tipo === "QUALITATIVE" && !metric.is_predefined ? (
                             qualitativeValue ? (
                               <div className="text-sm">
                                 <span className="font-medium">
@@ -271,7 +283,7 @@ export function RatingMetricsTab({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {metric.tipo === "QUALITATIVE" && (
+                              {metric.tipo === "QUALITATIVE" && !metric.is_predefined && (
                                 <DropdownMenuItem
                                   onClick={() => setQualitativeMetric(metric)}
                                 >
@@ -374,6 +386,7 @@ export function RatingMetricsTab({
           }}
         />
       )}
+
     </div>
   );
 }

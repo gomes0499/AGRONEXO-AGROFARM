@@ -45,6 +45,23 @@ export async function createScenario(data: ScenarioData) {
     return { error: "Usuário não autenticado" };
   }
 
+  // Verificar se já existe um cenário com o mesmo nome para a mesma organização
+  const { data: existingScenarios, error: checkError } = await supabase
+    .from("projection_scenarios")
+    .select("id, name")
+    .eq("organization_id", data.organization_id)
+    .eq("is_active", true)
+    .ilike("name", data.name);
+
+  if (checkError) {
+    console.error("Erro ao verificar cenários existentes:", checkError);
+    return { error: "Erro ao verificar cenários existentes" };
+  }
+
+  if (existingScenarios && existingScenarios.length > 0) {
+    return { error: `Já existe um cenário com o nome "${data.name}"` };
+  }
+
   const { data: scenario, error } = await supabase
     .from("projection_scenarios")
     .insert({
@@ -67,6 +84,39 @@ export async function createScenario(data: ScenarioData) {
 
 export async function updateScenario(id: string, data: Partial<ScenarioData>) {
   const supabase = await createClient();
+
+  // Se está atualizando o nome, verificar se não há duplicação
+  if (data.name) {
+    // Primeiro buscar o cenário atual para pegar o organization_id
+    const { data: currentScenario, error: fetchError } = await supabase
+      .from("projection_scenarios")
+      .select("organization_id")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) {
+      console.error("Erro ao buscar cenário atual:", fetchError);
+      return { error: "Erro ao buscar cenário atual" };
+    }
+
+    // Verificar se já existe outro cenário com o mesmo nome
+    const { data: existingScenarios, error: checkError } = await supabase
+      .from("projection_scenarios")
+      .select("id, name")
+      .eq("organization_id", currentScenario.organization_id)
+      .eq("is_active", true)
+      .neq("id", id) // Excluir o próprio cenário sendo editado
+      .ilike("name", data.name);
+
+    if (checkError) {
+      console.error("Erro ao verificar cenários existentes:", checkError);
+      return { error: "Erro ao verificar cenários existentes" };
+    }
+
+    if (existingScenarios && existingScenarios.length > 0) {
+      return { error: `Já existe um cenário com o nome "${data.name}"` };
+    }
+  }
 
   const { data: scenario, error } = await supabase
     .from("projection_scenarios")

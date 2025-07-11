@@ -2,13 +2,36 @@
 
 import { DashboardGlobalFilter } from "./dashboard-global-filter";
 import { useDashboardFilters } from "@/hooks/use-dashboard-filters";
-import type {
-  Property,
-  Culture,
-  System,
-  Cycle,
-  Safra,
-} from "@/components/projections/common/projection-global-filter";
+
+// Definir interfaces localmente
+interface Property {
+  id: string;
+  nome: string;
+  cidade?: string;
+  estado?: string;
+}
+
+interface Culture {
+  id: string;
+  nome: string;
+}
+
+interface System {
+  id: string;
+  nome: string;
+}
+
+interface Cycle {
+  id: string;
+  nome: string;
+}
+
+interface Safra {
+  id: string;
+  nome: string;
+  ano_inicio?: number;
+  ano_fim?: number;
+}
 
 interface DashboardGlobalFilterClientProps {
   properties: Property[];

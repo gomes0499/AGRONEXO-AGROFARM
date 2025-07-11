@@ -24,7 +24,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Calculator } from "lucide-react";
 import { CurrencyField } from "@/components/shared/currency-field";
-import { CalculationDisplay } from "../common/calculation-display";
 import {
   projecaoCulturaFormSchema,
   type ProjecaoCulturaFormValues,
@@ -519,6 +518,7 @@ export function CultureProjectionForm({
       </Form>
 
       {/* Cálculos Automáticos - Seguindo lógica da planilha */}
+      {/* TODO: Re-implement CalculationDisplay component
       <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border">
         <CalculationDisplay
           title="📊 Projeção Financeira"
@@ -588,6 +588,7 @@ export function CultureProjectionForm({
           columns={4}
         />
       </div>
+      */}
     </div>
   );
 }

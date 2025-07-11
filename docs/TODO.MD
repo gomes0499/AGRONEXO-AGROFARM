@@ -1,6 +1,4 @@
 [] CRIAR CONTA (LUCIO, DIOGENES, REINALDO)
-[] CORRIGIR CENARIOS ADICIONAR MOEDA
-[] ALTERAR ANALISE DE RATING
 
 Para tornar o sistema completamente dinâmico no futuro:
 1. Migrar todos os preços para usar cultura_id/sistema_id
@@ -8,3 +6,9 @@ Para tornar o sistema completamente dinâmico no futuro:
 3. Remover o enum commodity_type gradualmente
 4. Permitir que cada organização defina suas próprias culturas sem limitações
 
+
+ 
+
+
+
+[] Trocar imagem ou tirar o zoom cortando o rosto do produtor. (LANDING PAGE/LOGIN)

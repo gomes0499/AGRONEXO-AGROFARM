@@ -5,6 +5,8 @@ import { NavMain } from "@/components/dashboard/nav-main";
 import { NavSecondary } from "@/components/dashboard/nav-secondary";
 import { NavUser } from "@/components/dashboard/nav-user";
 import { ThemeAwareLogo } from "@/components/dashboard/theme-aware-logo";
+import { RatingSection } from "@/components/dashboard/rating-section";
+import { ReportsSection } from "@/components/dashboard/reports-section";
 import {
   Sidebar,
   SidebarContent,
@@ -74,7 +76,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               "Comercial",
               "Financeiro",
               "Patrimonial",
-              "Projeções",
               "Indicadores",
             ];
 
@@ -117,6 +118,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navItems} />
+        <RatingSection />
+        <ReportsSection />
         <NavSecondary items={navSecondaryItems} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

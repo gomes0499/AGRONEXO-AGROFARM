@@ -18,6 +18,26 @@ import type {
 } from "@/schemas/rating";
 import { getRatingFromScore } from "@/schemas/rating";
 import { calculateQuantitativeMetrics } from "./rating-metrics-calculations";
+import { saveRatingHistory } from "./rating-history-actions";
+
+// Helper functions
+async function getSafraName(supabase: any, safraId: string): Promise<string> {
+  const { data } = await supabase
+    .from("safras")
+    .select("nome")
+    .eq("id", safraId)
+    .single();
+  return data?.nome || "";
+}
+
+async function getScenarioName(supabase: any, scenarioId: string): Promise<string> {
+  const { data } = await supabase
+    .from("projection_scenarios")
+    .select("name")
+    .eq("id", scenarioId)
+    .single();
+  return data?.name || "";
+}
 
 // Rating Models
 export async function getRatingModels(organizationId: string): Promise<RatingModel[]> {
@@ -26,7 +46,7 @@ export async function getRatingModels(organizationId: string): Promise<RatingMod
   const { data, error } = await supabase
     .from("rating_models")
     .select("*")
-    .eq("organizacao_id", organizationId)
+    .or(`organizacao_id.eq.${organizationId},organizacao_id.is.null`)
     .eq("is_active", true)
     .order("is_default", { ascending: false })
     .order("nome");
@@ -38,7 +58,7 @@ export async function getRatingModels(organizationId: string): Promise<RatingMod
 
   // Parse flow_data for each model if it's a string
   const models = data || [];
-  return models.map(model => {
+  const parsedModels = models.map(model => {
     if (model.flow_data && typeof model.flow_data === 'string') {
       try {
         model.flow_data = JSON.parse(model.flow_data);
@@ -48,6 +68,14 @@ export async function getRatingModels(organizationId: string): Promise<RatingMod
     }
     return model;
   });
+  
+  // Ensure SR/Prime model is always available and set as default
+  const srPrimeModel = parsedModels.find(m => m.nome === 'SR/Prime Rating Model');
+  if (srPrimeModel) {
+    srPrimeModel.is_default = true;
+  }
+  
+  return parsedModels;
 }
 
 export async function getRatingModel(modelId: string): Promise<RatingModel> {
@@ -226,6 +254,36 @@ export async function getRatingModelMetrics(modelId: string): Promise<RatingMode
   return data || [];
 }
 
+export async function getRatingModelMetricsCount(modelId: string): Promise<number> {
+  const supabase = await createClient();
+  
+  // For SR/Prime model, count predefined metrics
+  const { data: modelData } = await supabase
+    .from("rating_models")
+    .select("nome")
+    .eq("id", modelId)
+    .single();
+  
+  if (modelData?.nome === 'SR/Prime Rating Model' || modelData?.nome === 'Modelo SR-PRIME') {
+    const { count } = await supabase
+      .from("rating_metrics")
+      .select("*", { count: "exact", head: true })
+      .eq("is_predefined", true)
+      .eq("is_active", true);
+    
+    return count || 0;
+  }
+  
+  // For other models, count model-specific metrics
+  const { count } = await supabase
+    .from("rating_model_metrics")
+    .select("*", { count: "exact", head: true })
+    .eq("rating_model_id", modelId)
+    .eq("is_active", true);
+
+  return count || 0;
+}
+
 export async function updateRatingModelMetrics(
   modelId: string, 
   metrics: { rating_metric_id: string; peso: number }[]
@@ -397,7 +455,99 @@ export async function calculateRating(
       console.error("Failed to parse organizationId:", e);
     }
   }
+
+  // Check if it's the SR/Prime model and use the database function
+  const { data: modelData } = await supabase
+    .from("rating_models")
+    .select("nome")
+    .eq("id", modelId)
+    .single();
+
+  if (modelData?.nome === 'SR/Prime Rating Model' && safraId) {
+    // Use the new SR/Prime calculation function
+    const { data, error } = await supabase
+      .rpc('calculate_rating_sr_prime', {
+        p_organizacao_id: actualOrgId,
+        p_safra_id: safraId,
+        p_modelo_id: modelId,
+        p_scenario_id: scenarioId || null
+      })
+      .single();
+
+    if (error) {
+      console.error("Error calculating SR/Prime rating:", error);
+      throw new Error("Erro ao calcular rating SR/Prime");
+    }
+
+    // The database function returns detalhes with nested structure
+    // We need to preserve the entire detalhes object
+    const detalhesFromDb = (data as any).detalhes || {};
+    
+    // Ensure we have the metrics array
+    const formattedDetails = {
+      ...detalhesFromDb, // Spread all properties from database
+      metrics: detalhesFromDb.metrics || detalhesFromDb.metricas || [],
+      safra: detalhesFromDb.safra || (safraId ? await getSafraName(supabase, safraId) : ""),
+      scenario: detalhesFromDb.scenario || (scenarioId ? await getScenarioName(supabase, scenarioId) : "Base")
+    };
+
+    // Save calculation result
+    const { data: savedCalc, error: saveError } = await supabase
+      .from("rating_calculations")
+      .insert({
+        organizacao_id: actualOrgId,
+        modelo_id: modelId,
+        safra_id: safraId,
+        cenario_id: scenarioId || null,
+        pontuacao_total: (data as any).pontuacao_total,
+        rating_letra: (data as any).rating_letra,
+        rating_descricao: (data as any).rating_descricao,
+        detalhes_calculo: formattedDetails,
+        data_calculo: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (saveError) {
+      console.error("Error saving calculation:", saveError);
+    }
+
+    // Save to rating history
+    if (savedCalc?.id) {
+      try {
+        await saveRatingHistory({
+          organizationId: actualOrgId,
+          ratingCalculationId: savedCalc.id,
+          safraId: safraId!,
+          scenarioId: scenarioId || null,
+          modeloId: modelId,
+          ratingLetra: savedCalc.rating_letra,
+          pontuacaoTotal: savedCalc.pontuacao_total,
+          pdfFileName: `rating_${savedCalc.rating_letra}_${new Date().toISOString().split('T')[0]}.pdf`,
+          pdfFileSize: 0, // Will be updated when PDF is generated
+        });
+        console.log("Rating history saved after calculation");
+      } catch (historyError) {
+        console.error("Error saving rating history:", historyError);
+      }
+    }
+
+    return savedCalc || {
+      id: '',
+      organizacao_id: actualOrgId,
+      modelo_id: modelId,
+      safra_id: safraId,
+      cenario_id: scenarioId || null,
+      pontuacao_total: (data as any).pontuacao_total,
+      rating_letra: (data as any).rating_letra,
+      rating_descricao: (data as any).rating_descricao,
+      detalhes_calculo: formattedDetails,
+      data_calculo: new Date().toISOString(),
+      rating_model_nome: 'SR/Prime Rating Model'
+    };
+  }
   
+  // Continue with existing logic for non-SR/Prime models
   // Get model metrics with weights
   const modelMetrics = await getRatingModelMetrics(modelId);
   
@@ -491,6 +641,26 @@ export async function calculateRating(
     throw new Error("Erro ao salvar cálculo de rating");
   }
 
+  // Save to rating history for non-SR/Prime models
+  if (data?.id && safraId) {
+    try {
+      await saveRatingHistory({
+        organizationId: actualOrgId,
+        ratingCalculationId: data.id,
+        safraId: safraId,
+        scenarioId: scenarioId || null,
+        modeloId: modelId,
+        ratingLetra: data.rating_letra,
+        pontuacaoTotal: data.pontuacao_total,
+        pdfFileName: `rating_${data.rating_letra}_${new Date().toISOString().split('T')[0]}.pdf`,
+        pdfFileSize: 0, // Will be updated when PDF is generated
+      });
+      console.log("Rating history saved after calculation (non-SR/Prime)");
+    } catch (historyError) {
+      console.error("Error saving rating history:", historyError);
+    }
+  }
+
   revalidatePath("/dashboard/indicators");
   return data;
 }
@@ -535,14 +705,11 @@ export async function getRatingCalculations(
   
   let query = supabase
     .from("rating_calculations")
-    .select(`
-      *,
-      rating_model:rating_models(*)
-    `)
+    .select("*")
     .eq("organizacao_id", actualOrgId);
 
   if (modelId) {
-    query = query.eq("rating_model_id", modelId);
+    query = query.eq("modelo_id", modelId);
   }
 
   const { data, error } = await query.order("data_calculo", { ascending: false });
@@ -572,4 +739,62 @@ export async function getLatestRatingCalculation(
   
   const calculations = await getRatingCalculations(actualOrgId, modelId);
   return calculations[0] || null;
+}
+
+export async function checkManualMetricsEvaluated(
+  organizationId: string,
+  safraId: string,
+  scenarioId: string | null = null
+): Promise<boolean> {
+  const supabase = await createClient();
+  
+  // Get all manual/qualitative metrics that need evaluation
+  const { data: manualMetrics, error: metricsError } = await supabase
+    .from("rating_metrics")
+    .select("id, codigo")
+    .eq("is_predefined", true)
+    .eq("is_active", true)
+    .eq("source_type", "MANUAL");
+    
+  console.log("Manual metrics found:", manualMetrics?.length || 0);
+    
+  if (metricsError || !manualMetrics || manualMetrics.length === 0) {
+    // If there are no manual metrics, consider as evaluated
+    return true;
+  }
+  
+  // Check if all manual metrics have been evaluated for this safra/scenario
+  let query = supabase
+    .from("rating_manual_evaluations")
+    .select("metric_code")
+    .eq("organizacao_id", organizationId)
+    .eq("safra_id", safraId);
+    
+  // Handle null scenario_id properly
+  if (scenarioId === null) {
+    query = query.is("scenario_id", null);
+  } else {
+    query = query.eq("scenario_id", scenarioId);
+  }
+  
+  const { data: evaluations, error: evalError } = await query;
+    
+  if (evalError) {
+    console.error("Error checking evaluations:", evalError);
+    return false;
+  }
+  
+  console.log("Evaluations found:", evaluations?.length || 0);
+  
+  // Get list of evaluated metric codes
+  const evaluatedCodes = new Set(evaluations?.map(e => e.metric_code) || []);
+  
+  // Check if all manual metrics have been evaluated
+  const allEvaluated = manualMetrics.every(metric => evaluatedCodes.has(metric.codigo));
+  
+  console.log("Manual metrics required:", manualMetrics.map(m => m.codigo));
+  console.log("Evaluated metrics:", Array.from(evaluatedCodes));
+  console.log("All evaluated?", allEvaluated);
+  
+  return allEvaluated;
 }

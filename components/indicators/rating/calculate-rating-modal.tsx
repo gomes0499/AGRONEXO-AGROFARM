@@ -19,30 +19,33 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Calculator, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { RatingModel } from "@/schemas/rating";
-import { getRatingModels, calculateRating } from "@/lib/actions/flexible-rating-actions";
-import { calculateQuantitativeMetricsOptimized } from "@/lib/actions/rating-metrics-calculations";
+import { 
+  calculateRating,
+  checkManualMetricsEvaluated 
+} from "@/lib/actions/flexible-rating-actions";
 import { getSafras, type Safra } from "@/lib/actions/production-actions";
 import { getScenarios } from "@/lib/actions/scenario-actions-v2";
 
 interface CalculateRatingModalProps {
   organizationId: string;
+  modelId: string;
+  modelName: string;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (calculation: any) => void;
 }
 
 
 export function CalculateRatingModal({
   organizationId,
+  modelId,
+  modelName,
   isOpen,
   onClose,
   onSuccess,
 }: CalculateRatingModalProps) {
-  const [models, setModels] = useState<RatingModel[]>([]);
   const [safras, setSafras] = useState<Safra[]>([]);
   const [scenarios, setScenarios] = useState<any[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string>("");
   const [selectedSafra, setSelectedSafra] = useState<string>("");
   const [selectedScenario, setSelectedScenario] = useState<string>("base");
   const [isLoading, setIsLoading] = useState(false);
@@ -58,32 +61,32 @@ export function CalculateRatingModal({
     try {
       setIsLoading(true);
       
-      // Load models, safras and scenarios in parallel
-      const [modelsData, safrasData, scenariosData] = await Promise.all([
-        getRatingModels(organizationId),
+      // Load safras and scenarios in parallel
+      const [safrasData, scenariosData] = await Promise.all([
         getSafras(organizationId),
         getScenarios(organizationId)
       ]);
-      
-      // Filter active models
-      const activeModels = modelsData.filter(m => m.is_active);
-      setModels(activeModels);
       
       // Filter active safras
       const activeSafras = safrasData.filter(s => s.ativa !== false);
       setSafras(activeSafras);
       
-      // Set scenarios
-      setScenarios(scenariosData || []);
+      // Set scenarios - filter only "Base" and "Teste" for organization "teste"
+      const filteredScenarios = scenariosData.filter(scenario => 
+        scenario.name === "Teste" || scenario.name === "teste"
+      ) || [];
+      setScenarios(filteredScenarios);
       
-      // Select default model if available
-      const defaultModel = activeModels.find(m => m.is_default);
-      if (defaultModel) {
-        setSelectedModel(defaultModel.id!);
-      }
+      // Select safra that starts with current year (2025)
+      const currentYear = new Date().getFullYear();
+      const currentYearSafra = activeSafras.find(safra => 
+        safra.nome.startsWith(currentYear.toString())
+      );
       
-      // Select most recent safra
-      if (activeSafras.length > 0) {
+      if (currentYearSafra) {
+        setSelectedSafra(currentYearSafra.id);
+      } else if (activeSafras.length > 0) {
+        // Fallback to most recent if no current year safra found
         setSelectedSafra(activeSafras[0].id);
       }
     } catch (error) {
@@ -95,27 +98,36 @@ export function CalculateRatingModal({
   };
 
   const handleCalculate = async () => {
-    if (!selectedModel || !selectedSafra) {
-      toast.error("Selecione um modelo e uma safra");
+    if (!selectedSafra) {
+      toast.error("Selecione uma safra");
       return;
     }
 
     try {
       setIsCalculating(true);
       
-      // Pass scenarioId to calculateRating (null for base scenario)
+      // Check if manual metrics are evaluated for this safra and scenario
       const scenarioId = selectedScenario === "base" ? null : selectedScenario;
-      const calculation = await calculateRating(organizationId, selectedModel, selectedSafra, scenarioId);
       
-      const scenarioName = selectedScenario === "base" 
-        ? "Base" 
-        : scenarios.find(s => s.id === selectedScenario)?.name || "";
+      // Temporarily disable validation as all metrics are evaluated
+      // const isEvaluated = await checkManualMetricsEvaluated(
+      //   organizationId,
+      //   selectedSafra,
+      //   scenarioId
+      // );
       
-      toast.success(
-        `Rating calculado (${scenarioName}): ${calculation.rating_letra} (${calculation.pontuacao_total?.toFixed(1) || '0.0'} pontos)`
-      );
+      // if (!isEvaluated) {
+      //   console.warn("Manual metrics not fully evaluated for safra:", selectedSafra, "scenario:", scenarioId);
+      //   toast.error("É necessário avaliar todas as métricas manuais antes de calcular o rating");
+      //   setIsCalculating(false);
+      //   return;
+      // }
       
-      onSuccess();
+      const calculation = await calculateRating(organizationId, modelId, selectedSafra, scenarioId);
+      
+      toast.success("Rating calculado com sucesso!");
+      
+      onSuccess(calculation);
       onClose();
     } catch (error) {
       console.error("Error calculating rating:", error);
@@ -131,10 +143,10 @@ export function CalculateRatingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5 text-primary" />
-            Calcular Rating
+            Calcular Rating - {modelName}
           </DialogTitle>
           <DialogDescription>
-            Selecione o modelo de rating e a safra para calcular a classificação
+            Selecione a safra e o cenário para calcular a classificação
           </DialogDescription>
         </DialogHeader>
 
@@ -144,22 +156,6 @@ export function CalculateRatingModal({
           </div>
         ) : (
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="model">Modelo de Rating</Label>
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger id="model">
-                  <SelectValue placeholder="Selecione um modelo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((model) => (
-                    <SelectItem key={model.id} value={model.id!}>
-                      {model.nome}
-                      {model.is_default && " (Padrão)"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="safra">Safra</Label>
@@ -202,7 +198,7 @@ export function CalculateRatingModal({
               </Select>
             </div>
 
-            {selectedModel && selectedSafra && (
+            {selectedSafra && (
               <div className="rounded-lg bg-muted p-3 text-sm">
                 <p className="text-muted-foreground">
                   O rating será calculado usando os indicadores financeiros da safra e cenário selecionados.
@@ -218,7 +214,7 @@ export function CalculateRatingModal({
           </Button>
           <Button 
             onClick={handleCalculate} 
-            disabled={isCalculating || !selectedModel || !selectedSafra || isLoading}
+            disabled={isCalculating || !selectedSafra || isLoading}
           >
             {isCalculating ? (
               <>

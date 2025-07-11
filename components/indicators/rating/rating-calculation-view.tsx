@@ -162,6 +162,8 @@ export function RatingCalculationView({ calculation, organizationName, organizat
       {/* Calculate Rating Modal */}
       <CalculateRatingModal
         organizationId={organizationId}
+        modelId={calculation.rating_model_id || ""}
+        modelName={detalhes.modelo_nome || "SR/Prime Rating Model"}
         isOpen={showCalculateModal}
         onClose={() => setShowCalculateModal(false)}
         onSuccess={() => {

@@ -27,6 +27,8 @@ import { FinancialChartClient as FinancialChart } from "@/components/production/
 import { FluxoCaixaClient } from "@/components/projections/cash-flow/fluxo-caixa-client";
 import { DRETable } from "@/components/projections/dre/dre-table";
 import { BalancoPatrimonialTable } from "@/components/projections/balanco/balanco-patrimonial-table";
+import { CultureProjectionsTable } from "@/components/projections/cultures/culture-projections-table";
+import { DebtPositionTable } from "@/components/projections/debts/debt-position-table";
 import { MarketTicker } from "@/components/dashboard/market-ticker";
 import { WeatherTickerBar } from "@/components/dashboard/weather-ticker-bar";
 
@@ -86,6 +88,12 @@ export function DashboardClient({
                 </TabsTriggerPrimary>
                 <TabsTriggerPrimary value="financial">
                   Financeiro
+                </TabsTriggerPrimary>
+                <TabsTriggerPrimary value="culture-projections">
+                  Projeções de Culturas
+                </TabsTriggerPrimary>
+                <TabsTriggerPrimary value="debt-position">
+                  Posição de Dívida
                 </TabsTriggerPrimary>
                 <TabsTriggerPrimary value="projections">
                   Fluxo de Caixa
@@ -239,6 +247,24 @@ export function DashboardClient({
                 projectionId={projectionId}
                 initialData={initialData.totalLiabilities}
                 selectedSafraId={selectedFinancialSafraId}
+              />
+            </TabsContent>
+
+            {/* Culture Projections Tab */}
+            <TabsContent value="culture-projections" className="space-y-6">
+              <CultureProjectionsTable
+                organizationId={organizationId}
+                initialCultureProjections={initialData.cultureProjections}
+                safras={initialData.safras || []}
+              />
+            </TabsContent>
+
+            {/* Debt Position Tab */}
+            <TabsContent value="debt-position" className="space-y-6">
+              <DebtPositionTable
+                organizationId={organizationId}
+                initialDebtPositions={initialData.debtPositions}
+                safras={initialData.safras || []}
               />
             </TabsContent>
 

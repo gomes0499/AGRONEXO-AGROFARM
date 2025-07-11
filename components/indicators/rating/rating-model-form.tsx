@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Target, Percent, TrendingUp } from "lucide-react";
+import { Target, Percent, TrendingUp, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   CreateRatingModelSchema,
@@ -41,6 +41,7 @@ import {
   updateRatingModelMetrics,
   getRatingModelMetrics,
 } from "@/lib/actions/flexible-rating-actions";
+import { createClient } from "@/lib/supabase/client";
 
 interface RatingModelFormProps {
   organizationId: string;
@@ -66,6 +67,7 @@ export function RatingModelForm({
   const [isLoading, setIsLoading] = useState(false);
   const [availableMetrics, setAvailableMetrics] = useState<RatingMetric[]>([]);
   const [metricWeights, setMetricWeights] = useState<MetricWeight[]>([]);
+  const [evaluatedMetrics, setEvaluatedMetrics] = useState<Set<string>>(new Set());
 
   const isEditing = !!model;
 
@@ -79,6 +81,9 @@ export function RatingModelForm({
       is_active: model?.is_active ?? true,
     },
   });
+  
+  const watchedName = form.watch('nome');
+  const isSRPrimeModel = model?.nome === 'SR/Prime Rating Model' || watchedName === 'SR/Prime Rating Model';
 
   useEffect(() => {
     if (isOpen) {
@@ -89,8 +94,30 @@ export function RatingModelForm({
   useEffect(() => {
     if (model && availableMetrics.length > 0) {
       loadModelMetrics();
+      if (model.nome === 'SR/Prime Rating Model') {
+        loadEvaluatedMetrics();
+      }
     }
   }, [model, availableMetrics]);
+
+  // When name changes to SR/Prime, enable all predefined metrics
+  useEffect(() => {
+    if (watchedName === 'SR/Prime Rating Model' && !model && availableMetrics.length > 0) {
+      setMetricWeights(prev => 
+        prev.map(mw => {
+          const metric = availableMetrics.find(m => m.id === mw.metric_id);
+          if (metric?.is_predefined) {
+            return {
+              ...mw,
+              enabled: true,
+              weight: metric.peso || mw.weight,
+            };
+          }
+          return mw;
+        })
+      );
+    }
+  }, [watchedName, model, availableMetrics]);
 
   const loadMetrics = async () => {
     try {
@@ -105,34 +132,16 @@ export function RatingModelForm({
       }));
 
       // Set default weights for predefined metrics
-      initialWeights.forEach((weight) => {
-        const metric = metrics.find((m) => m.id === weight.metric_id);
-        if (metric?.is_predefined) {
-          weight.enabled = true;
-          switch (metric.codigo) {
-            case "LIQUIDEZ_CORRENTE":
-              weight.weight = 20;
-              break;
-            case "DIVIDA_EBITDA":
-              weight.weight = 25;
-              break;
-            case "DIVIDA_FATURAMENTO":
-              weight.weight = 15;
-              break;
-            case "DIVIDA_PATRIMONIO_LIQUIDO":
-              weight.weight = 20;
-              break;
-            case "LTV":
-              weight.weight = 15;
-              break;
-            case "MARGEM_EBITDA":
-              weight.weight = 5;
-              break;
-            default:
-              weight.weight = 0;
+      // For new models, enable all predefined metrics
+      if (!model) {
+        initialWeights.forEach((weight) => {
+          const metric = metrics.find((m) => m.id === weight.metric_id);
+          if (metric?.is_predefined && metric.peso) {
+            weight.enabled = true;
+            weight.weight = metric.peso;
           }
-        }
-      });
+        });
+      }
 
       setMetricWeights(initialWeights);
     } catch (error) {
@@ -147,23 +156,60 @@ export function RatingModelForm({
     try {
       const modelMetrics = await getRatingModelMetrics(model.id);
 
-      setMetricWeights((prev) =>
-        prev.map((weight) => {
-          const modelMetric = modelMetrics.find(
-            (mm) => mm.rating_metric_id === weight.metric_id
-          );
-          if (modelMetric) {
-            return {
-              ...weight,
-              weight: modelMetric.peso,
-              enabled: true,
-            };
-          }
-          return weight;
-        })
-      );
+      // For SR/Prime model, enable all predefined metrics
+      if (model.nome === 'SR/Prime Rating Model') {
+        setMetricWeights((prev) =>
+          prev.map((weight) => {
+            const metric = availableMetrics.find(m => m.id === weight.metric_id);
+            if (metric?.is_predefined) {
+              return {
+                ...weight,
+                weight: metric.peso || weight.weight,
+                enabled: true,
+              };
+            }
+            return weight;
+          })
+        );
+      } else {
+        // For other models, load from database
+        setMetricWeights((prev) =>
+          prev.map((weight) => {
+            const modelMetric = modelMetrics.find(
+              (mm) => mm.rating_metric_id === weight.metric_id
+            );
+            if (modelMetric) {
+              return {
+                ...weight,
+                weight: modelMetric.peso,
+                enabled: true,
+              };
+            }
+            return weight;
+          })
+        );
+      }
     } catch (error) {
       console.error("Error loading model metrics:", error);
+    }
+  };
+
+  const loadEvaluatedMetrics = async () => {
+    try {
+      const supabase = createClient();
+      
+      // Get evaluated manual metrics
+      const { data, error } = await supabase
+        .from('rating_manual_evaluations')
+        .select('metric_code')
+        .eq('organizacao_id', organizationId);
+      
+      if (!error && data) {
+        const evaluatedCodes = new Set(data.map(item => item.metric_code));
+        setEvaluatedMetrics(evaluatedCodes);
+      }
+    } catch (error) {
+      console.error("Error loading evaluated metrics:", error);
     }
   };
 
@@ -190,17 +236,20 @@ export function RatingModelForm({
   };
 
   const onSubmit = async (data: CreateRatingModel) => {
-    const totalWeight = getTotalWeight();
+    // SR/Prime model doesn't need weight validation
+    if (!isSRPrimeModel) {
+      const totalWeight = getTotalWeight();
 
-    if (totalWeight !== 100) {
-      toast.error(`O peso total deve ser 100%. Atual: ${totalWeight}%`);
-      return;
-    }
+      if (totalWeight !== 100) {
+        toast.error(`O peso total deve ser 100%. Atual: ${totalWeight}%`);
+        return;
+      }
 
-    const enabledMetrics = metricWeights.filter((mw) => mw.enabled);
-    if (enabledMetrics.length === 0) {
-      toast.error("Selecione pelo menos uma métrica");
-      return;
+      const enabledMetrics = metricWeights.filter((mw) => mw.enabled);
+      if (enabledMetrics.length === 0) {
+        toast.error("Selecione pelo menos uma métrica");
+        return;
+      }
     }
 
     try {
@@ -215,12 +264,32 @@ export function RatingModelForm({
       }
 
       // Update model metrics
-      const metricsData = enabledMetrics.map((mw) => ({
-        rating_metric_id: mw.metric_id,
-        peso: mw.weight,
-      }));
+      if (isSRPrimeModel) {
+        // For SR/Prime, include all predefined metrics with their default weights
+        const srPrimeMetrics = metricWeights
+          .filter((mw) => {
+            const metric = availableMetrics.find(m => m.id === mw.metric_id);
+            return metric?.is_predefined;
+          })
+          .map((mw) => {
+            const metric = availableMetrics.find(m => m.id === mw.metric_id);
+            return {
+              rating_metric_id: mw.metric_id,
+              peso: metric?.peso || mw.weight,
+            };
+          });
+        
+        await updateRatingModelMetrics(savedModel.id!, srPrimeMetrics);
+      } else {
+        // For custom models, use user-selected metrics and weights
+        const enabledMetrics = metricWeights.filter((mw) => mw.enabled);
+        const metricsData = enabledMetrics.map((mw) => ({
+          rating_metric_id: mw.metric_id,
+          peso: mw.weight,
+        }));
 
-      await updateRatingModelMetrics(savedModel.id!, metricsData);
+        await updateRatingModelMetrics(savedModel.id!, metricsData);
+      }
 
       toast.success(
         isEditing
@@ -351,18 +420,40 @@ export function RatingModelForm({
                     </h3>
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-muted-foreground">
-                        Configure quais métricas usar e seus respectivos pesos
+                        {isSRPrimeModel 
+                          ? "O modelo SR/Prime usa métricas pré-definidas que são calculadas automaticamente e avaliadas manualmente"
+                          : "Configure quais métricas usar e seus respectivos pesos"}
                       </p>
-                      <div className="flex items-center gap-2">
-                        <Percent className="h-4 w-4" />
-                        <span className="text-sm font-medium">
-                          Total: {totalWeight}%
-                        </span>
-                        <Badge
-                          variant={isWeightValid ? "default" : "destructive"}
-                        >
-                          {isWeightValid ? "Válido" : "Inválido"}
-                        </Badge>
+                      <div className="flex items-center gap-4">
+                        {isSRPrimeModel && (
+                          <div className="text-sm text-muted-foreground">
+                            Métricas manuais avaliadas: {
+                              availableMetrics.filter(m => 
+                                m.source_type === 'MANUAL' && 
+                                m.is_predefined && 
+                                evaluatedMetrics.has(m.codigo!)
+                              ).length
+                            } de {
+                              availableMetrics.filter(m => 
+                                m.source_type === 'MANUAL' && 
+                                m.is_predefined
+                              ).length
+                            }
+                          </div>
+                        )}
+                        {!isSRPrimeModel && (
+                          <div className="flex items-center gap-2">
+                            <Percent className="h-4 w-4" />
+                            <span className="text-sm font-medium">
+                              Total: {totalWeight}%
+                            </span>
+                            <Badge
+                              variant={isWeightValid ? "default" : "destructive"}
+                            >
+                              {isWeightValid ? "Válido" : "Inválido"}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -378,7 +469,11 @@ export function RatingModelForm({
                       return (
                         <div
                           key={metric.id}
-                          className="space-y-3 p-4 border rounded-lg hover:border-gray-300 transition-colors"
+                          className={`space-y-3 p-4 border rounded-lg transition-colors ${
+                            isSRPrimeModel && metric.source_type === 'MANUAL' && evaluatedMetrics.has(metric.codigo!)
+                              ? "border-green-500/50 bg-green-50/10"
+                              : "hover:border-gray-300"
+                          }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -388,10 +483,16 @@ export function RatingModelForm({
                                   onCheckedChange={(checked) =>
                                     handleMetricToggle(metric.id!, checked)
                                   }
+                                  disabled={isSRPrimeModel && metric.is_predefined}
                                 />
                                 <div>
-                                  <h4 className="text-sm font-medium">
+                                  <h4 className="text-sm font-medium flex items-center gap-2">
                                     {metric.nome}
+                                    {isSRPrimeModel && 
+                                     metric.source_type === 'MANUAL' && 
+                                     evaluatedMetrics.has(metric.codigo!) && (
+                                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                    )}
                                   </h4>
                                   <div className="flex items-center gap-2 flex-wrap">
                                     {metric.is_predefined && (
@@ -416,6 +517,14 @@ export function RatingModelForm({
                                         ? "Quantitativa"
                                         : "Qualitativa"}
                                     </Badge>
+                                    {metric.source_type === 'MANUAL' && (
+                                      <Badge
+                                        variant={evaluatedMetrics.has(metric.codigo!) ? "default" : "secondary"}
+                                        className="text-xs"
+                                      >
+                                        {evaluatedMetrics.has(metric.codigo!) ? "Avaliada" : "Não avaliada"}
+                                      </Badge>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -444,6 +553,7 @@ export function RatingModelForm({
                                 max={100}
                                 step={1}
                                 className="w-full"
+                                disabled={isSRPrimeModel && metric.is_predefined}
                               />
                               <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>0%</span>
@@ -457,7 +567,7 @@ export function RatingModelForm({
 
                   </div>
                   
-                  {!isWeightValid && totalWeight > 0 && (
+                  {!isSRPrimeModel && !isWeightValid && totalWeight > 0 && (
                     <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                       <p className="text-sm text-destructive">
                         ⚠️ O peso total deve somar exatamente 100%. Ajuste os
@@ -479,7 +589,7 @@ export function RatingModelForm({
               <Button
                 type="button"
                 onClick={form.handleSubmit(onSubmit as any)}
-                disabled={isLoading || !isWeightValid}
+                disabled={isLoading || (!isSRPrimeModel && !isWeightValid)}
               >
                 {isLoading
                   ? "Salvando..."

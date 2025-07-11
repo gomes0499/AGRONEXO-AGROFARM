@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { IndicatorThresholdViewer } from "@/components/indicators/indicator-threshold-viewer";
-import { RatingModelsManager } from "@/components/indicators/rating/rating-models-manager";
 import { RatingMetricsTab } from "@/components/indicators/rating/rating-metrics-tab";
+import { RatingHistoryTab } from "@/components/indicators/rating/rating-history-tab";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Tabs,
@@ -28,24 +30,43 @@ export function IndicatorsPageClient({
     organizationId,
   } = initialData;
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [activeTab, setActiveTab] = useState(searchParams?.get("tab") || "thresholds");
+
   // Verificar se temos dados suficientes
   const hasData = Object.values(indicatorData).some(
     (value) => value !== undefined
   );
 
+  // Atualizar a URL quando a aba mudar
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const params = new URLSearchParams(searchParams?.toString());
+    params.set("tab", value);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  // Sincronizar com mudanças na URL
+  useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
   return (
     <div className="-mt-6 -mx-4 md:-mx-6">
-      <Tabs defaultValue="thresholds" className="w-full max-w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-full">
         <div className="bg-card border-b overflow-x-auto">
           <div className="container max-w-full px-4 md:px-6 py-2">
             <TabsList>
               <TabsTriggerPrimary value="thresholds">
                 Limiares
               </TabsTriggerPrimary>
-              <TabsTriggerPrimary value="rating">
-                Modelos de Rating
-              </TabsTriggerPrimary>
               <TabsTriggerPrimary value="metrics">Métricas</TabsTriggerPrimary>
+              <TabsTriggerPrimary value="history">Histórico de Rating</TabsTriggerPrimary>
             </TabsList>
           </div>
         </div>
@@ -57,9 +78,6 @@ export function IndicatorsPageClient({
                 <IndicatorThresholdViewer indicatorConfigs={indicatorConfigs} />
               </TabsContent>
 
-              <TabsContent value="rating" className="space-y-4">
-                <RatingModelsManager organizationId={organizationId} />
-              </TabsContent>
 
               <TabsContent value="metrics" className="space-y-4">
                 <RatingMetricsTab
@@ -67,6 +85,10 @@ export function IndicatorsPageClient({
                   initialMetrics={ratingMetrics}
                   initialQualitativeValues={qualitativeValues}
                 />
+              </TabsContent>
+
+              <TabsContent value="history" className="space-y-4">
+                <RatingHistoryTab organizationId={organizationId} />
               </TabsContent>
             </>
           ) : (

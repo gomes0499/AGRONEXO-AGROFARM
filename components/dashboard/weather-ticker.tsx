@@ -44,7 +44,6 @@ export const CITIES = [
   { name: "Sapezal", value: "Sapezal" },
   { name: "São Desidério", value: "Sao Desiderio" },
   { name: "Campo Verde", value: "Campo Verde" },
-  { name: "Luís Eduardo Magalhães", value: "Luis Eduardo Magalhaes" },
   { name: "Barreiras", value: "Barreiras" },
 
   // Principais regiões produtoras de café

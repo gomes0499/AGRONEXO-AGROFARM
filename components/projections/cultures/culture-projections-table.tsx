@@ -32,7 +32,7 @@ import {
 
 interface CultureProjectionsTableProps {
   organizationId: string;
-  initialProjections: ConsolidatedCultureProjections;
+  initialCultureProjections: ConsolidatedCultureProjections;
   safras: Array<{ id: string; nome: string; ano_inicio: number; ano_fim: number; }>;
 }
 
@@ -43,8 +43,8 @@ interface ConsolidatedCultureProjections {
   anos: string[];
 }
 
-export function CultureProjectionsTable({ organizationId, initialProjections, safras }: CultureProjectionsTableProps) {
-  const { projections, sementes, consolidado, anos } = initialProjections;
+export function CultureProjectionsTable({ organizationId, initialCultureProjections, safras }: CultureProjectionsTableProps) {
+  const { projections, sementes, consolidado, anos } = initialCultureProjections;
   // Filtrar anos para remover 2030/31 e 2031/32
   const anosFiltrados = anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
   

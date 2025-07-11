@@ -41,30 +41,35 @@ import {
   Target
 } from "lucide-react";
 import { toast } from "sonner";
-import type { RatingModel, RatingMetric, RatingCalculation } from "@/schemas/rating";
+import type { RatingModel, RatingMetric } from "@/schemas/rating";
 import { 
   getRatingModels, 
   getRatingMetrics, 
   deleteRatingModel,
   calculateRating,
-  getLatestRatingCalculation 
+  getRatingModelMetricsCount
 } from "@/lib/actions/flexible-rating-actions";
-import { RatingModelForm } from "./rating-model-form";
-import { RatingCalculationView } from "./rating-calculation-view";
+import { ModelEvaluationModal } from "./model-evaluation-modal";
+import { CalculateRatingModal } from "./calculate-rating-modal";
+import { RatingResultModal } from "./rating-result-modal";
 
 interface RatingModelsTabProps {
   organizationId: string;
+  organizationName?: string;
   initialModels?: RatingModel[];
 }
 
-export function RatingModelsTab({ organizationId, initialModels = [] }: RatingModelsTabProps) {
+export function RatingModelsTab({ organizationId, organizationName, initialModels = [] }: RatingModelsTabProps) {
   const [models, setModels] = useState<RatingModel[]>(initialModels);
   const [metrics, setMetrics] = useState<RatingMetric[]>([]);
-  const [latestCalculation, setLatestCalculation] = useState<RatingCalculation | null>(null);
+  const [modelMetricsCounts, setModelMetricsCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingModel, setEditingModel] = useState<RatingModel | null>(null);
-  const [calculatingModelId, setCalculatingModelId] = useState<string | null>(null);
+  const [calculatingModel, setCalculatingModel] = useState<RatingModel | null>(null);
+  const [evaluatingModel, setEvaluatingModel] = useState<RatingModel | null>(null);
+  const [showRatingResult, setShowRatingResult] = useState(false);
+  const [ratingResult, setRatingResult] = useState<any>(null);
 
   const loadData = useCallback(async () => {
     if (!organizationId) return;
@@ -79,18 +84,15 @@ export function RatingModelsTab({ organizationId, initialModels = [] }: RatingMo
       
       setModels(modelsData);
       setMetrics(metricsData);
-
-      // Get latest calculation for default model
-      const defaultModel = modelsData.find(m => m.is_default);
-      if (defaultModel) {
-        try {
-          const calculation = await getLatestRatingCalculation(organizationId, defaultModel.id);
-          setLatestCalculation(calculation);
-        } catch (calcError) {
-          console.error("Error loading latest calculation:", calcError);
-          // Don't fail the whole load if calculation fails
+      
+      // Load metrics counts for each model
+      const counts: Record<string, number> = {};
+      for (const model of modelsData) {
+        if (model.id) {
+          counts[model.id] = await getRatingModelMetricsCount(model.id);
         }
       }
+      setModelMetricsCounts(counts);
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Erro ao carregar dados de rating");
@@ -117,32 +119,21 @@ export function RatingModelsTab({ organizationId, initialModels = [] }: RatingMo
     }
   };
 
-  const handleCalculateRating = async (modelId: string) => {
-    try {
-      setCalculatingModelId(modelId);
-      const calculation = await calculateRating(organizationId, modelId);
-      toast.success(`Rating calculado: ${calculation.rating_letra} (${calculation.pontuacao_total?.toFixed(1) || '0.0'} pontos)`);
-      loadData();
-    } catch (error) {
-      console.error("Error calculating rating:", error);
-      toast.error("Erro ao calcular rating");
-    } finally {
-      setCalculatingModelId(null);
-    }
+  const handleCalculateRating = (model: RatingModel) => {
+    setCalculatingModel(model);
+  };
+
+  const handleRatingCalculated = (calculation: any) => {
+    setRatingResult(calculation);
+    setShowRatingResult(true);
+    setCalculatingModel(null);
+    loadData();
   };
 
   const defaultModel = models.find(m => m.is_default);
 
   return (
     <div className="space-y-6">
-      {/* Latest Rating Summary */}
-      {latestCalculation && (
-        <RatingCalculationView 
-          calculation={latestCalculation} 
-          organizationId={organizationId}
-          onCalculate={loadData}
-        />
-      )}
           <Card>
             <CardHeader className="bg-primary text-white rounded-t-lg mb-4">
               <div className="flex items-center justify-between">
@@ -151,19 +142,12 @@ export function RatingModelsTab({ organizationId, initialModels = [] }: RatingMo
                     <Target className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Modelos de Rating</h3>
+                    <h3 className="text-lg font-semibold text-white">Modelo de Rating</h3>
                     <p className="text-sm text-white/80">
-                      Gerencie seus modelos de rating personalizados
+                      Sistema de classificação de risco SR/Prime
                     </p>
                   </div>
                 </div>
-                <Button 
-                  onClick={() => setShowCreateModal(true)}
-                  className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-200"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Modelo
-                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -196,7 +180,7 @@ export function RatingModelsTab({ organizationId, initialModels = [] }: RatingMo
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {models.map((model) => {
+                      {models.filter(model => model.nome !== 'Modelo Teste').map((model) => {
                         const modelMetrics = metrics.filter(m => m.is_predefined || 
                           // Here we would check if metric is used in this model
                           // For now, showing predefined metrics count
@@ -226,7 +210,7 @@ export function RatingModelsTab({ organizationId, initialModels = [] }: RatingMo
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline">
-                                {metrics.filter(m => m.is_predefined).length} métricas
+                                {modelMetricsCounts[model.id!] || 0} métricas
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
@@ -237,55 +221,18 @@ export function RatingModelsTab({ organizationId, initialModels = [] }: RatingMo
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                  {model.nome === 'SR/Prime Rating Model' && (
+                                    <DropdownMenuItem onClick={() => setEvaluatingModel(model)}>
+                                      <Target className="h-4 w-4 mr-2" />
+                                      Avaliar Métricas
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem 
-                                    onClick={() => handleCalculateRating(model.id!)}
-                                    disabled={calculatingModelId === model.id}
+                                    onClick={() => handleCalculateRating(model)}
                                   >
                                     <Calculator className="h-4 w-4 mr-2" />
-                                    {calculatingModelId === model.id ? "Calculando..." : "Calcular Rating"}
+                                    Calcular Rating
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => setEditingModel(model)}>
-                                    <Settings className="h-4 w-4 mr-2" />
-                                    Configurar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => setEditingModel(model)}>
-                                    <Edit2 className="h-4 w-4 mr-2" />
-                                    Editar
-                                  </DropdownMenuItem>
-                                  {!model.is_default && (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <DropdownMenuItem 
-                                            className="text-destructive focus:text-destructive"
-                                            onSelect={(e) => e.preventDefault()}
-                                          >
-                                            <Trash2 className="h-4 w-4 mr-2" />
-                                            Excluir
-                                          </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Excluir modelo</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Tem certeza que deseja excluir o modelo "{model.nome}"? 
-                                              Esta ação não pode ser desfeita.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() => handleDeleteModel(model.id!)}
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              Excluir
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </>
-                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
@@ -299,21 +246,44 @@ export function RatingModelsTab({ organizationId, initialModels = [] }: RatingMo
             </CardContent>
           </Card>
 
-      {/* Create/Edit Model Modal */}
-      {(showCreateModal || editingModel) && (
-        <RatingModelForm
+
+      {/* Model Evaluation Modal */}
+      {evaluatingModel && (
+        <ModelEvaluationModal
           organizationId={organizationId}
-          model={editingModel}
-          isOpen={showCreateModal || !!editingModel}
-          onClose={() => {
-            setShowCreateModal(false);
-            setEditingModel(null);
-          }}
+          modelId={evaluatingModel.id!}
+          modelName={evaluatingModel.nome}
+          isOpen={!!evaluatingModel}
+          onClose={() => setEvaluatingModel(null)}
           onSuccess={() => {
-            setShowCreateModal(false);
-            setEditingModel(null);
+            setEvaluatingModel(null);
             loadData();
           }}
+        />
+      )}
+
+      {/* Calculate Rating Modal */}
+      {calculatingModel && (
+        <CalculateRatingModal
+          organizationId={organizationId}
+          modelId={calculatingModel.id!}
+          modelName={calculatingModel.nome}
+          isOpen={!!calculatingModel}
+          onClose={() => setCalculatingModel(null)}
+          onSuccess={handleRatingCalculated}
+        />
+      )}
+
+      {/* Rating Result Modal */}
+      {showRatingResult && ratingResult && (
+        <RatingResultModal
+          calculation={ratingResult}
+          isOpen={showRatingResult}
+          onClose={() => {
+            setShowRatingResult(false);
+            setRatingResult(null);
+          }}
+          organizationName={organizationName}
         />
       )}
     </div>
