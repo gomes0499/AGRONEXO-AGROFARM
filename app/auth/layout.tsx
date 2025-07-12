@@ -35,9 +35,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           src="/cover.jpg"
           alt="Imagem de login"
           fill
-          priority
           className="object-cover"
           quality={100}
+          priority
         />
         <div className="absolute inset-0 flex items-end justify-center">
           <div className="max-w-full px-8 py-12 bg-white/10 dark:bg-gray-900/80  backdrop-blur-sm">

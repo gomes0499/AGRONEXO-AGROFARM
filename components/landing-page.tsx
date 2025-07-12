@@ -88,6 +88,7 @@ export default function LandingPage() {
             height={1280}
             className="object-cover w-full h-full"
             quality={100}
+            priority
           />
         </div>
 

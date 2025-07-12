@@ -46,7 +46,11 @@ export async function generateRatingPDF(calculation: any, organizationName: stri
     doc.setFontSize(18);
     doc.text(`${calculation.pontuacao_total.toFixed(1)} pontos`, margin + 60, yPosition + 15);
     doc.setFontSize(12);
-    doc.text(rating.descricao, margin + 60, yPosition + 25);
+    
+    // Add text wrapping for description
+    const maxWidth = pageWidth - margin - 60 - margin; // Available width for text
+    const splitDescription = doc.splitTextToSize(rating.descricao, maxWidth);
+    doc.text(splitDescription, margin + 60, yPosition + 25);
     
     // Date and info
     doc.setFontSize(10);

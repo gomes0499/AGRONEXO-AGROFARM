@@ -12,6 +12,7 @@ interface RatingCalculation {
   metricas_valores: any;
   metricas_contribuicoes: any;
   created_at: string;
+  detalhes?: any;
 }
 
 export async function generateRatingReport(organizationId: string, ratingCalculationId: string) {
@@ -43,8 +44,25 @@ export async function generateRatingReport(organizationId: string, ratingCalcula
       throw new Error("Cálculo de rating não encontrado");
     }
 
-    // Mapear rating para descrição
+    // Buscar métricas detalhadas se disponíveis
+    const metricsData = ratingCalc.detalhes?.metrics || ratingCalc.detalhes?.metricas || [];
+
+    // Mapear rating para descrição com novos valores
     const ratingDescriptions: Record<string, string> = {
+      'BAA4': 'Forte capacidade de pagamento, boa gestão e práticas sustentáveis',
+      'BAA3': 'Forte capacidade de pagamento com bons indicadores',
+      'BAA2': 'Boa capacidade de pagamento com gestão sólida',
+      'BAA1': 'Boa capacidade de pagamento',
+      'BA4': 'Capacidade de pagamento adequada com alguns pontos de atenção',
+      'BA3': 'Capacidade de pagamento adequada',
+      'BA2': 'Capacidade de pagamento moderada',
+      'BA1': 'Capacidade de pagamento moderada com riscos',
+      'B4': 'Capacidade de pagamento limitada',
+      'B3': 'Capacidade de pagamento limitada com riscos elevados',
+      'B2': 'Capacidade de pagamento vulnerável',
+      'B1': 'Capacidade de pagamento muito vulnerável',
+      'CAA': 'Capacidade de pagamento extremamente vulnerável',
+      'CA': 'Alto risco de inadimplência',
       'AAA': 'Capacidade extremamente forte de pagamento',
       'AA': 'Capacidade muito forte de pagamento',
       'A': 'Capacidade forte de pagamento',
@@ -84,24 +102,25 @@ export async function generateRatingReport(organizationId: string, ratingCalcula
         liquidezCorrente: {
           value: ratingCalc.metricas_valores?.liquidez_corrente || 0,
           contribution: ratingCalc.metricas_contribuicoes?.liquidez_corrente || 0,
-          maxPoints: 40
+          maxPoints: 100
         },
         dividaFaturamento: {
           value: ratingCalc.metricas_valores?.divida_faturamento || 0,
           contribution: ratingCalc.metricas_contribuicoes?.divida_faturamento || 0,
-          maxPoints: 20
+          maxPoints: 100
         },
         dividaPatrimonioLiquido: {
           value: ratingCalc.metricas_valores?.divida_patrimonio_liquido || 0,
           contribution: ratingCalc.metricas_contribuicoes?.divida_patrimonio_liquido || 0,
-          maxPoints: 60
+          maxPoints: 100
         },
         entendimentoFluxoCaixa: {
           value: ratingCalc.metricas_valores?.entendimento_fluxo_caixa || 0,
           contribution: ratingCalc.metricas_contribuicoes?.entendimento_fluxo_caixa || 0,
-          maxPoints: 0
+          maxPoints: 100
         }
-      }
+      },
+      metricsData: metricsData
     };
 
     // Gerar o PDF
