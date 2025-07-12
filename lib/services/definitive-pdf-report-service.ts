@@ -2294,14 +2294,40 @@ export class DefinitivePDFReportService {
       this.doc.setFillColor(66, 56, 157);
       this.drawPieSlice(centerX, centerY, radius, custeioAngle, 360);
       
-      // Labels
+      // Labels com fundo branco para melhor visibilidade
       this.doc.setFontSize(8);
       this.doc.setFont("helvetica", "bold");
-      this.doc.setTextColor(132, 126, 201);
-      this.doc.text(`Custeio: ${custeio.percentual.toFixed(1)}%`, x + width - 5, centerY - 5, { align: 'right' });
       
+      // Label Custeio
+      const custeioLabel = `Custeio: ${custeio.percentual.toFixed(1)}%`;
+      const custeioLabelWidth = this.doc.getTextWidth(custeioLabel) + 4;
+      const labelHeight = 8;
+      
+      // Fundo branco para Custeio
+      this.doc.setFillColor(255, 255, 255);
+      this.doc.roundedRect(x + width - 5 - custeioLabelWidth, centerY - 8, custeioLabelWidth, labelHeight, 1, 1, 'F');
+      
+      // Borda e texto Custeio
+      this.doc.setDrawColor(132, 126, 201);
+      this.doc.setLineWidth(0.5);
+      this.doc.roundedRect(x + width - 5 - custeioLabelWidth, centerY - 8, custeioLabelWidth, labelHeight, 1, 1, 'S');
+      this.doc.setTextColor(132, 126, 201);
+      this.doc.text(custeioLabel, x + width - 7, centerY - 3, { align: 'right' });
+      
+      // Label Investimentos
+      const investimentosLabel = `Investimentos: ${investimentos.percentual.toFixed(1)}%`;
+      const investimentosLabelWidth = this.doc.getTextWidth(investimentosLabel) + 4;
+      
+      // Fundo branco para Investimentos
+      this.doc.setFillColor(255, 255, 255);
+      this.doc.roundedRect(x + width - 5 - investimentosLabelWidth, centerY + 2, investimentosLabelWidth, labelHeight, 1, 1, 'F');
+      
+      // Borda e texto Investimentos
+      this.doc.setDrawColor(66, 56, 157);
+      this.doc.setLineWidth(0.5);
+      this.doc.roundedRect(x + width - 5 - investimentosLabelWidth, centerY + 2, investimentosLabelWidth, labelHeight, 1, 1, 'S');
       this.doc.setTextColor(66, 56, 157);
-      this.doc.text(`Investimentos: ${investimentos.percentual.toFixed(1)}%`, x + width - 5, centerY + 5, { align: 'right' });
+      this.doc.text(investimentosLabel, x + width - 7, centerY + 7, { align: 'right' });
       
       // Total
       this.doc.setFontSize(6);

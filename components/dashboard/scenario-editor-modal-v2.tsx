@@ -204,9 +204,15 @@ export function ScenarioEditorModal({
   };
 
   const handleSave = () => {
+    // Validar nome antes de salvar
+    if (!name || name.trim().length === 0) {
+      toast.error("O nome do cenário é obrigatório");
+      return;
+    }
+
     const data = {
-      name,
-      description,
+      name: name.trim(),
+      description: description.trim(),
       dollarRates,
       cultureData,
     };

@@ -37,15 +37,20 @@ export async function createScenario(data: ScenarioData) {
     .from("projection_scenarios")
     .select("id, name")
     .eq("organization_id", data.organization_id)
-    .eq("is_active", true)
-    .ilike("name", data.name);
+    .eq("is_active", true);
 
   if (checkError) {
     console.error("Erro ao verificar cenários existentes:", checkError);
     return { error: "Erro ao verificar cenários existentes" };
   }
 
-  if (existingScenarios && existingScenarios.length > 0) {
+  // Verificar manualmente se há duplicação (case-insensitive)
+  const normalizedName = data.name.trim().toLowerCase();
+  const duplicateScenario = existingScenarios?.find(
+    scenario => scenario.name.trim().toLowerCase() === normalizedName
+  );
+
+  if (duplicateScenario) {
     return { error: `Já existe um cenário com o nome "${data.name}"` };
   }
 
@@ -90,15 +95,20 @@ export async function updateScenario(id: string, data: Partial<ScenarioData>) {
       .select("id, name")
       .eq("organization_id", currentScenario.organization_id)
       .eq("is_active", true)
-      .neq("id", id) // Excluir o próprio cenário sendo editado
-      .ilike("name", data.name);
+      .neq("id", id); // Excluir o próprio cenário sendo editado
 
     if (checkError) {
       console.error("Erro ao verificar cenários existentes:", checkError);
       return { error: "Erro ao verificar cenários existentes" };
     }
 
-    if (existingScenarios && existingScenarios.length > 0) {
+    // Verificar manualmente se há duplicação (case-insensitive)
+    const normalizedName = data.name.trim().toLowerCase();
+    const duplicateScenario = existingScenarios?.find(
+      scenario => scenario.name.trim().toLowerCase() === normalizedName
+    );
+
+    if (duplicateScenario) {
       return { error: `Já existe um cenário com o nome "${data.name}"` };
     }
   }

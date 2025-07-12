@@ -17,7 +17,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className="w-full max-w-md">
           <div className="mb-8 flex flex-col items-center justify-center text-center space-y-4">
             <div className="relative w-80 h-20 flex items-center justify-center">
-              <ThemeAwareLogo 
+              <ThemeAwareLogo
                 width={240}
                 height={80}
                 priority={true}
@@ -32,7 +32,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {/* Lado direito - Imagem (visível apenas em telas médias para cima) */}
       <div className="hidden md:flex flex-1 relative border-l">
         <Image
-          src="/auth.webp"
+          src="/cover.jpg"
           alt="Imagem de login"
           fill
           priority
@@ -40,7 +40,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           quality={100}
         />
         <div className="absolute inset-0 flex items-end justify-center">
-          <div className="max-w-full px-8 py-12 bg-white/10 dark:bg-gray-900/80 rounded-t-lg  backdrop-blur-sm">
+          <div className="max-w-full px-8 py-12 bg-white/10 dark:bg-gray-900/80  backdrop-blur-sm">
             <h2 className="text-3xl text-white font-medium text-start mb-2">
               Bem-vindo à SR Consultoria
             </h2>

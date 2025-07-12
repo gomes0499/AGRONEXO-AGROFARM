@@ -138,6 +138,7 @@ export function LoginForm({
                 <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input
+                    className="bg-white"
                     placeholder="seuemail@exemplo.com"
                     type="email"
                     autoComplete="email"
@@ -158,6 +159,7 @@ export function LoginForm({
                 <FormLabel>Senha</FormLabel>
                 <FormControl>
                   <Input
+                    className="bg-white"
                     placeholder="••••••••"
                     type="password"
                     autoComplete="current-password"
@@ -191,24 +193,6 @@ export function LoginForm({
           </Button>
         </form>
       </Form>
-
-      <div className="text-center text-sm">
-        <p>
-          Não tem uma conta?{" "}
-          <Link
-            href={
-              inviteToken
-                ? `/auth/register?email=${encodeURIComponent(
-                    email || ""
-                  )}&invite_token=${inviteToken}`
-                : "/auth/register"
-            }
-            className="font-medium text-primary hover:underline"
-          >
-            Registre-se
-          </Link>
-        </p>
-      </div>
     </div>
   );
 }

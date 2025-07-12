@@ -40,7 +40,7 @@ export function NewProjectionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!nome.trim()) {
       toast.error("Por favor, insira um nome para o cenário");
       return;
@@ -49,37 +49,52 @@ export function NewProjectionModal({
     setIsLoading(true);
 
     try {
-      const result = await createProjection(nome.trim(), descricao.trim() || undefined);
-      
-      if (result.error || !result.data) {
+      const result = await createProjection(
+        nome.trim(),
+        descricao.trim() || undefined
+      );
+
+      if (result.error) {
+        // Verificar se é erro de duplicação
+        const errorMessage =
+          typeof result.error === "object" && "message" in result.error
+            ? result.error.message
+            : "Erro ao criar cenário";
+
+        toast.error(errorMessage as string);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!result.data) {
         throw new Error("Erro ao criar cenário");
       }
 
       toast.success("Cenário criado com sucesso!");
-      
+
       // Limpar formulário
       setNome("");
       setDescricao("");
-      
+
       // Fechar modal
       onOpenChange(false);
-      
+
       // Callback de sucesso
       onSuccess?.();
-      
+
       // Redirecionar para o novo cenário
       setScenarioLoading(true, `Carregando cenário ${result.data.nome}...`);
-      
+
       // Criar nova URLSearchParams a partir das atuais
       const params = new URLSearchParams(searchParams.toString());
       params.set("projection", result.data.id);
-      
+
       // Usar replace ao invés de push para evitar adicionar ao histórico
-      const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-      
+      const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+
       // Fazer o redirecionamento
       router.replace(newUrl, { scroll: false });
-      
+
       // Aguardar um pouco para garantir que os componentes recarreguem
       setTimeout(() => {
         setScenarioLoading(false);
@@ -99,11 +114,12 @@ export function NewProjectionModal({
           <DialogHeader>
             <DialogTitle>Novo Cenário</DialogTitle>
             <DialogDescription>
-              Crie um novo cenário baseado nos dados atuais. Todos os dados de áreas de plantio, 
-              produtividade, custos e preços serão copiados para este cenário.
+              Crie um novo cenário baseado nos dados atuais. Todos os dados de
+              áreas de plantio, produtividade, custos e preços serão copiados
+              para este cenário.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="nome">Nome do Cenário</Label>
@@ -116,7 +132,7 @@ export function NewProjectionModal({
                 required
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="descricao">Descrição (opcional)</Label>
               <Textarea
@@ -129,7 +145,7 @@ export function NewProjectionModal({
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button
               type="button"

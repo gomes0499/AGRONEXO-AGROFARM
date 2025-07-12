@@ -163,6 +163,21 @@ export function ScenarioSelectorBar({
 
   const handleSaveScenario = async (scenarioData: any) => {
     try {
+      // Verificar duplicação localmente primeiro
+      const normalizedName = scenarioData.name.trim().toLowerCase();
+      const isDuplicate = scenarios.some(scenario => {
+        // Se estiver editando, ignorar o próprio cenário
+        if (editingScenario && scenario.id === editingScenario.id) {
+          return false;
+        }
+        return scenario.name.trim().toLowerCase() === normalizedName;
+      });
+
+      if (isDuplicate) {
+        toast.error(`Já existe um cenário com o nome "${scenarioData.name}"`);
+        return;
+      }
+
       let scenarioId: string;
 
       if (editingScenario) {
@@ -185,6 +200,8 @@ export function ScenarioSelectorBar({
           name: scenarioData.name,
           description: scenarioData.description,
         });
+
+        console.log("Resultado da criação do cenário:", result);
 
         if (result.error) {
           toast.error(result.error);

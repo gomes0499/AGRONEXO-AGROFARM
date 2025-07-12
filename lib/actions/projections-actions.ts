@@ -38,6 +38,29 @@ export async function getProjections(organizationId?: string) {
   }
 }
 
+// Buscar uma projeção por ID
+export async function getProjectionById(id: string) {
+  try {
+    const supabase = await createClient();
+    
+    const { data, error } = await supabase
+      .from("projections")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Erro ao buscar projeção:", error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error("Erro ao buscar projeção:", error);
+    return { data: null, error };
+  }
+}
+
 // Criar nova projeção
 export async function createProjection(nome: string, descricao?: string) {
   try {
@@ -48,13 +71,35 @@ export async function createProjection(nome: string, descricao?: string) {
     console.log("Nome:", nome);
     console.log("Organization ID:", organizationId);
 
+    // Verificar se já existe uma projeção com o mesmo nome
+    const { data: existingProjections, error: checkError } = await supabase
+      .from("projections")
+      .select("id, nome")
+      .eq("organizacao_id", organizationId)
+      .eq("is_active", true);
+
+    if (checkError) {
+      console.error("Erro ao verificar projeções existentes:", checkError);
+      return { data: null, error: { message: "Erro ao verificar projeções existentes" } };
+    }
+
+    // Verificar manualmente se há duplicação (case-insensitive)
+    const normalizedName = nome.trim().toLowerCase();
+    const duplicateProjection = existingProjections?.find(
+      proj => proj.nome.trim().toLowerCase() === normalizedName
+    );
+
+    if (duplicateProjection) {
+      return { data: null, error: { message: `Já existe um cenário com o nome "${nome}"` } };
+    }
+
     // 1. Criar a projeção master
     const { data: projection, error: projectionError } = await supabase
       .from("projections")
       .insert({
         organizacao_id: organizationId,
-        nome,
-        descricao,
+        nome: nome.trim(),
+        descricao: descricao?.trim(),
         is_active: true,
       })
       .select()
@@ -167,10 +212,37 @@ export async function updateProjection(
     const supabase = await createClient();
     const organizationId = await getOrganizationId();
 
+    // Se está atualizando o nome, verificar se não há duplicação
+    if (updates.nome) {
+      const { data: existingProjections, error: checkError } = await supabase
+        .from("projections")
+        .select("id, nome")
+        .eq("organizacao_id", organizationId)
+        .eq("is_active", true)
+        .neq("id", id);
+
+      if (checkError) {
+        console.error("Erro ao verificar projeções existentes:", checkError);
+        return { data: null, error: { message: "Erro ao verificar projeções existentes" } };
+      }
+
+      // Verificar manualmente se há duplicação (case-insensitive)
+      const normalizedName = updates.nome.trim().toLowerCase();
+      const duplicateProjection = existingProjections?.find(
+        proj => proj.nome.trim().toLowerCase() === normalizedName
+      );
+
+      if (duplicateProjection) {
+        return { data: null, error: { message: `Já existe um cenário com o nome "${updates.nome}"` } };
+      }
+    }
+
     const { data, error } = await supabase
       .from("projections")
       .update({
         ...updates,
+        nome: updates.nome?.trim(),
+        descricao: updates.descricao?.trim(),
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)

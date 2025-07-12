@@ -7,8 +7,4 @@ Para tornar o sistema completamente dinâmico no futuro:
 4. Permitir que cada organização defina suas próprias culturas sem limitações
 
 
- 
 
-
-
-[] Trocar imagem ou tirar o zoom cortando o rosto do produtor. (LANDING PAGE/LOGIN)
