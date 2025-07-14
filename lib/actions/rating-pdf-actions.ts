@@ -682,6 +682,10 @@ function formatMetricValue(value: number, code: string): string {
       return value.toFixed(1) + '%';
     case 'MARGEM_EBITDA':
       return value.toFixed(1) + '%';
+    case 'AREA_PROPRIA':
+      return value.toFixed(0) + '%';
+    case 'CULTURAS_CORE':
+      return value.toFixed(0) + '%';
     case 'ENTENDIMENTO_FLUXO_DE_CAIXA':
       return value.toFixed(0);
     default:

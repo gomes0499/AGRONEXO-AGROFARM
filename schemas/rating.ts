@@ -78,6 +78,7 @@ export const QualitativeMetricValueSchema = z.object({
   id: z.string().uuid().optional(),
   organizacao_id: z.string().uuid(),
   rating_metric_id: z.string().uuid(),
+  safra_id: z.string().uuid().optional(), // Added safra_id
   valor: z.number().min(0).max(100),
   justificativa: z.string().optional(),
   avaliador_id: z.string().uuid().optional(),

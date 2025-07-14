@@ -372,7 +372,8 @@ export async function updateRatingMetricThresholds(
 // Qualitative Metric Values
 export async function getQualitativeMetricValues(
   organizationId: string,
-  metricId?: string
+  metricId?: string,
+  safraId?: string
 ): Promise<QualitativeMetricValue[]> {
   const supabase = await createClient();
   
@@ -399,6 +400,10 @@ export async function getQualitativeMetricValues(
   if (metricId) {
     query = query.eq("rating_metric_id", metricId);
   }
+  
+  if (safraId) {
+    query = query.eq("safra_id", safraId);
+  }
 
   const { data, error } = await query.order("data_avaliacao", { ascending: false });
 
@@ -413,12 +418,20 @@ export async function getQualitativeMetricValues(
 export async function createQualitativeMetricValue(value: CreateQualitativeValue): Promise<QualitativeMetricValue> {
   const supabase = await createClient();
   
-  // Mark previous values as non-current
-  await supabase
+  // Mark previous values as non-current for the same safra
+  const updateQuery = supabase
     .from("qualitative_metric_values")
     .update({ is_current: false })
     .eq("organizacao_id", value.organizacao_id)
     .eq("rating_metric_id", value.rating_metric_id);
+  
+  // If safra_id is provided, update only for that safra
+  if (value.safra_id) {
+    await updateQuery.eq("safra_id", value.safra_id);
+  } else {
+    // If no safra_id, update all (legacy behavior)
+    await updateQuery;
+  }
 
   // Insert new value as current
   const { data, error } = await supabase

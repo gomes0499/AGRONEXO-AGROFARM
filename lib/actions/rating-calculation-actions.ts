@@ -12,7 +12,9 @@ function getDefaultWeight(codigo: string): number {
     'LIQUIDEZ_CORRENTE': 10,
     'DIVIDA_FATURAMENTO': 20,
     'DIVIDA_PATRIMONIO_LIQUIDO': 15,
-    'ENTENDIMENTO_FLUXO_DE_CAIXA': 5
+    'ENTENDIMENTO_FLUXO_DE_CAIXA': 5,
+    'AREA_PROPRIA': 4,
+    'CULTURAS_CORE': 4
   };
   return weights[codigo] || 10;
 }
@@ -176,6 +178,10 @@ export async function calculateRating(
 
     // 3. Get financial data for calculations
     const financialData = await getFinancialData(organizationId, safraId);
+    
+    // 3.1 Get optimized metrics including CULTURAS_CORE and AREA_PROPRIA
+    const { calculateQuantitativeMetricsOptimized } = await import("./rating-metrics-calculations");
+    const optimizedMetrics = await calculateQuantitativeMetricsOptimized(organizationId, safraId);
 
     // 4. Calculate each metric
     const calculatedMetrics = await Promise.all(
@@ -183,43 +189,73 @@ export async function calculateRating(
         const metric = modelMetric.rating_metric;
         let valor = 0;
         
-        // Calculate metric value based on code
-        switch ((metric as any).codigo) {
-          case 'LIQUIDEZ_CORRENTE':
-            valor = financialData.liquidezCorrente;
-            break;
-          case 'DIVIDA_EBITDA':
-            valor = financialData.ebitda > 0 ? financialData.dividaTotal / financialData.ebitda : 999;
-            break;
-          case 'DIVIDA_FATURAMENTO':
-            valor = financialData.faturamento > 0 ? financialData.dividaTotal / financialData.faturamento : 999;
-            break;
-          case 'DIVIDA_PATRIMONIO_LIQUIDO':
-            valor = financialData.patrimonioLiquido > 0 ? financialData.dividaTotal / financialData.patrimonioLiquido : 999;
-            break;
-          case 'LTV':
-            valor = financialData.valorAtivos > 0 ? (financialData.valorEmprestimos / financialData.valorAtivos) * 100 : 0;
-            break;
-          case 'MARGEM_EBITDA':
-            valor = financialData.margemEbitda;
-            break;
-          case 'ENTENDIMENTO_FLUXO_DE_CAIXA':
-            // For qualitative metrics, get from qualitative_metric_values
-            const { data: qualValue } = await supabase
+        // Check if metric is qualitative first
+        if ((metric as any).tipo === 'QUALITATIVE') {
+          // For ALL qualitative metrics, get from qualitative_metric_values
+          // First try with safra_id
+          let { data: qualValue } = await supabase
+            .from("qualitative_metric_values")
+            .select("valor")
+            .eq("organizacao_id", organizationId)
+            .eq("rating_metric_id", (metric as any).id)
+            .eq("safra_id", safraId)
+            .eq("is_current", true)
+            .single();
+          
+          // If not found, try without safra_id (legacy data)
+          if (!qualValue) {
+            const { data: legacyValue } = await supabase
               .from("qualitative_metric_values")
               .select("valor")
               .eq("organizacao_id", organizationId)
               .eq("rating_metric_id", (metric as any).id)
-              .eq("safra_id", safraId)
+              .is("safra_id", null)
+              .eq("is_current", true)
               .single();
             
-            valor = qualValue?.valor || 50; // Default to 50 if not set
-            break;
-          default:
-            // For custom metrics, try to execute the formula
-            if ((metric as any).formula) {
-              valor = await executeFormula((metric as any).formula, financialData);
-            }
+            qualValue = legacyValue;
+          }
+          
+          valor = qualValue?.valor || 0; // Default to 0 if not set
+          
+          if (!qualValue) {
+            console.warn(`⚠️ [${(metric as any).codigo}] Qualitativa não avaliada para safra ${safraId}, score=0`);
+          } else {
+            console.log(`✅ [${(metric as any).codigo}] Qualitativa encontrada: valor=${qualValue.valor}`);
+          }
+        } else {
+          // Calculate quantitative metric value based on code
+          switch ((metric as any).codigo) {
+            case 'LIQUIDEZ_CORRENTE':
+              valor = financialData.liquidezCorrente;
+              break;
+            case 'DIVIDA_EBITDA':
+              valor = financialData.ebitda > 0 ? financialData.dividaTotal / financialData.ebitda : 999;
+              break;
+            case 'DIVIDA_FATURAMENTO':
+              valor = financialData.faturamento > 0 ? financialData.dividaTotal / financialData.faturamento : 999;
+              break;
+            case 'DIVIDA_PATRIMONIO_LIQUIDO':
+              valor = financialData.patrimonioLiquido > 0 ? financialData.dividaTotal / financialData.patrimonioLiquido : 999;
+              break;
+            case 'LTV':
+              valor = financialData.valorAtivos > 0 ? (financialData.valorEmprestimos / financialData.valorAtivos) * 100 : 0;
+              break;
+            case 'MARGEM_EBITDA':
+              valor = financialData.margemEbitda;
+              break;
+            case 'AREA_PROPRIA':
+              valor = optimizedMetrics.AREA_PROPRIA || 0;
+              break;
+            case 'CULTURAS_CORE':
+              valor = optimizedMetrics.CULTURAS_CORE || 0;
+              break;
+            default:
+              // For custom metrics, try to execute the formula
+              if ((metric as any).formula) {
+                valor = await executeFormula((metric as any).formula, financialData);
+              }
+          }
         }
 
         // Find the appropriate threshold and calculate score

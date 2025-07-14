@@ -201,6 +201,10 @@ function formatMetricValue(code: string, value: number): string {
     'DIVIDA_PATRIMONIO_LIQUIDO': (v) => ((v || 0) * 100).toFixed(1) + '%',
     'LTV': (v) => (v || 0).toFixed(1) + '%', // LTV já vem em porcentagem do banco
     'MARGEM_EBITDA': (v) => (v || 0).toFixed(1) + '%',
+    'AREA_PROPRIA': (v) => (v || 0).toFixed(0) + '%',
+    'CULTURAS_CORE': (v) => (v || 0).toFixed(0) + '%',
+    'TENDENCIA_PRODUTIVIDADE': (v) => (v || 0).toFixed(2) + '%',
+    'TENDENCIA_PRODUTIVIDADE_5_ANOS': (v) => (v || 0).toFixed(2) + '%',
   };
   
   const formatter = formatters[code];

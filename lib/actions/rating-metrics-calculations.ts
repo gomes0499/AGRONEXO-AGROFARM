@@ -22,6 +22,9 @@ export async function calculateQuantitativeMetricsOptimized(
       LTV: 0,
       MARGEM_EBITDA: 0,
       ENTENDIMENTO_FLUXO_DE_CAIXA: 0,
+      AREA_PROPRIA: 0,
+      CULTURAS_CORE: 0,
+      TENDENCIA_PRODUTIVIDADE_5_ANOS: 0,
     };
   }
   
@@ -50,6 +53,9 @@ export async function calculateQuantitativeMetricsOptimized(
         LTV: 0,
         MARGEM_EBITDA: 0,
         ENTENDIMENTO_FLUXO_DE_CAIXA: 0,
+        AREA_PROPRIA: 0,
+        CULTURAS_CORE: 0,
+        TENDENCIA_PRODUTIVIDADE: 0,
       };
     }
     
@@ -63,6 +69,9 @@ export async function calculateQuantitativeMetricsOptimized(
       LTV: Number(result.ltv || 0),
       MARGEM_EBITDA: Number(result.margem_ebitda || 0),
       ENTENDIMENTO_FLUXO_DE_CAIXA: 0, // TODO: Implement this metric
+      AREA_PROPRIA: Number(result.area_propria || 0),
+      CULTURAS_CORE: Number(result.culturas_core || 0),
+      TENDENCIA_PRODUTIVIDADE: Number(result.tendencia_produtividade_5_anos || 0),
     };
   } catch (error) {
     console.error("Error in optimized rating metrics:", error);
@@ -100,6 +109,9 @@ export async function calculateQuantitativeMetrics(
         LTV: 0,
         MARGEM_EBITDA: 0,
         ENTENDIMENTO_FLUXO_DE_CAIXA: 0,
+        AREA_PROPRIA: 0,
+        CULTURAS_CORE: 0,
+        TENDENCIA_PRODUTIVIDADE: 0,
       };
     }
     
@@ -259,6 +271,70 @@ export async function calculateQuantitativeMetrics(
     // 7. ENTENDIMENTO_FLUXO_DE_CAIXA (Cash Flow Understanding - qualitative, set to 0)
     metrics.ENTENDIMENTO_FLUXO_DE_CAIXA = 0;
 
+    // 8. AREA_PROPRIA - Calculate percentage of leased area
+    // Import property stats function to get area data
+    const { getPropertyStats } = await import("./property-stats-actions");
+    const propertyStats = await getPropertyStats(organizationId);
+    
+    // Calculate percentage of leased area (arrendada)
+    const areaTotal = propertyStats.areaTotal || 0;
+    const areaArrendada = propertyStats.areaPropriedadesArrendadas || 0;
+    
+    metrics.AREA_PROPRIA = areaTotal > 0 ? (areaArrendada / areaTotal) * 100 : 0;
+    
+    console.log("AREA_PROPRIA calculation:", {
+      areaTotal,
+      areaArrendada,
+      percentualArrendada: metrics.AREA_PROPRIA
+    });
+
+    // 9. CULTURAS_CORE - Calculate percentage of area with core crops (soja, milho, algodão)
+    // Import culture projections to get area by crop
+    const coreCrops = ['soja', 'milho', 'algodão', 'algodao'];
+    let areaCoreTotal = 0;
+    let areaPlantadaTotal = 0;
+    
+    if (cultureProjections.projections && cultureProjections.projections.length > 0) {
+      // Get data for the specific safra year
+      cultureProjections.projections.forEach(projection => {
+        const projectionData = projection.projections_by_year[safraName];
+        if (projectionData && projectionData.area_plantada) {
+          areaPlantadaTotal += projectionData.area_plantada;
+          
+          // Check if this is a core crop
+          const culturaNome = projection.cultura_nome.toLowerCase();
+          if (coreCrops.some(crop => culturaNome.includes(crop))) {
+            areaCoreTotal += projectionData.area_plantada;
+          }
+        }
+      });
+    }
+    
+    metrics.CULTURAS_CORE = areaPlantadaTotal > 0 ? (areaCoreTotal / areaPlantadaTotal) * 100 : 0;
+    
+    console.log("CULTURAS_CORE calculation:", {
+      safraName,
+      areaPlantadaTotal,
+      areaCoreTotal,
+      percentualCore: metrics.CULTURAS_CORE,
+      projections: cultureProjections.projections?.map(p => ({
+        cultura: p.cultura_nome,
+        area: p.projections_by_year[safraName]?.area_plantada || 0
+      }))
+    });
+
+    // 10. TENDENCIA_PRODUTIVIDADE - Calculate 5-year productivity trend
+    metrics.TENDENCIA_PRODUTIVIDADE = await calculate5YearProductivityTrend(
+      supabase,
+      organizationId,
+      year
+    );
+    
+    console.log("TENDENCIA_PRODUTIVIDADE calculation:", {
+      trend: metrics.TENDENCIA_PRODUTIVIDADE,
+      year
+    });
+
     console.log("Calculated metrics final result:", {
       safraName,
       projectionId,
@@ -289,6 +365,115 @@ export async function calculateQuantitativeMetrics(
       LTV: 0,
       MARGEM_EBITDA: 0,
       ENTENDIMENTO_FLUXO_DE_CAIXA: 0,
+      AREA_PROPRIA: 0,
+      CULTURAS_CORE: 0,
+      TENDENCIA_PRODUTIVIDADE_5_ANOS: 0,
     };
+  }
+}
+
+// Helper function to calculate 5-year productivity trend
+async function calculate5YearProductivityTrend(
+  supabase: any,
+  organizationId: string,
+  currentYear: number
+): Promise<number> {
+  try {
+    // Get the last 5 years of safras (including current year)
+    const startYear = currentYear - 5;
+    
+    const { data: safras, error: safrasError } = await supabase
+      .from("safras")
+      .select("id, nome, ano_inicio, ano_fim")
+      .eq("organizacao_id", organizationId)
+      .gte("ano_fim", startYear)
+      .lte("ano_fim", currentYear)
+      .order("ano_inicio", { ascending: true });
+
+    if (safrasError || !safras || safras.length < 2) {
+      console.log("Not enough safras data for productivity trend calculation");
+      return 0;
+    }
+
+    // Get productivity data for these safras
+    const { data: produtividades, error: prodError } = await supabase
+      .from("produtividades")
+      .select("produtividades_por_safra, cultura_id")
+      .eq("organizacao_id", organizationId);
+
+    if (prodError || !produtividades || produtividades.length === 0) {
+      console.log("No productivity data found");
+      return 0;
+    }
+
+    // Calculate average productivity for each year
+    const yearlyProductivity: { year: number; productivity: number }[] = [];
+    
+    for (const safra of safras) {
+      let totalProd = 0;
+      let count = 0;
+      
+      for (const prod of produtividades) {
+        const safraProductivity = prod.produtividades_por_safra?.[safra.id];
+        if (safraProductivity && safraProductivity > 0) {
+          totalProd += safraProductivity;
+          count++;
+        }
+      }
+      
+      if (count > 0) {
+        yearlyProductivity.push({
+          year: safra.ano_fim,
+          productivity: totalProd / count
+        });
+      }
+    }
+
+    if (yearlyProductivity.length < 2) {
+      console.log("Not enough productivity data points for trend calculation");
+      return 0;
+    }
+
+    // Calculate linear regression to determine trend
+    const n = yearlyProductivity.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    
+    yearlyProductivity.forEach((point, index) => {
+      const x = index; // Use index as x to avoid large year numbers
+      const y = point.productivity;
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2 += x * x;
+    });
+
+    // Calculate slope (rate of change)
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    
+    // Calculate average productivity
+    const avgProductivity = sumY / n;
+    
+    // Calculate percentage change per year
+    const percentageChangePerYear = avgProductivity > 0 ? (slope / avgProductivity) * 100 : 0;
+    
+    // Calculate total percentage change over the period
+    const totalPercentageChange = percentageChangePerYear * (n - 1);
+    
+    console.log("Productivity trend calculation:", {
+      yearlyProductivity,
+      slope,
+      avgProductivity,
+      percentageChangePerYear,
+      totalPercentageChange,
+      years: n
+    });
+
+    // Return the total percentage change
+    // Positive values indicate growth, negative values indicate decline
+    return totalPercentageChange;
+    
+  } catch (error) {
+    console.error("Error calculating 5-year productivity trend:", error);
+    return 0;
   }
 }

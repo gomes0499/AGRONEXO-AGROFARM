@@ -31,7 +31,7 @@
 
 | Indicador | Peso | Origem | Descrição |
 |-----------|------|---------|-----------|
-| **% Área própria e arrendada** | 4% | **CALCULADO** | Área Própria / Área Total × 100 |
+| **% Área própria e arrendada** | 4% | **CALCULADO** ✅ | Área Arrendada / Área Total × 100 |
 
 ## 2. Análise Qualitativa (40%)
 
@@ -98,11 +98,11 @@
 ## Resumo por Tipo de Origem
 
 ### Indicadores Calculados Automaticamente
-1. Liquidez Corrente
-2. LTV (Endividamento/Patrimônio)
-3. Margem EBITDA
-4. Dívida/EBITDA
-5. % Área própria vs arrendada
+1. Liquidez Corrente ✅
+2. LTV (Endividamento/Patrimônio) ✅
+3. Margem EBITDA ✅
+4. Dívida/EBITDA ✅
+5. % Área própria vs arrendada ✅
 
 ### Indicadores Potencialmente Calculados (se houver dados)
 1. Atua em culturas core
