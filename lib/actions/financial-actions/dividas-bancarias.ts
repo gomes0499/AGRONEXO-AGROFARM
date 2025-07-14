@@ -23,9 +23,12 @@ export async function getDividasBancarias(organizacaoId: string) {
     
     // Calcular o total para cada item e adicionar campos para compatibilidade
     const dataWithTotal = (data || []).map((item) => {
-      // Os valores estão em fluxo_pagamento_anual, não valores_por_ano
+      // Usar valor_principal para consistência com cash flow (apenas principal, sem juros)
+      const total = item.valor_principal || 0;
+      
+      // Manter compatibilidade com o fluxo_pagamento_anual para casos específicos
       const valores = item.fluxo_pagamento_anual || item.valores_por_ano || {};
-      const total = Object.values(valores).reduce((sum: number, value) => sum + (Number(value) || 0), 0);
+      
       return {
         ...item,
         nome: item.instituicao_bancaria, // Adicionar campo nome para compatibilidade
@@ -81,6 +84,7 @@ export async function createDividaBancaria(
     ano_contratacao: new Date().getFullYear(), // Ano atual
     indexador: values.indexador || 'CDI',
     taxa_real: values.taxa_real || 6.5,
+    valor_principal: values.valor_principal,
     fluxo_pagamento_anual: values.valores_por_safra || {}, // Usar campo correto fluxo_pagamento_anual
     moeda: values.moeda || "BRL",
   };
@@ -119,6 +123,7 @@ export async function updateDividaBancaria(
     modalidade: values.categoria || 'CUSTEIO',
     indexador: values.indexador || 'CDI',
     taxa_real: values.taxa_real || 6.5,
+    valor_principal: values.valor_principal,
     fluxo_pagamento_anual: values.valores_por_safra || {}, // Usar campo correto fluxo_pagamento_anual
     moeda: values.moeda || "BRL",
   };
@@ -179,11 +184,11 @@ export async function getTotalDividasBancarias(organizacaoId: string, safraId?: 
       return total + Number(safraValue);
     }, 0);
   } else {
-    // Se não, somar todos os valores de todas as safras
+    // Se não, somar valor_principal para consistência com cash flow
     return dividasBancarias.reduce((total, divida) => {
-      // Aceitamos tanto valores_por_safra (campo virtual) quanto valores_por_ano (campo real)
-      const valores = divida.valores_por_safra || divida.valores_por_ano || {};
-      const dividaTotal = Object.values(valores).reduce((sum: number, value) => sum + Number(value || 0), 0);
+      // Usar valor_principal se disponível, senão usar o cálculo antigo para compatibilidade
+      const dividaTotal = divida.valor_principal || 
+        Object.values(divida.valores_por_safra || divida.valores_por_ano || {}).reduce((sum: number, value) => sum + Number(value || 0), 0);
       return total + dividaTotal;
     }, 0);
   }
@@ -238,7 +243,7 @@ export async function createDividasBancariasBatch(
       nome: item.instituicao_bancaria,
       valores_por_safra: item.fluxo_pagamento_anual || {},
       valores_por_ano: item.fluxo_pagamento_anual || {},
-      total: Object.values(item.fluxo_pagamento_anual || {}).reduce((sum: number, value) => sum + Number(value || 0), 0)
+      total: item.valor_principal || Object.values(item.fluxo_pagamento_anual || {}).reduce((sum: number, value) => sum + Number(value || 0), 0)
     }));
     
     return { data: dataWithCompatibility };
@@ -273,10 +278,46 @@ export async function getTotalDividasBancariasPorCategoria(
     }, 0);
   } else {
     return dividasFiltradas.reduce((total, divida) => {
-      // Aceitamos tanto valores_por_safra (campo virtual) quanto valores_por_ano (campo real)
-      const valores = divida.valores_por_safra || divida.valores_por_ano || {};
-      const dividaTotal = Object.values(valores).reduce((sum: number, value) => sum + Number(value || 0), 0);
+      // Usar valor_principal se disponível, senão usar o cálculo antigo para compatibilidade
+      const dividaTotal = divida.valor_principal || 
+        Object.values(divida.valores_por_safra || divida.valores_por_ano || {}).reduce((sum: number, value) => sum + Number(value || 0), 0);
       return total + dividaTotal;
     }, 0);
+  }
+}
+
+// Obter total consolidado das dívidas bancárias usando função do banco
+export async function getTotalDividasBancariasConsolidado(organizacaoId: string, projectionId?: string) {
+  const supabase = await createClient();
+  
+  try {
+    const { data, error } = await supabase
+      .rpc('calcular_total_dividas_bancarias', {
+        p_organizacao_id: organizacaoId,
+        p_projection_id: projectionId || null
+      })
+      .single();
+    
+    if (error) {
+      console.error("Erro ao calcular total das dívidas bancárias:", error);
+      return {
+        total_brl: 0,
+        total_usd: 0,
+        total_consolidado_brl: 0,
+        taxa_cambio: 5.50,
+        quantidade_contratos: 0
+      };
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Erro ao processar total das dívidas bancárias:", error);
+    return {
+      total_brl: 0,
+      total_usd: 0,
+      total_consolidado_brl: 0,
+      taxa_cambio: 5.50,
+      quantidade_contratos: 0
+    };
   }
 }

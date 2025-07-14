@@ -1,5 +1,9 @@
 [] CRIAR CONTA (LUCIO, DIOGENES, REINALDO)
+
 [] REVISAR CALCULOS DAS MÉTRICAS
+[] ARRUMAR DESCRICAO DAS NOTAS
+
+
 
 
 Para tornar o sistema completamente dinâmico no futuro:
@@ -8,3 +12,5 @@ Para tornar o sistema completamente dinâmico no futuro:
 3. Remover o enum commodity_type gradualmente
 4. Permitir que cada organização defina suas próprias culturas sem limitações
 
+    - Máquinas e Equipamentos
+    - Benfeitorias e Instalações

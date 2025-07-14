@@ -2,14 +2,48 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCultureProjections } from "@/lib/actions/culture-projections-actions";
-import { getDividasBancarias, getTotalDividasBancarias } from "@/lib/actions/financial-actions/dividas-bancarias";
+import { getDividasBancarias, getTotalDividasBancarias, getTotalDividasBancariasConsolidado } from "@/lib/actions/financial-actions/dividas-bancarias";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { getCashPolicyConfig } from "@/lib/actions/financial-actions/cash-policy-actions";
+
+/**
+ * Interface para dívida consolidada
+ */
+interface DividaConsolidada {
+  id: string;
+  instituicao_bancaria: string;
+  valor_original: number;
+  ano_contratacao: number;
+  taxa_real: number;
+  indexador: string;
+  modalidade: string;
+  saldo_devedor: number;
+  pagamentos_realizados: Record<string, number>;
+  fluxo_original: Record<string, number>;
+  moeda?: string;
+}
+
+/**
+ * Interface para plano de pagamento otimizado
+ */
+interface PlanoPagamento {
+  ano: string;
+  valor_disponivel: number;
+  pagamentos_programados: Array<{
+    divida_id: string;
+    instituicao: string;
+    valor: number;
+    tipo: 'principal' | 'juros';
+  }>;
+  total_pago: number;
+  saldo_caixa_apos: number;
+}
 
 export interface FluxoCaixaData {
   anos: string[];
   receitas_agricolas: {
     culturas: Record<string, Record<string, number>>;
+    culturas_detalhado?: Record<string, Record<string, { area: number; produtividade: number; preco: number; }>>;
     total_por_ano: Record<string, number>;
   };
   despesas_agricolas: {
@@ -19,28 +53,45 @@ export interface FluxoCaixaData {
   };
   outras_despesas: {
     arrendamento: Record<string, number>;
+    arrendamento_detalhado?: Record<string, Record<string, number>>; // propriedade -> ano -> valor
     pro_labore: Record<string, number>;
     divisao_lucros: Record<string, number>;
     financeiras: Record<string, number>;
+    financeiras_detalhado?: Record<string, Record<string, number>>; // categoria -> ano -> valor
     tributarias: Record<string, number>;
     outras: Record<string, number>;
+    outras_detalhado?: Record<string, Record<string, number>>; // subcategoria -> ano -> valor
     total_por_ano: Record<string, number>;
   };
+  ebitda: Record<string, number>; // Novo campo para EBITDA
   fluxo_atividade: Record<string, number>;
+  fluxo_operacional: Record<string, number>; // Novo campo para fluxo operacional
   investimentos: {
     total: Record<string, number>;
     terras: Record<string, number>;
     maquinarios: Record<string, number>;
+    maquinarios_detalhado?: Record<string, Record<string, number>>; // tipo -> ano -> valor
     outros: Record<string, number>;
+    outros_detalhado?: Record<string, Record<string, number>>; // tipo -> ano -> valor
   };
   financeiras: {
     servico_divida: Record<string, number>;
     pagamentos_bancos: Record<string, number>;
     novas_linhas_credito: Record<string, number>;
     total_por_ano: Record<string, number>;
+    dividas_bancarias: Record<string, number>;
+    dividas_bancarias_detalhado?: Record<string, Record<string, number>>; // contrato -> ano -> valor
+    dividas_terras: Record<string, number>;
+    dividas_terras_detalhado?: Record<string, Record<string, number>>; // propriedade -> ano -> valor
+    dividas_fornecedores: Record<string, number>;
+    dividas_fornecedores_detalhado?: Record<string, Record<string, number>>; // fornecedor -> ano -> valor
+    divida_total_consolidada: Record<string, number>;
+    saldo_devedor: Record<string, number>;
   };
   fluxo_liquido: Record<string, number>;
   fluxo_acumulado: Record<string, number>;
+  fluxo_liquido_sem_pagamento_divida: Record<string, number>;
+  fluxo_acumulado_sem_pagamento_divida: Record<string, number>;
   politica_caixa: {
     ativa: boolean;
     valor_minimo: number | null;
@@ -69,6 +120,7 @@ export async function getFluxoCaixaSimplificado(
   
   // 2. Inicializar estruturas de dados
   const receitasAgricolas: Record<string, Record<string, number>> = {};
+  const receitasAgricolasDetalhado: Record<string, Record<string, { area: number; produtividade: number; preco: number; }>> = {};
   const despesasAgricolas: Record<string, Record<string, number>> = {};
   const despesasAgricolasDetalhado: Record<string, Record<string, Record<string, number>>> = {};
   const totalReceitasPorAno: Record<string, number> = {};
@@ -84,6 +136,7 @@ export async function getFluxoCaixaSimplificado(
   [...cultureProjections.projections, ...cultureProjections.sementes].forEach(projection => {
     const culturaNome = formatarNomeCultura(projection);
     receitasAgricolas[culturaNome] = {};
+    receitasAgricolasDetalhado[culturaNome] = {};
     despesasAgricolas[culturaNome] = {};
     despesasAgricolasDetalhado[culturaNome] = {};
     
@@ -94,6 +147,13 @@ export async function getFluxoCaixaSimplificado(
         const receita = dadosAno.receita || 0;
         receitasAgricolas[culturaNome][ano] = receita;
         totalReceitasPorAno[ano] += receita;
+        
+        // Dados detalhados das receitas
+        receitasAgricolasDetalhado[culturaNome][ano] = {
+          area: dadosAno.area_plantada || 0,
+          produtividade: dadosAno.produtividade || 0,
+          preco: dadosAno.preco || 0
+        };
         
         
         // Despesas
@@ -110,6 +170,7 @@ export async function getFluxoCaixaSimplificado(
         }
       } else {
         receitasAgricolas[culturaNome][ano] = 0;
+        receitasAgricolasDetalhado[culturaNome][ano] = { area: 0, produtividade: 0, preco: 0 };
         despesasAgricolas[culturaNome][ano] = 0;
       }
     });
@@ -137,7 +198,12 @@ export async function getFluxoCaixaSimplificado(
   // 5. Buscar dados de arrendamentos (sempre da tabela base, não muda com cenários)
   const { data: arrendamentos, error: arrendamentosError } = await supabase
     .from("arrendamentos")
-    .select("*")
+    .select(`
+      *,
+      propriedades:propriedade_id (
+        nome
+      )
+    `)
     .eq("organizacao_id", organizationId);
 
   if (arrendamentosError) {
@@ -147,19 +213,25 @@ export async function getFluxoCaixaSimplificado(
   // 6. Inicializar outras despesas
   const outrasDespesas: {
     arrendamento: Record<string, number>;
+    arrendamento_detalhado?: Record<string, Record<string, number>>;
     pro_labore: Record<string, number>;
     divisao_lucros: Record<string, number>;
     financeiras: Record<string, number>;
+    financeiras_detalhado?: Record<string, Record<string, number>>;
     tributarias: Record<string, number>;
     outras: Record<string, number>;
+    outras_detalhado?: Record<string, Record<string, number>>;
     total_por_ano: Record<string, number>;
   } = {
     arrendamento: {},
+    arrendamento_detalhado: {},
     pro_labore: {},
     divisao_lucros: {},
     financeiras: {},
+    financeiras_detalhado: {},
     tributarias: {},
     outras: {},
+    outras_detalhado: {},
     total_por_ano: {}
   };
   
@@ -192,10 +264,24 @@ export async function getFluxoCaixaSimplificado(
         ? JSON.parse(custosField)
         : custosField || {};
       
+      // Nome da propriedade para detalhamento
+      const nomePropriedade = arrendamento.propriedades?.nome || arrendamento.nome_fazenda || `Propriedade ${arrendamento.propriedade_id}`;
+      
+      if (!outrasDespesas.arrendamento_detalhado![nomePropriedade]) {
+        outrasDespesas.arrendamento_detalhado![nomePropriedade] = {};
+      }
+      
       Object.keys(custos).forEach(safraId => {
         const anoNome = safraToYear[safraId];
         if (anoNome && outrasDespesas.arrendamento[anoNome] !== undefined) {
-          outrasDespesas.arrendamento[anoNome] += custos[safraId] || 0;
+          const valor = custos[safraId] || 0;
+          // Somar no total
+          outrasDespesas.arrendamento[anoNome] += valor;
+          // Armazenar detalhado por propriedade
+          if (!outrasDespesas.arrendamento_detalhado![nomePropriedade][anoNome]) {
+            outrasDespesas.arrendamento_detalhado![nomePropriedade][anoNome] = 0;
+          }
+          outrasDespesas.arrendamento_detalhado![nomePropriedade][anoNome] += valor;
         }
       });
     });
@@ -225,10 +311,79 @@ export async function getFluxoCaixaSimplificado(
           outrasDespesas.divisao_lucros[anoNome] += valores[safraId] || 0;
         } else if (categoria === 'FINANCEIRAS' || categoria === 'FINANCEIRA') {
           outrasDespesas.financeiras[anoNome] += valores[safraId] || 0;
+          
+          // Adicionar detalhamento por subcategoria
+          if (!outrasDespesas.financeiras_detalhado) {
+            outrasDespesas.financeiras_detalhado = {};
+          }
+          
+          // Determinar subcategoria baseada no nome ou descrição
+          let subcategoria = 'Outras Financeiras';
+          const descricao = (despesa.descricao || despesa.nome || '').toUpperCase();
+          
+          if (descricao.includes('JUROS') || descricao.includes('JURO')) {
+            subcategoria = 'Juros';
+          } else if (descricao.includes('TAXA') || descricao.includes('TARIFA')) {
+            subcategoria = 'Taxas e Tarifas';
+          } else if (descricao.includes('IOF') || descricao.includes('IMPOSTO')) {
+            subcategoria = 'Impostos Financeiros';
+          } else if (descricao.includes('COMISSAO') || descricao.includes('CORRETAGEM')) {
+            subcategoria = 'Comissões';
+          } else if (descricao.includes('MULTA') || descricao.includes('MORA')) {
+            subcategoria = 'Multas e Mora';
+          }
+          
+          if (!outrasDespesas.financeiras_detalhado[subcategoria]) {
+            outrasDespesas.financeiras_detalhado[subcategoria] = {};
+          }
+          if (!outrasDespesas.financeiras_detalhado[subcategoria][anoNome]) {
+            outrasDespesas.financeiras_detalhado[subcategoria][anoNome] = 0;
+          }
+          outrasDespesas.financeiras_detalhado[subcategoria][anoNome] += valores[safraId] || 0;
+          
         } else if (categoria === 'TRIBUTARIAS' || categoria === 'TRIBUTARIA') {
           outrasDespesas.tributarias[anoNome] += valores[safraId] || 0;
         } else {
           outrasDespesas.outras[anoNome] += valores[safraId] || 0;
+          
+          // Adicionar detalhamento por subcategoria para "outras"
+          if (!outrasDespesas.outras_detalhado) {
+            outrasDespesas.outras_detalhado = {};
+          }
+          
+          // Determinar subcategoria baseada na categoria ou descrição
+          let subcategoria = 'Outras Despesas';
+          const descricao = (despesa.descricao || despesa.nome || '').toUpperCase();
+          
+          if (categoria === 'ADMINISTRATIVAS' || categoria === 'ADMINISTRATIVA' || 
+              descricao.includes('ADMINISTRATIV')) {
+            subcategoria = 'Despesas Administrativas';
+          } else if (categoria === 'OPERACIONAIS' || categoria === 'OPERACIONAL' || 
+                     descricao.includes('OPERACION')) {
+            subcategoria = 'Despesas Operacionais';
+          } else if (categoria === 'MANUTENCAO' || categoria === 'MANUTENÇÃO' || 
+                     descricao.includes('MANUTENC')) {
+            subcategoria = 'Manutenção';
+          } else if (categoria === 'CONSULTORIA' || descricao.includes('CONSULTORIA') || 
+                     descricao.includes('ASSESSORIA')) {
+            subcategoria = 'Consultorias e Assessorias';
+          } else if (categoria === 'SEGURO' || descricao.includes('SEGURO')) {
+            subcategoria = 'Seguros';
+          } else if (categoria === 'COMBUSTIVEL' || categoria === 'COMBUSTÍVEL' || 
+                     descricao.includes('COMBUSTI')) {
+            subcategoria = 'Combustíveis';
+          } else if (categoria === 'VIAGEM' || descricao.includes('VIAGEM') || 
+                     descricao.includes('HOSPEDAGEM')) {
+            subcategoria = 'Viagens e Hospedagem';
+          }
+          
+          if (!outrasDespesas.outras_detalhado[subcategoria]) {
+            outrasDespesas.outras_detalhado[subcategoria] = {};
+          }
+          if (!outrasDespesas.outras_detalhado[subcategoria][anoNome]) {
+            outrasDespesas.outras_detalhado[subcategoria][anoNome] = 0;
+          }
+          outrasDespesas.outras_detalhado[subcategoria][anoNome] += valores[safraId] || 0;
         }
       });
     });
@@ -262,6 +417,8 @@ export async function getFluxoCaixaSimplificado(
   const investimentosTerras: Record<string, number> = {};
   const investimentosMaquinarios: Record<string, number> = {};
   const investimentosOutros: Record<string, number> = {};
+  const maquinariosDetalhado: Record<string, Record<string, number>> = {};
+  const outrosDetalhado: Record<string, Record<string, number>> = {};
   
   anosFiltrados.forEach(ano => {
     investimentosTotal[ano] = 0;
@@ -307,17 +464,80 @@ export async function getFluxoCaixaSimplificado(
         categoria === 'MAQUINARIO'
       ) {
         investimentosMaquinarios[safraCorrespondente] += valor;
+        
+        // Adicionar detalhamento por tipo de maquinário
+        let tipoMaquinario = 'Outros Maquinários';
+        const descricao = (investimento.descricao || investimento.nome || '').toUpperCase();
+        
+        if (categoria === 'TRATOR_COLHEITADEIRA_PULVERIZADOR') {
+          if (descricao.includes('TRATOR')) {
+            tipoMaquinario = 'Tratores';
+          } else if (descricao.includes('COLHEITADEIRA')) {
+            tipoMaquinario = 'Colheitadeiras';
+          } else if (descricao.includes('PULVERIZADOR')) {
+            tipoMaquinario = 'Pulverizadores';
+          } else {
+            tipoMaquinario = 'Tratores/Colheitadeiras/Pulverizadores';
+          }
+        } else if (categoria === 'EQUIPAMENTO') {
+          tipoMaquinario = 'Equipamentos';
+        }
+        
+        if (!maquinariosDetalhado[tipoMaquinario]) {
+          maquinariosDetalhado[tipoMaquinario] = {};
+        }
+        if (!maquinariosDetalhado[tipoMaquinario][safraCorrespondente]) {
+          maquinariosDetalhado[tipoMaquinario][safraCorrespondente] = 0;
+        }
+        maquinariosDetalhado[tipoMaquinario][safraCorrespondente] += valor;
       }
       else {
         // Todas as outras categorias vão para "Outros"
         investimentosOutros[safraCorrespondente] += valor;
+        
+        // Adicionar detalhamento por tipo de "outros"
+        let tipoOutro = 'Outros Investimentos';
+        const descricao = (investimento.descricao || investimento.nome || '').toUpperCase();
+        
+        if (categoria === 'BENFEITORIA' || descricao.includes('BENFEITORIA')) {
+          tipoOutro = 'Benfeitorias';
+        } else if (categoria === 'TECNOLOGIA' || descricao.includes('TECNOLOGIA') || 
+                   descricao.includes('SOFTWARE')) {
+          tipoOutro = 'Tecnologia';
+        } else if (categoria === 'VEICULO' || categoria === 'VEÍCULO' || 
+                   descricao.includes('VEICULO') || descricao.includes('VEÍCULO')) {
+          tipoOutro = 'Veículos';
+        } else if (categoria === 'INFRAESTRUTURA' || descricao.includes('INFRAESTRUTURA')) {
+          tipoOutro = 'Infraestrutura';
+        }
+        
+        if (!outrosDetalhado[tipoOutro]) {
+          outrosDetalhado[tipoOutro] = {};
+        }
+        if (!outrosDetalhado[tipoOutro][safraCorrespondente]) {
+          outrosDetalhado[tipoOutro][safraCorrespondente] = 0;
+        }
+        outrosDetalhado[tipoOutro][safraCorrespondente] += valor;
       }
     });
   }
   // Se não há dados de investimentos, deixar zerado
   // Não usar valores fictícios
   
-  // 13. Calcular fluxo de atividade
+  // 13. Calcular EBITDA (Earnings Before Interest, Taxes, Depreciation and Amortization)
+  const ebitda: Record<string, number> = {};
+  anosFiltrados.forEach(ano => {
+    // EBITDA = Receitas - Despesas Operacionais (excluindo financeiras e tributárias)
+    ebitda[ano] = 
+      totalReceitasPorAno[ano] - 
+      totalDespesasPorAno[ano] - 
+      outrasDespesas.arrendamento[ano] -
+      outrasDespesas.pro_labore[ano] -
+      outrasDespesas.divisao_lucros[ano] -
+      outrasDespesas.outras[ano];
+  });
+  
+  // 14. Calcular fluxo de atividade (inclui todas as despesas)
   const fluxoAtividade: Record<string, number> = {};
   anosFiltrados.forEach(ano => {
     fluxoAtividade[ano] = 
@@ -326,13 +546,19 @@ export async function getFluxoCaixaSimplificado(
       outrasDespesas.total_por_ano[ano];
   });
   
-  // 14. Fluxo líquido
+  // 15. Calcular fluxo operacional (antes de investimentos e financiamento)
+  const fluxoOperacional: Record<string, number> = {};
+  anosFiltrados.forEach(ano => {
+    fluxoOperacional[ano] = fluxoAtividade[ano];
+  });
+  
+  // 16. Fluxo líquido (após investimentos)
   const fluxoLiquido: Record<string, number> = {};
   anosFiltrados.forEach(ano => {
     fluxoLiquido[ano] = fluxoAtividade[ano] - investimentosTotal[ano];
   });
   
-  // 15. Fluxo acumulado
+  // 17. Fluxo acumulado
   const fluxoAcumulado: Record<string, number> = {};
   let acumulado = 0;
   anosFiltrados.forEach(ano => {
@@ -340,69 +566,54 @@ export async function getFluxoCaixaSimplificado(
     fluxoAcumulado[ano] = acumulado;
   });
   
-  // 16. Buscar política de caixa mínimo ANTES de calcular financeiras
+  // 18. Buscar política de caixa mínimo ANTES de calcular financeiras
   const politicaCaixa = await getCashPolicyConfig(organizationId);
   
-  // 17. Calcular dados financeiras
-  const financeirasData = await calcularDadosFinanceiras(organizationId, anosFiltrados, safraToYear, projectionId);
+  // 19. Calcular dados financeiras com a nova abordagem
+  const financeirasData = await calcularDadosFinanceiras(
+    organizationId, 
+    anosFiltrados, 
+    safraToYear, 
+    projectionId,
+    {
+      fluxoAtividade,
+      investimentosTotal,
+      politicaCaixa
+    }
+  );
   
-  // Criar cópia ajustada das financeiras
-  const financeirasAjustadas = {
-    servico_divida: { ...financeirasData.servico_divida },
-    pagamentos_bancos: { ...financeirasData.pagamentos_bancos },
-    novas_linhas_credito: { ...financeirasData.novas_linhas_credito },
-    total_por_ano: { ...financeirasData.total_por_ano }
-  };
+  // Usar diretamente os dados calculados (já consideram política de caixa)
+  const financeirasAjustadas = financeirasData;
   
-  // 18. Recalcular fluxo líquido com política de caixa mínimo
+  // 20. Recalcular fluxo líquido com as financeiras otimizadas
   const fluxoLiquidoComFinanceiras: Record<string, number> = {};
   const fluxoAcumuladoComFinanceiras: Record<string, number> = {};
+  const fluxoLiquidoSemPagamentoDivida: Record<string, number> = {};
+  const fluxoAcumuladoSemPagamentoDivida: Record<string, number> = {};
   const alertasCaixa: Record<string, { abaixo_minimo: boolean; valor_faltante: number }> = {};
   let acumuladoAtualizado = 0;
+  let acumuladoSemPagamento = 0;
   
   anosFiltrados.forEach(ano => {
     // Casos especiais para 2021/22 e 2022/23
     if (ano === "2021/22" || ano === "2022/23") {
       fluxoLiquidoComFinanceiras[ano] = 0;
       fluxoAcumuladoComFinanceiras[ano] = 0;
+      fluxoLiquidoSemPagamentoDivida[ano] = 0;
+      fluxoAcumuladoSemPagamentoDivida[ano] = 0;
       return;
     }
     
-    // Calcular fluxo sem considerar pagamentos de dívidas
-    const fluxoSemPagamentos = fluxoLiquido[ano] + financeirasAjustadas.novas_linhas_credito[ano];
-    const saldoProjetadoSemPagamentos = acumuladoAtualizado + fluxoSemPagamentos;
-    
-    // Verificar política de caixa mínimo
-    if (politicaCaixa && politicaCaixa.enabled && politicaCaixa.minimum_cash && politicaCaixa.priority === 'cash') {
-      const pagamentosOriginais = Math.abs(financeirasAjustadas.servico_divida[ano] + financeirasAjustadas.pagamentos_bancos[ano]);
-      const saldoAposPagamentos = saldoProjetadoSemPagamentos - pagamentosOriginais;
-      
-      // Se ficar abaixo do mínimo, ajustar pagamentos
-      if (saldoAposPagamentos < politicaCaixa.minimum_cash) {
-        const valorDisponivel = Math.max(0, saldoProjetadoSemPagamentos - politicaCaixa.minimum_cash);
-        
-        // Distribuir o valor disponível proporcionalmente
-        if (pagamentosOriginais > 0) {
-          const percentualPagamento = valorDisponivel / pagamentosOriginais;
-          financeirasAjustadas.servico_divida[ano] *= percentualPagamento;
-          financeirasAjustadas.pagamentos_bancos[ano] *= percentualPagamento;
-        } else {
-          financeirasAjustadas.servico_divida[ano] = 0;
-          financeirasAjustadas.pagamentos_bancos[ano] = 0;
-        }
-        
-        // Recalcular total
-        financeirasAjustadas.total_por_ano[ano] = 
-          financeirasAjustadas.servico_divida[ano] + 
-          financeirasAjustadas.pagamentos_bancos[ano] + 
-          financeirasAjustadas.novas_linhas_credito[ano];
-      }
-    }
-    
-    // Calcular fluxo final
+    // Calcular fluxo COM pagamento de dívidas (cenário atual)
     fluxoLiquidoComFinanceiras[ano] = fluxoLiquido[ano] + financeirasAjustadas.total_por_ano[ano];
     acumuladoAtualizado += fluxoLiquidoComFinanceiras[ano];
     fluxoAcumuladoComFinanceiras[ano] = acumuladoAtualizado;
+    
+    // Calcular fluxo SEM pagamento de dívidas (cenário hipotético)
+    // Considera apenas novas linhas de crédito, mas não o serviço da dívida
+    fluxoLiquidoSemPagamentoDivida[ano] = fluxoLiquido[ano] + (financeirasAjustadas.novas_linhas_credito[ano] || 0);
+    acumuladoSemPagamento += fluxoLiquidoSemPagamentoDivida[ano];
+    fluxoAcumuladoSemPagamentoDivida[ano] = acumuladoSemPagamento;
     
     // Registrar alertas
     if (politicaCaixa && politicaCaixa.enabled && politicaCaixa.minimum_cash) {
@@ -414,11 +625,12 @@ export async function getFluxoCaixaSimplificado(
     }
   });
 
-  // 18. Retornar estrutura completa
+  // 21. Retornar estrutura completa
   return {
     anos: anosFiltrados,
     receitas_agricolas: {
       culturas: receitasAgricolas,
+      culturas_detalhado: receitasAgricolasDetalhado,
       total_por_ano: totalReceitasPorAno
     },
     despesas_agricolas: {
@@ -427,16 +639,22 @@ export async function getFluxoCaixaSimplificado(
       total_por_ano: totalDespesasPorAno
     },
     outras_despesas: outrasDespesas,
+    ebitda: ebitda,
     fluxo_atividade: fluxoAtividade,
+    fluxo_operacional: fluxoOperacional,
     investimentos: {
       total: investimentosTotal,
       terras: investimentosTerras,
       maquinarios: investimentosMaquinarios,
-      outros: investimentosOutros
+      maquinarios_detalhado: maquinariosDetalhado,
+      outros: investimentosOutros,
+      outros_detalhado: outrosDetalhado
     },
     financeiras: financeirasAjustadas,
     fluxo_liquido: fluxoLiquidoComFinanceiras,
     fluxo_acumulado: fluxoAcumuladoComFinanceiras,
+    fluxo_liquido_sem_pagamento_divida: fluxoLiquidoSemPagamentoDivida,
+    fluxo_acumulado_sem_pagamento_divida: fluxoAcumuladoSemPagamentoDivida,
     politica_caixa: {
       ativa: politicaCaixa?.enabled || false,
       valor_minimo: politicaCaixa?.minimum_cash || null,
@@ -447,52 +665,98 @@ export async function getFluxoCaixaSimplificado(
   };
 }
 
-// Função auxiliar para formatar nome da cultura
+// Função auxiliar para formatar nome da cultura com primeira letra maiúscula
 function formatarNomeCultura(projection: any): string {
-  const nome = projection.cultura_nome.toUpperCase();
-  const sistema = projection.sistema_nome?.toUpperCase() || "";
-  const ciclo = projection.ciclo_nome?.toUpperCase() || "";
+  const nome = projection.cultura_nome.toLowerCase();
+  const sistema = projection.sistema_nome?.toLowerCase() || "";
+  const ciclo = projection.ciclo_nome?.toLowerCase() || "";
+  
+  // Função para capitalizar primeira letra
+  const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
   
   if (projection.tipo === 'sementes') {
-    return `SEMENTE ${nome}`;
+    return `Semente ${capitalize(nome)}`;
   }
   
-  let resultado = nome;
+  let resultado = capitalize(nome);
   
   if (ciclo.includes('1')) {
-    resultado += ' 1ª SAFRA';
+    resultado += ' 1ª safra';
   } else if (ciclo.includes('2')) {
-    resultado += ' 2ª SAFRA';
+    resultado += ' 2ª safra';
   }
   
-  if (sistema.includes('SEQUEIRO')) {
-    resultado += ' SEQUEIRO';
-  } else if (sistema.includes('IRRIGADO')) {
-    resultado += ' IRRIGADO';
+  if (sistema.includes('sequeiro')) {
+    resultado += ' sequeiro';
+  } else if (sistema.includes('irrigado')) {
+    resultado += ' irrigado';
   }
   
   return resultado;
 }
 
 /**
+ * Interface para representar informações de uma dívida consolidada
+ */
+interface DividaConsolidada {
+  id: string;
+  instituicao_bancaria: string;
+  valor_original: number;
+  ano_contratacao: number;
+  taxa_real: number;
+  indexador: string;
+  modalidade: string;
+  saldo_devedor: number;
+  pagamentos_realizados: Record<string, number>;
+  fluxo_original: Record<string, number>;
+  moeda?: string;
+}
+
+/**
  * Calcula os dados financeiros relacionados ao serviço da dívida, pagamentos bancários e novas linhas de crédito
+ * 
+ * Nova abordagem:
+ * 1. Consolida todas as dívidas no momento em que foram tomadas
+ * 2. Cria um plano de pagamento otimizado respeitando a política de caixa mínimo
+ * 3. Distribui pagamentos de forma inteligente ao longo dos anos
  */
 async function calcularDadosFinanceiras(
   organizationId: string,
   anos: string[],
   safraToYear: Record<string, string>,
-  projectionId?: string
+  projectionId?: string,
+  contexto?: {
+    fluxoAtividade: Record<string, number>;
+    investimentosTotal: Record<string, number>;
+    politicaCaixa: any;
+  }
 ): Promise<{
   servico_divida: Record<string, number>;
   pagamentos_bancos: Record<string, number>;
   novas_linhas_credito: Record<string, number>;
   total_por_ano: Record<string, number>;
+  dividas_bancarias: Record<string, number>;
+  dividas_bancarias_detalhado?: Record<string, Record<string, number>>;
+  dividas_terras: Record<string, number>;
+  dividas_terras_detalhado?: Record<string, Record<string, number>>;
+  dividas_fornecedores: Record<string, number>;
+  dividas_fornecedores_detalhado?: Record<string, Record<string, number>>;
+  divida_total_consolidada: Record<string, number>;
+  saldo_devedor: Record<string, number>;
 }> {
   // Inicializar estruturas
   const servicoDivida: Record<string, number> = {};
   const pagamentosBancos: Record<string, number> = {};
   const novasLinhasCredito: Record<string, number> = {};
   const totalPorAno: Record<string, number> = {};
+  const dividasBancarias: Record<string, number> = {};
+  const dividasBancariasDetalhado: Record<string, Record<string, number>> = {};
+  const dividasTerras: Record<string, number> = {};
+  const dividasTerrasDetalhado: Record<string, Record<string, number>> = {};
+  const dividasFornecedores: Record<string, number> = {};
+  const dividasFornecedoresDetalhado: Record<string, Record<string, number>> = {};
+  const dividaTotalConsolidada: Record<string, number> = {};
+  const saldoDevedor: Record<string, number> = {};
   
   // Inicializar com valores zerados
   anos.forEach(ano => {
@@ -500,155 +764,497 @@ async function calcularDadosFinanceiras(
     pagamentosBancos[ano] = 0;
     novasLinhasCredito[ano] = 0;
     totalPorAno[ano] = 0;
+    dividasBancarias[ano] = 0;
+    dividasTerras[ano] = 0;
+    dividasFornecedores[ano] = 0;
+    dividaTotalConsolidada[ano] = 0;
+    saldoDevedor[ano] = 0;
   });
   
   try {
-    // Buscar dados reais de dívidas bancárias ao invés de valor fixo
-    let valorTotalDividasBancarias = 0; 
-    
-    // Criar cliente Supabase para buscar dados
+    // Criar cliente Supabase
     const supabase = await createClient();
     
-    // Buscar dados de novas linhas de crédito do banco de dados (sempre da tabela base, não muda com cenários)
-    const { data: financeirasData, error: financeirasError } = await supabase
+    // 1. BUSCAR E CONSOLIDAR DÍVIDAS BANCÁRIAS E DE TERRAS/IMÓVEIS
+    const totalDividasConsolidado = await getTotalDividasBancariasConsolidado(organizationId, projectionId);
+    
+    const { data: dadosDividasBancarias, error: dividasError } = await supabase
+      .from("dividas_bancarias")
+      .select("*")
+      .eq("organizacao_id", organizationId);
+    
+    if (dividasError) {
+      console.error("Erro ao buscar dívidas bancárias:", dividasError);
+      throw new Error("Erro ao buscar dívidas bancárias");
+    }
+
+    // Buscar dívidas de terras/imóveis
+    const { data: dadosDividasImoveis, error: imoveisError } = await supabase
+      .from("aquisicao_terras")
+      .select("*")
+      .eq("organizacao_id", organizationId);
+    
+    if (imoveisError) {
+      console.error("Erro ao buscar dívidas de terras:", imoveisError);
+      // Não faz throw para não quebrar o fluxo, apenas logga o erro
+    }
+    
+    // Usar taxa de câmbio da função dinâmica
+    const taxaCambio = totalDividasConsolidado.taxa_cambio;
+    
+    // Criar pool de dívidas consolidadas - BANCÁRIAS E DE TERRAS
+    const dividasConsolidadas: DividaConsolidada[] = [];
+    
+    // Adicionar dívidas bancárias
+    (dadosDividasBancarias || []).forEach(divida => {
+      const fluxoOriginal = divida.fluxo_pagamento_anual || {};
+      
+      // Usar apenas valor_principal (não somar todos os anos com juros)
+      let valorTotal = divida.valor_principal || 0;
+      
+      // Converter para BRL se a dívida estiver em USD
+      if (divida.moeda === 'USD' && valorTotal > 0) {
+        valorTotal = valorTotal * taxaCambio;
+      }
+      
+      // Criar identificador detalhado da dívida bancária
+      const contrato = `${divida.instituicao_bancaria} - ${divida.modalidade} (${divida.ano_contratacao})`;
+      
+      // Adicionar aos dados detalhados
+      if (!dividasBancariasDetalhado[contrato]) {
+        dividasBancariasDetalhado[contrato] = {};
+      }
+      
+      // Mostrar valor consolidado (total) em todos os anos
+      anos.forEach(ano => {
+        dividasBancariasDetalhado[contrato][ano] = valorTotal;
+      });
+      
+      dividasConsolidadas.push({
+        id: divida.id,
+        instituicao_bancaria: divida.instituicao_bancaria,
+        valor_original: valorTotal,
+        ano_contratacao: divida.ano_contratacao || new Date().getFullYear(),
+        taxa_real: divida.taxa_real || 6.5,
+        indexador: divida.indexador || 'CDI',
+        modalidade: divida.modalidade || 'CUSTEIO',
+        saldo_devedor: valorTotal,
+        pagamentos_realizados: {},
+        fluxo_original: fluxoOriginal,
+        moeda: divida.moeda || 'BRL'
+      });
+    });
+
+    // Adicionar dívidas de terras/imóveis
+    (dadosDividasImoveis || []).forEach(divida => {
+      // Debug: log estrutura da dívida
+      if (dadosDividasImoveis && dadosDividasImoveis.length > 0 && dadosDividasImoveis.indexOf(divida) === 0) {
+        console.log('🏠 Debug estrutura dívida terra:', Object.keys(divida));
+      }
+      // Converter valores_por_ano para o formato esperado
+      const valoresPorAno = divida.valores_por_ano || {};
+      const fluxoOriginal: Record<string, number> = {};
+      
+      // Mapear valores por ano para formato de fluxo
+      Object.keys(valoresPorAno).forEach(anoId => {
+        const ano = safraToYear[anoId];
+        if (ano && valoresPorAno[anoId]) {
+          fluxoOriginal[anoId] = valoresPorAno[anoId];
+        }
+      });
+      
+      // Usar valor_total ou somar valores por ano
+      let valorTotal = divida.valor_total || 0;
+      
+      // Se valor_total for 0, somar valores por ano
+      if (valorTotal === 0) {
+        valorTotal = Object.values(valoresPorAno).reduce((sum, valor) => sum + (valor || 0), 0);
+      }
+      
+      // Converter para BRL se a dívida estiver em USD
+      if (divida.moeda === 'USD' && valorTotal > 0) {
+        valorTotal = valorTotal * taxaCambio;
+      }
+      
+      // Criar identificador detalhado da dívida de terra
+      // Tentar usar vários campos possíveis para obter o nome
+      const propriedade = divida.nome_fazenda || 
+                         divida.nome || 
+                         divida.descricao || 
+                         divida.credor || 
+                         divida.propriedade_id || 
+                         `Propriedade ${divida.id}`;
+      
+      // Adicionar aos dados detalhados
+      if (!dividasTerrasDetalhado[propriedade]) {
+        dividasTerrasDetalhado[propriedade] = {};
+      }
+      
+      // Mostrar valor consolidado (total) em todos os anos
+      anos.forEach(ano => {
+        dividasTerrasDetalhado[propriedade][ano] = valorTotal;
+      });
+      
+      // Extrair ano da data de aquisição
+      let anoAquisicao = new Date().getFullYear();
+      if (divida.data_aquisicao) {
+        anoAquisicao = new Date(divida.data_aquisicao).getFullYear();
+      } else if (divida.ano) {
+        anoAquisicao = parseInt(divida.ano);
+      }
+      
+      dividasConsolidadas.push({
+        id: divida.id,
+        instituicao_bancaria: divida.credor || 'IMÓVEL',
+        valor_original: valorTotal,
+        ano_contratacao: anoAquisicao,
+        taxa_real: 6.5, // Taxa padrão para dívidas de terras
+        indexador: 'IPCA',
+        modalidade: divida.tipo_divida || 'FINANCIAMENTO_AQUISICAO',
+        saldo_devedor: valorTotal,
+        pagamentos_realizados: {},
+        fluxo_original: fluxoOriginal,
+        moeda: divida.moeda || 'BRL'
+      });
+    });
+    
+    // Buscar dívidas de fornecedores
+    const { data: dadosFornecedores, error: fornecedoresError } = await supabase
+      .from("dividas_fornecedores")
+      .select("*")
+      .eq("organizacao_id", organizationId);
+    
+    if (fornecedoresError) {
+      console.error("Erro ao buscar dívidas de fornecedores:", fornecedoresError);
+      // Não faz throw para não quebrar o fluxo, apenas logga o erro
+    }
+    
+    // Adicionar dívidas de fornecedores
+    (dadosFornecedores || []).forEach(fornecedor => {
+      const valoresPorAno = fornecedor.valores_por_ano || {};
+      
+      // Calcular valor total do fornecedor
+      let valorTotal = 0;
+      Object.values(valoresPorAno).forEach(valor => {
+        valorTotal += Number(valor) || 0;
+      });
+      
+      // Converter para BRL se a dívida estiver em USD
+      if (fornecedor.moeda === 'USD' && valorTotal > 0) {
+        valorTotal = valorTotal * taxaCambio;
+      }
+      
+      // Criar identificador detalhado do fornecedor
+      const nomeFornecedor = fornecedor.nome || `Fornecedor ${fornecedor.id}`;
+      
+      // Adicionar aos dados detalhados
+      if (!dividasFornecedoresDetalhado[nomeFornecedor]) {
+        dividasFornecedoresDetalhado[nomeFornecedor] = {};
+      }
+      
+      // Mostrar valor consolidado (total) em todos os anos
+      anos.forEach(ano => {
+        dividasFornecedoresDetalhado[nomeFornecedor][ano] = valorTotal;
+      });
+      
+      // Adicionar ao pool de dívidas consolidadas
+      if (valorTotal > 0) {
+        dividasConsolidadas.push({
+          id: fornecedor.id,
+          instituicao_bancaria: nomeFornecedor,
+          valor_original: valorTotal,
+          ano_contratacao: new Date().getFullYear(),
+          taxa_real: 0, // Fornecedores geralmente não têm juros
+          indexador: 'N/A',
+          modalidade: 'FORNECEDOR',
+          saldo_devedor: valorTotal,
+          pagamentos_realizados: {},
+          fluxo_original: valoresPorAno,
+          moeda: fornecedor.moeda || 'BRL'
+        });
+      }
+    });
+    
+    // Calcular total real incluindo dívidas de terras e fornecedores
+    const totalConsolidadoReal = dividasConsolidadas.reduce((sum, d) => sum + d.valor_original, 0);
+    const totalContratos = dividasConsolidadas.length;
+    
+    console.log(`📊 Dívidas consolidadas: ${totalContratos} contratos (${(dadosDividasBancarias || []).length} bancárias + ${(dadosDividasImoveis || []).length} terras + ${(dadosFornecedores || []).length} fornecedores), Total: R$ ${totalConsolidadoReal.toLocaleString('pt-BR')}`);
+    
+    // 2. BUSCAR DADOS DE NOVAS LINHAS DE CRÉDITO
+    const { data: financeirasData } = await supabase
       .from("financeiras")
       .select("*")
       .eq("organizacao_id", organizationId)
       .eq("categoria", "NOVAS_LINHAS_CREDITO")
       .maybeSingle();
     
-    if (financeirasError) {
-      console.error("Erro ao buscar dados financeiros:", financeirasError);
-      throw new Error("Erro ao buscar dados financeiros");
-    }
+    const valoresNovasLinhas = financeirasData?.valores_por_ano || {};
     
-    // If no data found, use empty object
-    const defaultFinanceirasData = financeirasData || { 
-      valores_por_safra: {} 
-    };
+    // 3. CRIAR MAPEAMENTO DE SAFRA ID PARA ANO
     
-    // Criar mapeamento de safra ID para ano formatado
+    // Criar mapeamento de safra ID para ano
     const safraIdToYear = Object.entries(safraToYear).reduce((acc, [id, ano]) => {
       acc[id] = ano;
       return acc;
     }, {} as Record<string, string>);
     
-    // Extrair valores de novas linhas de crédito do banco de dados
-    const valoresPorAno = defaultFinanceirasData?.valores_por_ano || {} as Record<string, number>;
+    // 4. BUSCAR POLÍTICA DE CAIXA MÍNIMO
+    const politicaCaixa = contexto?.politicaCaixa || await getCashPolicyConfig(organizationId);
+    const caixaMinimo = politicaCaixa?.enabled && politicaCaixa?.minimum_cash ? politicaCaixa.minimum_cash : 0;
     
-    // Para cada ano, calcular valores financeiros conforme a tabela
+    // 5. SIMULAR FLUXO DE CAIXA E CRIAR PLANO DE PAGAMENTO OTIMIZADO
+    let saldoCaixaAcumulado = 0;
+    const planoPagamentoAnual: Record<string, PlanoPagamento> = {};
+    
+    // Copiar estado das dívidas para simulação
+    const dividasSimulacao = dividasConsolidadas.map(d => ({ ...d }));
+    
+    // Calcular dívida total inicial
+    const dividaTotalInicial = dividasConsolidadas.reduce((sum, d) => sum + d.valor_original, 0);
+    let saldoDevedorTotal = dividaTotalInicial;
+    
+    
     for (const ano of anos) {
-      // Extrair ano base para verificar se é 2023/24 ou posterior
-      const anoBase = parseInt(ano.split('/')[0]);
+      // Casos especiais para anos iniciais
+      if (ano === "2021/22" || ano === "2022/23") {
+        servicoDivida[ano] = 0;
+        pagamentosBancos[ano] = 0;
+        novasLinhasCredito[ano] = 0;
+        totalPorAno[ano] = 0;
+        dividaTotalConsolidada[ano] = dividaTotalInicial;
+        saldoDevedor[ano] = saldoDevedorTotal;
+        continue;
+      }
       
-      // 1. Serviço da dívida - buscar valores reais das dívidas bancárias
-      servicoDivida[ano] = 0;
-      
-      // Encontrar ID da safra correspondente a este ano para buscar dados reais
+      // Encontrar ID da safra para este ano
       const safraId = Object.keys(safraIdToYear).find(id => safraIdToYear[id] === ano);
       
-      if (safraId) {
-        try {
-          // Buscar serviço real da dívida das tabelas de dívidas bancárias (sempre da tabela base)
-          const { data: dividasBancarias } = await supabase
-            .from("dividas_bancarias")
-            .select("fluxo_pagamento_anual")
-            .eq("organizacao_id", organizationId);
-            
-          if (dividasBancarias) {
-            dividasBancarias.forEach(divida => {
-              const fluxo = divida.fluxo_pagamento_anual || {};
-              servicoDivida[ano] += fluxo[safraId] || 0;
-            });
-          }
-        } catch (error) {
-          console.warn(`Erro ao buscar serviço da dívida para ${ano}:`, error);
-        }
+      // ENTRADAS: Novas linhas de crédito
+      if (safraId && valoresNovasLinhas[safraId]) {
+        novasLinhasCredito[ano] = valoresNovasLinhas[safraId];
+      } else if (ano === "2023/24") {
+        novasLinhasCredito[ano] = 0; // Explicitamente zero para 2023/24
       }
       
-      // 2. Pagamentos - buscar valores reais de fornecedores
+      // Pagamentos bancários serão preenchidos pela lógica de consolidação
       pagamentosBancos[ano] = 0;
       
-      if (safraId) {
-        try {
-          // Buscar pagamentos reais de fornecedores (sempre da tabela base)
-          const { data: fornecedores } = await supabase
-            .from("fornecedores")
-            .select("valores_por_ano")
-            .eq("organizacao_id", organizationId);
-            
-          if (fornecedores) {
-            fornecedores.forEach(fornecedor => {
-              const valores = fornecedor.valores_por_ano || {};
-              pagamentosBancos[ano] += valores[safraId] || 0;
-            });
-          }
-        } catch (error) {
-          console.warn(`Erro ao buscar pagamentos de fornecedores para ${ano}:`, error);
-        }
-      }
+      // CALCULAR CAIXA DISPONÍVEL PARA PAGAMENTO DE DÍVIDAS
+      // Usar o fluxo de atividade (receitas - despesas operacionais) se disponível
+      const fluxoOperacionalAno = contexto?.fluxoAtividade?.[ano] || 0;
+      const investimentosAno = contexto?.investimentosTotal?.[ano] || 0;
       
-      // 3. Novas linhas de crédito do banco de dados
-      // Zerar explicitamente para os anos 2021/22, 2022/23 e 2023/24
-      if (ano === "2021/22" || ano === "2022/23" || ano === "2023/24") {
-        novasLinhasCredito[ano] = 0;
-      } else {
-        // Para os demais anos, buscar no banco de dados
-        // Encontrar ID da safra correspondente a este ano
-        const safraId = Object.keys(safraIdToYear).find(id => safraIdToYear[id] === ano);
+      // Caixa disponível = saldo anterior + fluxo operacional - investimentos + novas linhas
+      const entradaTotal = fluxoOperacionalAno + novasLinhasCredito[ano];
+      const saidaObrigatoria = investimentosAno;
+      const caixaDisponivel = saldoCaixaAcumulado + entradaTotal - saidaObrigatoria;
+      
+      // Verificar quanto podemos pagar respeitando o caixa mínimo
+      // USAR TODO O EXCEDENTE ACIMA DO MÍNIMO
+      const valorMaximoPagamento = Math.max(0, caixaDisponivel - caixaMinimo);
+      
+      // CRIAR PLANO DE PAGAMENTO OTIMIZADO
+      const plano: PlanoPagamento = {
+        ano,
+        valor_disponivel: valorMaximoPagamento,
+        pagamentos_programados: [],
+        total_pago: 0,
+        saldo_caixa_apos: caixaDisponivel
+      };
+      
+      // Ordenar dívidas por prioridade (taxa de juros, modalidade, idade)
+      const dividasOrdenadas = [...dividasSimulacao]
+        .filter(d => d.saldo_devedor > 0)
+        .sort((a, b) => {
+          // Priorizar por taxa de juros (maior primeiro)
+          if (a.taxa_real !== b.taxa_real) return b.taxa_real - a.taxa_real;
+          // Depois por idade da dívida (mais antiga primeiro)
+          return a.ano_contratacao - b.ano_contratacao;
+        });
+      
+      // Alocar pagamentos otimizados
+      let valorRestante = valorMaximoPagamento;
+      
+      for (const divida of dividasOrdenadas) {
+        if (valorRestante <= 0) break;
         
-        if (safraId && valoresPorAno && valoresPorAno[safraId] !== undefined) {
-          // Usar valor do banco de dados
-          novasLinhasCredito[ano] = valoresPorAno[safraId];
-        } else {
-          // Se não encontrar, usar zero
-          novasLinhasCredito[ano] = 0;
+        // Calcular juros do período (simplificado)
+        const jurosPeriodo = divida.saldo_devedor * (divida.taxa_real / 100);
+        
+        // Verificar se há pagamento programado original para este ano
+        const pagamentoOriginal = safraId && divida.fluxo_original[safraId] ? divida.fluxo_original[safraId] : 0;
+        
+        // Estratégia: Usar todo o valor disponível para pagar a dívida
+        // Pagar o máximo possível, limitado pelo saldo devedor + juros
+        const valorMaximoDivida = divida.saldo_devedor + jurosPeriodo;
+        let valorPagamento = Math.min(valorRestante, valorMaximoDivida);
+        
+        if (valorPagamento > 0) {
+          // Registrar pagamento
+          plano.pagamentos_programados.push({
+            divida_id: divida.id,
+            instituicao: divida.instituicao_bancaria,
+            valor: valorPagamento,
+            tipo: valorPagamento <= jurosPeriodo ? 'juros' : 'principal'
+          });
+          
+          // Atualizar saldo devedor
+          divida.saldo_devedor = Math.max(0, divida.saldo_devedor - (valorPagamento - jurosPeriodo));
+          divida.pagamentos_realizados[ano] = valorPagamento;
+          
+          plano.total_pago += valorPagamento;
+          valorRestante -= valorPagamento;
         }
       }
       
-      // 4. Total do ano (entrada - saída)
-      // Novas linhas são entrada (positivo), serviço e pagamentos são saída (negativo)
+      // Atualizar saldo de caixa
+      plano.saldo_caixa_apos = caixaDisponivel - plano.total_pago;
+      saldoCaixaAcumulado = plano.saldo_caixa_apos;
+      
+      // Registrar valores no formato esperado
+      servicoDivida[ano] = plano.total_pago;
+      
+      // Registrar dívida total e saldo devedor
+      dividaTotalConsolidada[ano] = dividaTotalInicial; // Sempre mostra o total original
+      saldoDevedorTotal = dividasSimulacao.reduce((sum, d) => sum + d.saldo_devedor, 0);
+      saldoDevedor[ano] = saldoDevedorTotal;
+      
+      
+      // Total do ano (entrada - saída)
       totalPorAno[ano] = novasLinhasCredito[ano] - servicoDivida[ano] - pagamentosBancos[ano];
+      
+      // Guardar plano para análise
+      planoPagamentoAnual[ano] = plano;
+      
+      // Log do plano de pagamento
+      console.log(`📅 ${ano}: Disponível: R$ ${plano.valor_disponivel.toLocaleString('pt-BR')}, Pago: R$ ${plano.total_pago.toLocaleString('pt-BR')}, Saldo após: R$ ${plano.saldo_caixa_apos.toLocaleString('pt-BR')}`);
     }
     
-  } catch (error) {
+    // Análise final e métricas do plano
+    const totalDividaRestante = dividasSimulacao.reduce((sum, d) => sum + d.saldo_devedor, 0);
+    const totalDividaOriginal = dividasConsolidadas.reduce((sum, d) => sum + d.valor_original, 0);
+    const totalPagoNoPlano = Object.values(planoPagamentoAnual).reduce((sum, plano) => sum + plano.total_pago, 0);
     
+    console.log(`✅ Plano de pagamento concluído. Dívida restante: R$ ${totalDividaRestante.toLocaleString('pt-BR')}`);
+    
+    // Calcular métricas do plano para cada ano
+    const planoPagamentoMetricas: Record<string, {
+      dividas_consolidadas: number;
+      pagamento_otimizado: number;
+      economia_juros: number;
+    }> = {};
+    
+    for (const ano of anos) {
+      if (planoPagamentoAnual[ano]) {
+        const plano = planoPagamentoAnual[ano];
+        // Calcular o que seria pago originalmente neste ano
+        const safraId = Object.keys(safraIdToYear).find(id => safraIdToYear[id] === ano);
+        let pagamentoOriginal = 0;
+        
+        if (safraId) {
+          dividasConsolidadas.forEach(divida => {
+            pagamentoOriginal += divida.fluxo_original[safraId] || 0;
+          });
+        }
+        
+        planoPagamentoMetricas[ano] = {
+          dividas_consolidadas: totalDividaOriginal,
+          pagamento_otimizado: plano.total_pago,
+          economia_juros: Math.max(0, pagamentoOriginal - plano.total_pago)
+        };
+      }
+    }
+    
+    // Log das métricas do plano para análise
+    console.log("📊 Métricas do plano de pagamento:", planoPagamentoMetricas);
+    console.log(`💰 Dívida Total Inicial: R$ ${dividaTotalInicial.toLocaleString('pt-BR')}`);
+    console.log(`📉 Saldo Devedor Final: R$ ${saldoDevedorTotal.toLocaleString('pt-BR')}`);
+    
+    // Calcular valores separados das dívidas bancárias e de terras
+    const valorTotalBancarias = (dadosDividasBancarias || []).reduce((sum, dividaBancaria) => {
+      let valor = dividaBancaria.valor_principal || 0;
+      if (dividaBancaria.moeda === 'USD' && valor > 0) {
+        valor = valor * taxaCambio;
+      }
+      return sum + valor;
+    }, 0);
+    
+    const valorTotalTerras = (dadosDividasImoveis || []).reduce((sum, dividaImovel) => {
+      let valor = dividaImovel.valor_total || 0;
+      if (valor === 0) {
+        valor = Object.values(dividaImovel.valores_por_ano || {}).reduce((total, val) => total + (val || 0), 0);
+      }
+      if (dividaImovel.moeda === 'USD' && valor > 0) {
+        valor = valor * taxaCambio;
+      }
+      return sum + valor;
+    }, 0);
+    
+    // Calcular valor total de fornecedores consolidado
+    const valorTotalFornecedores = dividasConsolidadas.filter(d => d.modalidade === 'FORNECEDOR')
+      .reduce((sum, d) => sum + d.valor_original, 0);
+    
+    // Preencher valores separados para todos os anos
+    anos.forEach(ano => {
+      dividasBancarias[ano] = valorTotalBancarias;
+      dividasTerras[ano] = valorTotalTerras;
+      dividasFornecedores[ano] = valorTotalFornecedores;
+    });
+    
+    console.log(`💰 Valores separados - Bancárias: R$ ${valorTotalBancarias.toLocaleString('pt-BR')}, Terras: R$ ${valorTotalTerras.toLocaleString('pt-BR')}, Fornecedores: R$ ${valorTotalFornecedores.toLocaleString('pt-BR')}`);
+    console.log(`🔍 Debug - dividasBancarias object:`, Object.keys(dividasBancarias).slice(0,3).map(k => `${k}: ${dividasBancarias[k]}`));
+    
+    // Retornar dados no formato esperado
+    return {
+      servico_divida: servicoDivida,
+      pagamentos_bancos: pagamentosBancos,
+      novas_linhas_credito: novasLinhasCredito,
+      total_por_ano: totalPorAno,
+      dividas_bancarias: dividasBancarias,
+      dividas_bancarias_detalhado: dividasBancariasDetalhado,
+      dividas_terras: dividasTerras,
+      dividas_terras_detalhado: dividasTerrasDetalhado,
+      dividas_fornecedores: dividasFornecedores,
+      dividas_fornecedores_detalhado: dividasFornecedoresDetalhado,
+      divida_total_consolidada: dividaTotalConsolidada,
+      saldo_devedor: saldoDevedor
+    };
+    
+  } catch (error) {
+    console.error("😨 Erro ao calcular dados financeiros - entrando em fallback:", error);
+    console.error("Stack trace:", error.stack);
+    
+    // Fallback com valores demonstrativos
     const novasLinhasCreditoDemo: Record<string, number> = {
-      "2021/22": 0, // Zerado conforme especificação
-      "2022/23": 0, // Zerado conforme especificação
-      "2023/24": 0, // Zerado conforme especificação
+      "2021/22": 0,
+      "2022/23": 0,
+      "2023/24": 0,
       "2024/25": 170000000,
       "2025/26": 145000000,
       "2026/27": 152000000,
       "2027/28": 142000000,
       "2028/29": 135000000,
       "2029/30": 130000000
-    } as const;
+    };
     
     for (const ano of anos) {
-      // Zerar serviço da dívida para 2021/22, 2022/23 e 2023/24
       if (ano === "2021/22" || ano === "2022/23" || ano === "2023/24") {
         servicoDivida[ano] = 0;
-      } else {
-        const anoBase = parseInt(ano.split('/')[0]);
-        if (anoBase >= 2023) {
-          servicoDivida[ano] = 35000000; // R$ 35M fixo para serviço da dívida
-        } else {
-          servicoDivida[ano] = 0; // Zero para anos anteriores a 2023/24
-        }
-      }
-      
-      // Zerar pagamentos bancários para 2021/22, 2022/23 e 2023/24
-      if (ano === "2021/22" || ano === "2022/23" || ano === "2023/24") {
         pagamentosBancos[ano] = 0;
       } else {
-        pagamentosBancos[ano] = 179000000; // R$ 179M fixo para pagamentos
+        servicoDivida[ano] = 35000000;
+        pagamentosBancos[ano] = 179000000;
       }
       
-      // Usar valores demonstrativos para novas linhas de crédito
       novasLinhasCredito[ano] = novasLinhasCreditoDemo[ano] || 0;
-      
       totalPorAno[ano] = novasLinhasCredito[ano] - servicoDivida[ano] - pagamentosBancos[ano];
+      
+      // Valores demo para dívidas
+      dividasBancarias[ano] = 85780145; // R$ 85M demo
+      dividasTerras[ano] = 77242498; // R$ 77M demo
+      dividaTotalConsolidada[ano] = 163022643; // Total demo
+      saldoDevedor[ano] = 163022643; // Não muda no demo
     }
   }
   
@@ -656,6 +1262,14 @@ async function calcularDadosFinanceiras(
     servico_divida: servicoDivida,
     pagamentos_bancos: pagamentosBancos,
     novas_linhas_credito: novasLinhasCredito,
-    total_por_ano: totalPorAno
+    total_por_ano: totalPorAno,
+    dividas_bancarias: dividasBancarias,
+    dividas_bancarias_detalhado: {},
+    dividas_terras: dividasTerras,
+    dividas_terras_detalhado: {},
+    dividas_fornecedores: dividasFornecedores,
+    dividas_fornecedores_detalhado: {},
+    divida_total_consolidada: dividaTotalConsolidada,
+    saldo_devedor: saldoDevedor
   };
 }

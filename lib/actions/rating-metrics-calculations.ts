@@ -26,6 +26,9 @@ export async function calculateQuantitativeMetricsOptimized(
   }
   
   try {
+    // Usar método otimizado via SQL function primeiro
+    console.log('Tentando usar método otimizado para cálculo de métricas');
+    
     // Use the SQL function for optimized performance
     const { data, error } = await supabase.rpc('calculate_rating_metrics_optimized', {
       p_organization_id: organizationId,
@@ -119,6 +122,16 @@ export async function calculateQuantitativeMetrics(
     console.log("Rating metrics - cultureProjections consolidado:", cultureProjections.consolidado);
     console.log("Rating metrics - safraName:", safraName);
     
+    // Additional debug for MARGEM_EBITDA issue
+    if (cultureProjections.consolidado?.projections_by_year?.[safraName]) {
+      const projectionData = cultureProjections.consolidado.projections_by_year[safraName];
+      console.log("MARGEM_EBITDA debug - projection data for safra:", safraName, projectionData);
+    } else {
+      console.log("MARGEM_EBITDA debug - NO projection data found for safra:", safraName);
+      console.log("Available projections_by_year keys:", 
+        Object.keys(cultureProjections.consolidado?.projections_by_year || {}));
+    }
+    
     // Get values for the specific safra
     const dividaTotal = debtPosition.indicadores.endividamento_total[safraName] || 0;
     const dividaLiquida = debtPosition.indicadores.divida_liquida[safraName] || 0;
@@ -154,28 +167,60 @@ export async function calculateQuantitativeMetrics(
     
     // 1. LIQUIDEZ_CORRENTE - Get from debt position indicators
     // Calculate liquidez corrente = ativos circulantes / passivos circulantes
-    // Using caixas_disponibilidades as proxy for ativos circulantes
-    // and endividamento_total as proxy for passivos circulantes
-    const ativosCirculantes = caixasDisponibilidades;
-    const passivosCirculantes = dividaTotal;
-    const liquidezCorrente = passivosCirculantes > 0 ? ativosCirculantes / passivosCirculantes : 1.0;
-    metrics.LIQUIDEZ_CORRENTE = liquidezCorrente;
-
-    // 2. DIVIDA_EBITDA
-    if (debtPosition.indicadores.indicadores_calculados?.divida_ebitda?.[safraName] !== undefined) {
-      metrics.DIVIDA_EBITDA = debtPosition.indicadores.indicadores_calculados.divida_ebitda[safraName];
-    } else {
-      // Fallback calculation
-      metrics.DIVIDA_EBITDA = ebitda > 0 ? dividaTotal / ebitda : (dividaTotal > 0 ? 999 : 0);
+    // Ativos circulantes incluem: caixas_disponibilidades + ativo biológico
+    
+    // Buscar ativo biológico
+    let ativoBiologico = 0;
+    if (debtPosition.indicadores.ativo_biologico && debtPosition.indicadores.ativo_biologico[safraName]) {
+      ativoBiologico = debtPosition.indicadores.ativo_biologico[safraName];
     }
     
-    // 3. DIVIDA_FATURAMENTO
-    if (debtPosition.indicadores.indicadores_calculados?.divida_receita?.[safraName] !== undefined) {
-      metrics.DIVIDA_FATURAMENTO = debtPosition.indicadores.indicadores_calculados.divida_receita[safraName];
+    const ativosCirculantes = caixasDisponibilidades + ativoBiologico;
+    const passivosCirculantes = dividaTotal;
+    
+    // Calcular liquidez corrente sem valor padrão
+    let liquidezCorrente = 0;
+    if (passivosCirculantes > 0) {
+      liquidezCorrente = ativosCirculantes / passivosCirculantes;
+    } else if (ativosCirculantes > 0) {
+      // Se há ativos mas não há passivos, liquidez é extremamente alta
+      liquidezCorrente = 999.99;
     } else {
-      // Fallback calculation
-      metrics.DIVIDA_FATURAMENTO = receita > 0 ? dividaTotal / receita : (dividaTotal > 0 ? 999 : 0);
+      // Sem ativos nem passivos
+      liquidezCorrente = 0;
     }
+    
+    console.log("Liquidez Corrente calculation:", {
+      caixasDisponibilidades,
+      ativoBiologico,
+      ativosCirculantes,
+      passivosCirculantes,
+      liquidezCorrente
+    });
+    
+    metrics.LIQUIDEZ_CORRENTE = liquidezCorrente;
+
+    // 2. DIVIDA_EBITDA - Usar sempre dados reais (não da tabela projecoes_posicao_divida)
+    // Forçar uso dos dados reais do debt position e DRE
+    metrics.DIVIDA_EBITDA = ebitda > 0 ? dividaTotal / ebitda : (dividaTotal > 0 ? 999 : 0);
+    
+    console.log("DIVIDA_EBITDA calculation (using real data):", {
+      dividaTotal,
+      ebitda,
+      resultado: metrics.DIVIDA_EBITDA,
+      safraName,
+      organizationId
+    });
+    
+    // 3. DIVIDA_FATURAMENTO - Usar sempre dados reais
+    metrics.DIVIDA_FATURAMENTO = receita > 0 ? dividaTotal / receita : (dividaTotal > 0 ? 999 : 0);
+    
+    console.log("DIVIDA_FATURAMENTO calculation (using real data):", {
+      dividaTotal,
+      receita,
+      resultado: metrics.DIVIDA_FATURAMENTO,
+      safraName
+    });
     
     // 4. DIVIDA_PATRIMONIO_LIQUIDO
     // Ajustar cálculo para considerar valor absoluto do patrimônio líquido
@@ -191,7 +236,7 @@ export async function calculateQuantitativeMetrics(
     }
     
     // 5. LTV - já vem em porcentagem da posição de dívida
-    metrics.LTV = ltv / 100; // Converter de porcentagem para decimal (0-1)
+    metrics.LTV = ltv; // Manter em porcentagem (0-100) para comparação com thresholds
     
     // 6. MARGEM_EBITDA
     metrics.MARGEM_EBITDA = receita > 0 ? (ebitda / receita) * 100 : 0;
@@ -199,14 +244,24 @@ export async function calculateQuantitativeMetrics(
     // 7. ENTENDIMENTO_FLUXO_DE_CAIXA (Cash Flow Understanding - qualitative, set to 0)
     metrics.ENTENDIMENTO_FLUXO_DE_CAIXA = 0;
 
-    console.log("Calculated metrics:", {
+    console.log("Calculated metrics final result:", {
       safraName,
       projectionId,
       dividaTotal,
       receita,
       ebitda,
+      ltv: ltv,
+      margemEbitdaCalculation: receita > 0 ? (ebitda / receita) * 100 : 0,
       metrics
     });
+    
+    // Specific debug for the problematic metrics
+    if (metrics.LTV === 0 && ltv > 0) {
+      console.warn("⚠️ LTV DEBUG: LTV was > 0 but final metric is 0");
+    }
+    if (metrics.MARGEM_EBITDA === 0 && receita > 0 && ebitda > 0) {
+      console.warn("⚠️ MARGEM_EBITDA DEBUG: receita and ebitda > 0 but final metric is 0");
+    }
 
     return metrics;
   } catch (error) {

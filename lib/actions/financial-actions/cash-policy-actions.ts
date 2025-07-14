@@ -49,48 +49,63 @@ export async function updateCashPolicyConfig(
 ): Promise<CashPolicyConfig> {
   const supabase = await createClient();
   
-  // Primeiro, verifica se já existe uma configuração
-  const { data: existing } = await supabase
-    .from("cash_policy_config")
-    .select("id")
-    .eq("organizacao_id", organizacaoId)
-    .single();
-  
-  if (existing) {
-    // Atualiza configuração existente
-    const { data, error } = await supabase
+  try {
+    // Primeiro, verifica se já existe uma configuração
+    const { data: existing, error: checkError } = await supabase
       .from("cash_policy_config")
-      .update({
-        ...config,
-        updated_at: new Date().toISOString()
-      })
+      .select("id")
       .eq("organizacao_id", organizacaoId)
-      .select()
       .single();
     
-    if (error) {
-      throw new Error(`Erro ao atualizar política de caixa: ${error.message}`);
+    // Se o erro for porque a tabela não existe, retornar erro mais claro
+    if (checkError && checkError.code === '42P01') {
+      throw new Error('Tabela de configuração de caixa não existe. Execute as migrações do banco de dados.');
     }
     
-    return data;
-  } else {
-    // Cria nova configuração
-    const { data, error } = await supabase
-      .from("cash_policy_config")
-      .insert({
-        organizacao_id: organizacaoId,
-        ...config,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    // Se o erro for PGRST116, significa que não há registro (o que é normal)
+    const hasExisting = existing && !checkError || checkError?.code === 'PGRST116';
     
-    if (error) {
-      throw new Error(`Erro ao criar política de caixa: ${error.message}`);
+    if (existing) {
+      // Atualiza configuração existente
+      const { data, error } = await supabase
+        .from("cash_policy_config")
+        .update({
+          ...config,
+          updated_at: new Date().toISOString()
+        })
+        .eq("organizacao_id", organizacaoId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Erro ao atualizar política de caixa:', error);
+        throw new Error(`Erro ao atualizar política de caixa: ${error.message || error.code || 'Erro desconhecido'}`);
+      }
+      
+      return data;
+    } else {
+      // Cria nova configuração
+      const { data, error } = await supabase
+        .from("cash_policy_config")
+        .insert({
+          organizacao_id: organizacaoId,
+          ...config,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Erro ao criar política de caixa:', error);
+        throw new Error(`Erro ao criar política de caixa: ${error.message || error.code || 'Erro desconhecido'}`);
+      }
+      
+      return data;
     }
-    
-    return data;
+  } catch (error) {
+    console.error('Erro geral na updateCashPolicyConfig:', error);
+    throw error;
   }
 }
 

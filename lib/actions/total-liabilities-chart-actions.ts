@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getTotalDividasBancariasConsolidado } from "@/lib/actions/financial-actions/dividas-bancarias";
 
 export interface LiabilityData {
   safra: string;
@@ -64,7 +65,7 @@ export async function getTotalLiabilitiesChartData(
     }
 
     // Sempre usar tabelas base, dados financeiros não mudam com cenários
-    const [dividasBancariasResult, caixaDisponibilidadesResult] =
+    const [dividasBancariasResult, caixaDisponibilidadesResult, dividasTerrasResult, dividasFornecedoresResult] =
       await Promise.all([
         supabase
           .from("dividas_bancarias")
@@ -73,11 +74,21 @@ export async function getTotalLiabilitiesChartData(
         supabase
           .from("caixa_disponibilidades")
           .select("*")
+          .eq("organizacao_id", organizationId),
+        supabase
+          .from("aquisicao_terras")
+          .select("*")
+          .eq("organizacao_id", organizationId),
+        supabase
+          .from("dividas_fornecedores")
+          .select("*")
           .eq("organizacao_id", organizationId)
       ]);
 
     const dividasBancarias = dividasBancariasResult.data || [];
     const caixaDisponibilidades = caixaDisponibilidadesResult.data || [];
+    const dividasTerras = dividasTerrasResult.data || [];
+    const dividasFornecedores = dividasFornecedoresResult.data || [];
 
     // Inicializar resultado
     const resultado: LiabilityData[] = [];
@@ -135,43 +146,35 @@ export async function getTotalLiabilitiesChartData(
       return 0;
     };
 
-    // Vamos buscar o total de dívidas global (bancos e outros)
-    let totalBancosTodos = 0;
-    let totalOutrosTodos = 0;
+    // Buscar o total consolidado de dívidas bancárias (BANCO + TRADING + OUTROS)
+    const totalBancosConsolidado = await getTotalDividasBancariasConsolidado(organizationId, projectionId);
+    const totalBancosTodos = totalBancosConsolidado.total_consolidado_brl || 0;
 
-    // Somar todos os valores de dívidas bancárias globalmente
-    for (const divida of dividasBancarias) {
-      // Para cada dívida, somar todos os valores de todas as safras
-      let valorTotal = 0;
-
-      // Verificar se é um objeto ou JSON
-      let valoresSafras =
-        divida.valores_por_safra || divida.fluxo_pagamento_anual || divida.valores_por_ano || {};
-      if (typeof valoresSafras === "string") {
-        try {
-          valoresSafras = JSON.parse(valoresSafras);
-        } catch (e) {
-          valoresSafras = {};
-        }
-      }
-
-      // Somar o valor total de todas as safras para esta dívida
-      if (valoresSafras && typeof valoresSafras === "object") {
-        for (const safraId in valoresSafras) {
-          const valor = parseFloat(valoresSafras[safraId]) || 0;
-          valorTotal += valor;
-        }
-      }
-
-      // Categorizar o valor total
-      if (valorTotal > 0) {
-        if (divida.tipo === "BANCO" || divida.tipo === "TRADING") {
-          totalBancosTodos += valorTotal;
-        } else if (divida.tipo === "OUTROS") {
-          totalOutrosTodos += valorTotal;
-        }
+    // Calcular total de dívidas de terras
+    let totalTerras = 0;
+    for (const terra of dividasTerras) {
+      if (terra.valor_total) {
+        totalTerras += terra.valor_total;
       }
     }
+
+    // Calcular total de dívidas de fornecedores
+    let totalFornecedores = 0;
+    for (const fornecedor of dividasFornecedores) {
+      if (fornecedor.valores_por_ano) {
+        const valoresPorAno = typeof fornecedor.valores_por_ano === 'string'
+          ? JSON.parse(fornecedor.valores_por_ano)
+          : fornecedor.valores_por_ano;
+        
+        // Somar todos os valores
+        Object.values(valoresPorAno).forEach(valor => {
+          totalFornecedores += Number(valor) || 0;
+        });
+      }
+    }
+
+    // "Outros Passivos" é a soma de Terras + Fornecedores
+    const totalOutrosTodos = totalTerras + totalFornecedores;
 
     // Calcular o total global de passivos
     const totalPassivosTodos = totalBancosTodos + totalOutrosTodos;

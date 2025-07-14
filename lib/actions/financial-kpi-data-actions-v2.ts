@@ -1,7 +1,39 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getDebtPosition } from "./debt-position-actions";
+import { getDebtPosition, refreshDebtPosition } from "./debt-position-actions";
+
+// Cache for financial KPI data
+const financialKpiCache: Record<string, {
+  data: FinancialKpiData;
+  timestamp: number;
+}> = {};
+
+// Cache expiration in milliseconds (2 minutes)
+const CACHE_EXPIRATION = 2 * 60 * 1000;
+
+// Function to clear cache
+function clearFinancialKpiCache(organizationId?: string) {
+  if (organizationId) {
+    const baseKey = `financial_kpi_${organizationId}`;
+    Object.keys(financialKpiCache).forEach(key => {
+      if (key.startsWith(baseKey)) {
+        delete financialKpiCache[key];
+      }
+    });
+  } else {
+    Object.keys(financialKpiCache).forEach(key => delete financialKpiCache[key]);
+  }
+}
+
+// Clear cache on initialization to remove old hardcoded values
+clearFinancialKpiCache();
+
+// FORÇA LIMPEZA COMPLETA PARA CORRIGIR MÉTRICA DIVIDA_EBITDA 0.69x
+console.log("🔄 FORÇANDO limpeza completa de cache financial-kpi para correção DIVIDA_EBITDA");
+setInterval(() => {
+  clearFinancialKpiCache();
+}, 30000); // Limpar a cada 30 segundos
 
 export interface SafraOption {
   id: string;
@@ -53,11 +85,31 @@ function calcularPercentualMudanca(valorAtual: number, valorAnterior: number): n
   return ((valorAtual - valorAnterior) / valorAnterior) * 100;
 }
 
+// Server action to refresh financial KPI data and clear cache
+export async function refreshFinancialKpiData(
+  organizationId: string,
+  safraId?: string,
+  projectionId?: string
+): Promise<FinancialKpiData> {
+  clearFinancialKpiCache(organizationId);
+  // Also refresh the underlying debt position data
+  await refreshDebtPosition(organizationId, projectionId);
+  return getFinancialKpiDataV2(organizationId, safraId, projectionId);
+}
+
 export async function getFinancialKpiDataV2(
   organizationId: string,
   safraId?: string,
   projectionId?: string
 ): Promise<FinancialKpiData> {
+  // DESABILITAR CACHE COMPLETAMENTE para corrigir problema DIVIDA_EBITDA = 0.69x
+  const cacheKey = `financial_kpi_FORCE_REFRESH_${organizationId}_${safraId || 'default'}_${projectionId || 'base'}_${Date.now()}`;
+  const now = Date.now();
+  
+  // SEMPRE buscar dados novos - cache completamente desabilitado
+  console.log("🔄 FORÇANDO busca de dados novos (cache desabilitado) para:", organizationId);
+  clearFinancialKpiCache(organizationId);
+
   const supabase = await createClient();
 
   try {
@@ -122,17 +174,53 @@ export async function getFinancialKpiDataV2(
         const dividaLiquidaReceita = indicadoresCalculados.divida_liquida_receita[safraName] || 0;
         const dividaLiquidaEbitda = indicadoresCalculados.divida_liquida_ebitda[safraName] || 0;
 
+        // DEBUG ESPECÍFICO para corrigir problema DIVIDA_EBITDA = 0.69x
+        if (organizationId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
+          console.log("🚨 DEBUG DIVIDA_EBITDA - financial-kpi-data-actions-v2:", {
+            safraName,
+            dividaEbitda,
+            dividaTotalAtual,
+            ebitdaAtual,
+            calculoManual: ebitdaAtual > 0 ? dividaTotalAtual / ebitdaAtual : 0,
+            indicadoresCalculados: {
+              divida_ebitda: indicadoresCalculados.divida_ebitda
+            }
+          });
+        }
+
         // Separate bank debt from other liabilities
         let dividaBancariaAtual = 0;
         let outrosPassivosAtual = 0;
+        
+        console.log("🔍 Debug Debt Position Data for", organizationId, {
+          safraName,
+          totalDebts: debtPosition.dividas.length,
+          dividasByCategory: debtPosition.dividas.map(d => ({
+            categoria: d.categoria,
+            valorSafra: d.valores_por_ano[safraName] || 0
+          }))
+        });
         
         debtPosition.dividas.forEach(divida => {
           const valor = divida.valores_por_ano[safraName] || 0;
           if (divida.categoria === "BANCOS") {
             dividaBancariaAtual += valor;
+            console.log("💳 Bank debt found:", { valor, categoria: divida.categoria });
           } else {
             outrosPassivosAtual += valor;
+            console.log("📊 Other debt found:", { valor, categoria: divida.categoria });
           }
+        });
+
+        console.log("💰 Final calculated values:", {
+          organizationId,
+          safraName,
+          dividaBancariaAtual,
+          outrosPassivosAtual,
+          dividaLiquidaAtual,
+          dividaTotalAtual,
+          receitaAtual,
+          ebitdaAtual
         });
 
         // Find previous safra for comparison
@@ -200,46 +288,55 @@ export async function getFinancialKpiDataV2(
       } catch (error) {
         console.error("Erro ao buscar dados da posição de dívida:", error);
         
-        // Fallback data if debt position fails
+        // Return empty data if debt position fails - no hardcoded values
         metrics = {
           dividaBancaria: {
-            valorAtual: 362500000, // R$ 362.5M
-            valorAnterior: 362500000,
+            valorAtual: 0,
+            valorAnterior: 0,
             percentualMudanca: 0,
           },
           outrosPassivos: {
-            valorAtual: 92400000, // R$ 92.4M
-            valorAnterior: 93200000,
-            percentualMudanca: -0.9,
+            valorAtual: 0,
+            valorAnterior: 0,
+            percentualMudanca: 0,
           },
           dividaLiquida: {
-            valorAtual: 322400000, // R$ 322.4M
-            valorAnterior: 323000000,
-            percentualMudanca: -0.2,
+            valorAtual: 0,
+            valorAnterior: 0,
+            percentualMudanca: 0,
           },
           prazoMedio: {
-            valorAtual: 3.4,
-            valorAnterior: 3.9,
-            diferenca: -0.5,
+            valorAtual: 0,
+            valorAnterior: 0,
+            diferenca: 0,
           },
           indicadores: {
-            dividaReceita: 1.94, // Matches the debt position table
-            dividaEbitda: 5.60,
-            dividaLiquidaReceita: 1.37,
-            dividaLiquidaEbitda: 3.97,
+            dividaReceita: 0,
+            dividaEbitda: 0,
+            dividaLiquidaReceita: 0,
+            dividaLiquidaEbitda: 0,
           },
-          receita: 235063600, // From debt position table
-          ebitda: 81224600,
+          receita: 0,
+          ebitda: 0,
         };
       }
     }
 
-    return {
+    const result = {
       safras: safrasList,
       currentSafra,
       metrics,
       selectedYear
     };
+
+    // CACHE DESABILITADO para correção DIVIDA_EBITDA
+    // financialKpiCache[cacheKey] = {
+    //   data: result,
+    //   timestamp: now
+    // };
+    console.log("⚠️ Cache desabilitado - não armazenando dados para evitar valor 0.69x");
+
+    return result;
   } catch (error) {
     console.error("Erro ao buscar dados KPI financeiros:", error);
     throw error;

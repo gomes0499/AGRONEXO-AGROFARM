@@ -194,10 +194,10 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
         }
       }
       
-      // Se ainda não encontrou, usar valores padrão
+      // Se ainda não encontrou, manter zerado (dados reais apenas)
       if (receita === 0) {
-        receita = 350000000; // Exemplo: R$ 350 milhões
-        ebitda = 135000000;  // Exemplo: R$ 135 milhões
+        receita = 0;
+        ebitda = 0;
       }
     }
     
@@ -302,41 +302,36 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
   } catch (error) {
     console.error('Erro ao buscar métricas financeiras:', error);
     
-    // Retornar dados mock em caso de erro (valores totais mais realistas)
-    const receita = 350000000; // Exemplo: R$ 350 milhões
-    const ebitda = 135000000;  // Exemplo: R$ 135 milhões
-    const dividaTotal = 521000000; // ~R$ 521 milhões total
-    const dividaLiquidaTotal = 357000000; // ~R$ 357 milhões
-
+    // Retornar dados vazios em caso de erro - sem valores hardcoded
     return {
       dividaBancaria: {
-        valorAtual: 439000000, // ~R$ 439 milhões total
-        valorAnterior: 475000000,
-        percentualMudanca: -7.6,
+        valorAtual: 0,
+        valorAnterior: 0,
+        percentualMudanca: 0,
       },
       outrosPassivos: {
-        valorAtual: 82000000, // ~R$ 82 milhões total
-        valorAnterior: 76000000,
-        percentualMudanca: 7.9,
+        valorAtual: 0,
+        valorAnterior: 0,
+        percentualMudanca: 0,
       },
       dividaLiquida: {
-        valorAtual: 357000000,
-        valorAnterior: 409200000,
-        percentualMudanca: -12.8,
+        valorAtual: 0,
+        valorAnterior: 0,
+        percentualMudanca: 0,
       },
       prazoMedio: {
-        valorAtual: 2.8,
-        valorAnterior: 3.2,
-        diferenca: -0.4,
+        valorAtual: 0,
+        valorAnterior: 0,
+        diferenca: 0,
       },
       indicadores: {
-        dividaReceita: dividaTotal / receita, // ~1.49
-        dividaEbitda: dividaTotal / ebitda,  // ~3.86
-        dividaLiquidaReceita: dividaLiquidaTotal / receita, // ~1.02
-        dividaLiquidaEbitda: dividaLiquidaTotal / ebitda // ~2.64
+        dividaReceita: 0,
+        dividaEbitda: 0,
+        dividaLiquidaReceita: 0,
+        dividaLiquidaEbitda: 0
       },
-      receita,
-      ebitda
+      receita: 0,
+      ebitda: 0
     };
   }
 }

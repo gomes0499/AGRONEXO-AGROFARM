@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getTotalDividasBancariasConsolidado } from "@/lib/actions/financial-actions/dividas-bancarias";
 
 export interface BankData {
   banco: string;
@@ -20,6 +21,9 @@ export async function getBankDistributionAllSafrasData(
   try {
     const supabase = await createClient();
 
+    // Buscar o total consolidado usando a mesma função da posição de dívida
+    const totalConsolidado = await getTotalDividasBancariasConsolidado(organizationId, projectionId);
+
     // Busca todas as dívidas bancárias (sempre da tabela base)
     const { data: dividasBancarias } = await supabase
       .from("dividas_bancarias")
@@ -32,42 +36,27 @@ export async function getBankDistributionAllSafrasData(
 
     // Agrupar por banco
     const bankTotals: Record<string, number> = {};
+    let totalSemConversao = 0;
+
+    // Primeiro, calcular o total sem conversão para determinar proporções
+    dividasBancarias.forEach((divida) => {
+      const valorPrincipal = divida.valor_principal || 0;
+      if (valorPrincipal > 0) {
+        totalSemConversao += valorPrincipal;
+      }
+    });
 
     // Processar cada dívida bancária
     dividasBancarias.forEach((divida) => {
       const banco = divida.instituicao_bancaria || "BANCO NÃO INFORMADO";
+      const valorPrincipal = divida.valor_principal || 0;
 
-      // Verifica se valores existe e processa
-      let valores = divida.fluxo_pagamento_anual || divida.valores_por_ano;
-      if (typeof valores === "string") {
-        try {
-          valores = JSON.parse(valores);
-        } catch (e) {
-          console.error("Erro ao parsear valores:", e);
-          valores = {};
-        }
-      }
-
-      // Soma todos os valores de todas as safras para este banco
-      let valorTotal = 0;
-
-      if (valores && typeof valores === "object") {
-        // Somar todos os valores de todas as safras
-        Object.values(valores).forEach((valor) => {
-          if (typeof valor === "number" && valor > 0) {
-            valorTotal += valor;
-          }
-        });
-      }
-
-      // Se não encontrou nenhum valor mas tem valor_total, usa ele
-      if (valorTotal === 0 && divida.valor_total) {
-        valorTotal = divida.valor_total;
-      }
-
-      // Acumula o valor no banco correspondente se for maior que zero
-      if (valorTotal > 0) {
-        bankTotals[banco] = (bankTotals[banco] || 0) + valorTotal;
+      // Calcular proporção e aplicar ao total consolidado (que já tem a conversão correta)
+      if (valorPrincipal > 0 && totalSemConversao > 0) {
+        const proporcao = valorPrincipal / totalSemConversao;
+        const valorConsolidado = totalConsolidado.total_consolidado_brl * proporcao;
+        
+        bankTotals[banco] = (bankTotals[banco] || 0) + valorConsolidado;
       }
     });
 

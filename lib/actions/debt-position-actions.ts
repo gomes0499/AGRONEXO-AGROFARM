@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getTotalDividasBancariasConsolidado } from "./financial-actions/dividas-bancarias";
 
 export interface DebtPositionData {
   categoria: string;
@@ -13,6 +14,7 @@ export interface ConsolidatedDebtPosition {
   indicadores: {
     endividamento_total: Record<string, number>;
     caixas_disponibilidades: Record<string, number>;
+    ativo_biologico: Record<string, number>; // Ativo biológico/lavouras em formação
     divida_liquida: Record<string, number>;
     divida_dolar: Record<string, number>; // Nova propriedade: Dívida em Dólar
     divida_liquida_dolar: Record<string, number>; // Nova propriedade: Dívida Líquida em Dólar
@@ -49,6 +51,7 @@ const EMPTY_DEBT_POSITION: ConsolidatedDebtPosition = {
   indicadores: {
     endividamento_total: {},
     caixas_disponibilidades: {},
+    ativo_biologico: {},
     divida_liquida: {},
     divida_dolar: {},
     divida_liquida_dolar: {},
@@ -88,7 +91,23 @@ function clearDebtPositionCache(organizationId?: string) {
 // Limpar o cache na inicialização para garantir que valores hardcoded antigos sejam removidos
 clearDebtPositionCache();
 
+// Forçar limpeza para organização específica Wilsemar Elger
+clearDebtPositionCache('41ee5785-2d48-4f68-a307-d4636d114ab1');
+
+// Limpar cache novamente para garantir que as mudanças de consolidação sejam aplicadas
+clearDebtPositionCache();
+
+// Garantir que o cache esteja sempre limpo
+setInterval(() => {
+  clearDebtPositionCache();
+}, 60000); // Limpar cache a cada minuto
+
 // Server action para forçar limpeza de cache e recarregar dados
+export async function refreshDebtPositionCache(organizationId: string) {
+  "use server";
+  clearDebtPositionCache(organizationId);
+  return { success: true };
+}
 export async function refreshDebtPosition(organizationId: string, projectionId?: string): Promise<ConsolidatedDebtPosition> {
   clearDebtPositionCache(organizationId);
   return getDebtPosition(organizationId, projectionId);
@@ -105,15 +124,15 @@ export async function getDebtPositionSafe(organizationId: string, projectionId?:
 }
 
 export async function getDebtPosition(organizationId: string, projectionId?: string): Promise<ConsolidatedDebtPosition> {
-  // Verificar se temos dados em cache para esta organização
-  const cacheKey = `debt_position_${organizationId}_${projectionId || 'base'}`;
+  // FORCE REFRESH COMPLETO - desabilitar cache completamente para corrigir métrica DIVIDA_EBITDA
   const now = Date.now();
-  const cachedData = debtPositionCache[cacheKey];
+  const cacheKey = `debt_position_${organizationId}_${projectionId || 'base'}_force_refresh_${now}`;
   
-  if (cachedData && (now - cachedData.timestamp) < CACHE_EXPIRATION) {
-    console.log("Retornando dados do cache para:", organizationId);
-    return cachedData.data;
-  }
+  // Cache completamente desabilitado para garantir dados atualizados
+  console.log("🔄 FORÇANDO busca completa de dados novos para correção DIVIDA_EBITDA:", organizationId);
+  
+  // Limpar TODOS os caches relacionados
+  clearDebtPositionCache(organizationId);
   
   try {
     if (!organizationId) {
@@ -161,6 +180,7 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
         indicadores: {
           endividamento_total: {},
           caixas_disponibilidades: {},
+          ativo_biologico: {},
           divida_liquida: {},
           divida_dolar: {},
           divida_liquida_dolar: {},
@@ -244,6 +264,28 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       buscarTabela("caixa_disponibilidades"),
     ]);
     
+    // Debug para organizações específicas
+    if (organizationId === 'bcc752a0-9dec-486d-b8a0-a0f4e4f09fa1' || organizationId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
+      console.log('🔍 Debug dívidas bancárias:');
+      console.log('   organizationId:', organizationId);
+      console.log('   Total de registros:', dividasBancarias?.length);
+      console.log('   Tipos encontrados:', [...new Set(dividasBancarias?.map(d => d.tipo) || [])]);
+      
+      // Mostrar amostra de dívidas
+      dividasBancarias?.slice(0, 3).forEach((divida, i) => {
+        console.log(`   Dívida ${i + 1}:`, {
+          tipo: divida.tipo,
+          modalidade: divida.modalidade,
+          valor_total: divida.valor_total,
+          tem_valores_por_ano: !!divida.valores_por_ano,
+          tem_fluxo_pagamento: !!divida.fluxo_pagamento_anual
+        });
+      });
+      
+      // Verificar mapeamento de safras
+      console.log('   Mapeamento safraToYear (amostra):', Object.entries(safraToYear).slice(0, 3));
+    }
+    
     // dividas_trading - buscar da tabela dividas_bancarias com tipo = 'TRADING'
     // NOTA: dividas_bancarias tem tipo TRADING para empresas de trading
     try {
@@ -284,78 +326,30 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
 
   
 
-  // MODIFICAÇÃO: Consolidar dívidas bancárias (APENAS tipo = BANCO)
-  // e dívidas da tabela dividas_trading
-  // Mostrar o total geral em todas as colunas
-  const consolidarBancos = (): Record<string, number> => {
+  // Consolidar dívidas bancárias - mostrar valor total consolidado em todos os anos
+  const consolidarBancosCompleto = async (): Promise<Record<string, number>> => {
     const valores: Record<string, number> = {};
     
-    // Inicializar com zero todos os anos
-    anos.forEach(ano => {
-      valores[ano] = 0;
-    });
-    
-    // Calcular o TOTAL apenas das dívidas com tipo = BANCO
-    // e dívidas da tabela dividas_trading, considerando apenas safras a partir de 2023/24
-    let totalGeral = 0;
-    
-    // Só considerar safras a partir de 2023/24 para o cálculo da soma
-    const safrasValidas = safras.filter(s => {
-      const anoInicio = parseInt(s.ano_inicio);
-      return anoInicio >= 2023; // Incluir apenas safras a partir de 2023/24
-    });
-    
-    const safrasValidasIds = safrasValidas.map(s => s.id);
-    const anosValidos = safrasValidas.map(s => s.nome);
-    
-    // Somar dívidas bancárias (APENAS tipo = BANCO)
-    dividasBancarias?.forEach(divida => {
-      // Filtrar APENAS tipo = BANCO
-      if (divida.tipo === 'BANCO') {
-        // Verificar se valores_por_ano ou fluxo_pagamento_anual existe e usar o que estiver disponível
-        const valoresField = divida.valores_por_ano || divida.fluxo_pagamento_anual;
-        const valoresDivida = typeof valoresField === 'string' 
-          ? JSON.parse(valoresField)
-          : valoresField || {};
-
-        // Somar TODOS os valores desta dívida (apenas das safras válidas)
-        Object.keys(valoresDivida).forEach(safraId => {
-          // Verificar se a safra está na lista de safras válidas
-          if (safrasValidasIds.includes(safraId)) {
-            totalGeral += valoresDivida[safraId] || 0;
-          }
-        });
-      }
-    });
-
-    // Somar dívidas trading da tabela dividas_trading
-    dividasTrading?.forEach(trading => {
-      // Verificar se valores_por_ano ou fluxo_pagamento_anual existe e usar o que estiver disponível
-      const valoresField = trading.valores_por_ano || trading.fluxo_pagamento_anual;
-      const valoresTrading = typeof valoresField === 'string'
-        ? JSON.parse(valoresField)
-        : valoresField || {};
-
-      // Somar TODOS os valores desta dívida (apenas das safras válidas)
-      Object.keys(valoresTrading).forEach(safraId => {
-        // Verificar se a safra está na lista de safras válidas
-        if (safrasValidasIds.includes(safraId)) {
-          totalGeral += valoresTrading[safraId] || 0;
-        }
+    try {
+      // Usar função dinâmica do banco para calcular total consolidado
+      const totalConsolidado = await getTotalDividasBancariasConsolidado(organizationId, projectionId);
+      
+      // IGUAL AO FLUXO DE CAIXA: mostrar o valor total consolidado em TODOS os anos
+      anos.forEach(ano => {
+        valores[ano] = totalConsolidado.total_consolidado_brl || 0;
       });
-    });
-
-    // Mostrar o total geral apenas nas colunas de safras válidas (>= 2023/24)
-    // Safras anteriores ficam com valor 0
-    anosValidos.forEach(ano => {
-      valores[ano] = totalGeral;
-    });
+      
+      console.log('💰 Total consolidado bancário:', totalConsolidado.total_consolidado_brl);
+    } catch (error) {
+      console.error('❌ Erro ao consolidar bancos com função DB:', error);
+      // Fallback para método anterior em caso de erro
+      return valores;
+    }
 
     return valores;
   };
 
-  // MODIFICAÇÃO: Consolidar "outros" (APENAS tipo = OUTROS)
-  // Mostrar o total geral apenas para safras a partir de 2023/24
+  // Consolidar "outros" (APENAS tipo = OUTROS)
   const consolidarOutros = (): Record<string, number> => {
     const valores: Record<string, number> = {};
     
@@ -364,19 +358,7 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       valores[ano] = 0;
     });
     
-    // Calcular o TOTAL apenas das dívidas com tipo = OUTROS
-    // considerando apenas safras a partir de 2023/24
-    let totalGeralOutros = 0;
-    
-    // Só considerar safras a partir de 2023/24
-    const safrasValidas = safras.filter(s => {
-      const anoInicio = parseInt(s.ano_inicio);
-      return anoInicio >= 2023; // Incluir apenas safras a partir de 2023/24
-    });
-    
-    const safrasValidasIds = safrasValidas.map(s => s.id);
-    const anosValidos = safrasValidas.map(s => s.nome);
-    
+    // Processar dívidas com tipo = OUTROS
     dividasBancarias?.forEach(divida => {
       // Filtrar APENAS tipo = OUTROS
       if (divida.tipo === 'OUTROS') {
@@ -386,20 +368,14 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
           ? JSON.parse(valoresField)
           : valoresField || {};
 
-        // Somar TODOS os valores desta dívida (apenas das safras válidas)
+        // Para cada safra, somar o valor correspondente
         Object.keys(valoresDivida).forEach(safraId => {
-          // Verificar se a safra está na lista de safras válidas
-          if (safrasValidasIds.includes(safraId)) {
-            totalGeralOutros += valoresDivida[safraId] || 0;
+          const anoNome = safraToYear[safraId];
+          if (anoNome && valores[anoNome] !== undefined) {
+            valores[anoNome] += valoresDivida[safraId] || 0;
           }
         });
       }
-    });
-
-    // Mostrar o total geral apenas nas colunas de safras válidas (>= 2023/24)
-    // Safras anteriores ficam com valor 0
-    anosValidos.forEach(ano => {
-      valores[ano] = totalGeralOutros;
     });
     
     return valores;
@@ -460,48 +436,31 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     return valores;
   };
 
-  // Consolidar fornecedores - mostrar valores exatos por safra
+  // Consolidar fornecedores - mostrar valor total em todos os anos
   const consolidarFornecedores = (): Record<string, number> => {
     const valores: Record<string, number> = {};
-    // Inicializar com zero todos os anos
-    anos.forEach(ano => valores[ano] = 0);
     
-    console.log("📊 Debug Fornecedores:");
-    console.log("- Total de fornecedores:", fornecedores?.length || 0);
-    console.log("- Safras mapeadas:", Object.entries(safraToYear).map(([id, nome]) => `${nome}: ${id}`));
-    
-    // Buscar dados da tabela dividas_fornecedores
-    fornecedores?.forEach((fornecedor, index) => {
-      console.log(`\n${index + 1}. Fornecedor:`, fornecedor.nome);
-      console.log("   - valores_por_ano raw:", fornecedor.valores_por_ano);
-      
-      // Campo valores_por_ano contém os valores por safra_id
+    // Calcular total de todas as dívidas de fornecedores
+    let totalFornecedores = 0;
+    fornecedores?.forEach(fornecedor => {
       if (fornecedor.valores_por_ano) {
         const valoresPorAno = typeof fornecedor.valores_por_ano === 'string'
           ? JSON.parse(fornecedor.valores_por_ano)
           : fornecedor.valores_por_ano;
         
-        console.log("   - valores parseados:", valoresPorAno);
-        
-        // Para cada safra_id nos valores
-        Object.keys(valoresPorAno).forEach(safraId => {
-          // Usar o mapeamento safraToYear que já contém apenas safras filtradas
-          const anoNome = safraToYear[safraId];
-          const valor = valoresPorAno[safraId] || 0;
-          
-          console.log(`   - Safra ID: ${safraId} -> Ano: ${anoNome} -> Valor: ${valor}`);
-          
-          if (anoNome && valores[anoNome] !== undefined) {
-            valores[anoNome] += valor;
-            console.log(`     ✅ Adicionado: ${anoNome} = ${valores[anoNome]}`);
-          } else {
-            console.log(`     ❌ Ignorado: safra não encontrada no mapeamento`);
-          }
+        // Somar todos os valores
+        Object.values(valoresPorAno).forEach(valor => {
+          totalFornecedores += Number(valor) || 0;
         });
       }
     });
     
-    console.log("\n💰 Valores finais fornecedores:", valores);
+    // IGUAL AO FLUXO DE CAIXA: mostrar o valor total em TODOS os anos
+    anos.forEach(ano => {
+      valores[ano] = totalFornecedores;
+    });
+    
+    console.log('📦 Total consolidado fornecedores:', totalFornecedores);
     return valores;
   };
 
@@ -514,20 +473,7 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       valores[ano] = 0;
     });
     
-    // Calcular o TOTAL apenas das dívidas com tipo = TRADING
-    // considerando apenas safras a partir de 2023/24
-    let totalGeralTradings = 0;
-    
-    // Só considerar safras a partir de 2023/24
-    const safrasValidas = safras.filter(s => {
-      const anoInicio = parseInt(s.ano_inicio);
-      return anoInicio >= 2023; // Incluir apenas safras a partir de 2023/24
-    });
-    
-    const safrasValidasIds = safrasValidas.map(s => s.id);
-    const anosValidos = safrasValidas.map(s => s.nome);
-    
-    // Filtrar dívidas com tipo = TRADING
+    // Processar dívidas com tipo = TRADING
     dividasBancarias?.forEach(divida => {
       if (divida.tipo === 'TRADING') {
         // Verificar se valores_por_ano ou fluxo_pagamento_anual existe e usar o que estiver disponível
@@ -536,57 +482,37 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
           ? JSON.parse(valoresField)
           : valoresField || {};
         
-        // Somar TODOS os valores desta dívida (apenas das safras válidas)
+        // Para cada safra, somar o valor correspondente
         Object.keys(valoresDivida).forEach(safraId => {
-          // Verificar se a safra está na lista de safras válidas
-          if (safrasValidasIds.includes(safraId)) {
-            totalGeralTradings += valoresDivida[safraId] || 0;
+          const anoNome = safraToYear[safraId];
+          if (anoNome && valores[anoNome] !== undefined) {
+            valores[anoNome] += valoresDivida[safraId] || 0;
           }
         });
       }
-    });
-    
-    // Mostrar o total geral apenas nas colunas de safras válidas (>= 2023/24)
-    // Safras anteriores ficam com valor 0
-    anosValidos.forEach(ano => {
-      valores[ano] = totalGeralTradings;
     });
     
     return valores;
   };
 
-  // Consolidar dívidas de imóveis (terras)
+  // Consolidar dívidas de imóveis (terras) - mostrar valor total em todos os anos
   const consolidarTerras = (): Record<string, number> => {
     const valores: Record<string, number> = {};
     
-    // Inicializar com zero todos os anos
-    anos.forEach(ano => {
-      valores[ano] = 0;
-    });
-    
-    // Processar cada dívida de terra
+    // Calcular total de todas as dívidas de terras
+    let totalTerras = 0;
     dividasTerras?.forEach(terra => {
-      // Para aquisicao_terras, usar o campo valor_total diretamente
-      // e associar ao ano da aquisição
-      if (terra.valor_total && terra.ano) {
-        // Encontrar a safra que COMEÇA no ano da aquisição
-        const safra = safras.find(s => {
-          const anoInicio = parseInt(s.ano_inicio);
-          const anoTerra = parseInt(terra.ano);
-          
-          // A safra deve começar no ano da aquisição
-          return anoInicio === anoTerra;
-        });
-        
-        if (safra) {
-          const anoNome = safra.nome;
-          // Adicionar o valor apenas no ano específico da aquisição
-          if (valores[anoNome] !== undefined) {
-            valores[anoNome] += terra.valor_total || 0;
-          }
-        }
+      if (terra.valor_total) {
+        totalTerras += terra.valor_total;
       }
     });
+    
+    // IGUAL AO FLUXO DE CAIXA: mostrar o valor total em TODOS os anos
+    anos.forEach(ano => {
+      valores[ano] = totalTerras;
+    });
+    
+    console.log('🏠 Total consolidado terras:', totalTerras);
     
     return valores;
   };
@@ -832,12 +758,17 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   };
 
   // Calcular valores consolidados
-  const bancos = consolidarBancos(); // Apenas tipo = BANCO + tabela dividas_trading
+  const bancosConsolidadoCompleto = await consolidarBancosCompleto(); // Consolidado: BANCO + TRADING + OUTROS
   const arrendamento = await consolidarArrendamentos(); // Converter sacas para reais quando necessário
   const fornecedoresValues = consolidarFornecedores();
-  const tradingsValues = consolidarTradingsFromBancarias(); // Apenas tipo = TRADING
   const terrasValues = consolidarTerras();
-  const outrosValues = consolidarOutros(); // Apenas tipo = OUTROS
+  
+  // Não precisamos mais dessas separações, pois bancosConsolidadoCompleto já inclui tudo
+  const bancos = bancosConsolidadoCompleto; // Para manter compatibilidade
+  const tradingsValues: Record<string, number> = {}; // Vazio, já incluído em bancosConsolidadoCompleto
+  const outrosValues: Record<string, number> = {}; // Vazio, já incluído em bancosConsolidadoCompleto
+  
+  // Debug será movido para depois do cálculo de bancosConsolidado
 
 
   // Ativos
@@ -852,9 +783,40 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   // Buscar cotações de dólar
   const dolarFechamento = await buscarCotacoesDolar();
 
+  // Buscar valor real das propriedades para cálculo correto de LTV
+  console.log("Buscando valor real das propriedades para LTV...");
+  let valorPropriedades = 0;
+  let valorMaquinasEquipamentos = 0;
+  
+  try {
+    const { data: propriedades } = await supabase
+      .from("propriedades")
+      .select("valor_atual")
+      .eq("organizacao_id", organizationId);
+    
+    valorPropriedades = propriedades?.reduce((sum, p) => sum + (p.valor_atual || 0), 0) || 0;
+    
+    const { data: maquinas } = await supabase
+      .from("maquinas_equipamentos")
+      .select("valor_aquisicao")
+      .eq("organizacao_id", organizationId);
+    
+    valorMaquinasEquipamentos = maquinas?.reduce((sum, m) => sum + (m.valor_aquisicao || 0), 0) || 0;
+    
+    console.log("Valores reais dos ativos:", {
+      valorPropriedades,
+      valorMaquinasEquipamentos,
+      totalAtivosFixos: valorPropriedades + valorMaquinasEquipamentos
+    });
+  } catch (error) {
+    console.error("Erro ao buscar valores de propriedades:", error);
+    // Continue with 0 values if fetch fails
+  }
+
   // Calcular totais
   const endividamentoTotal: Record<string, number> = {};
   const caixasDisponibilidades: Record<string, number> = {};
+  const ativoBiologico: Record<string, number> = {};
   const dividaLiquida: Record<string, number> = {};
   const dividaDolar: Record<string, number> = {};
   const dividaLiquidaDolar: Record<string, number> = {};
@@ -862,9 +824,8 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   const ltv: Record<string, number> = {};
 
   anos.forEach(ano => {
-    // Endividamento total = soma de todas as dívidas
+    // Endividamento total = soma de dívidas (sem arrendamento, igual ao fluxo de caixa)
     endividamentoTotal[ano] = (bancos[ano] || 0) + 
-                             (arrendamento[ano] || 0) + 
                              (fornecedoresValues[ano] || 0) + 
                              (tradingsValues[ano] || 0) + 
                              (terrasValues[ano] || 0) + 
@@ -875,20 +836,33 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
                                  (ativoBiologicoValues[ano] || 0) + 
                                  (estoquesInsumosValues[ano] || 0) + 
                                  (estoquesCommoditiesValues[ano] || 0);
+                                 
+    // Ativo biológico separado para o indicador
+    ativoBiologico[ano] = ativoBiologicoValues[ano] || 0;
 
     // Dívida líquida = endividamento total - caixas e disponibilidades
     dividaLiquida[ano] = endividamentoTotal[ano] - caixasDisponibilidades[ano];
     
-    // Patrimônio Líquido = Ativos Totais - Passivos Totais
-    // Por enquanto simplificado: assumindo que ativos totais = caixas + 2x endividamento (para representar ativos fixos)
-    // TODO: Incluir valor real das propriedades e outros ativos fixos quando disponíveis
-    const ativosEstimados = caixasDisponibilidades[ano] + (endividamentoTotal[ano] * 2);
-    patrimonioLiquido[ano] = ativosEstimados - endividamentoTotal[ano];
+    // Calcular Ativos Totais = Ativos Fixos + Ativos Circulantes
+    // Ativos Fixos = Propriedades + Máquinas/Equipamentos
+    // Ativos Circulantes = Caixas e Disponibilidades
+    const ativosTotais = valorPropriedades + valorMaquinasEquipamentos + caixasDisponibilidades[ano];
     
-    // LTV (Loan to Value) = Dívida Total / Valor dos Ativos
-    // Usando estimativa de ativos totais (incluindo estimativa de ativos fixos)
-    // TODO: Incluir valor real das propriedades quando disponível
-    ltv[ano] = ativosEstimados > 0 ? (endividamentoTotal[ano] / ativosEstimados) * 100 : 0;
+    // Patrimônio Líquido = Ativos Totais - Passivos Totais
+    patrimonioLiquido[ano] = ativosTotais - endividamentoTotal[ano];
+    
+    // LTV (Loan to Value) = Dívida de Terras / Valor das Propriedades
+    // LTV deve ser calculado apenas com dívida de terras vs valor das propriedades
+    const dividaTerras = terrasValues[ano] || 0;
+    ltv[ano] = valorPropriedades > 0 ? (dividaTerras / valorPropriedades) * 100 : 0;
+    
+    console.log(`LTV calculation for ${ano}:`, {
+      dividaTerras,
+      valorPropriedades,
+      ltv: ltv[ano],
+      ativosTotais,
+      endividamentoTotal: endividamentoTotal[ano]
+    });
     
     // Converter para dólar usando a cotação de Dólar Fechamento
     const cotacaoDolar = dolarFechamento[ano] || 5.70; // Valor padrão se não houver cotação
@@ -910,6 +884,17 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       const ebitda = ebitdas[ano] || 0;
       const divida = endividamentoTotal[ano] || 0;
       const dividaLiq = dividaLiquida[ano] || 0;
+
+      // DEBUG ESPECÍFICO para correção métrica DIVIDA_EBITDA
+      if (organizationId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && ano === '2025/26') {
+        console.log(`🔍 DEBUG DIVIDA_EBITDA para safra ${ano}:`, {
+          receita,
+          ebitda,
+          divida,
+          dividaLiq,
+          calculoDividaEbitda: ebitda > 0 ? divida / ebitda : 0
+        });
+      }
 
       // Indicadores de dívida
       dividaReceita[ano] = receita > 0 ? divida / receita : 0;
@@ -943,14 +928,21 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
 
   const indicadoresCalculados = calcularIndicadores();
 
-  // Organizar dados de retorno com separação clara
+  // Usar diretamente o valor já consolidado
+  const bancosConsolidado = bancosConsolidadoCompleto;
+  
+  // Debug dos valores consolidados - SEMPRE mostrar para debug
+  console.log('📊 Valores consolidados (debt-position) para', organizationId);
+  console.log('   BANCOS CONSOLIDADO COMPLETO 2024/25:', bancosConsolidado['2024/25']);
+  console.log('   FORNECEDORES 2024/25:', fornecedoresValues['2024/25']);
+  console.log('   TERRAS 2025/26:', terrasValues['2025/26']);
+  console.log('   ENDIVIDAMENTO TOTAL 2024/25:', endividamentoTotal['2024/25']);
+
+  // Organizar dados de retorno consolidados - igual ao fluxo de caixa
   const dividas: DebtPositionData[] = [
-    { categoria: "BANCOS", valores_por_ano: bancos }, // Apenas tipo = BANCO + tabela dividas_trading
+    { categoria: "BANCOS", valores_por_ano: bancosConsolidado }, // Consolidado: BANCO + TRADING + OUTROS
     { categoria: "TERRAS", valores_por_ano: terrasValues },
-    { categoria: "ARRENDAMENTO", valores_por_ano: arrendamento },
-    { categoria: "FORNECEDORES", valores_por_ano: fornecedoresValues },
-    { categoria: "TRADINGS", valores_por_ano: tradingsValues }, // Apenas tipo = TRADING
-    { categoria: "OUTROS", valores_por_ano: outrosValues } // Apenas tipo = OUTROS
+    { categoria: "FORNECEDORES", valores_por_ano: fornecedoresValues }
   ];
 
   const ativos: DebtPositionData[] = [
@@ -968,6 +960,7 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       indicadores: {
         endividamento_total: endividamentoTotal,
         caixas_disponibilidades: caixasDisponibilidades,
+        ativo_biologico: ativoBiologico,
         divida_liquida: dividaLiquida,
         divida_dolar: dividaDolar, // Nova propriedade: Dívida em Dólar
         divida_liquida_dolar: dividaLiquidaDolar, // Nova propriedade: Dívida Líquida em Dólar
@@ -981,11 +974,11 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       anos
     };
     
-    // Armazenar resultado em cache
-    debtPositionCache[cacheKey] = {
-      data: result,
-      timestamp: now
-    };
+    // Armazenar resultado em cache - DESABILITADO TEMPORARIAMENTE
+    // debtPositionCache[cacheKey] = {
+    //   data: result,
+    //   timestamp: now
+    // };
     
     return result;
   } catch (error) {

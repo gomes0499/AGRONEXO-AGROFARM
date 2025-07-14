@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getTotalDividasBancariasConsolidado } from "@/lib/actions/financial-actions/dividas-bancarias";
 
 export interface DebtTypeData {
   name: string;
@@ -20,6 +21,9 @@ export async function getDebtTypeDistributionAllSafrasData(
   try {
     const supabase = await createClient();
 
+    // Buscar o total consolidado usando a mesma função da posição de dívida
+    const totalConsolidado = await getTotalDividasBancariasConsolidado(organizationId, projectionId);
+
     // Busca todas as dívidas bancárias (sempre da tabela base)
     const { data: dividasBancarias } = await supabase
       .from("dividas_bancarias")
@@ -35,49 +39,35 @@ export async function getDebtTypeDistributionAllSafrasData(
       CUSTEIO: 0,
       INVESTIMENTOS: 0,
     };
+    
+    const totalPorModalidadeSemConversao: Record<string, number> = {
+      CUSTEIO: 0,
+      INVESTIMENTOS: 0,
+    };
+    let totalSemConversao = 0;
 
-    // Processar cada dívida bancária
+    // Primeiro, calcular totais sem conversão para proporções
     dividasBancarias.forEach((divida) => {
       const modalidade = divida.modalidade || "OUTROS";
+      const valorPrincipal = divida.valor_principal || 0;
 
-      // Verifica se valores existe e processa
-      let valores = divida.fluxo_pagamento_anual || divida.valores_por_ano;
-      if (typeof valores === "string") {
-        try {
-          valores = JSON.parse(valores);
-        } catch (e) {
-          console.error("Erro ao parsear valores:", e);
-          valores = {};
-        }
-      }
-
-      // Soma todos os valores de todas as safras para esta modalidade
-      let valorTotal = 0;
-
-      if (valores && typeof valores === "object") {
-        // Somar todos os valores de todas as safras
-        Object.values(valores).forEach((valor) => {
-          if (typeof valor === "number" && valor > 0) {
-            valorTotal += valor;
-          }
-        });
-      }
-
-      // Se não encontrou nenhum valor mas tem valor_total, usa ele
-      if (valorTotal === 0 && divida.valor_total) {
-        valorTotal = divida.valor_total;
-      }
-
-      // Acumula o valor na modalidade correspondente se for maior que zero
-      if (valorTotal > 0) {
+      if (valorPrincipal > 0) {
+        totalSemConversao += valorPrincipal;
         if (modalidade === "CUSTEIO" || modalidade === "INVESTIMENTOS") {
-          totalPorModalidade[modalidade] += valorTotal;
+          totalPorModalidadeSemConversao[modalidade] += valorPrincipal;
         } else {
-          // Para outras modalidades, considerar como INVESTIMENTOS
-          totalPorModalidade["INVESTIMENTOS"] += valorTotal;
+          totalPorModalidadeSemConversao["INVESTIMENTOS"] += valorPrincipal;
         }
       }
     });
+
+    // Aplicar proporções ao total consolidado
+    if (totalSemConversao > 0) {
+      Object.keys(totalPorModalidade).forEach(modalidade => {
+        const proporcao = totalPorModalidadeSemConversao[modalidade] / totalSemConversao;
+        totalPorModalidade[modalidade] = totalConsolidado.total_consolidado_brl * proporcao;
+      });
+    }
 
     // Calcular total geral
     const totalGeral = Object.values(totalPorModalidade).reduce(

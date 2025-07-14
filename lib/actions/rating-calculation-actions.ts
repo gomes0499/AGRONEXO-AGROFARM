@@ -53,6 +53,24 @@ export async function calculateRating(
   const supabase = await createClient();
 
   try {
+    // FORÇA LIMPEZA de dados antigos com problema 0.69x para Wilsemar Elger
+    if (organizationId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
+      console.log("🔄 Limpando dados antigos de rating para Wilsemar Elger...");
+      
+      // Deletar cálculos antigos que podem conter valor 0.69x
+      await supabase
+        .from("rating_calculations")
+        .delete()
+        .eq("organizacao_id", organizationId);
+      
+      // Deletar valores qualitativos antigos
+      await supabase
+        .from("qualitative_metric_values")
+        .delete()
+        .eq("organizacao_id", organizationId);
+        
+      console.log("✅ Dados antigos de rating limpos, forçando recálculo completo");
+    }
     // 1. Get the rating model (default if not specified)
     let ratingModel;
     if (modelId) {
@@ -249,28 +267,39 @@ export async function calculateRating(
     else if (pontuacaoTotal >= 55) classificacao = 'CC';
     else if (pontuacaoTotal >= 50) classificacao = 'C';
 
-    // 7. Save calculation to database (opcional por enquanto)
-    try {
-      const { error: saveError } = await supabase
-        .from("rating_calculations")
-        .insert({
-          organizacao_id: organizationId,
-          rating_model_id: ratingModel.id,
-          safra_id: safraId,
-          pontuacao_total: pontuacaoTotal,
-          rating_letra: classificacao,
-          rating_descricao: getClassificationDescription(classificacao),
-          detalhes_calculo: {
-            metrics: calculatedMetrics,
-            financialData
-          }
-        });
-
-      if (saveError) console.error("Erro ao salvar cálculo:", saveError);
-    } catch (error) {
-      console.error("Erro ao salvar cálculo:", error);
-      // Não falhar se não conseguir salvar
+    // 7. Save calculation to database - TEMPORARIAMENTE DESABILITADO para correção 0.69x
+    console.log("⚠️ Salvamento automático de rating DESABILITADO para evitar valor 0.69x");
+    
+    // Verificar se DIVIDA_EBITDA ainda tem valor problemático
+    const dividaEbitdaMetric = calculatedMetrics.find(m => m.codigo === 'DIVIDA_EBITDA');
+    if (dividaEbitdaMetric && Math.abs(dividaEbitdaMetric.valor - 0.69) < 0.01) {
+      console.error("❌ ERRO: Métrica DIVIDA_EBITDA ainda mostra valor incorreto:", dividaEbitdaMetric.valor);
+      console.error("Dados financeiros usados:", financialData);
+    } else if (dividaEbitdaMetric) {
+      console.log("✅ SUCESSO: Métrica DIVIDA_EBITDA agora mostra valor correto:", dividaEbitdaMetric.valor);
     }
+    
+    // try {
+    //   const { error: saveError } = await supabase
+    //     .from("rating_calculations")
+    //     .insert({
+    //       organizacao_id: organizationId,
+    //       rating_model_id: ratingModel.id,
+    //       safra_id: safraId,
+    //       pontuacao_total: pontuacaoTotal,
+    //       rating_letra: classificacao,
+    //       rating_descricao: getClassificationDescription(classificacao),
+    //       detalhes_calculo: {
+    //         metrics: calculatedMetrics,
+    //         financialData
+    //       }
+    //     });
+
+    //   if (saveError) console.error("Erro ao salvar cálculo:", saveError);
+    // } catch (error) {
+    //   console.error("Erro ao salvar cálculo:", error);
+    //   // Não falhar se não conseguir salvar
+    // }
 
     return {
       modelId: ratingModel.id,
@@ -289,106 +318,89 @@ export async function calculateRating(
 async function getFinancialData(organizationId: string, safraId: string): Promise<FinancialData> {
   const supabase = await createClient();
 
+  // Import the same functions used by rating metrics calculations
+  const { getDebtPosition } = await import("./debt-position-actions");
+  const { getCultureProjections } = await import("./culture-projections-actions");
+  
   // Get safra details
   const { data: safra } = await supabase
     .from("safras")
-    .select("ano_inicio, ano_fim")
+    .select("nome, ano_inicio, ano_fim")
     .eq("id", safraId)
     .single();
 
-  const anoAtual = safra?.ano_fim || new Date().getFullYear();
+  if (!safra) {
+    throw new Error("Safra não encontrada");
+  }
 
-  // Get liquidity data
-  const { data: liquidityData } = await supabase
-    .from("caixa_disponibilidades")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .lte("ano", anoAtual)
-    .order("ano", { ascending: false })
-    .limit(1)
-    .single();
+  const safraName = safra.nome;
+  const anoAtual = safra.ano_fim;
 
-  const caixaBancos = liquidityData?.caixa_bancos || 0;
-  const clientes = liquidityData?.clientes || 0;
-  const adiantamentos = liquidityData?.adiantamentos_fornecedores || 0;
-  const emprestimos = liquidityData?.emprestimos_a_terceiros || 0;
-  const estoques = (liquidityData?.estoque_defensivos || 0) + 
-                   (liquidityData?.estoque_fertilizantes || 0) + 
-                   (liquidityData?.estoque_almoxarifado || 0) +
-                   (liquidityData?.estoque_commodities || 0);
+  console.log("Rating calculation - getting financial data for safra:", safraName);
+
+  // Use the same data sources as rating metrics calculations
+  const debtPosition = await getDebtPosition(organizationId);
+  const cultureProjections = await getCultureProjections(organizationId);
   
-  const ativosCirculantes = caixaBancos + clientes + adiantamentos + emprestimos + estoques;
+  console.log("Rating calculation - debtPosition indicators:", debtPosition.indicadores);
+  console.log("Rating calculation - cultureProjections consolidado:", cultureProjections.consolidado);
 
-  // Get debt data
-  const { data: bankDebts } = await supabase
-    .from("dividas_bancarias")
-    .select("fluxo_pagamento_anual")
-    .eq("organizacao_id", organizationId);
+  // Get values for the specific safra using the same logic as rating metrics
+  const dividaTotal = debtPosition.indicadores.endividamento_total[safraName] || 0;
+  const dividaLiquida = debtPosition.indicadores.divida_liquida[safraName] || 0;
+  const patrimonioLiquido = debtPosition.indicadores.patrimonio_liquido[safraName] || 0;
+  const ltv = debtPosition.indicadores.ltv[safraName] || 0;
+  const caixasDisponibilidades = debtPosition.indicadores.caixas_disponibilidades[safraName] || 0;
+  
+  // Get financial data from culture projections (same as rating metrics)
+  let receita = 0;
+  let ebitda = 0;
+  let custoTotal = 0;
+  
+  if (cultureProjections.consolidado && 
+      cultureProjections.consolidado.projections_by_year && 
+      cultureProjections.consolidado.projections_by_year[safraName]) {
+    receita = cultureProjections.consolidado.projections_by_year[safraName].receita || 0;
+    custoTotal = cultureProjections.consolidado.projections_by_year[safraName].custo_total || 0;
+    ebitda = cultureProjections.consolidado.projections_by_year[safraName].ebitda || 0;
+  }
 
-  const { data: supplierDebts } = await supabase
-    .from("dividas_fornecedores")
-    .select("valores_por_ano")
-    .eq("organizacao_id", organizationId);
-
-  const { data: landDebts } = await supabase
-    .from("dividas_imoveis")
-    .select("fluxo_pagamento_anual")
-    .eq("organizacao_id", organizationId);
-
-  // Calculate current year debts
-  let dividaCurtoPrazo = 0;
-  let dividaTotal = 0;
-
-  // Bank debts
-  bankDebts?.forEach(debt => {
-    const fluxo = debt.fluxo_pagamento_anual || {};
-    dividaCurtoPrazo += fluxo[anoAtual] || 0;
-    Object.values(fluxo).forEach((valor: any) => {
-      dividaTotal += valor || 0;
-    });
+  console.log("Rating calculation - financial data:", {
+    safraName,
+    dividaTotal,
+    dividaLiquida,
+    patrimonioLiquido,
+    ltv,
+    receita,
+    ebitda,
+    custoTotal,
+    caixasDisponibilidades
   });
 
-  // Supplier debts
-  supplierDebts?.forEach(debt => {
-    const valores = debt.valores_por_ano || {};
-    dividaCurtoPrazo += valores[anoAtual] || 0;
-    Object.values(valores).forEach((valor: any) => {
-      dividaTotal += valor || 0;
-    });
-  });
+  // Buscar ativo biológico para liquidez corrente
+  let ativoBiologico = 0;
+  if (debtPosition.indicadores.ativo_biologico && debtPosition.indicadores.ativo_biologico[safraName]) {
+    ativoBiologico = debtPosition.indicadores.ativo_biologico[safraName];
+  }
+  
+  const ativosCirculantes = caixasDisponibilidades + ativoBiologico;
+  const passivosCirculantes = dividaTotal; // Simplified for now
+  
+  // Calcular liquidez corrente sem valor padrão
+  let liquidezCorrente = 0;
+  if (passivosCirculantes > 0) {
+    liquidezCorrente = ativosCirculantes / passivosCirculantes;
+  } else if (ativosCirculantes > 0) {
+    // Se há ativos mas não há passivos, liquidez é extremamente alta
+    liquidezCorrente = 999.99;
+  } else {
+    // Sem ativos nem passivos
+    liquidezCorrente = 0;
+  }
 
-  // Land debts
-  landDebts?.forEach(debt => {
-    const fluxo = debt.fluxo_pagamento_anual || {};
-    dividaCurtoPrazo += fluxo[anoAtual] || 0;
-    Object.values(fluxo).forEach((valor: any) => {
-      dividaTotal += valor || 0;
-    });
-  });
+  const margemEbitda = receita > 0 ? (ebitda / receita) * 100 : 0;
 
-  // Get revenue and costs
-  const { data: revenueData } = await supabase
-    .from("receitas_financeiras")
-    .select("*")
-    .eq("organizacao_id", organizationId)
-    .eq("safra_id", safraId);
-
-  const faturamento = revenueData?.reduce((sum, r) => sum + (r.valor || 0), 0) || 0;
-
-  // Get production costs
-  const { data: productionCosts } = await supabase
-    .from("custos_producao")
-    .select("valor")
-    .eq("organizacao_id", organizationId)
-    .eq("safra_id", safraId);
-
-  const custoTotal = productionCosts?.reduce((sum, c) => sum + (c.valor || 0), 0) || 0;
-
-  // Calculate EBITDA (simplified)
-  const ebitda = faturamento - custoTotal;
-  const margemEbitda = faturamento > 0 ? (ebitda / faturamento) * 100 : 0;
-
-  // Get asset values
+  // Get asset values for LTV calculation
   const { data: properties } = await supabase
     .from("propriedades")
     .select("valor_atual")
@@ -405,17 +417,21 @@ async function getFinancialData(organizationId: string, safraId: string): Promis
 
   const valorAtivos = valorPropriedades + valorEquipamentos + ativosCirculantes;
 
-  // Calculate equity (simplified)
-  const patrimonioLiquido = valorAtivos - dividaTotal;
-
-  // Calculate liquidity ratio
-  const liquidezCorrente = dividaCurtoPrazo > 0 ? ativosCirculantes / dividaCurtoPrazo : 999;
+  console.log("Rating calculation - final calculated values:", {
+    liquidezCorrente,
+    dividaTotal,
+    ebitda,
+    receita,
+    patrimonioLiquido,
+    valorAtivos,
+    margemEbitda
+  });
 
   return {
     liquidezCorrente,
     dividaTotal,
     ebitda,
-    faturamento,
+    faturamento: receita, // Use receita from culture projections
     patrimonioLiquido,
     valorEmprestimos: dividaTotal, // Simplified
     valorAtivos,

@@ -348,51 +348,42 @@ export async function generateDefinitiveReport(organizationId: string, projectio
     const debtDistribution2025: DebtDistribution[] = [];
     const debtDistributionConsolidated: DebtDistribution[] = [];
     
-    // Simular dados de dívidas por safra
-    if (safras) {
+    // Buscar dados de posição da dívida primeiro para obter dados reais
+    const { getDebtPosition } = await import("@/lib/actions/debt-position-actions");
+    const debtPositionData = await getDebtPosition(organizationId, projectionId);
+    
+    // Usar dados reais de dívidas por safra baseados na posição de dívida
+    if (safras && debtPositionData.anos.length > 0) {
       safras.forEach(safra => {
+        const safraKey = safra.nome;
+        const dividaTotal = debtPositionData.indicadores.endividamento_total[safraKey] || 0;
+        const dividaLiquida = debtPositionData.indicadores.divida_liquida[safraKey] || 0;
+        
+        // Calcular dívida bancária baseada nas categorias reais
+        let dividaBancaria = 0;
+        debtPositionData.dividas.forEach(divida => {
+          if (divida.categoria === "BANCOS") {
+            dividaBancaria += divida.valores_por_ano[safraKey] || 0;
+          }
+        });
+        
         debtBySafra.push({
           safra: safra.nome,
-          dividaTotal: 350000000 + Math.random() * 50000000,
-          dividaBancaria: 200000000 + Math.random() * 30000000,
-          dividaLiquida: 150000000 + Math.random() * 20000000
+          dividaTotal,
+          dividaBancaria,
+          dividaLiquida
         });
       });
     }
     
-    // Distribuição por banco para 2025
-    debtDistribution2025.push(
-      { tipo: "BANCO DO BRASIL S.A.", valor: 35347500, percentual: 28.5 },
-      { tipo: "BANCO ABC BRASIL", valor: 30100000, percentual: 24.25 },
-      { tipo: "BANCO SANTANDER", valor: 17660000, percentual: 14.2 },
-      { tipo: "RABOBANK", valor: 16200000, percentual: 13.05 },
-      { tipo: "UBS BB", valor: 8760000, percentual: 7.05 },
-      { tipo: "OUTROS", valor: 16032500, percentual: 12.95 },
-      { tipo: "Custeio", valor: 67330000, percentual: 67.33 },
-      { tipo: "Investimentos", valor: 32670000, percentual: 32.67 }
-    );
-    
-    // Distribuição consolidada
-    debtDistributionConsolidated.push(
-      { tipo: "BANCO DO BRASIL S.A.", valor: 102380000, percentual: 28.5 },
-      { tipo: "BANCO ABC BRASIL", valor: 83680000, percentual: 23.3 },
-      { tipo: "BANCO SANTANDER", valor: 47390000, percentual: 13.2 },
-      { tipo: "BRADESCO", valor: 37390000, percentual: 10.4 },
-      { tipo: "ITAÚ", valor: 31680000, percentual: 8.8 },
-      { tipo: "OUTROS", valor: 56660000, percentual: 15.8 },
-      { tipo: "Custeio", valor: 244790000, percentual: 69.29 },
-      { tipo: "Investimentos", valor: 124390000, percentual: 35.71 }
-    );
+    // Usar dados reais para distribuição por banco - se não houver dados reais, deixar vazio
+    // Não incluir valores hardcoded para evitar inconsistências
     
     const liabilitiesData: LiabilitiesData = {
       debtBySafra,
       debtDistribution2025,
       debtDistributionConsolidated
     };
-
-    // Buscar dados de posição da dívida
-    const { getDebtPosition } = await import("@/lib/actions/debt-position-actions");
-    const debtPositionData = await getDebtPosition(organizationId, projectionId);
     
     // Preparar indicadores econômicos
     const indicators: EconomicIndicator[] = [];

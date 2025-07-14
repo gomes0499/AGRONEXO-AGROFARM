@@ -14,6 +14,7 @@ export const dividasBancariasSchema = z.object({
   tipo: tipoDividaBancariaEnum.default("BANCO"),
   indexador: indexadorEnum.default("CDI"),
   taxa_real: z.number().min(0).default(6.5),
+  valor_principal: z.number().min(0).optional(),
   valores_por_safra: z.record(z.string(), z.number().nonnegative()).optional(),
   moeda: moedaEnum.default("BRL"),
   created_at: z.date().optional(),

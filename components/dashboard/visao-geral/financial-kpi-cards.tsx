@@ -256,7 +256,16 @@ export function FinancialKpiCards({
 
   // Calculate metrics
   const metrics = useMemo(() => {
+    console.log("🔍 Debug Financial KPI Cards - Raw data:", {
+      organizationId,
+      selectedSafraId,
+      hasMetrics: !!data?.metrics,
+      metricsType: typeof data?.metrics,
+      metrics: data?.metrics
+    });
+
     if (!data?.metrics || typeof data.metrics !== 'object') {
+      console.log("❌ No metrics data available, returning zeros");
       return {
         dividaBancaria: { value: "R$ 0", change: "0%", changeType: "neutral" as const },
         outrosPassivos: { value: "R$ 0", change: "0%", changeType: "neutral" as const },
@@ -304,8 +313,8 @@ export function FinancialKpiCards({
       
       return { limiar1, limiar2 };
     };
-    
-    return {
+
+    const calculatedMetrics = {
       dividaBancaria: {
         value: formatMilhoes(safeMetric(m.dividaBancaria, 'valorAtual')),
         change: `${safeMetric(m.dividaBancaria, 'percentualMudanca').toFixed(1)}%`,
@@ -368,6 +377,19 @@ export function FinancialKpiCards({
       },
       indicadores: m.indicadores
     };
+
+    console.log("💰 Debug Calculated Financial Metrics:", {
+      organizationId,
+      selectedSafraId,
+      raw_dividaBancaria: safeMetric(m.dividaBancaria, 'valorAtual'),
+      formatted_dividaBancaria: calculatedMetrics.dividaBancaria.value,
+      raw_outrosPassivos: safeMetric(m.outrosPassivos, 'valorAtual'),
+      formatted_outrosPassivos: calculatedMetrics.outrosPassivos.value,
+      raw_dividaLiquida: safeMetric(m.dividaLiquida, 'valorAtual'),
+      formatted_dividaLiquida: calculatedMetrics.dividaLiquida.value
+    });
+
+    return calculatedMetrics;
   }, [data.metrics]);
 
   if (!data.metrics && isPending) {

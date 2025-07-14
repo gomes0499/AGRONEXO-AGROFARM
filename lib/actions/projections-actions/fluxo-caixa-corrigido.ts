@@ -43,6 +43,8 @@ export interface FluxoCaixaCorrigidoData {
     pagamentos_bancos: Record<string, number>;
     novas_linhas_credito: Record<string, number>;
     total_por_ano: Record<string, number>;
+    divida_total_consolidada?: Record<string, number>;
+    saldo_devedor?: Record<string, number>;
   };
   fluxo_liquido: Record<string, number>;
   fluxo_acumulado: Record<string, number>;

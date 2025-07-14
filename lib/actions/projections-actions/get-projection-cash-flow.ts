@@ -266,16 +266,21 @@ export async function getProjectionCashFlow(
         });
       }
 
-      // Dívidas de terras
+      // Dívidas de terras/imóveis
       const { data: dividasTerras } = await supabase
-        .from("aquisicao_terras")
-        .select("valor_total, ano")
+        .from("dividas_imoveis")
+        .select("valores_por_ano, valor_total, ano_aquisicao")
         .eq("organizacao_id", organizationId);
 
       if (dividasTerras) {
         dividasTerras.forEach(terra => {
-          // Para aquisicao_terras, usar o valor_total no ano de aquisição
-          if (terra.ano && safra.ano_inicio === terra.ano) {
+          // Para dividas_imoveis, usar valores_por_ano se disponível
+          if (terra.valores_por_ano && terra.valores_por_ano[safraId]) {
+            const pagamento = Number(terra.valores_por_ano[safraId]) || 0;
+            fluxoData.servico_divida.terras[ano] += pagamento;
+          }
+          // Fallback: se não tem valores_por_ano, usar valor_total no ano de aquisição
+          else if (terra.ano_aquisicao && safra.ano_inicio === terra.ano_aquisicao) {
             const pagamento = Number(terra.valor_total) || 0;
             fluxoData.servico_divida.terras[ano] += pagamento;
           }

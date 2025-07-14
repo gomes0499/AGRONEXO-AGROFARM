@@ -50,6 +50,19 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
       try {
         setLoading(true);
         const newData = await getBalancoPatrimonialDataV2(organizationId, projectionId);
+        
+        // Debug: verificar se os dados de empréstimos estão chegando
+        if (organizationId === '4a8327ab-d9ae-44a5-9189-bb098bce924b') {
+          console.log('📊 Debug Balanço - Dados recebidos:');
+          console.log('   Passivo Circulante:', newData.passivo?.circulante);
+          console.log('   Passivo Não Circulante:', newData.passivo?.nao_circulante);
+          
+          // Verificar especificamente 2023/24
+          const ano = '2023/24';
+          console.log(`   Empréstimos CP ${ano}:`, newData.passivo?.circulante?.emprestimos_financiamentos_curto_prazo?.[ano]);
+          console.log(`   Empréstimos LP ${ano}:`, newData.passivo?.nao_circulante?.emprestimos_financiamentos_longo_prazo?.[ano]);
+        }
+        
         setData(newData);
       } catch (error) {
         console.error('Erro ao carregar dados do Balanço:', error);
@@ -513,14 +526,21 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                             <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
                               Empréstimos e Financiamentos
                             </TableCell>
-                            {data.anos.map((ano) => (
-                              <TableCell 
-                                key={ano} 
-                                className="text-center min-w-[120px] w-[120px] text-destructive"
-                              >
-                                {formatCurrency(data.passivo.circulante.emprestimos_financiamentos_curto_prazo?.[ano] || 0)}
-                              </TableCell>
-                            ))}
+                            {data.anos.map((ano) => {
+                              const valor = data.passivo.circulante.emprestimos_financiamentos_curto_prazo?.[ano] || 0;
+                              // Debug específico para 2023/24
+                              if (ano === '2023/24' && organizationId === '4a8327ab-d9ae-44a5-9189-bb098bce924b') {
+                                console.log(`📊 Renderizando Empréstimos CP ${ano}: ${valor}`);
+                              }
+                              return (
+                                <TableCell 
+                                  key={ano} 
+                                  className="text-center min-w-[120px] w-[120px] text-destructive"
+                                >
+                                  {formatCurrency(valor)}
+                                </TableCell>
+                              );
+                            })}
                           </TableRow>
 
                           <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">
@@ -605,14 +625,21 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                             <TableCell className="font-medium min-w-[250px] w-[250px] sticky left-0 bg-background dark:bg-background z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] pl-8">
                               Empréstimos e Financiamentos
                             </TableCell>
-                            {data.anos.map((ano) => (
-                              <TableCell 
-                                key={ano} 
-                                className="text-center min-w-[120px] w-[120px] text-destructive"
-                              >
-                                {formatCurrency(data.passivo.nao_circulante.emprestimos_financiamentos_longo_prazo?.[ano] || 0)}
-                              </TableCell>
-                            ))}
+                            {data.anos.map((ano) => {
+                              const valor = data.passivo.nao_circulante.emprestimos_financiamentos_longo_prazo?.[ano] || 0;
+                              // Debug específico para 2023/24
+                              if (ano === '2023/24' && organizationId === '4a8327ab-d9ae-44a5-9189-bb098bce924b') {
+                                console.log(`📊 Renderizando Empréstimos LP ${ano}: ${valor}`);
+                              }
+                              return (
+                                <TableCell 
+                                  key={ano} 
+                                  className="text-center min-w-[120px] w-[120px] text-destructive"
+                                >
+                                  {formatCurrency(valor)}
+                                </TableCell>
+                              );
+                            })}
                           </TableRow>
 
                           <TableRow className="hover:bg-muted/30 dark:hover:bg-gray-700/30">

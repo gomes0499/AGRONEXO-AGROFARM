@@ -17,6 +17,7 @@ export function DebtProjectionTab({ organizationId }: DebtProjectionTabProps) {
           indicadores: {
             endividamento_total: {},
             caixas_disponibilidades: {},
+            ativo_biologico: {},
             divida_liquida: {},
             divida_dolar: {},
             divida_liquida_dolar: {},

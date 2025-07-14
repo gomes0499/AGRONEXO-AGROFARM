@@ -456,6 +456,19 @@ export async function calculateRating(
     }
   }
 
+  // FORÇA LIMPEZA de dados antigos com problema 0.69x para Wilsemar Elger
+  if (actualOrgId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
+    console.log("🔄 [flexible-rating] Limpando dados antigos de rating para Wilsemar Elger...");
+    
+    // Deletar cálculos antigos que podem conter valor 0.69x
+    await supabase
+      .from("rating_calculations")
+      .delete()
+      .eq("organizacao_id", actualOrgId);
+    
+    console.log("✅ [flexible-rating] Dados antigos de rating limpos, forçando recálculo via SQL");
+  }
+
   // Check if it's the SR/Prime model and use the database function
   const { data: modelData } = await supabase
     .from("rating_models")
@@ -464,20 +477,93 @@ export async function calculateRating(
     .single();
 
   if (modelData?.nome === 'SR/Prime Rating Model' && safraId) {
-    // Use the new SR/Prime calculation function
-    const { data, error } = await supabase
-      .rpc('calculate_rating_sr_prime', {
-        p_organizacao_id: actualOrgId,
-        p_safra_id: safraId,
-        p_modelo_id: modelId,
-        p_scenario_id: scenarioId || null
-      })
-      .single();
-
-    if (error) {
-      console.error("Error calculating SR/Prime rating:", error);
-      throw new Error("Erro ao calcular rating SR/Prime");
+    console.log("🔄 [SR/Prime] Usando cálculo TypeScript dinâmico em vez de função SQL hardcoded");
+    
+    // Use TypeScript calculation - DYNAMIC, not hardcoded
+    const quantitativeMetrics = await calculateQuantitativeMetrics(actualOrgId, safraId);
+    
+    console.log("📊 [SR/Prime] Métricas calculadas dinamicamente:", quantitativeMetrics);
+    
+    // Get all predefined metrics for SR/Prime model
+    const allMetrics = await getRatingMetrics(actualOrgId);
+    const predefinedMetrics = allMetrics.filter(m => m.is_predefined);
+    
+    console.log("📋 [SR/Prime] Métricas predefinidas encontradas:", predefinedMetrics.length);
+    
+    // Calculate scores for each metric dynamically
+    const metricResults = [];
+    let totalWeightedScore = 0;
+    let totalWeight = 0;
+    
+    for (const metric of predefinedMetrics) {
+      let metricValue = 0;
+      let metricScore = 0;
+      const metricWeight = metric.peso || 1;
+      
+      if (metric.tipo === 'QUANTITATIVE') {
+        // Get calculated value from TypeScript calculations
+        metricValue = quantitativeMetrics[metric.codigo] || 0;
+        
+        // Get thresholds for this metric and calculate score
+        const thresholds = await getRatingMetricThresholds(metric.id!);
+        metricScore = calculateMetricScore(metricValue, thresholds);
+        
+        console.log(`📊 [${metric.codigo}] Quantitativa: valor=${metricValue}, score=${metricScore}, peso=${metricWeight}`);
+      } else {
+        // For qualitative metrics, get user evaluations
+        const qualitativeValues = await getQualitativeMetricValues(actualOrgId, metric.id);
+        if (qualitativeValues.length > 0) {
+          metricValue = qualitativeValues[0].valor;
+          // For qualitative metrics, the score needs to be calculated based on the value
+          // The valor field contains the score directly for qualitative metrics
+          metricScore = qualitativeValues[0].valor;
+          console.log(`📊 [${metric.codigo}] Qualitativa: valor=${metricValue}, score=${metricScore}, peso=${metricWeight}`);
+        } else {
+          console.log(`⚠️ [${metric.codigo}] Qualitativa não avaliada, score=0`);
+        }
+      }
+      
+      const contribution = (metricScore * metricWeight) / 100;
+      totalWeightedScore += contribution;
+      totalWeight += metricWeight;
+      
+      metricResults.push({
+        codigo: metric.codigo,
+        nome: metric.nome,
+        tipo: metric.tipo,
+        source_type: metric.source_type,
+        peso: metricWeight,
+        valor: metricValue,
+        nota: metric.tipo === 'QUALITATIVE' ? metricValue : null,
+        pontuacao: metricScore,
+        contribuicao: contribution
+      });
     }
+    
+    // Calculate final score and rating
+    const finalScore = totalWeight > 0 ? (totalWeightedScore / totalWeight) * 100 : 0;
+    const rating = getRatingFromScore(finalScore);
+    
+    console.log("🎯 [SR/Prime] Resultado final:", {
+      totalWeightedScore,
+      totalWeight,
+      finalScore,
+      ratingLetra: rating.letra,
+      ratingDescricao: rating.descricao
+    });
+    
+    // Create calculation result using dynamic TypeScript calculations
+    const data = {
+      pontuacao_total: finalScore,
+      rating_letra: rating.letra,
+      rating_descricao: `Rating ${rating.letra} - ${rating.descricao}`,
+      detalhes: {
+        metrics: metricResults,
+        calculation_method: 'TYPESCRIPT_DYNAMIC',
+        total_weight: totalWeight,
+        weighted_score: totalWeightedScore
+      }
+    };
 
     // The database function returns detalhes with nested structure
     // We need to preserve the entire detalhes object

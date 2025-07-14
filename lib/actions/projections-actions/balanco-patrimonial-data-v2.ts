@@ -56,6 +56,38 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       console.error("Erro ao buscar safras:", safras.error);
       throw safras.error;
     }
+    
+    // Debug: verificar estrutura completa do debtPosition
+    if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1') { // ID do Wilsemar
+      console.log('🔍 Debug DebtPosition para Wilsemar:');
+      console.log('   dividas:', debtPosition?.dividas?.map(d => ({
+        categoria: d.categoria,
+        anos: Object.keys(d.valores_por_ano || {})
+      })));
+      console.log('   Amostra de valores BANCOS:', debtPosition?.dividas?.find(d => d.categoria === 'BANCOS')?.valores_por_ano);
+      
+      // Debug caixa_disponibilidades
+      console.log('🔍 Debug Caixa Disponibilidades:');
+      console.log('   Total de registros:', caixaDisponibilidades?.length);
+      if (caixaDisponibilidades?.length > 0) {
+        console.log('   Categorias encontradas:', [...new Set(caixaDisponibilidades.map((c: any) => c.categoria))]);
+        console.log('   Exemplo de valores_por_ano:', caixaDisponibilidades[0]?.valores_por_ano);
+      }
+      
+      // Debug propriedades
+      console.log('🔍 Debug Propriedades:');
+      console.log('   Total de propriedades:', properties?.length);
+      console.log('   Equipments estrutura:', equipments);
+      console.log('   Total de equipamentos:', equipments?.data?.length || equipments?.length || 0);
+      console.log('   Total de benfeitorias:', improvements?.length);
+      console.log('   Investments estrutura:', investments);
+      console.log('   Total de investimentos:', investments?.data?.length || investments?.length || 0);
+      
+      // Debug safras
+      console.log('🔍 Debug Safras:');
+      console.log('   Total de safras:', safras.data?.length);
+      console.log('   Safras:', safras.data?.map(s => ({ id: s.id, nome: s.nome })));
+    }
 
     // Handle empty safras gracefully
     if (!safras.data || safras.data.length === 0) {
@@ -125,6 +157,12 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       acc[safra.nome] = safra.id;
       return acc;
     }, {} as Record<string, string>);
+    
+    // Debug SafraNameToId para Wilsemar
+    if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
+      console.log('🔍 Debug SafraNameToId:');
+      console.log('   safraNameToId:', safraNameToId);
+    }
 
     const anos = fluxoCaixaData.anos;
     // Filtrar anos para remover 2030/31 e 2031/32
@@ -195,8 +233,8 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
     let lucrosAcumuladosPorAno: Record<string, number> = {};
     let lucroAcumuladoTotal = 0;
     
-    // Capital social inicial será calculado dinamicamente baseado nos ativos
-    let capitalSocialInicial = 1000000; // Valor mínimo de R$ 1 milhão
+    // Capital social inicial - sem valor hardcoded
+    let capitalSocialInicial = 0;
     
     anosFiltrados.forEach((ano: string) => {
       // Acumular lucros do DRE
@@ -205,9 +243,40 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       lucrosAcumuladosPorAno[ano] = lucroAcumuladoTotal;
     });
 
+    // Função auxiliar para buscar valor por safraId ou nome do ano
+    const getValorPorAno = (valores: any, safraId: string, ano: string): number => {
+      if (!valores) return 0;
+      
+      // Tentar primeiro por safraId
+      if (valores[safraId]) {
+        return Number(valores[safraId]) || 0;
+      }
+      
+      // Tentar por nome do ano
+      if (valores[ano]) {
+        return Number(valores[ano]) || 0;
+      }
+      
+      // Tentar extrair ano da safra (ex: "2023/24" -> "2023")
+      const anoInicio = ano.split('/')[0];
+      if (valores[anoInicio]) {
+        return Number(valores[anoInicio]) || 0;
+      }
+      
+      return 0;
+    };
+
     // Processar dados para cada ano
     anosFiltrados.forEach((ano: string, index: number) => {
       const safraId = safraNameToId[ano];
+      
+      // Debug para Wilsemar - verificar mapeamento de safras
+      if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && ano === '2023/24') {
+        console.log(`🔍 Debug Safra Mapping para ${ano}:`);
+        console.log('   safraId encontrado:', safraId);
+        console.log('   safraNameToId completo:', safraNameToId);
+        console.log('   anos filtrados:', anosFiltrados);
+      }
       
       // 1. ATIVO CIRCULANTE
       
@@ -218,8 +287,8 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
           .filter((item: any) => item.categoria === "CAIXA_BANCOS")
           .reduce((acc: number, item: any) => {
             const valores = item.valores_por_ano || item.valores_por_safra || {};
-            const valorAno = valores[safraId] || 0;
-            return acc + Number(valorAno);
+            const valorAno = getValorPorAno(valores, safraId, ano);
+            return acc + valorAno;
           }, 0);
       }
 
@@ -233,8 +302,18 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
           .filter((item: any) => item.categoria === "ADIANTAMENTOS")
           .reduce((acc: number, item: any) => {
             const valores = item.valores_por_ano || item.valores_por_safra || {};
-            const valorAno = valores[safraId] || 0;
-            return acc + Number(valorAno);
+            const valorAno = getValorPorAno(valores, safraId, ano);
+            
+            // Debug para Wilsemar - verificar adiantamentos
+            if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && (ano === '2023/24' || ano === '2024/25')) {
+              console.log(`🔍 Debug Adiantamentos para ${ano}:`);
+              console.log('   item.nome:', item.nome);
+              console.log('   item.valores_por_ano:', item.valores_por_ano);
+              console.log('   safraId:', safraId);
+              console.log('   valorAno calculado:', valorAno);
+            }
+            
+            return acc + valorAno;
           }, 0);
       }
 
@@ -250,40 +329,40 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
           .filter((item: any) => item.categoria === "ESTOQUE_DEFENSIVOS")
           .reduce((acc: number, item: any) => {
             const valores = item.valores_por_ano || item.valores_por_safra || {};
-            const valorAno = valores[safraId] || 0;
-            return acc + Number(valorAno);
+            const valorAno = getValorPorAno(valores, safraId, ano);
+            return acc + valorAno;
           }, 0);
         
         estoquesFertilizantesValor = caixaDisponibilidades
           .filter((item: any) => item.categoria === "ESTOQUE_FERTILIZANTES")
           .reduce((acc: number, item: any) => {
             const valores = item.valores_por_ano || item.valores_por_safra || {};
-            const valorAno = valores[safraId] || 0;
-            return acc + Number(valorAno);
+            const valorAno = getValorPorAno(valores, safraId, ano);
+            return acc + valorAno;
           }, 0);
         
         estoquesAlmoxarifadoValor = caixaDisponibilidades
           .filter((item: any) => item.categoria === "ESTOQUE_ALMOXARIFADO")
           .reduce((acc: number, item: any) => {
             const valores = item.valores_por_ano || item.valores_por_safra || {};
-            const valorAno = valores[safraId] || 0;
-            return acc + Number(valorAno);
+            const valorAno = getValorPorAno(valores, safraId, ano);
+            return acc + valorAno;
           }, 0);
           
         estoquesSementesValor = caixaDisponibilidades
           .filter((item: any) => item.categoria === "ESTOQUE_SEMENTES")
           .reduce((acc: number, item: any) => {
             const valores = item.valores_por_ano || item.valores_por_safra || {};
-            const valorAno = valores[safraId] || 0;
-            return acc + Number(valorAno);
+            const valorAno = getValorPorAno(valores, safraId, ano);
+            return acc + valorAno;
           }, 0);
           
         estoquesCommoditiesValor = caixaDisponibilidades
           .filter((item: any) => item.categoria === "ESTOQUE_COMMODITIES")
           .reduce((acc: number, item: any) => {
             const valores = item.valores_por_ano || item.valores_por_safra || {};
-            const valorAno = valores[safraId] || 0;
-            return acc + Number(valorAno);
+            const valorAno = getValorPorAno(valores, safraId, ano);
+            return acc + valorAno;
           }, 0);
       }
 
@@ -297,8 +376,8 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
           .filter((item: any) => item.categoria === "EMPRESTIMOS")
           .reduce((acc: number, item: any) => {
             const valores = item.valores_por_ano || item.valores_por_safra || {};
-            const valorAno = valores[safraId] || 0;
-            return acc + Number(valorAno);
+            const valorAno = getValorPorAno(valores, safraId, ano);
+            return acc + valorAno;
           }, 0);
       }
 
@@ -310,9 +389,15 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
 
       // Investimentos (valor total, não varia por ano)
       let investimentosValor = 0;
-      if (investments && Array.isArray(investments)) {
+      if (investments && investments.data && Array.isArray(investments.data)) {
+        investimentosValor = investments.data.reduce((acc: number, item: any) => {
+          const valorTotal = item.valor_total || (item.quantidade || 0) * (item.valor_unitario || 0);
+          return acc + valorTotal;
+        }, 0);
+      } else if (investments && Array.isArray(investments)) {
+        // Fallback para compatibilidade com versões antigas
         investimentosValor = investments.reduce((acc: number, item: any) => {
-          const valorTotal = (item.quantidade || 0) * (item.valor_unitario || 0);
+          const valorTotal = item.valor_total || (item.quantidade || 0) * (item.valor_unitario || 0);
           return acc + valorTotal;
         }, 0);
       }
@@ -320,13 +405,41 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       // Terras (valor total, não varia por ano)
       let terrasValor = 0;
       if (Array.isArray(properties)) {
-        terrasValor = properties.reduce((acc: number, item: any) => acc + (item.valor_atual || 0), 0);
+        terrasValor = properties.reduce((acc: number, item: any) => {
+          // Usar valor_total ao invés de valor_atual para terras
+          const valor = item.valor_total || item.valor_atual || 0;
+          return acc + valor;
+        }, 0);
       }
 
       // Máquinas e Equipamentos (valor total, não varia por ano)
       let maquinasEquipamentosValor = 0;
-      if (equipments && Array.isArray(equipments)) {
-        maquinasEquipamentosValor = equipments.reduce((acc: number, item: any) => acc + (item.valor_aquisicao || 0), 0);
+      if (equipments && equipments.data && Array.isArray(equipments.data)) {
+        maquinasEquipamentosValor = equipments.data.reduce((acc: number, item: any) => {
+          // Usar valor_total ao invés de valor_aquisicao para máquinas
+          const valor = item.valor_total || item.valor_aquisicao || 0;
+          
+          // Debug para Wilsemar - verificar máquinas
+          if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && ano === '2023/24' && acc === 0) {
+            console.log(`🔍 Debug Máquinas para ${ano}:`);
+            console.log('   Total de equipamentos:', equipments.data.length);
+            console.log('   Exemplo de equipamento:', {
+              equipamento: item.equipamento,
+              valor_total: item.valor_total,
+              valor_unitario: item.valor_unitario,
+              quantidade: item.quantidade,
+              valor_calculado: valor
+            });
+          }
+          
+          return acc + valor;
+        }, 0);
+      } else if (equipments && Array.isArray(equipments)) {
+        // Fallback para compatibilidade com versões antigas
+        maquinasEquipamentosValor = equipments.reduce((acc: number, item: any) => {
+          const valor = item.valor_total || item.valor_aquisicao || 0;
+          return acc + valor;
+        }, 0);
       }
 
       // Benfeitorias (valor total, não varia por ano)
@@ -348,8 +461,8 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       if (suppliers && suppliers.suppliers && Array.isArray(suppliers.suppliers)) {
         fornecedoresValor = suppliers.suppliers.reduce((acc: number, item: any) => {
           const valores = item.valores_por_ano || {};
-          const valorAno = valores[safraId] || 0;
-          return acc + Number(valorAno);
+          const valorAno = getValorPorAno(valores, safraId, ano);
+          return acc + valorAno;
         }, 0);
       }
 
@@ -358,77 +471,79 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       let dividasLongoPrazo = 0;
       let financiamentosTerras = 0;
       
+      // Log para debug
+      if (ano === '2023/24') {
+        console.log('🔍 Debug Dívidas para 2023/24:');
+        console.log('   organizacaoId:', organizacaoId);
+        console.log('   debtPosition disponível:', !!debtPosition);
+        console.log('   debtPosition.dividas:', debtPosition?.dividas);
+        console.log('   debtPosition.indicadores.endividamento_total:', debtPosition?.indicadores?.endividamento_total);
+      }
+      
       if (debtPosition && debtPosition.dividas && Array.isArray(debtPosition.dividas)) {
         debtPosition.dividas.forEach((divida: any) => {
           const valoresPorAno = divida.valores_por_ano || {};
+          const valorAtual = valoresPorAno[ano] || 0; // Usar o nome do ano diretamente
+          
+          // Debug detalhado para cada categoria
+          if (ano === '2023/24' || ano === '2024/25' || ano === '2025/26') {
+            console.log(`     ${divida.categoria} - ${ano}: R$ ${valorAtual.toLocaleString('pt-BR')}`);
+          }
           
           // Para classificar curto vs longo prazo, precisamos olhar o fluxo de pagamento
           // Curto prazo: pagamentos devidos no próximo ano (safra seguinte)
           // Longo prazo: pagamentos devidos após o próximo ano
           
-          if (divida.categoria === "TERRAS") {
-            // Para terras, verificar se há pagamentos no próximo ano
-            const proximoAno = index < anosFiltrados.length - 1 ? anosFiltrados[index + 1] : null;
-            if (proximoAno) {
-              const proximoSafraId = safraNameToId[proximoAno];
-              const valorProximoAno = valoresPorAno[proximoSafraId] || 0;
-              const valorAtual = valoresPorAno[safraId] || 0;
-              
-              // Se há redução no próximo ano, significa pagamento
-              if (valorAtual > valorProximoAno) {
-                const pagamentoCurtoPrazo = valorAtual - valorProximoAno;
-                dividasCurtoPrazo += pagamentoCurtoPrazo;
-                financiamentosTerras += valorProximoAno; // Saldo remanescente é longo prazo
-              } else {
-                financiamentosTerras += valorAtual; // Tudo é longo prazo
-              }
-            } else {
-              // Último ano, considerar tudo como curto prazo
-              dividasCurtoPrazo += valoresPorAno[safraId] || 0;
-            }
-          } else if (divida.categoria === "FORNECEDORES") {
-            // Fornecedores geralmente são curto prazo
-            dividasCurtoPrazo += valoresPorAno[safraId] || 0;
-          } else if (divida.categoria === "BANCOS") {
-            // Para bancos, analisar o fluxo de pagamento
-            const proximoAno = index < anosFiltrados.length - 1 ? anosFiltrados[index + 1] : null;
-            if (proximoAno) {
-              const proximoSafraId = safraNameToId[proximoAno];
-              const valorProximoAno = valoresPorAno[proximoSafraId] || 0;
-              const valorAtual = valoresPorAno[safraId] || 0;
-              
-              // Se há redução no próximo ano, significa pagamento
-              if (valorAtual > valorProximoAno) {
-                const pagamentoCurtoPrazo = valorAtual - valorProximoAno;
-                dividasCurtoPrazo += pagamentoCurtoPrazo;
-                dividasLongoPrazo += valorProximoAno; // Saldo remanescente é longo prazo
-              } else {
-                dividasLongoPrazo += valorAtual; // Tudo é longo prazo se não há pagamento próximo
-              }
-            } else {
-              // Último ano, considerar tudo como curto prazo
-              dividasCurtoPrazo += valoresPorAno[safraId] || 0;
-            }
+          if (divida.categoria === "FORNECEDORES") {
+            // Fornecedores são sempre curto prazo
+            dividasCurtoPrazo += valorAtual;
+          } else if (divida.categoria === "TERRAS") {
+            // Terras são sempre longo prazo (financiamento de terras)
+            financiamentosTerras += valorAtual;
+          } else if (divida.categoria === "ARRENDAMENTO") {
+            // Arrendamentos são passivos não circulantes
+            // Mas não vão em empréstimos, são uma categoria separada
+            // Por enquanto, vamos incluir em longo prazo
+            dividasLongoPrazo += valorAtual;
           } else {
-            // Outras dívidas - aplicar mesma lógica
+            // Para BANCOS, TRADINGS e OUTROS - analisar o fluxo de pagamento
             const proximoAno = index < anosFiltrados.length - 1 ? anosFiltrados[index + 1] : null;
+            
             if (proximoAno) {
-              const proximoSafraId = safraNameToId[proximoAno];
-              const valorProximoAno = valoresPorAno[proximoSafraId] || 0;
-              const valorAtual = valoresPorAno[safraId] || 0;
+              const valorProximoAno = valoresPorAno[proximoAno] || 0;
               
+              // Se há redução significativa no próximo ano, parte é curto prazo
               if (valorAtual > valorProximoAno) {
                 const pagamentoCurtoPrazo = valorAtual - valorProximoAno;
                 dividasCurtoPrazo += pagamentoCurtoPrazo;
                 dividasLongoPrazo += valorProximoAno;
               } else {
-                dividasLongoPrazo += valorAtual;
+                // Se não há redução, assumir 30% curto prazo, 70% longo prazo
+                dividasCurtoPrazo += valorAtual * 0.3;
+                dividasLongoPrazo += valorAtual * 0.7;
               }
             } else {
-              dividasCurtoPrazo += valoresPorAno[safraId] || 0;
+              // Último ano, tudo é curto prazo
+              dividasCurtoPrazo += valorAtual;
             }
           }
         });
+      } else {
+        // Fallback: usar o endividamento total do indicador se disponível
+        if (debtPosition?.indicadores?.endividamento_total?.[ano]) {
+          const endividamentoTotal = debtPosition.indicadores.endividamento_total[ano];
+          // Assumir que 30% é curto prazo e 70% é longo prazo como aproximação
+          dividasCurtoPrazo = endividamentoTotal * 0.3;
+          dividasLongoPrazo = endividamentoTotal * 0.7;
+        }
+      }
+      
+      // Log após processar dívidas
+      if (ano === '2023/24') {
+        console.log('   Dívidas processadas:');
+        console.log('     - Curto prazo:', dividasCurtoPrazo);
+        console.log('     - Longo prazo:', dividasLongoPrazo);
+        console.log('     - Financiamento terras:', financiamentosTerras);
       }
 
       // Arrendamentos
@@ -445,26 +560,17 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       const passivoNaoCirculanteTotal = dividasLongoPrazo + financiamentosTerras + arrendamentosValor;
       const passivoTotal = passivoCirculanteTotal + passivoNaoCirculanteTotal;
 
-      // Ajustar capital social dinamicamente no primeiro ano se necessário
-      if (index === 0) {
-        // Capital social inicial deve ser suficiente para equilibrar o balanço
-        // Considerando que Ativo = Passivo + Patrimônio Líquido
-        const patrimonioNecessario = ativoTotal - passivoTotal;
-        if (patrimonioNecessario > capitalSocialInicial) {
-          // Ajustar capital social para 30% do ativo total
-          capitalSocialInicial = Math.round(ativoTotal * 0.3);
-        }
-      }
+      // Capital social será sempre 0 (sem valores hardcoded)
+      // Cada organização deve ter seus próprios dados no banco de dados
       
       // Patrimônio Líquido calculado com base no DRE
       const lucrosAcumulados = lucrosAcumuladosPorAno[ano] || 0;
       const capitalSocial = capitalSocialInicial;
       
-      // Para balancear o balanço patrimonial, calcular reservas como diferença
-      const patrimonioNecessario = ativoTotal - passivoTotal;
-      const reservas = Math.max(0, patrimonioNecessario - capitalSocial - lucrosAcumulados);
+      // Reservas também devem vir do banco de dados, não calculadas
+      const reservas = 0;
       
-      // O patrimônio líquido total agora equilibra o balanço
+      // O patrimônio líquido será apenas capital social + lucros acumulados
       const patrimonioLiquidoTotal = capitalSocial + lucrosAcumulados + reservas;
       
       // Log para debug
@@ -490,14 +596,31 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       // Usar valores calculados
       const lucrosAcumuladosAjustados = lucrosAcumulados;
       
-      // Log detalhado para ORGANIZAÇÃO TESTE
-      if (organizacaoId === '4a8327ab-d9ae-44a5-9189-bb098bce924b' && ano === '2023/24') {
-        console.log('🔍 Debug Balanço Patrimonial 2023/24:');
+      // Log detalhado para WILSEMAR ELGER
+      if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && ano === '2023/24') {
+        console.log('🔍 Debug Balanço Patrimonial Wilsemar Elger 2023/24:');
+        console.log('   === ATIVO CIRCULANTE ===');
+        console.log('   Caixa e Bancos:', caixaBancosValor);
+        console.log('   Adiantamentos:', adiantamentosFornecedoresValor);
+        console.log('   Estoques Defensivos:', estoquesDefensivosValor);
+        console.log('   Estoques Fertilizantes:', estoquesFertilizantesValor);
+        console.log('   Estoques Commodities:', estoquesCommoditiesValor);
+        console.log('   Estoques Sementes:', estoquesSementesValor);
+        console.log('   Total Ativo Circulante:', ativoCirculanteTotal);
+        console.log('   === ATIVO NÃO CIRCULANTE ===');
         console.log('   Propriedades (terras):', terrasValor);
-        console.log('   Máquinas:', maquinasEquipamentosValor);
+        console.log('   Máquinas e Equipamentos:', maquinasEquipamentosValor);
         console.log('   Benfeitorias:', benfeitoriasValor);
+        console.log('   Investimentos:', investimentosValor);
         console.log('   Imobilizado Total:', imobilizadoTotal);
-        console.log('   ---');
+        console.log('   Total Ativo Não Circulante:', ativoNaoCirculanteTotal);
+        console.log('   === TOTAL DOS ATIVOS ===');
+        console.log('   Total de Ativos:', ativoTotal);
+        console.log('   === PASSIVOS ===');
+        console.log('   Passivo Circulante:', passivoCirculanteTotal);
+        console.log('   Passivo Não Circulante:', passivoNaoCirculanteTotal);
+        console.log('   Total Passivos:', passivoTotal);
+        console.log('   === PATRIMÔNIO LÍQUIDO ===');
         console.log('   Capital Social:', capitalSocial);
         console.log('   Lucros Acumulados:', lucrosAcumulados);
         console.log('   Reservas:', reservas);

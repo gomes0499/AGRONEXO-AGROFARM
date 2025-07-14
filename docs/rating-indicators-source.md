@@ -131,3 +131,11 @@
 - **1**: Crítico
 
 Cada indicador manual deve ter uma descrição clara dos critérios para cada nota, conforme especificado no documento original.
+
+- Adicionar ativo biológico/lavouras em formação em liquidez corrente
+- Revisar periodicamente a escala de EBITDA
+- Informar conceito de dívida estrutural
+
+Desenvolver tabela de % de ativo biológico por cultura (P&S)
+
+(Produtividade Histórica (Média Últimos 5 Anos) vs. Média Regional). Descartar a pior e a melhor produtividade
