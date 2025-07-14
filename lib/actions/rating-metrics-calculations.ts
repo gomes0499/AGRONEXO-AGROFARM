@@ -238,8 +238,23 @@ export async function calculateQuantitativeMetrics(
     // 5. LTV - já vem em porcentagem da posição de dívida
     metrics.LTV = ltv; // Manter em porcentagem (0-100) para comparação com thresholds
     
+    console.log("LTV calculation debug:", {
+      ltv,
+      safraName,
+      ltvFromIndicators: debtPosition.indicadores.ltv[safraName],
+      resultado: metrics.LTV
+    });
+    
     // 6. MARGEM_EBITDA
     metrics.MARGEM_EBITDA = receita > 0 ? (ebitda / receita) * 100 : 0;
+    
+    console.log("MARGEM_EBITDA calculation debug:", {
+      receita,
+      ebitda,
+      safraName,
+      calculoMargemEbitda: receita > 0 ? (ebitda / receita) * 100 : 0,
+      resultado: metrics.MARGEM_EBITDA
+    });
 
     // 7. ENTENDIMENTO_FLUXO_DE_CAIXA (Cash Flow Understanding - qualitative, set to 0)
     metrics.ENTENDIMENTO_FLUXO_DE_CAIXA = 0;

@@ -199,7 +199,7 @@ function formatMetricValue(code: string, value: number): string {
     'DIVIDA_EBITDA': (v) => (v || 0).toFixed(2) + 'x',
     'DIVIDA_FATURAMENTO': (v) => ((v || 0) * 100).toFixed(1) + '%',
     'DIVIDA_PATRIMONIO_LIQUIDO': (v) => ((v || 0) * 100).toFixed(1) + '%',
-    'LTV': (v) => ((v || 0) * 100).toFixed(1) + '%',
+    'LTV': (v) => (v || 0).toFixed(1) + '%', // LTV já vem em porcentagem do banco
     'MARGEM_EBITDA': (v) => (v || 0).toFixed(1) + '%',
   };
   
