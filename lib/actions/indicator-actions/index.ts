@@ -59,7 +59,23 @@ export {
 };
 
 // Função utilitária para obter o nível do indicador (client-side)
-export async function getIndicatorLevelClient(value: number, thresholds: IndicatorThreshold[]) {
+export async function getIndicatorLevelClient(value: number, thresholds: IndicatorThreshold[], indicatorType?: string) {
+  // Special handling for debt/EBITDA indicators with negative values
+  // A negative debt/EBITDA ratio means negative EBITDA, which is a critical situation
+  if (indicatorType && (indicatorType === 'DIVIDA_EBITDA' || indicatorType.includes('EBITDA')) && value < 0) {
+    // Return the most critical threshold (usually the first one with lowest score)
+    const criticalThreshold = thresholds.find(t => 
+      t.level === 'THRESHOLD' as any || t.level === 'LIMITE_CRITICO' as any || t.level === 'CRITICO' as any
+    );
+    
+    if (criticalThreshold) {
+      return criticalThreshold;
+    }
+    
+    // If no critical threshold found, return the first threshold (worst case)
+    return thresholds[0] || null;
+  }
+  
   for (const threshold of thresholds) {
     const min = threshold.min;
     const max = threshold.max;

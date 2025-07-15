@@ -22,9 +22,9 @@ export async function forceRefreshDebtMetrics(organizationId: string) {
 
     console.log("🔥 FORCE REFRESH - Resultado direto do banco:", {
       organizacao_id: organizationId,
-      total_consolidado_brl: data.total_consolidado_brl,
-      taxa_cambio: data.taxa_cambio,
-      quantidade_contratos: data.quantidade_contratos
+      total_consolidado_brl: (data as any).total_consolidado_brl,
+      taxa_cambio: (data as any).taxa_cambio,
+      quantidade_contratos: (data as any).quantidade_contratos
     });
 
     return data;

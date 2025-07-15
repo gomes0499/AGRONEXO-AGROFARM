@@ -1,6 +1,24 @@
 import jsPDF from 'jspdf';
 import { getRatingFromScore } from '@/schemas/rating';
 
+// Formulas for quantitative metrics
+const METRIC_FORMULAS: Record<string, string> = {
+  AREA_PROPRIA: "Área Própria / Área Total",
+  DIVIDA_EBITDA: "Dívida Estrutural* / EBITDA",
+  DIVIDA_FATURAMENTO: "Dívida Total / Receita",
+  LIQUIDEZ_CORRENTE: "(Caixa + Ativo Biológico) / Passivos Circulantes",
+  DIVIDA_PATRIMONIO_LIQUIDO: "Dívida Total / Patrimônio Líquido",
+  LTV: "(Dívida Total - Caixa) / Valor dos Ativos",
+  CULTURAS_CORE: "Receita Culturas Core / Receita Total",
+  MARGEM_EBITDA: "(EBITDA / Receita) × 100",
+  TENDENCIA_PRODUTIVIDADE_5_ANOS: "Média de variação de produtividade últimos 5 anos"
+};
+
+// Detailed descriptions for metrics
+const METRIC_DESCRIPTIONS: Record<string, string> = {
+  DIVIDA_EBITDA: "*Dívida Estrutural = Ativos Operacionais - Passivos Operacionais\n  • Ativos Operacionais: Caixa, Clientes, Estoque, Adiantamentos, Ativo Biológico\n  • Passivos Operacionais: Bancos + Terras, Fornecedores, Adiantamentos\n\nIdeal que seja negativa ou muito baixa. Dívida estrutural positiva é necessário entender o motivo.\nFormas de ter dívida estrutural positiva: Investimentos, Prejuízo, Empréstimos para atividades fora produção"
+};
+
 export async function generateRatingPDF(calculation: any, organizationName: string): Promise<Buffer> {
   try {
     const doc = new jsPDF();
@@ -31,34 +49,49 @@ export async function generateRatingPDF(calculation: any, organizationName: stri
     doc.text(organizationName, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 15;
 
+    // Split description to separate probability text
+    const fullDescription = rating.descricao;
+    const descParts = fullDescription.split('Probabilidade de default:');
+    const mainDescription = descParts[0].trim();
+    const probabilityText = descParts[1] ? `Probabilidade de default: ${descParts[1].trim()}` : '';
+    
+    // Fixed box height
+    const boxHeight = 60;
+    
     // Rating Summary Box
     doc.setFillColor(240, 240, 240);
-    doc.rect(margin, yPosition, pageWidth - 2 * margin, 40, 'F');
+    doc.rect(margin, yPosition, pageWidth - 2 * margin, boxHeight, 'F');
     
     // Rating Letter with color
     const rgbColor = hexToRgb(rating.cor);
     doc.setTextColor(rgbColor.r, rgbColor.g, rgbColor.b);
     doc.setFontSize(36);
-    doc.text(calculation.rating_letra, margin + 10, yPosition + 25);
+    doc.text(calculation.rating_letra, margin + 10, yPosition + 28);
     
-    // Score and description
+    // Score
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(18);
-    doc.text(`${calculation.pontuacao_total.toFixed(1)} pontos`, margin + 60, yPosition + 15);
-    doc.setFontSize(12);
+    doc.text(`${calculation.pontuacao_total.toFixed(1)} pontos`, margin + 60, yPosition + 18);
     
-    // Add text wrapping for description
-    const maxWidth = pageWidth - margin - 60 - margin; // Available width for text
-    const splitDescription = doc.splitTextToSize(rating.descricao, maxWidth);
-    doc.text(splitDescription, margin + 60, yPosition + 25);
-    
-    // Date and info
+    // Main description - primeira linha
     doc.setFontSize(10);
-    doc.text(`Data: ${new Date(calculation.data_calculo).toLocaleDateString('pt-BR')}`, margin + 10, yPosition + 35);
-    doc.text(`Safra: ${detalhes.safra || ''}`, margin + 80, yPosition + 35);
-    doc.text(`Cenário: ${detalhes.scenario || 'Base'}`, margin + 140, yPosition + 35);
+    const maxDescWidth = pageWidth - margin - 60 - margin;
+    const splitMainDesc = doc.splitTextToSize(mainDescription, maxDescWidth);
+    doc.text(splitMainDesc[0] || mainDescription, margin + 60, yPosition + 28);
     
-    yPosition += 50;
+    // Probability text - segunda linha
+    if (probabilityText) {
+      doc.setFontSize(10);
+      doc.text(probabilityText, margin + 60, yPosition + 38);
+    }
+    
+    // Date and info - na parte inferior
+    doc.setFontSize(9);
+    const bottomY = yPosition + boxHeight - 8;
+    doc.text(`Data: ${new Date(calculation.data_calculo).toLocaleDateString('pt-BR')}`, margin + 10, bottomY);
+    doc.text(`Cenário: ${detalhes.scenario || 'Base'}`, pageWidth - margin - 50, bottomY);
+    
+    yPosition += boxHeight + 10;
 
     // Analysis Summary
     doc.setFontSize(14);
@@ -100,6 +133,30 @@ export async function generateRatingPDF(calculation: any, organizationName: stri
         
         doc.text(metricText, margin, yPosition);
         doc.text(scoreText, pageWidth - margin - 40, yPosition);
+        
+        // Add formula if available
+        if (METRIC_FORMULAS[metric.codigo]) {
+          yPosition += lineHeight - 2;
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`   Fórmula: ${METRIC_FORMULAS[metric.codigo]}`, margin, yPosition);
+          
+          // Add description if available
+          if (METRIC_DESCRIPTIONS[metric.codigo]) {
+            const descLines = doc.splitTextToSize(METRIC_DESCRIPTIONS[metric.codigo], pageWidth - 2 * margin - 10);
+            yPosition += lineHeight - 2;
+            doc.setFontSize(7);
+            descLines.forEach((line: string) => {
+              doc.text(`   ${line}`, margin, yPosition);
+              yPosition += 4;
+            });
+            yPosition -= lineHeight; // Adjust back since we'll add lineHeight at the end
+          }
+          
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(9);
+        }
+        
         yPosition += lineHeight;
       });
       yPosition += 10;
@@ -130,6 +187,17 @@ export async function generateRatingPDF(calculation: any, organizationName: stri
         
         doc.text(metricText, margin, yPosition);
         doc.text(scoreText, pageWidth - margin - 40, yPosition);
+        
+        // Add selected option if available
+        if (metric.selected_option) {
+          yPosition += lineHeight - 2;
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`   ${metric.nota} - ${metric.selected_option}`, margin, yPosition);
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(9);
+        }
+        
         yPosition += lineHeight;
       });
     }

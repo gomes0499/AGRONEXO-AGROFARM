@@ -121,8 +121,6 @@ export function RatingSection() {
               onClose={() => {
                 setShowRatingResult(false);
                 setRatingResult(null);
-                // Após fechar o modal, navegar para o histórico
-                router.push("/dashboard/indicators?tab=history");
               }}
               organizationName={organization.nome}
             />

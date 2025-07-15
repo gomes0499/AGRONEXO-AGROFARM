@@ -14,6 +14,7 @@ import { ChartColorsProvider } from "@/contexts/chart-colors-context";
 import { ChartColorsLoader } from "@/components/dashboard/chart-colors-loader";
 import { MobileNav, MobileNavPadding } from "@/components/ui/mobile-nav";
 import { ChartColors } from "@/lib/constants/chart-colors";
+import { CepeaDataLoader } from "@/components/dashboard/cepea-data-loader";
 
 interface DashboardProvidersWrapperProps {
   user: any;
@@ -21,6 +22,31 @@ interface DashboardProvidersWrapperProps {
   commercialPrices: any;
   children: React.ReactNode;
   chartColors?: ChartColors;
+}
+
+function DashboardContent({ commercialPrices, children }: { commercialPrices: any; children: React.ReactNode }) {
+  const { isLoading, message } = useScenarioLoading();
+  
+  return (
+    <>
+      <SidebarProvider>
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <DashboardTickers commercialPrices={commercialPrices} />
+          <CepeaDataLoader />
+          <div className="flex flex-col overflow-x-hidden">
+            <MobileNavPadding>
+              <div className="overflow-x-hidden">
+                {children}
+              </div>
+            </MobileNavPadding>
+          </div>
+          <MobileNav />
+        </SidebarInset>
+      </SidebarProvider>
+      <ScenarioLoadingOverlay isLoading={isLoading} message={message} />
+    </>
+  );
 }
 
 export default function DashboardProvidersWrapper({
@@ -31,7 +57,6 @@ export default function DashboardProvidersWrapper({
   chartColors
 }: DashboardProvidersWrapperProps) {
   const organizationId = organization?.id || "";
-  const { isLoading, message } = useScenarioLoading();
   
   return (
     <UserProvider user={user}>
@@ -39,21 +64,9 @@ export default function DashboardProvidersWrapper({
         <DashboardProvider commercialPrices={commercialPrices}>
           <ChartColorsProvider initialColors={chartColors}>
             <ProductionScenarioProvider organizationId={organizationId}>
-              <SidebarProvider>
-                <AppSidebar variant="inset" />
-                <SidebarInset>
-                  <div className="flex flex-col overflow-x-hidden">
-                    <DashboardTickers commercialPrices={commercialPrices} />
-                    <MobileNavPadding>
-                      <div className="overflow-x-hidden">
-                        {children}
-                      </div>
-                    </MobileNavPadding>
-                  </div>
-                  <MobileNav />
-                </SidebarInset>
-              </SidebarProvider>
-              <ScenarioLoadingOverlay isLoading={isLoading} message={message} />
+              <DashboardContent commercialPrices={commercialPrices}>
+                {children}
+              </DashboardContent>
             </ProductionScenarioProvider>
           </ChartColorsProvider>
         </DashboardProvider>

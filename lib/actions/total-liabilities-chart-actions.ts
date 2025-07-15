@@ -148,7 +148,7 @@ export async function getTotalLiabilitiesChartData(
 
     // Buscar o total consolidado de dívidas bancárias (BANCO + TRADING + OUTROS)
     const totalBancosConsolidado = await getTotalDividasBancariasConsolidado(organizationId, projectionId);
-    const totalBancosTodos = totalBancosConsolidado.total_consolidado_brl || 0;
+    const totalBancosTodos = (totalBancosConsolidado as any).total_consolidado_brl || 0;
 
     // Calcular total de dívidas de terras
     let totalTerras = 0;

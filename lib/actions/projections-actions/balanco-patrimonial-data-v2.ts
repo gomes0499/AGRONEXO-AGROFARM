@@ -78,10 +78,10 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       console.log('🔍 Debug Propriedades:');
       console.log('   Total de propriedades:', properties?.length);
       console.log('   Equipments estrutura:', equipments);
-      console.log('   Total de equipamentos:', equipments?.data?.length || equipments?.length || 0);
+      console.log('   Total de equipamentos:', 'data' in equipments ? equipments.data?.length : ('length' in equipments ? equipments.length : 0));
       console.log('   Total de benfeitorias:', improvements?.length);
       console.log('   Investments estrutura:', investments);
-      console.log('   Total de investimentos:', investments?.data?.length || investments?.length || 0);
+      console.log('   Total de investimentos:', 'data' in investments ? investments.data?.length : ('length' in investments ? investments.length : 0));
       
       // Debug safras
       console.log('🔍 Debug Safras:');
@@ -389,12 +389,12 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
 
       // Investimentos (valor total, não varia por ano)
       let investimentosValor = 0;
-      if (investments && investments.data && Array.isArray(investments.data)) {
+      if (investments && 'data' in investments && Array.isArray(investments.data)) {
         investimentosValor = investments.data.reduce((acc: number, item: any) => {
           const valorTotal = item.valor_total || (item.quantidade || 0) * (item.valor_unitario || 0);
           return acc + valorTotal;
         }, 0);
-      } else if (investments && Array.isArray(investments)) {
+      } else if (investments && !('data' in investments) && Array.isArray(investments)) {
         // Fallback para compatibilidade com versões antigas
         investimentosValor = investments.reduce((acc: number, item: any) => {
           const valorTotal = item.valor_total || (item.quantidade || 0) * (item.valor_unitario || 0);
@@ -414,7 +414,7 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
 
       // Máquinas e Equipamentos (valor total, não varia por ano)
       let maquinasEquipamentosValor = 0;
-      if (equipments && equipments.data && Array.isArray(equipments.data)) {
+      if (equipments && 'data' in equipments && Array.isArray(equipments.data)) {
         maquinasEquipamentosValor = equipments.data.reduce((acc: number, item: any) => {
           // Usar valor_total ao invés de valor_aquisicao para máquinas
           const valor = item.valor_total || item.valor_aquisicao || 0;
@@ -422,7 +422,7 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
           // Debug para Wilsemar - verificar máquinas
           if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && ano === '2023/24' && acc === 0) {
             console.log(`🔍 Debug Máquinas para ${ano}:`);
-            console.log('   Total de equipamentos:', equipments.data.length);
+            console.log('   Total de equipamentos:', 'data' in equipments ? equipments.data?.length : 0);
             console.log('   Exemplo de equipamento:', {
               equipamento: item.equipamento,
               valor_total: item.valor_total,
@@ -434,7 +434,7 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
           
           return acc + valor;
         }, 0);
-      } else if (equipments && Array.isArray(equipments)) {
+      } else if (equipments && !('data' in equipments) && Array.isArray(equipments)) {
         // Fallback para compatibilidade com versões antigas
         maquinasEquipamentosValor = equipments.reduce((acc: number, item: any) => {
           const valor = item.valor_total || item.valor_aquisicao || 0;

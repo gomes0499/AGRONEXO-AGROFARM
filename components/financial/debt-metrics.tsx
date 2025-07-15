@@ -171,7 +171,7 @@ export function DebtMetrics({
 
         // Usar a mesma função consolidada do fluxo de caixa
         const totalBancariasConsolidado = await getTotalDividasBancariasConsolidado(organizationId);
-        const totalBancarias = totalBancariasConsolidado.total_consolidado_brl || 0;
+        const totalBancarias = (totalBancariasConsolidado as any).total_consolidado_brl || 0;
 
     // Calcular total de dívidas de terras (em BRL)
     const totalTerras = dividasTerras.reduce((sum, divida) => {

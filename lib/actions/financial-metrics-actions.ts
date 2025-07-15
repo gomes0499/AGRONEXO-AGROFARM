@@ -219,9 +219,10 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
     if (dividaReceita === 0 && receita > 0) {
       const totalDividasAtual = dividaBancariaValor + outrosPassivosValor;
       dividaReceita = totalDividasAtual / receita;
-      dividaEbitda = ebitda > 0 ? totalDividasAtual / ebitda : 0;
+      // Calculate ratio even when EBITDA is negative to show true financial situation
+      dividaEbitda = ebitda !== 0 ? totalDividasAtual / ebitda : 0;
       dividaLiquidaReceita = receita > 0 ? dividaLiquidaAtual / receita : 0;
-      dividaLiquidaEbitda = ebitda > 0 ? dividaLiquidaAtual / ebitda : 0;
+      dividaLiquidaEbitda = ebitda !== 0 ? dividaLiquidaAtual / ebitda : 0;
     }
     
     // Calcular prazo médio ponderado das dívidas

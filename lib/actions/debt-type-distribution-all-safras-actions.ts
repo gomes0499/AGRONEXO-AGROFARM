@@ -65,7 +65,7 @@ export async function getDebtTypeDistributionAllSafrasData(
     if (totalSemConversao > 0) {
       Object.keys(totalPorModalidade).forEach(modalidade => {
         const proporcao = totalPorModalidadeSemConversao[modalidade] / totalSemConversao;
-        totalPorModalidade[modalidade] = totalConsolidado.total_consolidado_brl * proporcao;
+        totalPorModalidade[modalidade] = (totalConsolidado as any).total_consolidado_brl * proporcao;
       });
     }
 

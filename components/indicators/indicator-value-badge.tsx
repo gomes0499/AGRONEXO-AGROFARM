@@ -13,6 +13,7 @@ type IndicatorValueBadgeProps = {
   suffix?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
+  indicatorType?: string;
 };
 
 export function IndicatorValueBadge({
@@ -23,18 +24,19 @@ export function IndicatorValueBadge({
   suffix = "",
   size = "md",
   className,
+  indicatorType,
 }: IndicatorValueBadgeProps) {
   const [threshold, setThreshold] = useState<IndicatorThreshold | null>(null);
   
   // Obter o nível do indicador com base no valor usando useEffect para lidar com a Promise
   useEffect(() => {
     const fetchThreshold = async () => {
-      const result = await getIndicatorLevelClient(value, thresholds);
+      const result = await getIndicatorLevelClient(value, thresholds, indicatorType);
       setThreshold(result);
     };
     
     fetchThreshold();
-  }, [value, thresholds]);
+  }, [value, thresholds, indicatorType]);
   
   if (!threshold) {
     return null;

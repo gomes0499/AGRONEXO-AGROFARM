@@ -125,13 +125,15 @@ export async function getFinancialHistoricalMetricData(
             valor = receita > 0 ? dividaTotal / receita : 0;
             break;
           case 'dividaEbitda':
-            valor = ebitda > 0 ? dividaTotal / ebitda : 0;
+            // Calculate ratio even when EBITDA is negative to show true financial situation
+            valor = ebitda !== 0 ? dividaTotal / ebitda : 0;
             break;
           case 'dividaLiquidaReceita':
             valor = receita > 0 ? dividaLiquida / receita : 0;
             break;
           case 'dividaLiquidaEbitda':
-            valor = ebitda > 0 ? dividaLiquida / ebitda : 0;
+            // Calculate ratio even when EBITDA is negative to show true financial situation
+            valor = ebitda !== 0 ? dividaLiquida / ebitda : 0;
             break;
           default:
             valor = 0;

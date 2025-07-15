@@ -239,6 +239,22 @@ export function FinancialKpiCards({
       return null;
     }
     
+    // Special handling for debt/EBITDA indicators with negative values
+    // A negative debt/EBITDA ratio means negative EBITDA, which is a critical situation
+    if ((indicatorType === 'DIVIDA_EBITDA' || indicatorType.includes('EBITDA')) && value < 0) {
+      // Return the most critical threshold (usually the first one with lowest score)
+      const criticalThreshold = configs.find(t => 
+        t.level === 'THRESHOLD' || t.level === 'LIMITE_CRITICO' || t.level === 'CRITICO'
+      );
+      
+      if (criticalThreshold) {
+        return criticalThreshold;
+      }
+      
+      // If no critical threshold found, return the first threshold (worst case)
+      return configs[0] || null;
+    }
+    
     // Find the matching threshold
     for (const threshold of configs) {
       const min = threshold.min;
@@ -267,14 +283,14 @@ export function FinancialKpiCards({
     if (!data?.metrics || typeof data.metrics !== 'object') {
       console.log("❌ No metrics data available, returning zeros");
       return {
-        dividaBancaria: { value: "R$ 0", change: "0%", changeType: "neutral" as const },
-        outrosPassivos: { value: "R$ 0", change: "0%", changeType: "neutral" as const },
-        dividaLiquida: { value: "R$ 0", change: "0%", changeType: "neutral" as const },
-        prazoMedio: { value: "0 anos", change: "0 anos", changeType: "neutral" as const },
-        dividaLiquidaEbitda: { value: "0.0x", change: "--", changeType: "neutral" as const },
-        dividaEbitda: { value: "0.0x", change: "--", changeType: "neutral" as const },
-        dividaReceita: { value: "0.0x", change: "--", changeType: "neutral" as const },
-        dividaLiquidaReceita: { value: "0.0x", change: "--", changeType: "neutral" as const },
+        dividaBancaria: { value: "R$ 0", change: "0%", changeType: "neutral" as const, thresholdInfo: null },
+        outrosPassivos: { value: "R$ 0", change: "0%", changeType: "neutral" as const, thresholdInfo: null },
+        dividaLiquida: { value: "R$ 0", change: "0%", changeType: "neutral" as const, thresholdInfo: null },
+        prazoMedio: { value: "0 anos", change: "0 anos", changeType: "neutral" as const, thresholdInfo: null },
+        dividaLiquidaEbitda: { value: "0.0x", change: "--", changeType: "neutral" as const, thresholdInfo: null },
+        dividaEbitda: { value: "0.0x", change: "--", changeType: "neutral" as const, thresholdInfo: null },
+        dividaReceita: { value: "0.0x", change: "--", changeType: "neutral" as const, thresholdInfo: null },
+        dividaLiquidaReceita: { value: "0.0x", change: "--", changeType: "neutral" as const, thresholdInfo: null },
         indicadores: {
           dividaReceita: 0,
           dividaEbitda: 0,
@@ -319,24 +335,30 @@ export function FinancialKpiCards({
         value: formatMilhoes(safeMetric(m.dividaBancaria, 'valorAtual')),
         change: `${safeMetric(m.dividaBancaria, 'percentualMudanca').toFixed(1)}%`,
         changeType: getDividaChangeType(safeMetric(m.dividaBancaria, 'percentualMudanca')),
+        thresholdInfo: null,
       },
       outrosPassivos: {
         value: formatMilhoes(safeMetric(m.outrosPassivos, 'valorAtual')),
         change: `${safeMetric(m.outrosPassivos, 'percentualMudanca').toFixed(1)}%`,
         changeType: getDividaChangeType(safeMetric(m.outrosPassivos, 'percentualMudanca')),
+        thresholdInfo: null,
       },
       dividaLiquida: {
         value: formatMilhoes(safeMetric(m.dividaLiquida, 'valorAtual')),
         change: `${safeMetric(m.dividaLiquida, 'percentualMudanca').toFixed(1)}%`,
         changeType: getDividaChangeType(safeMetric(m.dividaLiquida, 'percentualMudanca')),
+        thresholdInfo: null,
       },
       prazoMedio: {
         value: formatAnos(safeMetric(m.prazoMedio, 'valorAtual')),
         change: `${safeMetric(m.prazoMedio, 'diferenca').toFixed(1)} anos`,
         changeType: getDividaChangeType(safeMetric(m.prazoMedio, 'diferenca')),
+        thresholdInfo: null,
       },
       dividaEbitda: {
-        value: m.indicadores.dividaEbitda === 0 ? "N/A" : formatRatio(m.indicadores.dividaEbitda),
+        value: m.indicadores.dividaEbitda === 0 ? "N/A" : 
+               m.indicadores.dividaEbitda < 0 ? formatRatio(Math.abs(m.indicadores.dividaEbitda)) : 
+               formatRatio(m.indicadores.dividaEbitda),
         change: "--",
         changeType: getIndicatorChangeType(
           m.indicadores.dividaEbitda,
@@ -356,7 +378,9 @@ export function FinancialKpiCards({
         thresholdInfo: getThresholdInfo(m.indicadores.dividaReceita, 'DIVIDA_FATURAMENTO'),
       },
       dividaLiquidaEbitda: {
-        value: m.indicadores.dividaLiquidaEbitda === 0 ? "N/A" : formatRatio(m.indicadores.dividaLiquidaEbitda),
+        value: m.indicadores.dividaLiquidaEbitda === 0 ? "N/A" : 
+               m.indicadores.dividaLiquidaEbitda < 0 ? formatRatio(Math.abs(m.indicadores.dividaLiquidaEbitda)) : 
+               formatRatio(m.indicadores.dividaLiquidaEbitda),
         change: "--",
         changeType: getIndicatorChangeType(
           m.indicadores.dividaLiquidaEbitda,

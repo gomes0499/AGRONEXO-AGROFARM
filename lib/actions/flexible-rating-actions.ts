@@ -18,7 +18,6 @@ import type {
 } from "@/schemas/rating";
 import { getRatingFromScore } from "@/schemas/rating";
 import { calculateQuantitativeMetrics } from "./rating-metrics-calculations";
-import { saveRatingHistory } from "./rating-history-actions";
 
 // Helper functions
 async function getSafraName(supabase: any, safraId: string): Promise<string> {
@@ -403,6 +402,9 @@ export async function getQualitativeMetricValues(
   
   if (safraId) {
     query = query.eq("safra_id", safraId);
+  } else {
+    // For legacy data without safra_id
+    query = query.is("safra_id", null);
   }
 
   const { data, error } = await query.order("data_avaliacao", { ascending: false });
@@ -513,6 +515,11 @@ export async function calculateRating(
       let metricScore = 0;
       const metricWeight = metric.peso || 1;
       
+      // Debug: Check if score_criteria exists
+      if (metric.tipo === 'QUALITATIVE' && metric.codigo === 'ROTACAO_CULTURAS') {
+        console.log(`🔍 [DEBUG] ${metric.codigo} score_criteria:`, (metric as any).score_criteria);
+      }
+      
       if (metric.tipo === 'QUANTITATIVE') {
         // Get calculated value from TypeScript calculations
         metricValue = quantitativeMetrics[metric.codigo] || 0;
@@ -523,16 +530,22 @@ export async function calculateRating(
         
         console.log(`📊 [${metric.codigo}] Quantitativa: valor=${metricValue}, score=${metricScore}, peso=${metricWeight}`);
       } else {
-        // For qualitative metrics, get user evaluations
-        const qualitativeValues = await getQualitativeMetricValues(actualOrgId, metric.id);
-        if (qualitativeValues.length > 0) {
-          metricValue = qualitativeValues[0].valor;
-          // For qualitative metrics, the score needs to be calculated based on the value
-          // The valor field contains the score directly for qualitative metrics
-          metricScore = qualitativeValues[0].valor;
-          console.log(`📊 [${metric.codigo}] Qualitativa: valor=${metricValue}, score=${metricScore}, peso=${metricWeight}`);
+        // For qualitative metrics, get user evaluations from rating_manual_evaluations
+        const { data: manualEvaluations } = await supabase
+          .from("rating_manual_evaluations")
+          .select("*")
+          .eq("organizacao_id", actualOrgId)
+          .eq("metric_code", metric.codigo)
+          .eq("safra_id", safraId)
+          .single();
+        
+        if (manualEvaluations) {
+          metricValue = manualEvaluations.score;
+          // Convert score (1-5) to percentage (20-100)
+          metricScore = manualEvaluations.score * 20;
+          console.log(`📊 [${metric.codigo}] Qualitativa: valor=${metricValue}, score=${metricScore}, peso=${metricWeight}, safraId=${safraId}`);
         } else {
-          console.log(`⚠️ [${metric.codigo}] Qualitativa não avaliada, score=0`);
+          console.log(`⚠️ [${metric.codigo}] Qualitativa não avaliada para safra ${safraId}, score=0`);
         }
       }
       
@@ -549,7 +562,10 @@ export async function calculateRating(
         valor: metricValue,
         nota: metric.tipo === 'QUALITATIVE' ? metricValue : null,
         pontuacao: metricScore,
-        contribuicao: contribution
+        contribuicao: contribution,
+        score_criteria: (metric as any).score_criteria || null,
+        selected_option: metric.tipo === 'QUALITATIVE' && (metric as any).score_criteria && metricValue ? 
+          (metric as any).score_criteria[metricValue.toString()] : null
       });
     }
     
@@ -611,25 +627,7 @@ export async function calculateRating(
       console.error("Error saving calculation:", saveError);
     }
 
-    // Save to rating history
-    if (savedCalc?.id) {
-      try {
-        await saveRatingHistory({
-          organizationId: actualOrgId,
-          ratingCalculationId: savedCalc.id,
-          safraId: safraId!,
-          scenarioId: scenarioId || null,
-          modeloId: modelId,
-          ratingLetra: savedCalc.rating_letra,
-          pontuacaoTotal: savedCalc.pontuacao_total,
-          pdfFileName: `rating_${savedCalc.rating_letra}_${new Date().toISOString().split('T')[0]}.pdf`,
-          pdfFileSize: 0, // Will be updated when PDF is generated
-        });
-        console.log("Rating history saved after calculation");
-      } catch (historyError) {
-        console.error("Error saving rating history:", historyError);
-      }
-    }
+    // Rating history removed - users will generate and export PDF when needed
 
     return savedCalc || {
       id: '',
@@ -740,25 +738,7 @@ export async function calculateRating(
     throw new Error("Erro ao salvar cálculo de rating");
   }
 
-  // Save to rating history for non-SR/Prime models
-  if (data?.id && safraId) {
-    try {
-      await saveRatingHistory({
-        organizationId: actualOrgId,
-        ratingCalculationId: data.id,
-        safraId: safraId,
-        scenarioId: scenarioId || null,
-        modeloId: modelId,
-        ratingLetra: data.rating_letra,
-        pontuacaoTotal: data.pontuacao_total,
-        pdfFileName: `rating_${data.rating_letra}_${new Date().toISOString().split('T')[0]}.pdf`,
-        pdfFileSize: 0, // Will be updated when PDF is generated
-      });
-      console.log("Rating history saved after calculation (non-SR/Prime)");
-    } catch (historyError) {
-      console.error("Error saving rating history:", historyError);
-    }
-  }
+  // Rating history removed - users will generate and export PDF when needed
 
   revalidatePath("/dashboard/indicators");
   return data;

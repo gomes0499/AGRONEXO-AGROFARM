@@ -230,7 +230,8 @@ export async function calculateRating(
               valor = financialData.liquidezCorrente;
               break;
             case 'DIVIDA_EBITDA':
-              valor = financialData.ebitda > 0 ? financialData.dividaTotal / financialData.ebitda : 999;
+              // Calculate ratio even when EBITDA is negative to show true financial situation
+              valor = financialData.ebitda !== 0 ? financialData.dividaTotal / financialData.ebitda : (financialData.dividaTotal > 0 ? 999 : 0);
               break;
             case 'DIVIDA_FATURAMENTO':
               valor = financialData.faturamento > 0 ? financialData.dividaTotal / financialData.faturamento : 999;

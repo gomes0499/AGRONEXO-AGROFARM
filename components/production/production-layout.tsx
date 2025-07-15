@@ -16,7 +16,7 @@ export function ProductionLayout({
   commercialPrices 
 }: ProductionLayoutProps) {
   return (
-    <>
+    <div className="flex flex-col w-full">
       <DashboardTickers 
         commercialPrices={commercialPrices}
         rightContent={
@@ -27,6 +27,6 @@ export function ProductionLayout({
         }
       />
       {children}
-    </>
+    </div>
   );
 }

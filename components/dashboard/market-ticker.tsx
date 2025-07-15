@@ -13,25 +13,7 @@ interface TickerItem {
   code: string;
 }
 
-// Interface para dados do CEPEA
-interface CepeaWidgetData {
-  produto: string;
-  valor: number;
-  data: string;
-  unidade: string;
-}
 
-// Configuração dos indicadores CEPEA (IDs do widget oficial)
-const CEPEA_INDICATORS = [
-  { id: 54, name: "Algodão", unit: "R$/@" },
-  { id: 91, name: "Trigo", unit: "R$/sc" },
-  { id: 2, name: "Boi Gordo", unit: "R$/@" },
-  { id: 23, name: "Soja ESALQ/PR", unit: "R$/sc" },
-  { id: "381-56", name: "Feijão", unit: "R$/sc" },
-  { id: 77, name: "Milho", unit: "R$/sc" },
-  { id: 178, name: "Suíno", unit: "R$/kg" },
-  { id: 12, name: "Soja Paranaguá", unit: "R$/sc" },
-];
 
 interface MarketTickerProps {
   commercialPrices?: {
@@ -54,165 +36,23 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
   const [tickerData, setTickerData] = useState<TickerItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [cepeaData, setCepeaData] = useState<CepeaWidgetData[]>([]);
-  const cepeaLoaded = useRef(false);
 
-  // Configuração para o widget do CEPEA
-  useEffect(() => {
-    // Função para receber dados do widget do CEPEA
-    // Esta função será chamada pelo script do CEPEA
-    window.onCepeaWidgetData = (data: CepeaWidgetData[]) => {
-      console.log("Dados recebidos do CEPEA:", data);
-      setCepeaData(data);
-      cepeaLoaded.current = true;
-    };
 
-    // Função alternativa para capturar dados do CEPEA
-    // Alguns widgets usam window.cepeaData ao invés de callback
-    // Aumentando o intervalo para 5 segundos para evitar polling excessivo
-    const checkCepeaData = setInterval(() => {
-      if ((window as any).cepeaData && !cepeaLoaded.current) {
-        console.log("Dados CEPEA encontrados em window.cepeaData:", (window as any).cepeaData);
-        setCepeaData((window as any).cepeaData);
-        cepeaLoaded.current = true;
-        clearInterval(checkCepeaData);
-      }
-    }, 5000); // Mudado de 1000ms para 5000ms
-    
-    // Timeout para parar de verificar após 30 segundos
-    setTimeout(() => {
-      clearInterval(checkCepeaData);
-    }, 30000);
-
-    return () => {
-      // Limpar a função quando o componente for desmontado
-      // Usar undefined em vez de delete para evitar erros de TypeScript
-      window.onCepeaWidgetData = undefined as any;
-      clearInterval(checkCepeaData);
-    };
-  }, []);
-
-  // Função para buscar dados do CEPEA
-  const fetchCepeaData = async (): Promise<TickerItem[]> => {
-    try {
-      // Se temos dados do widget CEPEA, usamos eles
-      if (cepeaLoaded.current && cepeaData.length > 0) {
-        return cepeaData.map((item) => {
-          // Extrair o nome do produto e limpar (Ex: "Soja - PR" -> "Soja")
-          const nameParts = item.produto.split("-");
-          const cleanName = nameParts[0].trim();
-
-          // Procurar a unidade na configuração
-          const indicatorConfig = CEPEA_INDICATORS.find((indicator) => {
-            // Comparar por nome parcial ou ID se disponível
-            const indicatorName = indicator.name.toLowerCase();
-            const productName = item.produto.toLowerCase();
-            
-            return (
-              productName.includes(indicatorName) ||
-              indicatorName.includes(cleanName.toLowerCase()) ||
-              (nameParts[1] && indicatorName.includes(nameParts[1].trim().toLowerCase()))
-            );
-          });
-
-          // Determinar a unidade correta com base no produto
-          let unit = item.unidade || "R$";
-
-          // Se encontramos na configuração, usamos aquela unidade
-          if (indicatorConfig) {
-            unit = indicatorConfig.unit;
-          } else {
-            // Inferir unidade baseado no nome do produto
-            if (item.produto.toLowerCase().includes("algodão") || 
-                item.produto.toLowerCase().includes("boi")) {
-              unit = "R$/@";
-            } else if (item.produto.toLowerCase().includes("suíno")) {
-              unit = "R$/kg";
-            } else if (item.produto.toLowerCase().includes("soja") || 
-                       item.produto.toLowerCase().includes("milho") ||
-                       item.produto.toLowerCase().includes("trigo") ||
-                       item.produto.toLowerCase().includes("feijão")) {
-              unit = "R$/sc";
-            }
-          }
-
-          // Nome formatado para exibição
-          let displayName = cleanName;
-          
-          // Para soja, adicionar identificação da praça
-          if (item.produto.toLowerCase().includes("soja")) {
-            if (item.produto.toLowerCase().includes("paranaguá")) {
-              displayName = "Soja Paranaguá";
-            } else if (item.produto.toLowerCase().includes("esalq") || item.produto.toLowerCase().includes("pr")) {
-              displayName = "Soja PR";
-            } else {
-              displayName = "Soja";
-            }
-          }
-          
-          // Log para debug dos valores de soja
-          if (item.produto.toLowerCase().includes("soja")) {
-            console.log(`CEPEA - ${item.produto}: R$ ${item.valor} ${unit}`);
-          }
-
-          // Criar um objeto TickerItem com os dados do CEPEA
-          return {
-            name: displayName,
-            value: item.valor,
-            previousValue: item.valor * 0.995, // Estimativa da variação (valor anterior ~0.5% menor)
-            unit,
-            category: "commodity" as const,
-            code: cleanName.toUpperCase().replace(" ", "_").replace("-", "_"),
-          };
-        });
-      }
-
-      // Fallback para valores de mercado atuais se não temos dados do CEPEA
-      const marketValues: Record<string | number, number> = {
-        54: 385.50,  // Algodão
-        91: 86.00,   // Trigo
-        2: 318.00,   // Boi Gordo
-        23: 158.50,  // Soja ESALQ/PR
-        "381-56": 285.00, // Feijão
-        77: 68.50,   // Milho
-        178: 7.85,   // Suíno
-        12: 161.00,  // Soja Paranaguá
-      };
-
-      return CEPEA_INDICATORS.map((indicator) => {
-        const value = marketValues[indicator.id] || 100;
-        return {
-          name: indicator.name,
-          value: value,
-          previousValue: value * 0.995, // ~0.5% de variação
-          unit: indicator.unit,
-          category: "commodity" as const,
-          code: indicator.name.toUpperCase().replace(/[\s-]/g, "_"),
-        };
-      });
-    } catch (error) {
-      console.error("Erro ao buscar dados do CEPEA:", error);
-      return [];
-    }
-  };
 
   useEffect(() => {
     const fetchMarketData = async () => {
       try {
         setLoading(true);
 
-        // 1. Buscar dados de todas as APIs integradas (moedas e taxas)
+        // 1. Buscar dados de todas as APIs integradas (moedas, taxas e commodities)
         const apiMarketData = await fetchAllMarketData();
         
-        // 2. Sempre buscar dados do CEPEA para commodities brasileiras
-        const cepeaTickerItems = await fetchCepeaData();
-        
-        // 3. Buscar dados de moedas da Awesome API como fallback
+        // 2. Buscar dados de moedas da Awesome API como fallback
         let currencyData: Record<string, any> = {};
         if (!apiMarketData.some(item => item.code === "USD")) {
           try {
             const currencyResponse = await fetch(
-              "https://economia.awesomeapi.com.br/json/all/USD-BRL,EUR-BRL"
+              "https://economia.awesomeapi.com.br/json/all/USD-BRL"
             );
             currencyData = await currencyResponse.json();
           } catch (e) {
@@ -222,7 +62,6 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
 
         // Processar dados de moedas
         let dolarData: TickerItem | null = null;
-        let euroData: TickerItem | null = null;
         
         if (currencyData && currencyData["USD"]) {
           const usdBid = parseFloat(currencyData["USD"]["bid"]);
@@ -236,19 +75,6 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
             unit: "R$",
             category: "currency",
             code: "USD",
-          };
-        }
-
-        if (currencyData && currencyData["EUR"]) {
-          const eurBid = parseFloat(currencyData["EUR"]["bid"]);
-          const eurVarBid = parseFloat(currencyData["EUR"]["varBid"]);
-          euroData = {
-            name: "Euro",
-            value: eurBid,
-            previousValue: eurBid - eurVarBid,
-            unit: "R$",
-            category: "currency",
-            code: "EUR",
           };
         }
 
@@ -297,9 +123,6 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
         if (!allTickerItems.some(item => item.code === "USD") && dolarData) {
           allTickerItems.push(dolarData);
         }
-        if (!allTickerItems.some(item => item.code === "EUR") && euroData) {
-          allTickerItems.push(euroData);
-        }
         if (!allTickerItems.some(item => item.code === "SELIC")) {
           allTickerItems.push(selicData);
         }
@@ -307,19 +130,6 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           allTickerItems.push(cdiData);
         }
 
-        // Adicionar dados do CEPEA para commodities brasileiras (se disponível)
-        if (cepeaTickerItems.length > 0) {
-          // Evitar duplicatas com dados do CEPEA
-          cepeaTickerItems.forEach(cepeaItem => {
-            const existingIndex = allTickerItems.findIndex(item => 
-              item.name.toLowerCase().includes(cepeaItem.name.toLowerCase()) ||
-              cepeaItem.name.toLowerCase().includes(item.name.toLowerCase())
-            );
-            if (existingIndex === -1) {
-              allTickerItems.push(cepeaItem);
-            }
-          });
-        }
 
         // Atualizar dados do ticker
         setTickerData(allTickerItems);
@@ -382,7 +192,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
     const interval = setInterval(fetchMarketData, 3600000); // 1 hora (60 * 60 * 1000)
 
     return () => clearInterval(interval);
-  }, [cepeaData, commercialPrices]);
+  }, [commercialPrices]);
 
   // Cálculo da variação percentual
   const calculateVariation = (current: number, previous: number) => {
@@ -411,7 +221,6 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           overflow: hidden;
           height: 2.5rem;
           background-color: hsl(var(--primary));
-          border-left: 1px solid hsl(var(--primary-foreground) / 0.2);
         }
 
         .market-ticker-wrapper {
@@ -607,11 +416,4 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
       </div>
     </div>
   );
-}
-
-// Adicione esta declaração ao global para TypeScript
-declare global {
-  interface Window {
-    onCepeaWidgetData: (data: any[]) => void;
-  }
 }

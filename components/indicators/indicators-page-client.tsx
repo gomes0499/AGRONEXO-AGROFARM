@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { IndicatorThresholdViewer } from "@/components/indicators/indicator-threshold-viewer";
 import { RatingMetricsTab } from "@/components/indicators/rating/rating-metrics-tab";
-import { RatingHistoryTab } from "@/components/indicators/rating/rating-history-tab";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Tabs,
@@ -66,7 +65,6 @@ export function IndicatorsPageClient({
                 Limiares
               </TabsTriggerPrimary>
               <TabsTriggerPrimary value="metrics">Métricas</TabsTriggerPrimary>
-              <TabsTriggerPrimary value="history">Histórico de Rating</TabsTriggerPrimary>
             </TabsList>
           </div>
         </div>
@@ -85,10 +83,6 @@ export function IndicatorsPageClient({
                   initialMetrics={ratingMetrics}
                   initialQualitativeValues={qualitativeValues}
                 />
-              </TabsContent>
-
-              <TabsContent value="history" className="space-y-4">
-                <RatingHistoryTab organizationId={organizationId} />
               </TabsContent>
             </>
           ) : (

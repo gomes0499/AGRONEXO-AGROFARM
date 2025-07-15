@@ -336,10 +336,10 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       
       // IGUAL AO FLUXO DE CAIXA: mostrar o valor total consolidado em TODOS os anos
       anos.forEach(ano => {
-        valores[ano] = totalConsolidado.total_consolidado_brl || 0;
+        valores[ano] = (totalConsolidado as any).total_consolidado_brl || 0;
       });
       
-      console.log('💰 Total consolidado bancário:', totalConsolidado.total_consolidado_brl);
+      console.log('💰 Total consolidado bancário:', (totalConsolidado as any).total_consolidado_brl);
     } catch (error) {
       console.error('❌ Erro ao consolidar bancos com função DB:', error);
       // Fallback para método anterior em caso de erro
@@ -892,15 +892,16 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
           ebitda,
           divida,
           dividaLiq,
-          calculoDividaEbitda: ebitda > 0 ? divida / ebitda : 0
+          calculoDividaEbitda: ebitda !== 0 ? divida / ebitda : 0
         });
       }
 
       // Indicadores de dívida
       dividaReceita[ano] = receita > 0 ? divida / receita : 0;
-      dividaEbitda[ano] = ebitda > 0 ? divida / ebitda : 0;
+      // Calculate ratio even when EBITDA is negative to show true financial situation
+      dividaEbitda[ano] = ebitda !== 0 ? divida / ebitda : 0;
       dividaLiquidaReceita[ano] = receita > 0 ? dividaLiq / receita : 0;
-      dividaLiquidaEbitda[ano] = ebitda > 0 ? dividaLiq / ebitda : 0;
+      dividaLiquidaEbitda[ano] = ebitda !== 0 ? dividaLiq / ebitda : 0;
 
       // Redução (comparando com ano anterior)
       if (index > 0) {

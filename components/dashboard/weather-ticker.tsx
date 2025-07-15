@@ -178,11 +178,9 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
           overflow: hidden;
           height: 2.5rem;
           background-color: #f9fafb;
-          border-left: 1px solid #e5e7eb;
         }
         .dark .ticker-container {
           background-color: #0a0a0a;
-          border-left: 1px solid #27272a;
         }
         .ticker-wrapper {
           position: absolute;

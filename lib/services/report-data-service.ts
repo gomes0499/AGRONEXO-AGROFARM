@@ -282,7 +282,8 @@ export async function generateReportData(organizationId: string): Promise<Report
     dividaLiquida,
     indicadores: {
       dividaReceita: productionData.receita > 0 ? dividaTotal / productionData.receita : 0,
-      dividaEbitda: productionData.ebitda > 0 ? dividaTotal / productionData.ebitda : 0,
+      // Calculate ratio even when EBITDA is negative to show true financial situation
+      dividaEbitda: productionData.ebitda !== 0 ? dividaTotal / productionData.ebitda : 0,
       dividaPatrimonio: propertyData.valorPatrimonial > 0 ? dividaTotal / propertyData.valorPatrimonial : 0,
       liquidezCorrente: dividaTotal > 0 ? ativosLiquidos / dividaTotal : 0,
     },

@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +21,18 @@ import {
   Download,
   X,
   FileDown,
+  Mail,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import { getRatingFromScore } from "@/schemas/rating";
 import { exportRatingPDF } from "@/lib/actions/rating-pdf-export";
 import { toast } from "sonner";
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { sendRatingResultByEmail } from "@/lib/actions/email-rating-actions";
 
 interface RatingResultModalProps {
   calculation: any;
@@ -33,6 +41,24 @@ interface RatingResultModalProps {
   organizationName?: string;
 }
 
+// Formulas for quantitative metrics
+const METRIC_FORMULAS: Record<string, string> = {
+  AREA_PROPRIA: "Área Própria / Área Total",
+  DIVIDA_EBITDA: "Dívida Estrutural* / EBITDA",
+  DIVIDA_FATURAMENTO: "Dívida Total / Receita",
+  LIQUIDEZ_CORRENTE: "(Caixa + Ativo Biológico) / Passivos Circulantes",
+  DIVIDA_PATRIMONIO_LIQUIDO: "Dívida Total / Patrimônio Líquido",
+  LTV: "(Dívida Total - Caixa) / Valor dos Ativos",
+  CULTURAS_CORE: "Receita Culturas Core / Receita Total",
+  MARGEM_EBITDA: "(EBITDA / Receita) × 100",
+  TENDENCIA_PRODUTIVIDADE_5_ANOS: "Média de variação de produtividade últimos 5 anos"
+};
+
+// Detailed descriptions for metrics
+const METRIC_DESCRIPTIONS: Record<string, string> = {
+  DIVIDA_EBITDA: "*Dívida Estrutural = Ativos Operacionais - Passivos Operacionais\n• Ativos Operacionais: Caixa, Clientes, Estoque, Adiantamentos, Ativo Biológico\n• Passivos Operacionais: Bancos + Terras, Fornecedores, Adiantamentos\n\nIdeal que seja negativa ou muito baixa. Dívida estrutural positiva é necessário entender o motivo.\nFormas de ter dívida estrutural positiva: Investimentos, Prejuízo, Empréstimos para atividades fora produção"
+};
+
 export function RatingResultModal({
   calculation,
   isOpen,
@@ -40,6 +66,11 @@ export function RatingResultModal({
   organizationName = "Organização",
 }: RatingResultModalProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [emailList, setEmailList] = useState<string[]>([""]);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   
   if (!calculation) return null;
 
@@ -84,6 +115,101 @@ export function RatingResultModal({
   // Calculate totals
   const quantitativeTotal = quantitativeMetrics.reduce((sum, m) => sum + (m.pontuacao * m.peso / 100), 0);
   const qualitativeTotal = qualitativeMetrics.reduce((sum, m) => sum + (m.pontuacao * m.peso / 100), 0);
+
+  const addEmail = () => {
+    setEmailList([...emailList, ""]);
+  };
+
+  const removeEmail = (index: number) => {
+    if (emailList.length > 1) {
+      setEmailList(emailList.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateEmail = (index: number, value: string) => {
+    const newEmails = [...emailList];
+    newEmails[index] = value;
+    setEmailList(newEmails);
+  };
+
+  const validateEmails = () => {
+    const validEmails = emailList.filter(email => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email.trim());
+    });
+    return validEmails;
+  };
+
+  const handleSendEmail = async () => {
+    try {
+      setIsSendingEmail(true);
+      
+      // Validate emails
+      const validEmails = validateEmails();
+      if (validEmails.length === 0) {
+        toast.error("Por favor, insira pelo menos um email válido.");
+        return;
+      }
+
+      // First, export PDF
+      const pdfResult = await exportRatingPDF(calculation, organizationName);
+      
+      if (!pdfResult.success || !pdfResult.data) {
+        toast.error("Erro ao gerar PDF para envio");
+        return;
+      }
+
+      // Prepare rating result data
+      const ratingResult = {
+        rating: calculation.rating_letra,
+        finalScore: calculation.pontuacao_total,
+        modelName: calculation.rating_model_nome || "SR/Prime Rating Model",
+        safraName: safra || "N/A",
+        scenarioName: scenario,
+        calculatedAt: calculation.data_calculo,
+        metrics: metrics.map(m => ({
+          nome: m.nome,
+          peso: m.peso,
+          pontuacao: m.pontuacao,
+          contribuicao: m.pontuacao * m.peso / 100
+        }))
+      };
+
+      // Send emails
+      const result = await sendRatingResultByEmail(
+        organizationName,
+        ratingResult,
+        validEmails,
+        emailSubject || `Relatório de Rating - ${organizationName}`,
+        emailMessage,
+        pdfResult.data
+      );
+
+      if (result.success) {
+        if (result.successCount === validEmails.length) {
+          toast.success(`Relatório enviado com sucesso para ${result.successCount} destinatário(s)!`);
+        } else {
+          toast.warning(`Relatório enviado para ${result.successCount} de ${validEmails.length} destinatários.`);
+          if (result.errors) {
+            result.errors.forEach(error => toast.error(error));
+          }
+        }
+        
+        // Close email dialog and reset
+        setIsEmailDialogOpen(false);
+        setEmailList([""]);
+        setEmailSubject("");
+        setEmailMessage("");
+      } else {
+        toast.error("Erro ao enviar relatório por email");
+      }
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast.error("Erro ao enviar email");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
 
   const handleExportPDF = async () => {
     try {
@@ -131,6 +257,15 @@ export function RatingResultModal({
               Resultado do Rating
             </DialogTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEmailDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Mail className="h-4 w-4" />
+                Enviar por Email
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -282,6 +417,20 @@ export function RatingResultModal({
                               <span>Valor: {formatMetricValue(metric.codigo, metric.valor)}</span>
                               <span>Contribuição: {(metric.pontuacao * metric.peso / 100).toFixed(1)} pts</span>
                             </div>
+                            {METRIC_FORMULAS[metric.codigo] && (
+                              <div className="text-xs text-muted-foreground italic">
+                                Fórmula: {METRIC_FORMULAS[metric.codigo]}
+                              </div>
+                            )}
+                            {METRIC_DESCRIPTIONS[metric.codigo] && (
+                              <div className="text-xs text-muted-foreground mt-1 space-y-1">
+                                {METRIC_DESCRIPTIONS[metric.codigo].split('\n').map((line, index) => (
+                                  <div key={index} className={line.startsWith('•') ? 'ml-3' : ''}>
+                                    {line}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             <Progress 
                               value={metric.pontuacao} 
                               className="h-2"
@@ -316,6 +465,11 @@ export function RatingResultModal({
                               <span>Nota: {metric.valor}/5</span>
                               <span>Contribuição: {(metric.pontuacao * metric.peso / 100).toFixed(1)} pts</span>
                             </div>
+                            {metric.selected_option && (
+                              <div className="text-sm text-primary mt-1">
+                                {metric.valor} - {metric.selected_option}
+                              </div>
+                            )}
                             <Progress 
                               value={metric.pontuacao} 
                               className="h-2"
@@ -343,6 +497,101 @@ export function RatingResultModal({
           </div>
         </div>
       </DialogContent>
+
+      {/* Email Dialog */}
+      <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Enviar Relatório de Rating por Email</DialogTitle>
+            <DialogDescription>
+              Envie o relatório de rating para múltiplos destinatários
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="emailSubject">Assunto (opcional)</Label>
+              <Input
+                id="emailSubject"
+                placeholder={`Relatório de Rating - ${organizationName}`}
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="emailMessage">Mensagem (opcional)</Label>
+              <Textarea
+                id="emailMessage"
+                placeholder="Digite uma mensagem personalizada para acompanhar o relatório..."
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Destinatários</Label>
+              {emailList.map((email, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    value={email}
+                    onChange={(e) => updateEmail(index, e.target.value)}
+                  />
+                  {emailList.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeEmail(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addEmail}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar destinatário
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEmailDialogOpen(false)}
+              disabled={isSendingEmail}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSendEmail}
+              disabled={isSendingEmail}
+              className="gap-2"
+            >
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4" />
+                  Enviar por Email
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

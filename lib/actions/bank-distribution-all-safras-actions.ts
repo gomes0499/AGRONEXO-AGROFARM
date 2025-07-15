@@ -54,7 +54,7 @@ export async function getBankDistributionAllSafrasData(
       // Calcular proporção e aplicar ao total consolidado (que já tem a conversão correta)
       if (valorPrincipal > 0 && totalSemConversao > 0) {
         const proporcao = valorPrincipal / totalSemConversao;
-        const valorConsolidado = totalConsolidado.total_consolidado_brl * proporcao;
+        const valorConsolidado = (totalConsolidado as any).total_consolidado_brl * proporcao;
         
         bankTotals[banco] = (bankTotals[banco] || 0) + valorConsolidado;
       }

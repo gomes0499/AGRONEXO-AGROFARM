@@ -67,7 +67,6 @@ export async function fetchCurrencyData(): Promise<MarketDataItem[]> {
     if (API_CONFIG.alphavantage.key) {
       const currencies = [
         { from: "USD", to: "BRL", name: "Dólar" },
-        { from: "EUR", to: "BRL", name: "Euro" },
       ];
       
       const alphaData = await fetchWithCache("currencies-alpha", async () => {
@@ -114,31 +113,54 @@ export async function fetchCurrencyData(): Promise<MarketDataItem[]> {
     // Fallback para Awesome API se não tiver Alpha Vantage
     const data = await fetchWithCache("currencies", async () => {
       const response = await fetch(
-        `${API_CONFIG.awesomeapi.baseUrl}/all/USD-BRL,EUR-BRL`
+        `${API_CONFIG.awesomeapi.baseUrl}/all/USD-BRL`
       );
       return response.json();
     }, CACHE_DURATION_FREE);
 
-    return Object.entries(data).map(([code, info]: [string, any]) => ({
-      name: info.name.split("/")[0],
-      value: parseFloat(info.bid),
-      previousValue: parseFloat(info.bid) - parseFloat(info.varBid),
-      unit: "R$",
-      category: "currency" as const,
-      code,
-      lastUpdate: new Date(info.create_date),
-    }));
+    return Object.entries(data)
+      .filter(([code]) => code === "USD") // Apenas Dólar
+      .map(([code, info]: [string, any]) => ({
+        name: info.name.split("/")[0],
+        value: parseFloat(info.bid),
+        previousValue: parseFloat(info.bid) - parseFloat(info.varBid),
+        unit: "R$",
+        category: "currency" as const,
+        code,
+        lastUpdate: new Date(info.create_date),
+      }));
   } catch (error) {
     console.error("Erro ao buscar dados de moedas:", error);
     return [];
   }
 }
 
-// Buscar dados de commodities
+// Buscar dados de commodities do CEPEA
 export async function fetchCommodityData(): Promise<MarketDataItem[]> {
-  // Commodities brasileiras vêm do CEPEA diretamente no componente
-  // Não vamos buscar de outras APIs para usar os dados oficiais do CEPEA
-  return [];
+  try {
+    const data = await fetchWithCache("cepea-commodities", async () => {
+      const response = await fetch('/api/cepea');
+      if (!response.ok) {
+        throw new Error('Failed to fetch CEPEA data');
+      }
+      return response.json();
+    }, CACHE_DURATION);
+
+    console.log("Dados CEPEA via API route:", data);
+
+    return data.map((item: any) => ({
+      name: item.name,
+      value: item.valor,
+      previousValue: item.valor * 0.995, // Estimativa de variação
+      unit: item.unidade,
+      category: "commodity" as const,
+      code: item.name.toUpperCase().replace(/[\s-]/g, "_"),
+      lastUpdate: new Date(item.data),
+    }));
+  } catch (error) {
+    console.error("Erro ao buscar dados do CEPEA:", error);
+    return [];
+  }
 }
 
 // Buscar dados de índices

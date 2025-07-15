@@ -214,7 +214,8 @@ export async function calculateQuantitativeMetrics(
 
     // 2. DIVIDA_EBITDA - Usar sempre dados reais (não da tabela projecoes_posicao_divida)
     // Forçar uso dos dados reais do debt position e DRE
-    metrics.DIVIDA_EBITDA = ebitda > 0 ? dividaTotal / ebitda : (dividaTotal > 0 ? 999 : 0);
+    // Calculate ratio even when EBITDA is negative to show true financial situation
+    metrics.DIVIDA_EBITDA = ebitda !== 0 ? dividaTotal / ebitda : (dividaTotal > 0 ? 999 : 0);
     
     console.log("DIVIDA_EBITDA calculation (using real data):", {
       dividaTotal,

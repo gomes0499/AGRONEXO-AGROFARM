@@ -800,7 +800,7 @@ async function calcularDadosFinanceiras(
     }
     
     // Usar taxa de câmbio da função dinâmica
-    const taxaCambio = totalDividasConsolidado.taxa_cambio;
+    const taxaCambio = (totalDividasConsolidado as any).taxa_cambio;
     
     // Criar pool de dívidas consolidadas - BANCÁRIAS E DE TERRAS
     const dividasConsolidadas: DividaConsolidada[] = [];
@@ -868,7 +868,7 @@ async function calcularDadosFinanceiras(
       
       // Se valor_total for 0, somar valores por ano
       if (valorTotal === 0) {
-        valorTotal = Object.values(valoresPorAno).reduce((sum, valor) => sum + (valor || 0), 0);
+        valorTotal = Object.values(valoresPorAno).reduce((sum, valor) => (sum as number) + (Number(valor) || 0), 0);
       }
       
       // Converter para BRL se a dívida estiver em USD
@@ -1183,7 +1183,7 @@ async function calcularDadosFinanceiras(
     const valorTotalTerras = (dadosDividasImoveis || []).reduce((sum, dividaImovel) => {
       let valor = dividaImovel.valor_total || 0;
       if (valor === 0) {
-        valor = Object.values(dividaImovel.valores_por_ano || {}).reduce((total, val) => total + (val || 0), 0);
+        valor = Object.values(dividaImovel.valores_por_ano || {}).reduce((total, val) => (total as number) + (Number(val) || 0), 0);
       }
       if (dividaImovel.moeda === 'USD' && valor > 0) {
         valor = valor * taxaCambio;
@@ -1223,7 +1223,7 @@ async function calcularDadosFinanceiras(
     
   } catch (error) {
     console.error("😨 Erro ao calcular dados financeiros - entrando em fallback:", error);
-    console.error("Stack trace:", error.stack);
+    console.error("Stack trace:", (error as any).stack);
     
     // Fallback com valores demonstrativos
     const novasLinhasCreditoDemo: Record<string, number> = {
