@@ -51,7 +51,6 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
   const [safras, setSafras] = useState<any[]>([]);
   const [isLoadingSafras, setIsLoadingSafras] = useState(false);
   const [commodityPrices, setCommodityPrices] = useState<any[]>([]);
-  
 
   // Buscar safras disponíveis
   useEffect(() => {
@@ -60,10 +59,10 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
         console.error("ID da organização não fornecido");
         return;
       }
-      
+
       try {
         setIsLoadingSafras(true);
-        
+
         const safrasList = await getSafras(organizationId);
         setSafras(safrasList);
       } catch (error) {
@@ -82,16 +81,14 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
     const fetchCommodityPrices = async () => {
       try {
         const result = await getCommodityPriceProjections();
-        console.log("Resultado completo da API de preços:", result);
         if (result.data && Array.isArray(result.data)) {
           setCommodityPrices(result.data);
-          console.log("Preços de commodities carregados:", result.data.length);
         }
       } catch (error) {
         console.error("Erro ao buscar preços:", error);
       }
     };
-    
+
     if (organizationId) {
       fetchCommodityPrices();
     }
@@ -101,93 +98,83 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
   useEffect(() => {
     const areaArrendada = form.watch("area_arrendada");
     const custoHectare = form.watch("custo_hectare");
-    
-    console.log("Debug - areaArrendada:", areaArrendada, "custoHectare:", custoHectare);
-    console.log("Debug - safras disponíveis:", safras);
-    console.log("Debug - commodityPrices:", commodityPrices);
-    console.log("Debug - commodityPrices detalhado:", commodityPrices.map(p => ({
-      commodity_type: p.commodity_type,
-      cultura: p.cultura?.nome,
-      sistema: p.sistema?.nome,
-      precos_por_ano: p.precos_por_ano
-    })));
-    
+
     if (areaArrendada && custoHectare && safras.length > 0) {
       const custosPorAno: Record<string, number> = {};
       const sacasTotal = areaArrendada * custoHectare;
-      
+
       // Se temos preços de commodities, tentar usar
       if (commodityPrices.length > 0) {
-        console.log("Buscando preços de soja sequeiro entre", commodityPrices.length, "registros");
-        
-        // Buscar preços de soja sequeiro (padrão para arrendamento)
-        let sojaPrices = commodityPrices.find(p => {
-          const match = p.commodity_type === "SOJA_SEQUEIRO" || 
-            (p.cultura && p.cultura.nome && p.cultura.nome.toLowerCase() === "soja" && 
-             p.sistema && p.sistema.nome && p.sistema.nome.toLowerCase() === "sequeiro");
-          if (match) {
-            console.log("Match encontrado para SOJA SEQUEIRO:", p);
-          }
+        let sojaPrices = commodityPrices.find((p) => {
+          const match =
+            p.commodity_type === "SOJA_SEQUEIRO" ||
+            (p.cultura &&
+              p.cultura.nome &&
+              p.cultura.nome.toLowerCase() === "soja" &&
+              p.sistema &&
+              p.sistema.nome &&
+              p.sistema.nome.toLowerCase() === "sequeiro");
+
           return match;
         });
-        
+
         // Se não encontrar sequeiro, tentar irrigado como fallback
         if (!sojaPrices) {
-          console.log("Não encontrou SOJA SEQUEIRO, tentando IRRIGADO...");
-          sojaPrices = commodityPrices.find(p => 
-            p.commodity_type === "SOJA_IRRIGADO" || 
-            (p.cultura && p.cultura.nome && p.cultura.nome.toLowerCase() === "soja" && 
-             p.sistema && p.sistema.nome && p.sistema.nome.toLowerCase() === "irrigado")
+          sojaPrices = commodityPrices.find(
+            (p) =>
+              p.commodity_type === "SOJA_IRRIGADO" ||
+              (p.cultura &&
+                p.cultura.nome &&
+                p.cultura.nome.toLowerCase() === "soja" &&
+                p.sistema &&
+                p.sistema.nome &&
+                p.sistema.nome.toLowerCase() === "irrigado")
           );
         }
-        
-        console.log("Preços de soja final:", sojaPrices);
-        
+
         if (sojaPrices && sojaPrices.precos_por_ano) {
           // Calcular para cada safra
-          safras.forEach(safra => {
+          safras.forEach((safra) => {
             if (!safra.id) {
               console.error("Safra sem ID:", safra);
               return;
             }
-            
+
             let precoSafra = 0;
-            
+
             // Buscar preço por ID da safra (padrão do sistema)
-            if (sojaPrices.precos_por_ano && sojaPrices.precos_por_ano[safra.id]) {
+            if (
+              sojaPrices.precos_por_ano &&
+              sojaPrices.precos_por_ano[safra.id]
+            ) {
               precoSafra = sojaPrices.precos_por_ano[safra.id];
-              console.log(`Preço para safra ${safra.nome} (ID ${safra.id}):`, precoSafra);
             }
-            
+
             // Se não encontrar por ID, tentar por ano como fallback
             if (!precoSafra && safra.ano_inicio && sojaPrices.precos_por_ano) {
               const anoStr = safra.ano_inicio.toString();
               precoSafra = sojaPrices.precos_por_ano[anoStr] || 0;
-              console.log(`Preço para ano ${anoStr} (fallback):`, precoSafra);
             }
-            
+
             // Se ainda não encontrar, usar preço atual como fallback
             if (!precoSafra && sojaPrices.current_price) {
               precoSafra = sojaPrices.current_price;
-              console.log("Usando preço atual como fallback:", precoSafra);
             }
-            
+
             // Se ainda não tiver preço, usar padrão
             if (!precoSafra) {
               precoSafra = 150; // R$ 150 por saca como padrão
-              console.log("Usando preço padrão: 150");
             }
-            
+
             // Calcular o valor total: sacas/ha * área * preço da saca
             const valorTotal = sacasTotal * precoSafra;
-            console.log(`Cálculo para ${safra.nome}: ${sacasTotal} sacas * R$ ${precoSafra}/saca = R$ ${valorTotal}`);
-            
+
             // Usar o ID da safra como chave (requerido pelo banco)
             custosPorAno[safra.id] = valorTotal;
           });
         } else {
           // Usar preço padrão se não encontrar preços de soja
-          safras.forEach(safra => {
+          safras.forEach((safra) => {
             if (safra.id) {
               custosPorAno[safra.id] = sacasTotal * 150; // R$ 150 por saca
             }
@@ -195,27 +182,27 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
         }
       } else {
         // Se não há preços de commodities, usar valor padrão
-        safras.forEach(safra => {
+        safras.forEach((safra) => {
           if (safra.id) {
             custosPorAno[safra.id] = sacasTotal * 150; // R$ 150 por saca
           }
         });
       }
-      
-      console.log("Custos finais calculados por safra:", custosPorAno);
-      console.log("Chaves do objeto:", Object.keys(custosPorAno));
-      
+
       // Só atualizar se temos valores calculados
       if (Object.keys(custosPorAno).length > 0) {
         form.setValue("custos_por_ano", custosPorAno);
       }
     }
-  }, [form.watch("area_arrendada"), form.watch("custo_hectare"), safras, commodityPrices]);
-  
+  }, [
+    form.watch("area_arrendada"),
+    form.watch("custo_hectare"),
+    safras,
+    commodityPrices,
+  ]);
 
   return (
     <div className="space-y-6">
-
       {/* Informações Básicas */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <FormField
@@ -408,10 +395,7 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
                   <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                   Tipo de Pagamento*
                 </FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                >
+                <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo de pagamento" />
@@ -421,7 +405,9 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
                     <SelectItem value="SACAS">Sacas</SelectItem>
                     <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
                     <SelectItem value="MISTO">Misto</SelectItem>
-                    <SelectItem value="PERCENTUAL_PRODUCAO">% da Produção</SelectItem>
+                    <SelectItem value="PERCENTUAL_PRODUCAO">
+                      % da Produção
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <FormDescription>
@@ -479,21 +465,25 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
                 disabled={true}
                 currency="BRL"
               />
-              {(!form.watch("area_arrendada") || !form.watch("custo_hectare")) && (
+              {(!form.watch("area_arrendada") ||
+                !form.watch("custo_hectare")) && (
                 <p className="text-sm text-muted-foreground mt-2">
-                  Preencha a área arrendada e o custo por hectare para calcular os valores
+                  Preencha a área arrendada e o custo por hectare para calcular
+                  os valores
                 </p>
               )}
             </FormItem>
           )}
         />
       </div>
-      
+
       <Separator />
-      
+
       {/* Status do Contrato */}
       <div className="space-y-4">
-        <h4 className="text-sm font-medium text-muted-foreground">Status do Contrato</h4>
+        <h4 className="text-sm font-medium text-muted-foreground">
+          Status do Contrato
+        </h4>
         <div className="grid gap-4 grid-cols-1">
           <FormField
             control={form.control}
@@ -501,9 +491,7 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
             render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <FormLabel className="text-base">
-                    Contrato Ativo
-                  </FormLabel>
+                  <FormLabel className="text-base">Contrato Ativo</FormLabel>
                   <FormDescription>
                     Indica se o contrato de arrendamento está ativo
                   </FormDescription>
@@ -519,7 +507,7 @@ export function LeaseFormStep({ form, organizationId }: LeaseFormStepProps) {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="observacoes"

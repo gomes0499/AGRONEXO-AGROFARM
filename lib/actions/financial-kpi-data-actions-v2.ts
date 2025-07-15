@@ -29,12 +29,6 @@ function clearFinancialKpiCache(organizationId?: string) {
 // Clear cache on initialization to remove old hardcoded values
 clearFinancialKpiCache();
 
-// FORÇA LIMPEZA COMPLETA PARA CORRIGIR MÉTRICA DIVIDA_EBITDA 0.69x
-console.log("🔄 FORÇANDO limpeza completa de cache financial-kpi para correção DIVIDA_EBITDA");
-setInterval(() => {
-  clearFinancialKpiCache();
-}, 30000); // Limpar a cada 30 segundos
-
 export interface SafraOption {
   id: string;
   nome: string;
@@ -106,8 +100,6 @@ export async function getFinancialKpiDataV2(
   const cacheKey = `financial_kpi_FORCE_REFRESH_${organizationId}_${safraId || 'default'}_${projectionId || 'base'}_${Date.now()}`;
   const now = Date.now();
   
-  // SEMPRE buscar dados novos - cache completamente desabilitado
-  console.log("🔄 FORÇANDO busca de dados novos (cache desabilitado) para:", organizationId);
   clearFinancialKpiCache(organizationId);
 
   const supabase = await createClient();
@@ -174,53 +166,21 @@ export async function getFinancialKpiDataV2(
         const dividaLiquidaReceita = indicadoresCalculados.divida_liquida_receita[safraName] || 0;
         const dividaLiquidaEbitda = indicadoresCalculados.divida_liquida_ebitda[safraName] || 0;
 
-        // DEBUG ESPECÍFICO para corrigir problema DIVIDA_EBITDA = 0.69x
-        if (organizationId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
-          console.log("🚨 DEBUG DIVIDA_EBITDA - financial-kpi-data-actions-v2:", {
-            safraName,
-            dividaEbitda,
-            dividaTotalAtual,
-            ebitdaAtual,
-            calculoManual: ebitdaAtual > 0 ? dividaTotalAtual / ebitdaAtual : 0,
-            indicadoresCalculados: {
-              divida_ebitda: indicadoresCalculados.divida_ebitda
-            }
-          });
-        }
+     
 
         // Separate bank debt from other liabilities
         let dividaBancariaAtual = 0;
         let outrosPassivosAtual = 0;
         
-        console.log("🔍 Debug Debt Position Data for", organizationId, {
-          safraName,
-          totalDebts: debtPosition.dividas.length,
-          dividasByCategory: debtPosition.dividas.map(d => ({
-            categoria: d.categoria,
-            valorSafra: d.valores_por_ano[safraName] || 0
-          }))
-        });
+   
         
         debtPosition.dividas.forEach(divida => {
           const valor = divida.valores_por_ano[safraName] || 0;
           if (divida.categoria === "BANCOS") {
             dividaBancariaAtual += valor;
-            console.log("💳 Bank debt found:", { valor, categoria: divida.categoria });
           } else {
             outrosPassivosAtual += valor;
-            console.log("📊 Other debt found:", { valor, categoria: divida.categoria });
           }
-        });
-
-        console.log("💰 Final calculated values:", {
-          organizationId,
-          safraName,
-          dividaBancariaAtual,
-          outrosPassivosAtual,
-          dividaLiquidaAtual,
-          dividaTotalAtual,
-          receitaAtual,
-          ebitdaAtual
         });
 
         // Find previous safra for comparison
@@ -328,13 +288,6 @@ export async function getFinancialKpiDataV2(
       metrics,
       selectedYear
     };
-
-    // CACHE DESABILITADO para correção DIVIDA_EBITDA
-    // financialKpiCache[cacheKey] = {
-    //   data: result,
-    //   timestamp: now
-    // };
-    console.log("⚠️ Cache desabilitado - não armazenando dados para evitar valor 0.69x");
 
     return result;
   } catch (error) {

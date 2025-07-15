@@ -45,11 +45,7 @@ export async function sendEmail({
   try {
     
     if (process.env.NODE_ENV === 'development' && !process.env.ENABLE_EMAILS_IN_DEV) {
-      console.log('📧 Email em modo desenvolvimento (não enviado):', {
-        to,
-        subject,
-        from
-      });
+ 
       return { success: true, data: { id: 'dev-mode-email-id' } };
     }
     

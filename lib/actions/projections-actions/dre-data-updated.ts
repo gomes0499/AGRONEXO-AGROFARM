@@ -92,9 +92,7 @@ export async function getDREDataUpdated(organizacaoId: string, projectionId?: st
 
     // Buscar cotações de câmbio
     const cotacoesCambio = await getCotacoesCambio(organizacaoId);
-    console.log(`🔍 VARIAÇÃO CAMBIAL: Cotações de câmbio carregadas:`, cotacoesCambio?.length || 0);
     if (cotacoesCambio?.length > 0) {
-      console.log(`🔍 VARIAÇÃO CAMBIAL: Tipos de moeda disponíveis:`, cotacoesCambio.map(c => c.tipo_moeda));
     }
     
     // Buscar dívidas bancárias para identificar passivos em USD
@@ -123,21 +121,14 @@ export async function getDREDataUpdated(organizacaoId: string, projectionId?: st
     // Função auxiliar para obter taxa de câmbio para um ano
     const getTaxaCambio = (safraId: string, safraToYear: Record<string, string>): number => {
       // Buscar cotação DOLAR_FECHAMENTO para a safra
-      console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Buscando taxa para safraId: ${safraId}`);
-      console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Total de cotações de câmbio: ${cotacoesCambio.length}`);
       
       const cotacao = cotacoesCambio.find(c => c.tipo_moeda === "DOLAR_FECHAMENTO");
-      console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Cotação DOLAR_FECHAMENTO encontrada?`, cotacao ? 'Sim' : 'Não');
       
       if (cotacao && cotacao.cotacoes_por_ano) {
         const cotacoesPorAno = typeof cotacao.cotacoes_por_ano === 'string' 
           ? JSON.parse(cotacao.cotacoes_por_ano)
           : cotacao.cotacoes_por_ano;
         
-        console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Cotações por ano:`, cotacoesPorAno);
-        console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Cotação atual:`, cotacao.cotacao_atual);
-        console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Buscando cotação para safraId: ${safraId}`);
-        console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Valor encontrado para safraId: ${cotacoesPorAno[safraId]}`);
         
         // Tentar buscar por safraId primeiro, depois tentar por ano
         let taxaRetornada = cotacoesPorAno[safraId];
@@ -146,17 +137,14 @@ export async function getDREDataUpdated(organizacaoId: string, projectionId?: st
           // Extrair o ano da safra (ex: "2023/24" -> "2023")
           const anoSafra = safraToYear[safraId].split('/')[0];
           taxaRetornada = cotacoesPorAno[anoSafra];
-          console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Tentando buscar por ano ${anoSafra}: ${taxaRetornada}`);
         }
         
         taxaRetornada = taxaRetornada || cotacao.cotacao_atual || 5.50;
-        console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Taxa retornada: ${taxaRetornada}`);
         
         return taxaRetornada;
       }
       
       const taxaPadrao = cotacao?.cotacao_atual || 5.50;
-      console.log(`🔍 VARIAÇÃO CAMBIAL: getTaxaCambio - Retornando taxa padrão: ${taxaPadrao}`);
       return taxaPadrao;
     };
 
@@ -346,17 +334,12 @@ export async function getDREDataUpdated(organizacaoId: string, projectionId?: st
       // Variação Cambial de Ativos e Passivos
       let variacaoCambial = 0;
       
-      console.log(`🔍 VARIAÇÃO CAMBIAL: Início do cálculo para ano ${ano}`);
-      console.log(`🔍 VARIAÇÃO CAMBIAL: safraId = ${safraId}`);
       
       if (safraId) {
         const taxaAtual = getTaxaCambio(safraId, safraToYear);
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Taxa de câmbio atual para safraId ${safraId} = ${taxaAtual}`);
         
         // Para o primeiro ano, usar a própria taxa como anterior
         const taxaAnterior = index === 0 ? taxaAtual : (taxasCambioAnterior[ano] || taxaAtual);
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Taxa de câmbio anterior = ${taxaAnterior}`);
-        console.log(`🔍 VARIAÇÃO CAMBIAL: É primeiro ano? ${index === 0}`);
         
         // Armazenar taxa atual para próximo ano
         const proximoAno = anosFiltrados[index + 1];
@@ -366,31 +349,24 @@ export async function getDREDataUpdated(organizacaoId: string, projectionId?: st
         
         // Calcular variação percentual do câmbio
         const variacaoPercentual = (taxaAtual - taxaAnterior) / taxaAnterior;
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Variação percentual = ${variacaoPercentual} (${(variacaoPercentual * 100).toFixed(2)}%)`);
         
         // Calcular passivos em USD (dívidas bancárias)
         let totalPassivosUSD = 0;
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Total de dívidas bancárias = ${dividasBancarias?.length || 0}`);
         
         dividasBancarias?.forEach(divida => {
-          console.log(`🔍 VARIAÇÃO CAMBIAL: Analisando dívida - moeda: ${divida.moeda}, valor_principal: ${divida.valor_principal}`);
           if (divida.moeda === "USD") {
             // Pegar o valor principal em USD
             const valorUSD = divida.valor_principal || 0;
             totalPassivosUSD += valorUSD;
-            console.log(`🔍 VARIAÇÃO CAMBIAL: Dívida em USD encontrada - valor: ${valorUSD}`);
           }
         });
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Total de passivos em USD = ${totalPassivosUSD}`);
         
         // Calcular ativos em USD (caixa em moeda estrangeira)
         let totalAtivosUSD = 0;
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Total de caixas/disponibilidades = ${caixaDisponibilidades?.length || 0}`);
         
         caixaDisponibilidades?.forEach(caixa => {
           // Campo moeda pode não existir em registros antigos, assumir BRL como padrão
           const moedaCaixa = caixa.moeda || "BRL";
-          console.log(`🔍 VARIAÇÃO CAMBIAL: Analisando caixa - categoria: ${caixa.categoria}, moeda: ${moedaCaixa}`);
           // Verificar se é caixa em USD (independente da categoria)
           if (moedaCaixa === "USD" && caixa.valores_por_ano) {
             const valores = typeof caixa.valores_por_ano === 'string' 
@@ -399,31 +375,23 @@ export async function getDREDataUpdated(organizacaoId: string, projectionId?: st
             
             const valorCaixa = valores[safraId] || 0;
             totalAtivosUSD += valorCaixa;
-            console.log(`🔍 VARIAÇÃO CAMBIAL: Caixa em USD encontrada - nome: ${caixa.nome}, valor: ${valorCaixa}`);
-            console.log(`🔍 VARIAÇÃO CAMBIAL: Valores por ano do caixa:`, valores);
           }
         });
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Total de ativos em USD = ${totalAtivosUSD}`);
         
         // Variação cambial = (Ativos USD - Passivos USD) * Variação % * Taxa Atual
         // Se câmbio sobe: ganho com ativos, perda com passivos
         // Se câmbio cai: perda com ativos, ganho com passivos
         const exposicaoLiquidaUSD = totalAtivosUSD - totalPassivosUSD;
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Exposição líquida em USD = ${exposicaoLiquidaUSD} (ativos ${totalAtivosUSD} - passivos ${totalPassivosUSD})`);
         
         // A variação cambial deve ser calculada sobre o valor em reais, não em dólares
         // Convertemos a exposição líquida para reais usando a taxa anterior
         const exposicaoLiquidaBRL = exposicaoLiquidaUSD * taxaAnterior;
         variacaoCambial = exposicaoLiquidaBRL * variacaoPercentual;
         
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Exposição em BRL (taxa anterior) = ${exposicaoLiquidaBRL}`);
-        console.log(`🔍 VARIAÇÃO CAMBIAL: Resultado final = ${variacaoCambial} (${exposicaoLiquidaBRL} * ${variacaoPercentual})`);
       } else {
-        console.log(`🔍 VARIAÇÃO CAMBIAL: safraId não definido, variação cambial será 0`);
       }
       
       dreData.resultado_financeiro.variacao_cambial[ano] = variacaoCambial;
-      console.log(`🔍 VARIAÇÃO CAMBIAL: Variação cambial final para ano ${ano} = ${variacaoCambial}`);
 
       // Resultado Financeiro Total
       dreData.resultado_financeiro.total[ano] = 

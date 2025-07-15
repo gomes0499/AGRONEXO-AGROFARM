@@ -194,8 +194,6 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
     };
 
     // Debug logs
-    console.log("Calculando balanço patrimonial...");
-    console.log("Anos:", anosFiltrados);
 
     // CALCULAR VALORES ATUAIS (para usar em todos os anos)
     
@@ -213,21 +211,18 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
           return acc + total;
         }, 0);
     }
-    console.log("Caixa e Bancos:", caixaBancosValor);
 
     // Clientes (Contas a Receber)
     let clientesValor = 0;
     if (Array.isArray(receivableContracts)) {
       clientesValor = receivableContracts.reduce((acc: number, item: any) => acc + (item.valor || 0), 0);
     }
-    console.log("Clientes:", clientesValor);
 
     // Adiantamentos a Fornecedores
     let adiantamentosFornecedoresValor = 0;
     if (Array.isArray(supplierAdvances)) {
       adiantamentosFornecedoresValor = supplierAdvances.reduce((acc: number, item: any) => acc + (item.valor || 0), 0);
     }
-    console.log("Adiantamentos Fornecedores:", adiantamentosFornecedoresValor);
 
     // Estoques
     let estoquesDefensivosValor = 0;
@@ -280,19 +275,16 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
 
     const estoquesTotalValor = estoquesDefensivosValor + estoquesFertilizantesValor + 
                                estoquesAlmoxarifadoValor + estoquesSementesValor + estoquesCommoditiesValor;
-    console.log("Estoques Total:", estoquesTotalValor);
 
     // Empréstimos a Terceiros
     let emprestimosATerceirosValor = 0;
     if (Array.isArray(thirdPartyLoans)) {
       emprestimosATerceirosValor = thirdPartyLoans.reduce((acc: number, item: any) => acc + (item.valor || 0), 0);
     }
-    console.log("Empréstimos a Terceiros:", emprestimosATerceirosValor);
 
     // Total Ativo Circulante
     const ativoCirculanteTotal = caixaBancosValor + clientesValor + adiantamentosFornecedoresValor + 
                                  estoquesTotalValor + emprestimosATerceirosValor;
-    console.log("Ativo Circulante Total:", ativoCirculanteTotal);
 
     // 2. ATIVO NÃO CIRCULANTE
 
@@ -304,36 +296,30 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
         return acc + valorTotal;
       }, 0);
     }
-    console.log("Investimentos:", investimentosValor);
 
     // Terras
     let terrasValor = 0;
     if (Array.isArray(properties)) {
       terrasValor = properties.reduce((acc: number, item: any) => acc + (item.valor_atual || 0), 0);
     }
-    console.log("Terras:", terrasValor);
 
     // Máquinas e Equipamentos
     let maquinasEquipamentosValor = 0;
     if (equipments && 'data' in equipments && Array.isArray(equipments.data)) {
       maquinasEquipamentosValor = equipments.data.reduce((acc: number, item: any) => acc + (item.valor_aquisicao || 0), 0);
     }
-    console.log("Máquinas e Equipamentos:", maquinasEquipamentosValor);
 
     // Benfeitorias
     let benfeitoriasValor = 0;
     if (Array.isArray(improvements)) {
       benfeitoriasValor = improvements.reduce((acc: number, item: any) => acc + (item.valor || 0), 0);
     }
-    console.log("Benfeitorias:", benfeitoriasValor);
 
     const imobilizadoTotal = terrasValor + maquinasEquipamentosValor + benfeitoriasValor;
     const ativoNaoCirculanteTotal = investimentosValor + imobilizadoTotal;
-    console.log("Ativo Não Circulante Total:", ativoNaoCirculanteTotal);
 
     // Total do Ativo
     const ativoTotal = ativoCirculanteTotal + ativoNaoCirculanteTotal;
-    console.log("Ativo Total:", ativoTotal);
 
     // 3. PASSIVO
 
@@ -351,7 +337,6 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
         return acc;
       }, 0);
     }
-    console.log("Fornecedores:", fornecedoresValor);
 
     // Dívidas
     let dividasCurtoPrazo = 0;
@@ -379,9 +364,6 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
         }
       });
     }
-    console.log("Dívidas Curto Prazo:", dividasCurtoPrazo);
-    console.log("Dívidas Longo Prazo:", dividasLongoPrazo);
-    console.log("Financiamentos Terras:", financiamentosTerras);
 
     // Arrendamentos
     let arrendamentosValor = 0;
@@ -391,7 +373,6 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
         return acc + custoAnual;
       }, 0);
     }
-    console.log("Arrendamentos:", arrendamentosValor);
 
     // Totais do Passivo
     const passivoCirculanteTotal = fornecedoresValor + dividasCurtoPrazo;
@@ -403,7 +384,6 @@ export async function getBalancoPatrimonialData(organizacaoId: string): Promise<
     const capitalSocial = patrimonioLiquidoTotal * 0.3; // 30% como capital social
     const lucrosAcumulados = patrimonioLiquidoTotal * 0.7; // 70% como lucros acumulados
 
-    console.log("Patrimônio Líquido Total:", patrimonioLiquidoTotal);
 
     // APLICAR VALORES PARA CADA ANO
     anosFiltrados.forEach((ano: string) => {

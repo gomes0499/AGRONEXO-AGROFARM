@@ -58,12 +58,13 @@ export function OrganizationFormModal({
     steps,
   } = useFormSteps(formValues);
 
-  const { cepLoading, cepSuccess, handleAddressFound } = useCepLookup(form as any);
+  const { cepLoading, cepSuccess, handleAddressFound } = useCepLookup(
+    form as any
+  );
 
   const handleFormSubmit = async (values: any) => {
     // Only proceed if we're actually on the last step
     if (currentStep !== steps.length) {
-      console.warn("Form submission attempted before last step");
       return;
     }
     const result = await onSubmit(values);
@@ -138,12 +139,15 @@ export function OrganizationFormModal({
             className="flex flex-col flex-1 min-h-0"
           >
             <ScrollArea className="flex-1 px-6">
-              <div className="py-4" onKeyDown={(e) => {
-                // Prevent form submission on Enter key
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                }
-              }}>
+              <div
+                className="py-4"
+                onKeyDown={(e) => {
+                  // Prevent form submission on Enter key
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 {renderCurrentStep()}
               </div>
             </ScrollArea>

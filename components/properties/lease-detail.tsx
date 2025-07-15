@@ -162,9 +162,6 @@ export function LeaseDetail({ lease, propertyId, organizationId }: LeaseDetailPr
     return a.localeCompare(b);
   });
   
-  console.log("Custos do arrendamento:", custos);
-  console.log("Safras encontradas:", safrasMap);
-  console.log("Anos ordenados:", anos);
 
   // Preparar dados para o gráfico - convertendo de sacas para R$
   const chartData = anos.map((safraId) => {

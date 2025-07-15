@@ -9,7 +9,6 @@ export function CepeaDataLoader() {
   useEffect(() => {
     // Função para capturar dados do widget CEPEA
     (window as any).onCepeaWidgetData = async (data: any[]) => {
-      console.log("Dados CEPEA recebidos:", data);
       
       try {
         // Enviar dados para o backend
@@ -43,7 +42,6 @@ export function CepeaDataLoader() {
     // Verificar periodicamente se os dados foram carregados
     const checkInterval = setInterval(() => {
       if ((window as any).cepeaData) {
-        console.log("Dados CEPEA encontrados em window.cepeaData:", (window as any).cepeaData);
         (window as any).onCepeaWidgetData((window as any).cepeaData);
         clearInterval(checkInterval);
       }

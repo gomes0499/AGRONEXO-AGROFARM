@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { getCommodityPricesBySafra, type CommodityPriceProjection } from "@/lib/actions/commodity-price-actions";
+import {
+  getCommodityPricesBySafra,
+  type CommodityPriceProjection,
+} from "@/lib/actions/commodity-price-actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -51,17 +54,20 @@ export function DividasTerrasForm({
   onCancel,
 }: DividasTerrasFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [commodityPrices, setCommodityPrices] = useState<CommodityPriceProjection[]>([]);
-  const [selectedCommodity, setSelectedCommodity] = useState<CommodityPriceProjection | null>(null);
+  const [commodityPrices, setCommodityPrices] = useState<
+    CommodityPriceProjection[]
+  >([]);
+  const [selectedCommodity, setSelectedCommodity] =
+    useState<CommodityPriceProjection | null>(null);
   const [calculatedPrice, setCalculatedPrice] = useState<number>(0);
   const isEditing = !!initialData?.id;
-  
+
   // Usar safras passadas como prop
-  const harvests = safras.map((s) => ({ 
-    id: s.id, 
-    nome: s.nome, 
-    ano_inicio: s.ano_inicio, 
-    ano_fim: s.ano_fim 
+  const harvests = safras.map((s) => ({
+    id: s.id,
+    nome: s.nome,
+    ano_inicio: s.ano_inicio,
+    ano_fim: s.ano_fim,
   }));
 
   const form = useForm<LandAcquisitionFormValues>({
@@ -74,9 +80,7 @@ export function DividasTerrasForm({
       // Forçar tipo a ser um valor válido para tipo_aquisicao_terra
       tipo:
         initialData?.tipo &&
-        ["COMPRA", "PARCERIA", "OUTROS"].includes(
-          initialData.tipo
-        )
+        ["COMPRA", "PARCERIA", "OUTROS"].includes(initialData.tipo)
           ? initialData.tipo
           : "COMPRA",
       ano: initialData?.ano || new Date().getFullYear(),
@@ -93,12 +97,7 @@ export function DividasTerrasForm({
   // Garantir que o tipo seja sempre um valor válido após a inicialização do form
   useEffect(() => {
     const currentTipo = form.getValues("tipo");
-    if (
-      !["COMPRA", "PARCERIA", "OUTROS"].includes(
-        currentTipo
-      )
-    ) {
-      console.warn(`Normalizando tipo inválido: ${currentTipo} -> "COMPRA"`);
+    if (!["COMPRA", "PARCERIA", "OUTROS"].includes(currentTipo)) {
       form.setValue("tipo", "COMPRA");
     }
   }, [form]);
@@ -107,7 +106,7 @@ export function DividasTerrasForm({
   const selectedSafraId = form.watch("safra_id");
   useEffect(() => {
     if (selectedSafraId && selectedSafraId !== "") {
-      const selectedSafra = harvests.find(h => h.id === selectedSafraId);
+      const selectedSafra = harvests.find((h) => h.id === selectedSafraId);
       if (selectedSafra) {
         form.setValue("ano", selectedSafra.ano_inicio);
       }
@@ -117,11 +116,19 @@ export function DividasTerrasForm({
   // Buscar preços de commodities quando a safra for selecionada
   useEffect(() => {
     async function loadCommodityPrices() {
-      if (watchedSafraId && watchedSafraId !== "" && watchedSafraId !== "none" && organizationId) {
+      if (
+        watchedSafraId &&
+        watchedSafraId !== "" &&
+        watchedSafraId !== "none" &&
+        organizationId
+      ) {
         try {
-          const prices = await getCommodityPricesBySafra(organizationId, watchedSafraId);
+          const prices = await getCommodityPricesBySafra(
+            organizationId,
+            watchedSafraId
+          );
           setCommodityPrices(prices);
-          
+
           // Se houver preços, selecionar o primeiro por padrão
           if (prices.length > 0) {
             setSelectedCommodity(prices[0]);
@@ -135,7 +142,7 @@ export function DividasTerrasForm({
         setSelectedCommodity(null);
       }
     }
-    
+
     if (organizationId) {
       loadCommodityPrices();
     }
@@ -145,9 +152,12 @@ export function DividasTerrasForm({
   useEffect(() => {
     if (selectedCommodity && totalSacas > 0 && watchedSafraId) {
       // Usar o preço da safra específica ou o preço atual
-      const priceForSafra = selectedCommodity.precos_por_ano?.[watchedSafraId] || selectedCommodity.current_price || 0;
+      const priceForSafra =
+        selectedCommodity.precos_por_ano?.[watchedSafraId] ||
+        selectedCommodity.current_price ||
+        0;
       setCalculatedPrice(priceForSafra);
-      
+
       const calculatedValue = totalSacas * priceForSafra;
       form.setValue("valor_total", calculatedValue);
     } else {
@@ -170,18 +180,8 @@ export function DividasTerrasForm({
         (tipoValido as string) === "PLANEJADO" ||
         (tipoValido as string) === "REALIZADO"
       ) {
-        console.warn(
-          `Detectado valor legado para tipo: "${tipoValido}". Substituindo por "COMPRA"`
-        );
         tipoValido = "COMPRA";
-      } else if (
-        !["COMPRA", "PARCERIA", "OUTROS"].includes(
-          tipoValido
-        )
-      ) {
-        console.warn(
-          `Tipo de aquisição inválido: ${tipoValido}. Usando valor padrão "COMPRA"`
-        );
+      } else if (!["COMPRA", "PARCERIA", "OUTROS"].includes(tipoValido)) {
         tipoValido = "COMPRA";
       }
 
@@ -348,7 +348,9 @@ export function DividasTerrasForm({
                 <Select
                   value={selectedCommodity?.id || ""}
                   onValueChange={(value) => {
-                    const commodity = commodityPrices.find(c => c.id === value);
+                    const commodity = commodityPrices.find(
+                      (c) => c.id === value
+                    );
                     setSelectedCommodity(commodity || null);
                   }}
                 >
@@ -358,14 +360,16 @@ export function DividasTerrasForm({
                   <SelectContent>
                     {commodityPrices.map((commodity) => (
                       <SelectItem key={commodity.id} value={commodity.id}>
-                        {commodity.commodity_type.replace(/_/g, " ")} - {commodity.unit}
+                        {commodity.commodity_type.replace(/_/g, " ")} -{" "}
+                        {commodity.unit}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {selectedCommodity && calculatedPrice > 0 && (
                   <p className="text-sm text-muted-foreground">
-                    Preço: {formatCurrency(calculatedPrice)}/{selectedCommodity?.unit.split("/")[1] || "unidade"}
+                    Preço: {formatCurrency(calculatedPrice)}/
+                    {selectedCommodity?.unit.split("/")[1] || "unidade"}
                   </p>
                 )}
               </>
@@ -397,15 +401,23 @@ export function DividasTerrasForm({
             <div className="space-y-1">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total de Sacas:</span>
-                <span className="font-medium">{totalSacas.toLocaleString('pt-BR')} sacas</span>
+                <span className="font-medium">
+                  {totalSacas.toLocaleString("pt-BR")} sacas
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Commodity:</span>
-                <span className="font-medium">{selectedCommodity.commodity_type.replace(/_/g, " ")}</span>
+                <span className="font-medium">
+                  {selectedCommodity.commodity_type.replace(/_/g, " ")}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Preço por {selectedCommodity.unit.split("/")[1] || "unidade"}:</span>
-                <span className="font-medium">{formatCurrency(calculatedPrice)}</span>
+                <span className="text-muted-foreground">
+                  Preço por {selectedCommodity.unit.split("/")[1] || "unidade"}:
+                </span>
+                <span className="font-medium">
+                  {formatCurrency(calculatedPrice)}
+                </span>
               </div>
               <div className="border-t pt-1 mt-2">
                 <div className="flex justify-between text-sm">

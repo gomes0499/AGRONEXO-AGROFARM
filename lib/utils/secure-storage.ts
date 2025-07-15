@@ -97,7 +97,6 @@ export function migrateInsecureData(): void {
       if (rawData && !rawData.startsWith('ey')) { // Não é base64
         const data = JSON.parse(rawData);
         secureSetItem(key, data);
-        console.log(`Migrado ${key} para armazenamento seguro`);
       }
     } catch (error) {
       console.error(`Erro ao migrar ${key}:`, error);

@@ -67,9 +67,6 @@ export async function createProjection(nome: string, descricao?: string) {
     const supabase = await createClient();
     const organizationId = await getOrganizationId();
 
-    console.log("=== CREATING NEW PROJECTION ===");
-    console.log("Nome:", nome);
-    console.log("Organization ID:", organizationId);
 
     // Verificar se já existe uma projeção com o mesmo nome
     const { data: existingProjections, error: checkError } = await supabase
@@ -110,10 +107,8 @@ export async function createProjection(nome: string, descricao?: string) {
       return { data: null, error: projectionError };
     }
 
-    console.log("✅ Projeção criada com ID:", projection.id);
 
     // 2. Copiar dados de áreas de plantio
-    console.log("📋 Copiando áreas de plantio...");
     const { error: areasError } = await supabase.rpc('copy_areas_plantio_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
@@ -122,11 +117,9 @@ export async function createProjection(nome: string, descricao?: string) {
     if (areasError) {
       console.error("❌ ERRO ao copiar áreas de plantio:", areasError);
     } else {
-      console.log("✅ Áreas de plantio copiadas");
     }
 
     // 3. Copiar dados de produtividades
-    console.log("📋 Copiando produtividades...");
     const { error: produtividadesError } = await supabase.rpc('copy_produtividades_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
@@ -135,11 +128,9 @@ export async function createProjection(nome: string, descricao?: string) {
     if (produtividadesError) {
       console.error("❌ ERRO ao copiar produtividades:", produtividadesError);
     } else {
-      console.log("✅ Produtividades copiadas");
     }
 
     // 4. Copiar dados de custos de produção
-    console.log("📋 Copiando custos de produção...");
     const { error: custosError } = await supabase.rpc('copy_custos_producao_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
@@ -148,11 +139,9 @@ export async function createProjection(nome: string, descricao?: string) {
     if (custosError) {
       console.error("❌ ERRO ao copiar custos de produção:", custosError);
     } else {
-      console.log("✅ Custos de produção copiados");
     }
 
     // 5. Copiar dados de preços de commodities
-    console.log("📋 Copiando preços de commodities...");
     const { error: commodityError } = await supabase.rpc('copy_commodity_prices_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
@@ -167,11 +156,9 @@ export async function createProjection(nome: string, descricao?: string) {
         hint: commodityError.hint
       });
     } else {
-      console.log("✅ Preços de commodities copiados");
     }
 
     // 6. Copiar dados de cotações de câmbio
-    console.log("📋 Copiando cotações de câmbio...");
     const { error: cambioError } = await supabase.rpc('copy_cotacoes_cambio_to_projection', {
       p_projection_id: projection.id,
       p_organizacao_id: organizationId
@@ -186,10 +173,8 @@ export async function createProjection(nome: string, descricao?: string) {
         hint: cambioError.hint
       });
     } else {
-      console.log("✅ Cotações de câmbio copiadas");
     }
 
-    console.log("=== PROJECTION CREATION COMPLETED ===");
     
     revalidatePath("/dashboard/production");
     return { data: projection, error: null };

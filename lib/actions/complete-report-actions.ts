@@ -153,7 +153,7 @@ export async function getCompleteReportData(organizationId: string): Promise<Com
         };
       }
     } catch (dreError) {
-      console.warn("Erro ao buscar dados da DRE, usando valores padrão:", dreError);
+
     }
 
     // 8. Balanço Patrimonial
@@ -178,7 +178,6 @@ export async function getCompleteReportData(organizationId: string): Promise<Com
         };
       }
     } catch (balanceError) {
-      console.warn("Erro ao buscar dados do Balanço Patrimonial, usando valores padrão:", balanceError);
     }
 
     // 9. Visão geral

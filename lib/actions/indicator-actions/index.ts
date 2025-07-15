@@ -128,7 +128,6 @@ export async function getIndicatorConfigs() {
       // Se a inicialização falhou, retornar pelo menos as configurações padrão
       // em formato de memória para não quebrar o UI
       if (!result.success) {
-        console.warn("Usando configurações padrão em memória devido a erro na inicialização");
         return Object.entries(defaultIndicatorConfigs).map(([type, thresholds]) => ({
           id: `default-${type}`,
           organizacaoId: organizationId,

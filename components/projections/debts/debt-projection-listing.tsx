@@ -44,7 +44,6 @@ export function DebtProjectionListing({
     useState<ProjecaoDivida[]>(initialProjections);
 
   const handleEdit = (projection: ProjecaoDivida) => {
-    console.log("Editar projeção:", projection);
   };
 
   const handleDelete = async (id: string) => {

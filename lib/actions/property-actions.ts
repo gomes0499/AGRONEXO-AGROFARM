@@ -114,7 +114,6 @@ export async function getProperties(organizationId: string) {
   
   // Validar organizationId
   if (!organizationId) {
-    console.warn("getProperties chamada sem organizationId");
     return [];
   }
   
@@ -904,7 +903,6 @@ export async function getSafrasByIds(organizationId: string, safraIds: string[])
   const supabase = await createClient();
   
   // Log para verificar os IDs de safra recebidos
-  console.log("Buscando safras para os IDs:", safraIds);
   
   // Se não houver IDs, retorne uma lista vazia
   if (!safraIds || safraIds.length === 0) {
@@ -916,7 +914,6 @@ export async function getSafrasByIds(organizationId: string, safraIds: string[])
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
   );
   
-  console.log("IDs válidos após filtro:", validUUIDs);
   
   // Se não houver IDs válidos, retorne uma lista vazia
   if (validUUIDs.length === 0) {
@@ -929,7 +926,6 @@ export async function getSafrasByIds(organizationId: string, safraIds: string[])
     .select("id, nome, ano_inicio, ano_fim")
     .eq("organizacao_id", organizationId);
     
-  console.log("Todas as safras disponíveis:", allSafras);
   
   // Buscar safras pelos IDs específicos
   const { data, error } = await supabase
@@ -943,7 +939,6 @@ export async function getSafrasByIds(organizationId: string, safraIds: string[])
     throw new Error("Não foi possível carregar as safras");
   }
   
-  console.log("Safras encontradas pela consulta:", data);
   
   // Se encontramos safras, retorne-as
   if (data && data.length > 0) {

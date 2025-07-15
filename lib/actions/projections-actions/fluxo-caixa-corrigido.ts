@@ -282,7 +282,6 @@ export async function getFluxoCaixaCorrigido(
                 commodityType = 'FEIJAO';
                 break;
               default:
-                console.warn(`Cultura não mapeada: ${culturaNome}`);
                 commodityType = '';
             }
             
@@ -358,7 +357,6 @@ export async function getFluxoCaixaCorrigido(
         }
 
       } catch (error) {
-        console.warn(`Erro ao calcular dados para safra ${ano}:`, error);
       }
     }
 
@@ -554,17 +552,7 @@ export async function getFluxoCaixaCorrigido(
     anos.forEach(ano => {
       acumulado += fluxoData.fluxo_liquido[ano];
       fluxoData.fluxo_acumulado[ano] = acumulado;
-    });
-
-    // Log final simplificado 
-    const totalReceitas = anos.reduce((sum, ano) => sum + (fluxoData.receitas_agricolas.total_por_ano[ano] || 0), 0);
-    const totalCustos = anos.reduce((sum, ano) => sum + (fluxoData.despesas_agricolas.total_por_ano[ano] || 0), 0);
-    
-    console.log(`✅ Fluxo de caixa gerado - Receitas: R$ ${totalReceitas.toLocaleString()}, Custos: R$ ${totalCustos.toLocaleString()}`);
-    
-    if (totalReceitas === 0) {
-      console.warn('⚠️ Receitas zeradas - verificar dados de produção e preços');
-    }
+    });  
     
     return fluxoData;
 

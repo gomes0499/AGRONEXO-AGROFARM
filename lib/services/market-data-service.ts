@@ -45,12 +45,10 @@ async function fetchWithCache(
     if (cached) {
       const { data, timestamp } = JSON.parse(cached);
       if (Date.now() - timestamp < cacheDuration) {
-        console.log(`[Cache Hit] ${key} - Usando dados em cache`);
         return data;
       }
     }
     
-    console.log(`[Cache Miss] ${key} - Buscando novos dados`);
     const data = await fetcher();
     sessionStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
     return data;
@@ -146,7 +144,6 @@ export async function fetchCommodityData(): Promise<MarketDataItem[]> {
       return response.json();
     }, CACHE_DURATION);
 
-    console.log("Dados CEPEA via API route:", data);
 
     return data.map((item: any) => ({
       name: item.name,
@@ -181,7 +178,6 @@ export async function fetchInterestRates(): Promise<MarketDataItem[]> {
       return response.json();
     }, CACHE_DURATION);
 
-    console.log("Taxas de juros via API route:", data);
 
     return [
       {

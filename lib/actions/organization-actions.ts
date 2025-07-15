@@ -135,7 +135,6 @@ export async function deleteOrganization(formData: FormData) {
     }
     
     // Usar a função SQL cascade que não tenta desabilitar triggers
-    console.log("Excluindo organização usando função SQL cascade...");
     
     const { error: deleteError } = await supabase.rpc('delete_organization_cascade', { org_id: organizacaoId });
     
@@ -144,7 +143,6 @@ export async function deleteOrganization(formData: FormData) {
       return { error: `Erro ao excluir organização: ${deleteError.message}` };
     }
     
-    console.log("Organização excluída com sucesso");
     
     // Retornar sucesso e o caminho para redirecionamento
     return { success: true, redirect: "/dashboard" };

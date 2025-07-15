@@ -566,7 +566,6 @@ export async function sendRatingResultByEmail(
         failedCount: 0,
       };
     } catch (batchError) {
-      console.log("Batch send failed, sending individually:", batchError);
       
       // Se falhar, enviar individualmente
       let successCount = 0;

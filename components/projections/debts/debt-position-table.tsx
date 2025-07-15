@@ -28,7 +28,6 @@ export function DebtPositionTable({ organizationId, initialDebtPositions, safras
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   
   // Log para debug - remover depois
-  console.log('🔍 DebtPositionTable - dividas:', dividas.map(d => ({ categoria: d.categoria, valores_2024_25: d.valores_por_ano['2024/25'] })));
   
   const formatNumber = (value: number, decimals: number = 0) => {
     return new Intl.NumberFormat('pt-BR', {

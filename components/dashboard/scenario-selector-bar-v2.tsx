@@ -61,7 +61,6 @@ export function ScenarioSelectorBar({
   const loadScenarios = async () => {
     try {
       const dbScenarios = await getScenarios(organizationId);
-      console.log("Cenários carregados:", dbScenarios);
       
       if (dbScenarios && dbScenarios.length > 0) {
         setScenarios(dbScenarios);
@@ -76,10 +75,8 @@ export function ScenarioSelectorBar({
 
   const handleScenarioChange = async (value: string) => {
     setSelectedScenario(value);
-    console.log("Mudando para cenário:", value);
 
     if (value === "base") {
-      console.log("Cenário base selecionado - resetando para dados reais");
       onScenarioChange(null);
     } else if (value === "new") {
       setEditingScenario(null);
@@ -87,7 +84,6 @@ export function ScenarioSelectorBar({
       setSelectedScenario("base");
     } else {
       const scenario = scenarios.find((s) => s.id === value);
-      console.log("Cenário encontrado:", scenario);
       if (scenario) {
         loadScenarioData(scenario);
       }
@@ -134,7 +130,6 @@ export function ScenarioSelectorBar({
           });
         });
 
-        console.log("Enviando dados do cenário para o contexto:", scenarioData);
         onScenarioChange(scenarioData);
       }
     } catch (error) {
@@ -201,7 +196,6 @@ export function ScenarioSelectorBar({
           description: scenarioData.description,
         });
 
-        console.log("Resultado da criação do cenário:", result);
 
         if (result.error) {
           toast.error(result.error);

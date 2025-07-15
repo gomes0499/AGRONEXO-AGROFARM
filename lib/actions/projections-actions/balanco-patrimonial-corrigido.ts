@@ -494,12 +494,6 @@ export async function getBalancoPatrimonialCorrigido(
 
       balancoData.validacao.diferenca[ano] = diferenca;
       balancoData.validacao.balanco_fecha[ano] = Math.abs(diferenca) < 1;
-
-      if (!balancoData.validacao.balanco_fecha[ano]) {
-        console.warn(`⚠️ Balanço não fecha para ${ano}. Diferença: R$ ${diferenca.toFixed(2)}`);
-        console.log(`   Ativo: R$ ${ativoTotalFinal.toFixed(2)}`);
-        console.log(`   Passivo + PL: R$ ${passivoMaisPatrimonio.toFixed(2)}`);
-      }
       
       // Reset lucros acumulados para próxima iteração
       if (index > 0) {
@@ -507,7 +501,6 @@ export async function getBalancoPatrimonialCorrigido(
       }
     });
 
-    console.log('✅ Balanço patrimonial corrigido gerado sem ajustes artificiais');
     return balancoData;
 
   } catch (error) {

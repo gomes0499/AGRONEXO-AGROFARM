@@ -44,7 +44,6 @@ export function FluxoCaixaClient({
         setError(null);
         
         // Sempre usar getFluxoCaixaSimplificado, passando projectionId quando disponível
-        console.log('Carregando fluxo de caixa:', projectionId ? `projeção ${projectionId}` : 'base');
         const data = await getFluxoCaixaSimplificado(organizationId, projectionId);
         
         setCashFlowData(data);

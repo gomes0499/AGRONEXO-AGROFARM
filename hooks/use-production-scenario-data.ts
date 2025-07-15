@@ -50,7 +50,6 @@ export function useProductionScenarioData(organizationId?: string) {
               chartKey = `${cultureName} ${systemName}`;
             }
             
-            console.log(`Mapping: ${cultureName} ${systemName} -> ${chartKey}`);
             
             if (!mapped[chartKey]) {
               mapped[chartKey] = {};
@@ -65,7 +64,6 @@ export function useProductionScenarioData(organizationId?: string) {
         
         setScenarioData(organized);
         setMappedData(mapped);
-        console.log('Scenario data loaded:', { organized, mapped });
       } catch (error) {
         console.error("Error loading scenario data:", error);
       } finally {

@@ -164,7 +164,6 @@ export async function deleteScenario(id: string) {
 export async function getScenarios(organizationId: string) {
   const supabase = await createClient();
 
-  console.log("[getScenarios] Buscando cenários para organizationId:", organizationId);
 
   const { data, error } = await supabase
     .from("projection_scenarios")
@@ -178,7 +177,6 @@ export async function getScenarios(organizationId: string) {
     return [];
   }
 
-  console.log("[getScenarios] Cenários encontrados:", data?.length || 0);
   
   return data || [];
 }
@@ -435,7 +433,6 @@ export async function copyExchangeRatesToScenario(organizationId: string, scenar
   const supabase = await createClient();
   
   try {
-    console.log("[copyExchangeRatesToScenario] Iniciando cópia de câmbios para cenário:", scenarioId);
     
     // Usar SQL direto para copiar os dados, similar ao que funcionou no teste
     const { data, error } = await supabase.rpc('copy_exchange_rates_to_scenario', {
@@ -445,7 +442,6 @@ export async function copyExchangeRatesToScenario(organizationId: string, scenar
     
     if (error) {
       // Se a função RPC não existir, fazer manualmente
-      console.log("[copyExchangeRatesToScenario] RPC não existe, copiando manualmente");
       
       // Buscar todas as cotações agrupadas por safra
       const { data: cambiosData, error: cambiosError } = await supabase
@@ -460,7 +456,6 @@ export async function copyExchangeRatesToScenario(organizationId: string, scenar
       }
       
       if (!cambiosData || cambiosData.length === 0) {
-        console.log("[copyExchangeRatesToScenario] Nenhum câmbio encontrado");
         return;
       }
       
@@ -495,7 +490,6 @@ export async function copyExchangeRatesToScenario(organizationId: string, scenar
         return acc;
       }, {});
       
-      console.log("[copyExchangeRatesToScenario] Câmbios agrupados:", cambiosPorSafra);
       
       // Inserir dados para cada safra
       for (const [safraId, rates] of Object.entries(cambiosPorSafra)) {
@@ -516,11 +510,9 @@ export async function copyExchangeRatesToScenario(organizationId: string, scenar
         if (insertError) {
           console.error("[copyExchangeRatesToScenario] Erro ao inserir câmbio para safra", safraId, insertError);
         } else {
-          console.log("[copyExchangeRatesToScenario] Câmbio inserido para safra", safraId);
         }
       }
     } else {
-      console.log("[copyExchangeRatesToScenario] Câmbios copiados via RPC com sucesso");
     }
   } catch (error) {
     console.error("[copyExchangeRatesToScenario] Erro geral:", error);

@@ -512,7 +512,6 @@ export async function getCommodityPricesByOrganizationId(
           } else if (propertyData) {
             
             if (propertyData.organizacao_id !== organizacaoId) {
-              console.warn(`ATENÇÃO: Inconsistência encontrada - ID da organização na propriedade diferente do fornecido!`);
             } else {
               
             }
@@ -829,8 +828,6 @@ export async function initializeDefaultCommodityPrices(
             }
           }
         } else {
-          // Outros erros são relatados, mas não impedem a conclusão
-          console.warn("Alguns tipos de commodity podem não ter sido inseridos devido a erros");
         }
       }
     }

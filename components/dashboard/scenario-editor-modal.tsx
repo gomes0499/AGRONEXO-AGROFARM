@@ -190,7 +190,6 @@ export function ScenarioEditorModal({
         .is("projection_id", null)
         .order("commodity_type");
 
-      console.log("Preços carregados:", pricesData);
       if (pricesError) console.error("Erro ao buscar preços:", pricesError);
       if (pricesData) setPrices(pricesData);
 
@@ -201,7 +200,6 @@ export function ScenarioEditorModal({
           p_id: null
         });
 
-      console.log("RPC get_exchange_rates_unified response:", exchangeData);
       
       if (exchangeError) {
         console.error("Erro ao buscar cotações:", exchangeError);
@@ -214,7 +212,6 @@ export function ScenarioEditorModal({
           .is("projection_id", null)
           .order("tipo_moeda");
           
-        console.log("Fallback cotações:", fallbackData);
         
         if (!fallbackError && fallbackData && fallbackData.length > 0) {
           const uniqueRates = fallbackData.reduce((acc: ExchangeRate[], rate) => {
@@ -225,7 +222,6 @@ export function ScenarioEditorModal({
           }, []);
           
           setExchangeRates(uniqueRates);
-          console.log("ExchangeRates definido via fallback:", uniqueRates);
         }
       } else if (exchangeData && exchangeData.length > 0) {
         // Agregar cotações por tipo de moeda (pegar apenas uma de cada tipo)
@@ -243,9 +239,7 @@ export function ScenarioEditorModal({
         }, []);
         
         setExchangeRates(uniqueRates);
-        console.log("ExchangeRates definido:", uniqueRates);
       } else {
-        console.log("Nenhuma cotação encontrada");
       }
 
       // Buscar áreas base

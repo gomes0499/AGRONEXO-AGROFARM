@@ -19,9 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Calculator, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { 
+import {
   calculateRating,
-  checkManualMetricsEvaluated 
+  checkManualMetricsEvaluated,
 } from "@/lib/actions/flexible-rating-actions";
 import { getSafras, type Safra } from "@/lib/actions/production-actions";
 
@@ -33,7 +33,6 @@ interface CalculateRatingModalProps {
   onClose: () => void;
   onSuccess: (calculation: any) => void;
 }
-
 
 export function CalculateRatingModal({
   organizationId,
@@ -57,20 +56,20 @@ export function CalculateRatingModal({
   const loadData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Load safras
       const safrasData = await getSafras(organizationId);
-      
+
       // Filter active safras
-      const activeSafras = safrasData.filter(s => s.ativa !== false);
+      const activeSafras = safrasData.filter((s) => s.ativa !== false);
       setSafras(activeSafras);
-      
+
       // Select safra that starts with current year (2025)
       const currentYear = new Date().getFullYear();
-      const currentYearSafra = activeSafras.find(safra => 
+      const currentYearSafra = activeSafras.find((safra) =>
         safra.nome.startsWith(currentYear.toString())
       );
-      
+
       if (currentYearSafra) {
         setSelectedSafra(currentYearSafra.id);
       } else if (activeSafras.length > 0) {
@@ -93,28 +92,19 @@ export function CalculateRatingModal({
 
     try {
       setIsCalculating(true);
-      
+
       // Always use base scenario (null)
       const scenarioId = null;
-      
-      // Temporarily disable validation as all metrics are evaluated
-      // const isEvaluated = await checkManualMetricsEvaluated(
-      //   organizationId,
-      //   selectedSafra,
-      //   scenarioId
-      // );
-      
-      // if (!isEvaluated) {
-      //   console.warn("Manual metrics not fully evaluated for safra:", selectedSafra, "scenario:", scenarioId);
-      //   toast.error("É necessário avaliar todas as métricas manuais antes de calcular o rating");
-      //   setIsCalculating(false);
-      //   return;
-      // }
-      
-      const calculation = await calculateRating(organizationId, modelId, selectedSafra, scenarioId);
-      
+
+      const calculation = await calculateRating(
+        organizationId,
+        modelId,
+        selectedSafra,
+        scenarioId
+      );
+
       toast.success("Rating calculado com sucesso!");
-      
+
       onSuccess(calculation);
       onClose();
     } catch (error) {
@@ -144,7 +134,6 @@ export function CalculateRatingModal({
           </div>
         ) : (
           <div className="space-y-4 py-4">
-
             <div className="space-y-2">
               <Label htmlFor="safra">Safra</Label>
               <Select value={selectedSafra} onValueChange={setSelectedSafra}>
@@ -161,11 +150,11 @@ export function CalculateRatingModal({
               </Select>
             </div>
 
-
             {selectedSafra && (
               <div className="rounded-lg bg-muted p-3 text-sm">
                 <p className="text-muted-foreground">
-                  O rating será calculado usando os indicadores financeiros da safra selecionada com dados reais (cenário base).
+                  O rating será calculado usando os indicadores financeiros da
+                  safra selecionada com dados reais (cenário base).
                 </p>
               </div>
             )}
@@ -176,8 +165,8 @@ export function CalculateRatingModal({
           <Button variant="outline" onClick={onClose} disabled={isCalculating}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleCalculate} 
+          <Button
+            onClick={handleCalculate}
             disabled={isCalculating || !selectedSafra || isLoading}
           >
             {isCalculating ? (

@@ -55,25 +55,6 @@ export async function calculateRating(
   const supabase = await createClient();
 
   try {
-    // FORÇA LIMPEZA de dados antigos com problema 0.69x para Wilsemar Elger
-    if (organizationId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
-      console.log("🔄 Limpando dados antigos de rating para Wilsemar Elger...");
-      
-      // Deletar cálculos antigos que podem conter valor 0.69x
-      await supabase
-        .from("rating_calculations")
-        .delete()
-        .eq("organizacao_id", organizationId);
-      
-      // Deletar valores qualitativos antigos
-      await supabase
-        .from("qualitative_metric_values")
-        .delete()
-        .eq("organizacao_id", organizationId);
-        
-      console.log("✅ Dados antigos de rating limpos, forçando recálculo completo");
-    }
-    // 1. Get the rating model (default if not specified)
     let ratingModel;
     if (modelId) {
       const { data, error } = await supabase
@@ -103,7 +84,6 @@ export async function calculateRating(
         
         if (globalError) {
           // Create a temporary in-memory model if no default exists
-          console.warn("Nenhum modelo de rating padrão encontrado. Usando modelo temporário.");
           ratingModel = {
             id: 'temporary-model',
             nome: 'Modelo Temporário',
@@ -219,9 +199,6 @@ export async function calculateRating(
           valor = qualValue?.valor || 0; // Default to 0 if not set
           
           if (!qualValue) {
-            console.warn(`⚠️ [${(metric as any).codigo}] Qualitativa não avaliada para safra ${safraId}, score=0`);
-          } else {
-            console.log(`✅ [${(metric as any).codigo}] Qualitativa encontrada: valor=${qualValue.valor}`);
           }
         } else {
           // Calculate quantitative metric value based on code
@@ -304,40 +281,6 @@ export async function calculateRating(
     else if (pontuacaoTotal >= 55) classificacao = 'CC';
     else if (pontuacaoTotal >= 50) classificacao = 'C';
 
-    // 7. Save calculation to database - TEMPORARIAMENTE DESABILITADO para correção 0.69x
-    console.log("⚠️ Salvamento automático de rating DESABILITADO para evitar valor 0.69x");
-    
-    // Verificar se DIVIDA_EBITDA ainda tem valor problemático
-    const dividaEbitdaMetric = calculatedMetrics.find(m => m.codigo === 'DIVIDA_EBITDA');
-    if (dividaEbitdaMetric && Math.abs(dividaEbitdaMetric.valor - 0.69) < 0.01) {
-      console.error("❌ ERRO: Métrica DIVIDA_EBITDA ainda mostra valor incorreto:", dividaEbitdaMetric.valor);
-      console.error("Dados financeiros usados:", financialData);
-    } else if (dividaEbitdaMetric) {
-      console.log("✅ SUCESSO: Métrica DIVIDA_EBITDA agora mostra valor correto:", dividaEbitdaMetric.valor);
-    }
-    
-    // try {
-    //   const { error: saveError } = await supabase
-    //     .from("rating_calculations")
-    //     .insert({
-    //       organizacao_id: organizationId,
-    //       rating_model_id: ratingModel.id,
-    //       safra_id: safraId,
-    //       pontuacao_total: pontuacaoTotal,
-    //       rating_letra: classificacao,
-    //       rating_descricao: getClassificationDescription(classificacao),
-    //       detalhes_calculo: {
-    //         metrics: calculatedMetrics,
-    //         financialData
-    //       }
-    //     });
-
-    //   if (saveError) console.error("Erro ao salvar cálculo:", saveError);
-    // } catch (error) {
-    //   console.error("Erro ao salvar cálculo:", error);
-    //   // Não falhar se não conseguir salvar
-    // }
-
     return {
       modelId: ratingModel.id,
       safraId,
@@ -373,14 +316,10 @@ async function getFinancialData(organizationId: string, safraId: string): Promis
   const safraName = safra.nome;
   const anoAtual = safra.ano_fim;
 
-  console.log("Rating calculation - getting financial data for safra:", safraName);
-
   // Use the same data sources as rating metrics calculations
   const debtPosition = await getDebtPosition(organizationId);
   const cultureProjections = await getCultureProjections(organizationId);
-  
-  console.log("Rating calculation - debtPosition indicators:", debtPosition.indicadores);
-  console.log("Rating calculation - cultureProjections consolidado:", cultureProjections.consolidado);
+
 
   // Get values for the specific safra using the same logic as rating metrics
   const dividaTotal = debtPosition.indicadores.endividamento_total[safraName] || 0;
@@ -401,18 +340,6 @@ async function getFinancialData(organizationId: string, safraId: string): Promis
     custoTotal = cultureProjections.consolidado.projections_by_year[safraName].custo_total || 0;
     ebitda = cultureProjections.consolidado.projections_by_year[safraName].ebitda || 0;
   }
-
-  console.log("Rating calculation - financial data:", {
-    safraName,
-    dividaTotal,
-    dividaLiquida,
-    patrimonioLiquido,
-    ltv,
-    receita,
-    ebitda,
-    custoTotal,
-    caixasDisponibilidades
-  });
 
   // Buscar ativo biológico para liquidez corrente
   let ativoBiologico = 0;
@@ -453,16 +380,6 @@ async function getFinancialData(organizationId: string, safraId: string): Promis
   const valorEquipamentos = equipment?.reduce((sum, e) => sum + (e.valor_aquisicao || 0), 0) || 0;
 
   const valorAtivos = valorPropriedades + valorEquipamentos + ativosCirculantes;
-
-  console.log("Rating calculation - final calculated values:", {
-    liquidezCorrente,
-    dividaTotal,
-    ebitda,
-    receita,
-    patrimonioLiquido,
-    valorAtivos,
-    margemEbitda
-  });
 
   return {
     liquidezCorrente,

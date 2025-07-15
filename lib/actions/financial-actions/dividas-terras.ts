@@ -21,11 +21,9 @@ export async function createDividaTerra(
     
     // Verificar explicitamente por valores legados e substituí-los
     if ((tipo as string) === "PLANEJADO" || (tipo as string) === "REALIZADO") {
-      console.warn(`Detectado valor legado para tipo: "${tipo}". Substituindo por "COMPRA"`);
       tipo = "COMPRA";
     }
     else if (!["COMPRA", "PARCERIA", "OUTROS"].includes(tipo)) {
-      console.warn(`Valor inválido para tipo: ${tipo}. Substituindo por "COMPRA".`);
       tipo = "COMPRA";
     }
 
@@ -52,7 +50,6 @@ export async function createDividaTerra(
       throw error;
     }
     
-    console.log("Dívida de terra criada com sucesso:", data);
     
     // Revalidar múltiplos caminhos para garantir que o cache seja limpo
     revalidatePath(`/dashboard/financial`);
@@ -79,11 +76,9 @@ export async function updateDividaTerra(
     
     // Verificar explicitamente por valores legados e substituí-los
     if ((tipo as string) === "PLANEJADO" || (tipo as string) === "REALIZADO") {
-      console.warn(`Detectado valor legado para tipo: "${tipo}". Substituindo por "COMPRA"`);
       tipo = "COMPRA";
     }
     else if (!["COMPRA", "PARCERIA", "OUTROS"].includes(tipo)) {
-      console.warn(`Valor inválido para tipo: ${tipo}. Substituindo por "COMPRA".`);
       tipo = "COMPRA";
     }
     

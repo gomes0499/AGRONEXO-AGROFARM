@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { formatArea } from "@/lib/utils/property-formatters";
 import { Leaf, Droplets, Shield, TreePine, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -26,7 +32,9 @@ interface SicarProperty {
   estado: string;
 }
 
-export function PropertyEnvironmentalSummaryClient({ organizationId }: PropertyEnvironmentalSummaryClientProps) {
+export function PropertyEnvironmentalSummaryClient({
+  organizationId,
+}: PropertyEnvironmentalSummaryClientProps) {
   const [data, setData] = useState<EnvironmentalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,13 +48,13 @@ export function PropertyEnvironmentalSummaryClient({ organizationId }: PropertyE
         // 1. Buscar propriedades com CAR
         const supabase = createClient();
         const { data: properties, error: propertiesError } = await supabase
-          .from('propriedades')
-          .select('numero_car, estado, area_total')
-          .eq('organizacao_id', organizationId)
-          .not('numero_car', 'is', null);
+          .from("propriedades")
+          .select("numero_car, estado, area_total")
+          .eq("organizacao_id", organizationId)
+          .not("numero_car", "is", null);
 
         if (propertiesError) {
-          throw new Error('Erro ao buscar propriedades');
+          throw new Error("Erro ao buscar propriedades");
         }
 
         if (!properties || properties.length === 0) {
@@ -66,22 +74,12 @@ export function PropertyEnvironmentalSummaryClient({ organizationId }: PropertyE
         // 2. Buscar dados do SICAR para cada propriedade
         const sicarPromises = properties.map(async (property) => {
           try {
-            const response = await fetch(`/api/sicar?car=${property.numero_car}&estado=${property.estado}`);
-            
-            if (!response.ok) {
-              console.warn(`Erro ao buscar SICAR para CAR ${property.numero_car}:`, response.statusText);
-              return {
-                area_imovel: property.area_total || 0,
-                modulos_fiscais: 0,
-                reserva_legal: { area: 0 },
-                app: { area: 0 },
-                area_protegida: { area: 0 },
-              };
-            }
+            const response = await fetch(
+              `/api/sicar?car=${property.numero_car}&estado=${property.estado}`
+            );
 
             return await response.json();
           } catch (error) {
-            console.warn(`Erro ao buscar SICAR para CAR ${property.numero_car}:`, error);
             return {
               area_imovel: property.area_total || 0,
               modulos_fiscais: 0,
@@ -99,10 +97,14 @@ export function PropertyEnvironmentalSummaryClient({ organizationId }: PropertyE
         const consolidated = sicarResults.reduce(
           (acc, result) => ({
             totalArea: acc.totalArea + (result.area_imovel || 0),
-            totalModulosFiscais: acc.totalModulosFiscais + (result.modulos_fiscais || 0),
-            totalReservaLegal: acc.totalReservaLegal + (result.reserva_legal?.area || 0),
-            totalRecursosHidricos: acc.totalRecursosHidricos + (result.app?.area || 0),
-            totalAreaProtegida: acc.totalAreaProtegida + (result.area_protegida?.area || 0),
+            totalModulosFiscais:
+              acc.totalModulosFiscais + (result.modulos_fiscais || 0),
+            totalReservaLegal:
+              acc.totalReservaLegal + (result.reserva_legal?.area || 0),
+            totalRecursosHidricos:
+              acc.totalRecursosHidricos + (result.app?.area || 0),
+            totalAreaProtegida:
+              acc.totalAreaProtegida + (result.area_protegida?.area || 0),
           }),
           {
             totalArea: 0,
@@ -114,17 +116,21 @@ export function PropertyEnvironmentalSummaryClient({ organizationId }: PropertyE
         );
 
         // 5. Calcular percentuais
-        const percentualReservaLegal = consolidated.totalArea > 0 
-          ? (consolidated.totalReservaLegal / consolidated.totalArea) * 100 
-          : 0;
-        
-        const percentualRecursosHidricos = consolidated.totalArea > 0 
-          ? (consolidated.totalRecursosHidricos / consolidated.totalArea) * 100 
-          : 0;
-        
-        const percentualAreaProtegida = consolidated.totalArea > 0 
-          ? (consolidated.totalAreaProtegida / consolidated.totalArea) * 100 
-          : 0;
+        const percentualReservaLegal =
+          consolidated.totalArea > 0
+            ? (consolidated.totalReservaLegal / consolidated.totalArea) * 100
+            : 0;
+
+        const percentualRecursosHidricos =
+          consolidated.totalArea > 0
+            ? (consolidated.totalRecursosHidricos / consolidated.totalArea) *
+              100
+            : 0;
+
+        const percentualAreaProtegida =
+          consolidated.totalArea > 0
+            ? (consolidated.totalAreaProtegida / consolidated.totalArea) * 100
+            : 0;
 
         setData({
           ...consolidated,
@@ -132,10 +138,9 @@ export function PropertyEnvironmentalSummaryClient({ organizationId }: PropertyE
           percentualRecursosHidricos,
           percentualAreaProtegida,
         });
-
       } catch (err) {
-        console.error('Erro ao carregar dados ambientais:', err);
-        setError('Erro ao carregar dados do SICAR');
+        console.error("Erro ao carregar dados ambientais:", err);
+        setError("Erro ao carregar dados do SICAR");
       } finally {
         setLoading(false);
       }
@@ -192,7 +197,9 @@ export function PropertyEnvironmentalSummaryClient({ organizationId }: PropertyE
         <CardContent className="flex items-center justify-center h-32 text-muted-foreground">
           <div className="text-center">
             <p className="text-sm">{error}</p>
-            <p className="text-xs mt-1">Verifique se as propriedades têm número CAR</p>
+            <p className="text-xs mt-1">
+              Verifique se as propriedades têm número CAR
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -238,7 +245,9 @@ export function PropertyEnvironmentalSummaryClient({ organizationId }: PropertyE
             <span className="font-semibold">Área Total</span>
           </div>
           <div className="pl-6 space-y-1">
-            <div className="text-lg font-bold">{formatArea(data.totalArea)}</div>
+            <div className="text-lg font-bold">
+              {formatArea(data.totalArea)}
+            </div>
             <div className="text-sm text-muted-foreground">
               {data.totalModulosFiscais.toFixed(2)} módulos fiscais
             </div>

@@ -128,8 +128,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   const now = Date.now();
   const cacheKey = `debt_position_${organizationId}_${projectionId || 'base'}_force_refresh_${now}`;
   
-  // Cache completamente desabilitado para garantir dados atualizados
-  console.log("🔄 FORÇANDO busca completa de dados novos para correção DIVIDA_EBITDA:", organizationId);
   
   // Limpar TODOS os caches relacionados
   clearDebtPositionCache(organizationId);
@@ -139,7 +137,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       throw new Error("ID da organização é obrigatório");
     }
 
-    console.log("Iniciando cálculo de posição de dívida para organização:", organizationId);
     
     let supabase;
     try {
@@ -150,7 +147,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     }
     
     // Buscar todas as safras para mapear anos
-    console.log("Buscando safras...");
     let safras, safrasError;
     
     try {
@@ -173,7 +169,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     }
 
     if (!safras || safras.length === 0) {
-      console.log("Nenhuma safra encontrada para a organização:", organizationId);
       return {
         dividas: [],
         ativos: [],
@@ -238,13 +233,13 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       const { data, error } = await query;
       
       if (error) {
-        console.warn(`⚠️ Erro ao buscar ${tableName}:`, error.message);
+        
         return [];
       }
       
       return data || [];
     } catch (err) {
-      console.warn(`⚠️ Erro inesperado ao buscar ${tableName}:`, err);
+
       return [];
     }
   };
@@ -264,27 +259,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       buscarTabela("caixa_disponibilidades"),
     ]);
     
-    // Debug para organizações específicas
-    if (organizationId === 'bcc752a0-9dec-486d-b8a0-a0f4e4f09fa1' || organizationId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
-      console.log('🔍 Debug dívidas bancárias:');
-      console.log('   organizationId:', organizationId);
-      console.log('   Total de registros:', dividasBancarias?.length);
-      console.log('   Tipos encontrados:', [...new Set(dividasBancarias?.map(d => d.tipo) || [])]);
-      
-      // Mostrar amostra de dívidas
-      dividasBancarias?.slice(0, 3).forEach((divida, i) => {
-        console.log(`   Dívida ${i + 1}:`, {
-          tipo: divida.tipo,
-          modalidade: divida.modalidade,
-          valor_total: divida.valor_total,
-          tem_valores_por_ano: !!divida.valores_por_ano,
-          tem_fluxo_pagamento: !!divida.fluxo_pagamento_anual
-        });
-      });
-      
-      // Verificar mapeamento de safras
-      console.log('   Mapeamento safraToYear (amostra):', Object.entries(safraToYear).slice(0, 3));
-    }
     
     // dividas_trading - buscar da tabela dividas_bancarias com tipo = 'TRADING'
     // NOTA: dividas_bancarias tem tipo TRADING para empresas de trading
@@ -299,13 +273,11 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       const { data: tradingData, error: tradingError } = await tradingQuery;
       
       if (tradingError) {
-        console.warn("⚠️ Erro ao buscar dívidas trading:", tradingError.message);
         dividasTrading = [];
       } else {
         dividasTrading = tradingData || [];
       }
     } catch (err) {
-      console.warn("⚠️ Erro inesperado ao buscar dívidas trading:", err);
       dividasTrading = [];
     }
     
@@ -339,7 +311,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
         valores[ano] = (totalConsolidado as any).total_consolidado_brl || 0;
       });
       
-      console.log('💰 Total consolidado bancário:', (totalConsolidado as any).total_consolidado_brl);
     } catch (error) {
       console.error('❌ Erro ao consolidar bancos com função DB:', error);
       // Fallback para método anterior em caso de erro
@@ -400,7 +371,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
         soyPrices = priceData[0].precos_por_ano;
       }
     } catch (error) {
-      console.warn("⚠️ Erro ao buscar preços da soja para arrendamentos:", error);
     }
 
     arrendamentos?.forEach(arrendamento => {
@@ -460,7 +430,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       valores[ano] = totalFornecedores;
     });
     
-    console.log('📦 Total consolidado fornecedores:', totalFornecedores);
     return valores;
   };
 
@@ -512,7 +481,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       valores[ano] = totalTerras;
     });
     
-    console.log('🏠 Total consolidado terras:', totalTerras);
     
     return valores;
   };
@@ -704,7 +672,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
 
       return { receitas, ebitdas };
     } catch (error) {
-      console.warn("⚠️ Não foi possível buscar projeções de cultura, usando valores zerados:", error);
       return { receitas, ebitdas };
     }
   };
@@ -719,7 +686,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
         .eq("tipo_moeda", "DOLAR_FECHAMENTO");
       
       if (error) {
-        console.warn("⚠️ Erro ao buscar cotações de dólar:", error.message);
         return {} as Record<string, number>;
       }
       
@@ -752,7 +718,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       
       return dolarValues;
     } catch (error) {
-      console.warn("⚠️ Erro ao processar cotações de dólar:", error);
       return {} as Record<string, number>;
     }
   };
@@ -784,7 +749,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   const dolarFechamento = await buscarCotacoesDolar();
 
   // Buscar valor real das propriedades para cálculo correto de LTV
-  console.log("Buscando valor real das propriedades para LTV...");
   let valorPropriedades = 0;
   let valorMaquinasEquipamentos = 0;
   
@@ -803,11 +767,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     
     valorMaquinasEquipamentos = maquinas?.reduce((sum, m) => sum + (m.valor_aquisicao || 0), 0) || 0;
     
-    console.log("Valores reais dos ativos:", {
-      valorPropriedades,
-      valorMaquinasEquipamentos,
-      totalAtivosFixos: valorPropriedades + valorMaquinasEquipamentos
-    });
   } catch (error) {
     console.error("Erro ao buscar valores de propriedades:", error);
     // Continue with 0 values if fetch fails
@@ -856,13 +815,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     const dividaTerras = terrasValues[ano] || 0;
     ltv[ano] = valorPropriedades > 0 ? (dividaTerras / valorPropriedades) * 100 : 0;
     
-    console.log(`LTV calculation for ${ano}:`, {
-      dividaTerras,
-      valorPropriedades,
-      ltv: ltv[ano],
-      ativosTotais,
-      endividamentoTotal: endividamentoTotal[ano]
-    });
     
     // Converter para dólar usando a cotação de Dólar Fechamento
     const cotacaoDolar = dolarFechamento[ano] || 5.70; // Valor padrão se não houver cotação
@@ -885,16 +837,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
       const divida = endividamentoTotal[ano] || 0;
       const dividaLiq = dividaLiquida[ano] || 0;
 
-      // DEBUG ESPECÍFICO para correção métrica DIVIDA_EBITDA
-      if (organizationId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && ano === '2025/26') {
-        console.log(`🔍 DEBUG DIVIDA_EBITDA para safra ${ano}:`, {
-          receita,
-          ebitda,
-          divida,
-          dividaLiq,
-          calculoDividaEbitda: ebitda !== 0 ? divida / ebitda : 0
-        });
-      }
 
       // Indicadores de dívida
       dividaReceita[ano] = receita > 0 ? divida / receita : 0;
@@ -932,12 +874,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   // Usar diretamente o valor já consolidado
   const bancosConsolidado = bancosConsolidadoCompleto;
   
-  // Debug dos valores consolidados - SEMPRE mostrar para debug
-  console.log('📊 Valores consolidados (debt-position) para', organizationId);
-  console.log('   BANCOS CONSOLIDADO COMPLETO 2024/25:', bancosConsolidado['2024/25']);
-  console.log('   FORNECEDORES 2024/25:', fornecedoresValues['2024/25']);
-  console.log('   TERRAS 2025/26:', terrasValues['2025/26']);
-  console.log('   ENDIVIDAMENTO TOTAL 2024/25:', endividamentoTotal['2024/25']);
 
   // Organizar dados de retorno consolidados - igual ao fluxo de caixa
   const dividas: DebtPositionData[] = [

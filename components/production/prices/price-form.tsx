@@ -11,7 +11,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -21,7 +21,14 @@ import {
 import { toast } from "sonner";
 import { useState } from "react";
 import { SafraPriceEditorAllVisible } from "@/components/production/common/safra-price-editor-all-visible";
-import { DollarSign, CircleDollarSign, TrendingUp, Leaf, Settings, RefreshCw } from "lucide-react";
+import {
+  DollarSign,
+  CircleDollarSign,
+  TrendingUp,
+  Leaf,
+  Settings,
+  RefreshCw,
+} from "lucide-react";
 import { PriceFormValues, priceFormSchema } from "@/schemas/production";
 
 // Define types with optional organizacao_id
@@ -60,7 +67,14 @@ interface PriceFormProps {
   onSuccess?: () => void;
 }
 
-export function PriceForm({ harvests, cultures, systems, cycles, organizationId, onSuccess }: PriceFormProps) {
+export function PriceForm({
+  harvests,
+  cultures,
+  systems,
+  cycles,
+  organizationId,
+  onSuccess,
+}: PriceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<PriceFormValues>({
@@ -80,7 +94,7 @@ export function PriceForm({ harvests, cultures, systems, cycles, organizationId,
 
   const getAvailableItems = () => {
     if (watchedTipo === "COMMODITY") {
-      return cultures.map(c => ({ id: c.id, nome: c.nome }));
+      return cultures.map((c) => ({ id: c.id, nome: c.nome }));
     } else {
       return [
         { id: "DOLAR_ALGODAO", nome: "Dólar Algodão" },
@@ -92,7 +106,7 @@ export function PriceForm({ harvests, cultures, systems, cycles, organizationId,
 
   const updateUnit = (itemId: string) => {
     if (watchedTipo === "COMMODITY") {
-      const culture = cultures.find(c => c.id === itemId);
+      const culture = cultures.find((c) => c.id === itemId);
       if (culture?.nome.toLowerCase().includes("algodão")) {
         form.setValue("unit", "R$/@");
       } else {
@@ -106,12 +120,9 @@ export function PriceForm({ harvests, cultures, systems, cycles, organizationId,
   const onSubmit = async (values: PriceFormValues) => {
     setIsSubmitting(true);
     try {
-      // Log para debug
-      console.log("Form values being submitted:", values);
-      console.log("Preços por safra:", values.precos_por_safra);
-      
-      const validPrices = Object.entries(values.precos_por_safra)
-        .filter(([_, price]) => price > 0);
+      const validPrices = Object.entries(values.precos_por_safra).filter(
+        ([_, price]) => price > 0
+      );
 
       if (validPrices.length === 0) {
         toast.error("Adicione pelo menos um preço para uma safra");
@@ -139,34 +150,24 @@ export function PriceForm({ harvests, cultures, systems, cycles, organizationId,
         // Usar preços por safra ID diretamente
         const precosPorAno: Record<string, number> = {};
         const safrasIds = validPrices.map(([safraId]) => safraId);
-        
+
         // Para cada safra selecionada, usar o ID da safra como chave
         for (const [safraId, price] of validPrices) {
           precosPorAno[safraId] = price;
         }
 
         // Gerar commodity_type para compatibilidade
-        const culture = cultures.find(c => c.id === values.item_id);
-        const system = systems.find(s => s.id === sistemaId);
-        const commodityType = culture && system ? `${culture.nome.toUpperCase()}_${system.nome.toUpperCase()}` : "";
-
-        // Log para debug antes de enviar
-        console.log("Dados sendo enviados para API:", {
-          organizacao_id: organizationId,
-          safra_id: safrasIds[0],
-          commodity_type: commodityType,
-          cultura_id: values.item_id,
-          sistema_id: sistemaId,
-          ciclo_id: cicloId,
-          current_price: validPrices[0][1],
-          unit: values.unit,
-          precos_por_ano: precosPorAno,
-        });
+        const culture = cultures.find((c) => c.id === values.item_id);
+        const system = systems.find((s) => s.id === sistemaId);
+        const commodityType =
+          culture && system
+            ? `${culture.nome.toUpperCase()}_${system.nome.toUpperCase()}`
+            : "";
 
         // Criar um único registro com todos os preços
-        const response = await fetch('/api/production/commodity-prices', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/production/commodity-prices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             organizacao_id: organizationId,
             safra_id: safrasIds[0], // Usar a primeira safra como referência
@@ -181,37 +182,25 @@ export function PriceForm({ harvests, cultures, systems, cycles, organizationId,
         });
 
         if (!response.ok) {
-          throw new Error('Erro ao criar preço de commodity');
+          throw new Error("Erro ao criar preço de commodity");
         }
 
         const responseData = await response.json();
-        console.log("Resposta da API:", responseData);
       } else {
         // Exchange rate
         // Usar cotações por safra ID diretamente
         const cotacoesPorAno: Record<string, number> = {};
         const safrasIds = validPrices.map(([safraId]) => safraId);
-        
+
         // Para cada safra selecionada, usar o ID da safra como chave
         for (const [safraId, price] of validPrices) {
           cotacoesPorAno[safraId] = price;
         }
 
-        // Log para debug antes de enviar
-        console.log("Dados sendo enviados para API (Exchange):", {
-          organizacao_id: organizationId,
-          safra_id: safrasIds[0],
-          commodity_type: values.item_id, // Para compatibilidade
-          tipo_moeda: values.item_id,
-          cotacao_atual: validPrices[0][1],
-          unit: values.unit,
-          cotacoes_por_ano: cotacoesPorAno,
-        });
-
         // Criar um único registro com todas as cotações
-        const response = await fetch('/api/production/exchange-rates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/production/exchange-rates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             organizacao_id: organizationId,
             safra_id: safrasIds[0], // Usar a primeira safra como referência
@@ -224,15 +213,16 @@ export function PriceForm({ harvests, cultures, systems, cycles, organizationId,
         });
 
         if (!response.ok) {
-          throw new Error('Erro ao criar cotação de câmbio');
+          throw new Error("Erro ao criar cotação de câmbio");
         }
 
         const responseData = await response.json();
-        console.log("Resposta da API (Exchange):", responseData);
       }
 
-      toast.success(`Preço criado com sucesso para ${validPrices.length} safra(s)!`);
-      
+      toast.success(
+        `Preço criado com sucesso para ${validPrices.length} safra(s)!`
+      );
+
       if (onSuccess) {
         onSuccess();
       }
@@ -307,11 +297,13 @@ export function PriceForm({ harvests, cultures, systems, cycles, organizationId,
               >
                 <FormControl>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder={
-                      watchedTipo === "COMMODITY" 
-                        ? "Selecione a cultura" 
-                        : "Selecione o tipo de câmbio"
-                    } />
+                    <SelectValue
+                      placeholder={
+                        watchedTipo === "COMMODITY"
+                          ? "Selecione a cultura"
+                          : "Selecione o tipo de câmbio"
+                      }
+                    />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -405,18 +397,17 @@ export function PriceForm({ harvests, cultures, systems, cycles, organizationId,
               <FormItem>
                 <SafraPriceEditorAllVisible
                   label={
-                    watchedTipo === "COMMODITY" 
-                      ? "Preços por Safra" 
+                    watchedTipo === "COMMODITY"
+                      ? "Preços por Safra"
                       : "Cotações por Safra"
                   }
                   description={
-                    watchedTipo === "COMMODITY" 
-                      ? "Defina o preço para cada safra" 
+                    watchedTipo === "COMMODITY"
+                      ? "Defina o preço para cada safra"
                       : "Defina a cotação para cada safra"
                   }
                   values={field.value}
                   onChange={(newValues) => {
-                    console.log("SafraPriceEditor onChange:", newValues);
                     field.onChange(newValues);
                   }}
                   safras={harvests}

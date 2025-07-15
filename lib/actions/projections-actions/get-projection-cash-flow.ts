@@ -385,7 +385,6 @@ export async function getProjectionCashFlow(
     const totalReceitas = anos.reduce((sum, ano) => sum + (fluxoData.receitas_agricolas.total_por_ano[ano] || 0), 0);
     const totalCustos = anos.reduce((sum, ano) => sum + (fluxoData.despesas_agricolas.total_por_ano[ano] || 0), 0);
     
-    console.log(`✅ Fluxo de caixa da projeção ${projectionId} gerado - Receitas: R$ ${totalReceitas.toLocaleString()}, Custos: R$ ${totalCustos.toLocaleString()}`);
     
     return fluxoData;
 

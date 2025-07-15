@@ -311,14 +311,6 @@ export async function getProdutividadeChart(
       produtividadeQuery = produtividadeQuery.eq("projection_id", projectionId);
     }
       
-    // Debug: verificar filtros aplicados
-    console.log("getProdutividadeChart - Filtros:", {
-      propertyIdsCount: propertyIds?.length || 0,
-      cultureIdsCount: cultureIds?.length || 0,
-      aplicarFiltroPropriedades: propertyIds && propertyIds.length > 0,
-      aplicarFiltroCulturas: cultureIds && cultureIds.length > 0
-    });
-    
     // Aplicar filtro de propriedades se necessário (apenas para tabela principal)
     if (propertyIds && propertyIds.length > 0 && !projectionId) {
       produtividadeQuery = produtividadeQuery.in("propriedade_id", propertyIds);
@@ -335,18 +327,10 @@ export async function getProdutividadeChart(
       console.error("Erro ao buscar produtividades:", produtividadeError);
       return [];
     }
-    
-    // Debug: log dos dados encontrados
-    console.log("getProdutividadeChart - Dados encontrados:", {
-      tableName,
-      projectionId,
-      totalProdutividades: produtividades?.length || 0,
-      primeiraProdutividade: produtividades?.[0]
-    });
+  
     
     // Se não encontrou dados, tentar buscar sem filtros para debug
     if (!produtividades || produtividades.length === 0) {
-      console.log("Nenhuma produtividade encontrada. Tentando buscar sem filtros...");
       
       let debugQuery = supabase
         .from(tableName)
@@ -359,12 +343,7 @@ export async function getProdutividadeChart(
       }
       
       const { data: debugData, error: debugError } = await debugQuery;
-      
-      console.log("Debug - Dados sem filtros:", {
-        totalEncontrado: debugData?.length || 0,
-        primeiroRegistro: debugData?.[0],
-        erro: debugError
-      });
+
     }
     
     // 3. Para cada safra, processar dados de produtividade
@@ -381,16 +360,6 @@ export async function getProdutividadeChart(
         // Se não houver valor para esta safra, pular
         if (!prodSafra) return;
         
-        // Debug: log do formato dos dados
-        if (safra.nome === safras[0]?.nome) { // Log apenas para primeira safra
-          console.log("Formato de dados de produtividade:", {
-            safraId: safra.id,
-            safraNome: safra.nome,
-            prodSafra,
-            tipoProdSafra: typeof prodSafra,
-            isProjection: tableName === "produtividades_projections"
-          });
-        }
         
         // Extrair valor de produtividade (pode ser número direto ou objeto)
         let produtividadeValue: number;
@@ -583,13 +552,7 @@ export async function getReceitaChart(
     if (commodityPricesError) {
       console.error("Erro ao buscar preços de commodities:", commodityPricesError);
     }
-    
-    // Debug log para preços
-    console.log("getReceitaChart - Preços de commodities:", {
-      totalPrecos: commodityPrices?.length || 0,
-      projectionId,
-      primeiroPreco: commodityPrices?.[0]
-    });
+
     
     // 3. Buscar todas as áreas de plantio com formato JSONB
     const areasTableName = projectionId ? "areas_plantio_projections" : "areas_plantio";
@@ -611,13 +574,6 @@ export async function getReceitaChart(
       areasQuery = areasQuery.eq("projection_id", projectionId);
     }
     
-    // Debug: log da query
-    console.log("getReceitaChart - Query de áreas:", {
-      tableName: areasTableName,
-      hasProjectionId: !!projectionId,
-      projectionId
-    });
-    
     // Aplicar filtro de propriedades se fornecido (apenas para tabela principal)
     if (propertyIds && propertyIds.length > 0 && !projectionId) {
       areasQuery = areasQuery.in("propriedade_id", propertyIds);
@@ -635,12 +591,6 @@ export async function getReceitaChart(
       return [];
     }
     
-    // Debug log
-    console.log("getReceitaChart - Áreas encontradas:", {
-      tableName: areasTableName,
-      totalAreas: areas?.length || 0,
-      primeiraArea: areas?.[0]
-    });
     
     // 4. Buscar todas as produtividades com formato JSONB
     const produtividadesTableName = projectionId ? "produtividades_projections" : "produtividades";
@@ -762,21 +712,6 @@ export async function getReceitaChart(
       // Se não há dados para esta safra, pular
       if (combinacoesCulturasSistemas.size === 0) continue;
       
-      // Debug log para combinações encontradas
-      if (safra.nome === "2024/25" || safra.nome === "2025/26") {
-        console.log(`Combinações para ${safra.nome}:`, {
-          totalCombinacoes: combinacoesCulturasSistemas.size,
-          projectionId,
-          combinacoes: Array.from(combinacoesCulturasSistemas.entries()).map(([key, combo]) => ({
-            key,
-            cultura: combo.culturaNome,
-            sistema: combo.sistemaNome,
-            area: combo.area,
-            produtividade: combo.produtividade
-          }))
-        });
-      }
-      
       // Calcular receita por cultura
       const culturaReceita = new Map<string, number>();
       let totalSafra = 0;
@@ -827,44 +762,16 @@ export async function getReceitaChart(
             // Usar precos_por_ano JSONB com chave sendo o safraId
             preco = commodityPrice.precos_por_ano[safraId] || 0;
           }
-          
-          // Debug log para preços
-          if (safra.nome === "2024/25" || safra.nome === "2025/26") {
-            console.log(`Preço para ${culturaNome} ${sistemaNome} em ${safra.nome}:`, {
-              commodityType,
-              commodityPriceFound: !!commodityPrice,
-              precoEncontrado: preco,
-              safraId,
-              todosOsPrecos: commodityPrice?.precos_por_ano
-            });
-          }
         }
         
         // Se não existe preço para esta safra, seguir a orientação de não usar fallback
         if (preco <= 0) {
-          console.log(`Pulando ${culturaNome} ${sistemaNome} na safra ${safra.nome} - sem preço`);
-          continue; // Pular esta cultura/sistema se não temos preço
+          continue; 
         }
         
         // Calcular produção e receita desta combinação cultura/sistema
         const producaoCultura = combo.area * combo.produtividade;
         const receitaCultura = producaoCultura * preco;
-        
-        // Debug log para valores escancarados
-        if (receitaCultura > 1000000000) { // Se receita maior que 1 bilhão
-          console.log("VALOR ALTO DETECTADO:", {
-            safra: safra.nome,
-            cultura: culturaNome,
-            sistema: sistemaNome,
-            area: combo.area,
-            produtividade: combo.produtividade,
-            preco,
-            producao: producaoCultura,
-            receita: receitaCultura,
-            commodityType,
-            projectionId
-          });
-        }
         
         // Criar chave para exibição no gráfico
         let chaveExibicao = culturaNome;
@@ -1234,22 +1141,10 @@ export async function getFinancialChart(
             // Usar precos_por_ano JSONB com chave sendo o safraId
             preco = commodityPrice.precos_por_ano[safraId] || 0;
           }
-          
-          // Debug log para preços
-          if (safra.nome === "2024/25" || safra.nome === "2025/26") {
-            console.log(`Preço para ${culturaNome} ${sistemaNome} em ${safra.nome}:`, {
-              commodityType,
-              commodityPriceFound: !!commodityPrice,
-              precoEncontrado: preco,
-              safraId,
-              todosOsPrecos: commodityPrice?.precos_por_ano
-            });
-          }
         }
         
         // Se não existe preço para esta safra, seguir a orientação de não usar fallback
         if (preco <= 0) {
-          console.log(`Pulando ${culturaNome} ${sistemaNome} na safra ${safra.nome} - sem preço`);
           continue; // Pular esta cultura/sistema se não temos preço
         }
         

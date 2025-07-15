@@ -62,7 +62,6 @@ export function MemberFormContainer({
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log('Form submitted, current step:', currentStep, 'isLastStep:', isLastStep);
           if (isLastStep) {
             form.handleSubmit(handleFormSubmit)(e);
           }

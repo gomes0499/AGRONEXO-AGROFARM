@@ -239,7 +239,6 @@ export async function createExchangeRate(data: {
     const supabase = await createClient();
 
     // Log para debug
-    console.log("Dados recebidos para criar cotação:", data);
 
     // Tentar inserir usando RPC como workaround para o problema de cache
     const { data: newData, error } = await supabase.rpc('insert_cotacao_cambio', {

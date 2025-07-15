@@ -40,9 +40,7 @@ export function LeaseCard({ lease, propertyName, safras = [] }: LeaseCardProps) 
           setSoyPrices({});
         } else if (data && data.length > 0 && data[0].precos_por_ano) {
           setSoyPrices(data[0].precos_por_ano);
-          console.log("Preços de soja carregados:", data[0].precos_por_ano);
         } else {
-          console.log("Nenhum preço encontrado, usando valores padrão");
           setSoyPrices({});
         }
       } catch (error) {

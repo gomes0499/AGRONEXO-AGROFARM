@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
         const cacheData = await cacheResponse.json();
         
         if (cacheData.data && cacheData.data.length > 0) {
-          console.log("Usando dados CEPEA do cache:", cacheData.data.length, "itens");
           
           // Mapear dados do cache para o formato esperado
           const mappedData = cacheData.data.map((item: any) => {

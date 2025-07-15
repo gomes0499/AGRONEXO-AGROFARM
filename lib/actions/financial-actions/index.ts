@@ -839,7 +839,6 @@ export async function getReceivableContracts(organizationId: string) {
   
   // Tabela contratos_recebiveis não existe no banco atual
   // Retornar array vazio por enquanto
-  console.log("getReceivableContracts: tabela não existe, retornando array vazio");
   return [];
 }
 
@@ -1120,7 +1119,6 @@ export async function getThirdPartyLoans(organizationId: string) {
   try {
     // Tabela emprestimos_terceiros não existe no banco atual
     // Retornar array vazio por enquanto
-    console.log("getThirdPartyLoans: tabela não existe, retornando array vazio");
     return [];
   } catch (error) {
     console.error("Erro ao processar empréstimos:", error);

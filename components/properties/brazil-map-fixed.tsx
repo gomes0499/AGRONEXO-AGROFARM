@@ -102,7 +102,6 @@ export function BrazilMapFixed({ estadosData, className }: BrazilMapFixedProps) 
     
     // Log para debug (só em desenvolvimento)
     if (process.env.NODE_ENV === 'development') {
-      console.log('Estado não mapeado:', geoProperties);
     }
     
     return null;

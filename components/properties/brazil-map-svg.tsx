@@ -11,45 +11,48 @@ interface BrazilMapSvgProps {
 }
 
 // URL do TopoJSON específico dos estados do Brasil
-const BRAZIL_TOPOJSON = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson";
+const BRAZIL_TOPOJSON =
+  "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson";
 
 // Mapeamento de nomes de estados em português para siglas
 const STATE_NAME_TO_CODE: Record<string, string> = {
-  'ACRE': 'AC',
-  'ALAGOAS': 'AL',
-  'AMAPÁ': 'AP',
-  'AMAZONAS': 'AM',
-  'BAHIA': 'BA',
-  'CEARÁ': 'CE',
-  'DISTRITO FEDERAL': 'DF',
-  'ESPÍRITO SANTO': 'ES',
-  'GOIÁS': 'GO',
-  'MARANHÃO': 'MA',
-  'MATO GROSSO': 'MT',
-  'MATO GROSSO DO SUL': 'MS',
-  'MINAS GERAIS': 'MG',
-  'PARÁ': 'PA',
-  'PARAÍBA': 'PB',
-  'PARANÁ': 'PR',
-  'PERNAMBUCO': 'PE',
-  'PIAUÍ': 'PI',
-  'RIO DE JANEIRO': 'RJ',
-  'RIO GRANDE DO NORTE': 'RN',
-  'RIO GRANDE DO SUL': 'RS',
-  'RONDÔNIA': 'RO',
-  'RORAIMA': 'RR',
-  'SANTA CATARINA': 'SC',
-  'SÃO PAULO': 'SP',
-  'SERGIPE': 'SE',
-  'TOCANTINS': 'TO'
+  ACRE: "AC",
+  ALAGOAS: "AL",
+  AMAPÁ: "AP",
+  AMAZONAS: "AM",
+  BAHIA: "BA",
+  CEARÁ: "CE",
+  "DISTRITO FEDERAL": "DF",
+  "ESPÍRITO SANTO": "ES",
+  GOIÁS: "GO",
+  MARANHÃO: "MA",
+  "MATO GROSSO": "MT",
+  "MATO GROSSO DO SUL": "MS",
+  "MINAS GERAIS": "MG",
+  PARÁ: "PA",
+  PARAÍBA: "PB",
+  PARANÁ: "PR",
+  PERNAMBUCO: "PE",
+  PIAUÍ: "PI",
+  "RIO DE JANEIRO": "RJ",
+  "RIO GRANDE DO NORTE": "RN",
+  "RIO GRANDE DO SUL": "RS",
+  RONDÔNIA: "RO",
+  RORAIMA: "RR",
+  "SANTA CATARINA": "SC",
+  "SÃO PAULO": "SP",
+  SERGIPE: "SE",
+  TOCANTINS: "TO",
 };
 
 export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
   const [hoveredState, setHoveredState] = useState<string | null>(null);
   const [mapError, setMapError] = useState(false);
-  
+
   // Criar um map para acesso rápido aos dados por estado
-  const estadosMap = new Map(estadosData.map(estado => [estado.estado, estado]));
+  const estadosMap = new Map(
+    estadosData.map((estado) => [estado.estado, estado])
+  );
 
   const getStateData = (geoProperties: any) => {
     // Tentar diferentes campos comuns em GeoJSON do Brasil
@@ -64,23 +67,23 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
       geoProperties.sigla,
       geoProperties.SIGLA,
       geoProperties.uf,
-      geoProperties.UF
+      geoProperties.UF,
     ].filter(Boolean);
 
     for (const nameField of possibleNames) {
       const stateName = String(nameField).toUpperCase().trim();
-      
+
       // Verificar se é uma sigla direta
       if (stateName.length === 2 && estadosMap.has(stateName)) {
         return estadosMap.get(stateName);
       }
-      
+
       // Procurar correspondência por nome completo
       const foundCode = STATE_NAME_TO_CODE[stateName];
       if (foundCode && estadosMap.has(foundCode)) {
         return estadosMap.get(foundCode);
       }
-      
+
       // Tentar busca parcial mais restrita
       for (const [fullName, code] of Object.entries(STATE_NAME_TO_CODE)) {
         if (stateName === fullName) {
@@ -90,35 +93,27 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
         }
       }
     }
-    
-    // Log para debug em desenvolvimento
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Estado não identificado:', {
-        properties: geoProperties,
-        availableStates: Array.from(estadosMap.keys())
-      });
-    }
-    
+
     return null;
   };
 
   const getStateFillColor = (geoProperties: any) => {
     const stateData = getStateData(geoProperties);
-    
+
     if (stateData && stateData.totalPropriedades > 0) {
       return stateData.color;
     }
-    
-    return '#E2E8F0'; // Cor mais clara para estados sem dados
+
+    return "#E2E8F0"; // Cor mais clara para estados sem dados
   };
 
   const getStateOpacity = (geoProperties: any) => {
     const stateData = getStateData(geoProperties);
-    
+
     if (stateData && stateData.totalPropriedades > 0) {
       return hoveredState === stateData.estado ? 1 : 0.8;
     }
-    
+
     return 0.7;
   };
 
@@ -132,7 +127,10 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
         </div>
         <div className="space-y-2 max-h-48 overflow-y-auto">
           {estadosData.map((estado) => (
-            <div key={estado.estado} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+            <div
+              key={estado.estado}
+              className="flex items-center justify-between p-2 bg-muted/30 rounded"
+            >
               <div className="flex items-center gap-2">
                 <div
                   className="w-3 h-3 rounded-full"
@@ -141,7 +139,10 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
                 <span className="font-medium text-sm">{estado.estado}</span>
               </div>
               <span className="text-xs text-muted-foreground">
-                {estado.totalPropriedades} {estado.totalPropriedades === 1 ? 'propriedade' : 'propriedades'}
+                {estado.totalPropriedades}{" "}
+                {estado.totalPropriedades === 1
+                  ? "propriedade"
+                  : "propriedades"}
               </span>
             </div>
           ))}
@@ -151,7 +152,9 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
   }
 
   return (
-    <div className={`w-full h-full flex items-center justify-center ${className}`}>
+    <div
+      className={`w-full h-full flex items-center justify-center ${className}`}
+    >
       <div className="w-full h-full max-w-md max-h-80 relative">
         <ComposableMap
           projection="geoMercator"
@@ -164,7 +167,7 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
             height: "100%",
           }}
         >
-          <Geographies 
+          <Geographies
             geography={BRAZIL_TOPOJSON}
             onError={() => setMapError(true)}
           >
@@ -187,7 +190,7 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
 
               return geographies.map((geo) => {
                 const stateData = getStateData(geo.properties);
-                
+
                 return (
                   <Geography
                     key={geo.rsmKey}
@@ -223,14 +226,14 @@ export function BrazilMapSvg({ estadosData, className }: BrazilMapSvgProps) {
             }}
           </Geographies>
         </ComposableMap>
-        
+
         {/* Tooltip */}
         {hoveredState && estadosMap.has(hoveredState) && (
           <div className="absolute top-2 left-2 bg-black/80 text-white px-2 py-1 rounded text-xs pointer-events-none">
-            {estadosMap.get(hoveredState)?.nomeEstado}: {estadosMap.get(hoveredState)?.totalPropriedades} propriedades
+            {estadosMap.get(hoveredState)?.nomeEstado}:{" "}
+            {estadosMap.get(hoveredState)?.totalPropriedades} propriedades
           </div>
         )}
-        
       </div>
     </div>
   );

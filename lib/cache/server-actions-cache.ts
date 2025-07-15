@@ -236,7 +236,6 @@ export const CacheMonitoring = {
   // Log cache operations for debugging
   logCacheOperation: (operation: 'hit' | 'miss' | 'set', key: string) => {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[Cache ${operation.toUpperCase()}] ${key}`);
     }
   }
 };

@@ -8,7 +8,6 @@ export async function copyPricesToProjection(projectionId: string) {
     const supabase = await createClient();
     const organizationId = await getOrganizationId();
 
-    console.log(`Copying prices to projection ${projectionId} for organization ${organizationId}`);
 
     // First, check if projection already has prices
     const { data: existingPrices, error: checkError } = await supabase
@@ -23,7 +22,6 @@ export async function copyPricesToProjection(projectionId: string) {
     }
 
     if (existingPrices && existingPrices.length > 0) {
-      console.log("Projection already has prices, skipping copy");
       return { success: true, message: "Projection already has prices" };
     }
 
@@ -40,11 +38,9 @@ export async function copyPricesToProjection(projectionId: string) {
     }
 
     if (!basePrices || basePrices.length === 0) {
-      console.log("No base prices found to copy");
       return { success: true, message: "No base prices to copy" };
     }
 
-    console.log(`Found ${basePrices.length} base prices to copy`);
 
     // Copy each price to the projection
     const projectionPrices = basePrices.map(price => ({
@@ -74,7 +70,6 @@ export async function copyPricesToProjection(projectionId: string) {
       throw new Error("Failed to copy prices to projection");
     }
 
-    console.log(`Successfully copied ${insertedPrices?.length || 0} prices to projection`);
 
     // Also copy exchange rates if they exist
     const { data: baseRates, error: ratesError } = await supabase
@@ -84,7 +79,6 @@ export async function copyPricesToProjection(projectionId: string) {
       .is("projection_id", null);
 
     if (!ratesError && baseRates && baseRates.length > 0) {
-      console.log(`Found ${baseRates.length} exchange rates to copy`);
 
       const projectionRates = baseRates.map(rate => ({
         projection_id: projectionId,
@@ -106,7 +100,6 @@ export async function copyPricesToProjection(projectionId: string) {
       if (ratesInsertError) {
         console.error("Error inserting exchange rates:", ratesInsertError);
       } else {
-        console.log(`Successfully copied ${baseRates.length} exchange rates to projection`);
       }
     }
 

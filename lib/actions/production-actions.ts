@@ -865,9 +865,6 @@ export async function createProductivity(data: {
   const supabase = await createClient();
   
   // Log para debug
-  console.log("Dados recebidos para criar produtividade:", JSON.stringify(data, null, 2));
-  console.log("Tipo de produtividades_por_safra:", typeof data.produtividades_por_safra);
-  console.log("Conteúdo de produtividades_por_safra:", data.produtividades_por_safra);
   
   // Garantir que produtividades_por_safra está no formato correto
   let produtividadesPorSafra = data.produtividades_por_safra || {};
@@ -908,7 +905,6 @@ export async function createProductivity(data: {
     produtividades_por_safra: produtividadesNumericasParaBanco
   };
   
-  console.log("Dados para o banco:", JSON.stringify(dataForDb, null, 2));
   
   if (projectionId) {
     // Se tem projectionId, usar a função RPC

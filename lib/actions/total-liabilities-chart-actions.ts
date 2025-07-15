@@ -141,7 +141,7 @@ export async function getTotalLiabilitiesChartData(
           return parseFloat(valores[safraId]) || 0;
         }
       } catch (e) {
-        console.warn("Erro ao extrair valor:", e);
+        
       }
       return 0;
     };

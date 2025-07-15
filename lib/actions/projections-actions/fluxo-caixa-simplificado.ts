@@ -205,10 +205,6 @@ export async function getFluxoCaixaSimplificado(
       )
     `)
     .eq("organizacao_id", organizationId);
-
-  if (arrendamentosError) {
-    console.warn("⚠️ Erro ao buscar arrendamentos:", arrendamentosError.message);
-  }
   
   // 6. Inicializar outras despesas
   const outrasDespesas: {
@@ -240,10 +236,6 @@ export async function getFluxoCaixaSimplificado(
     .from("outras_despesas")
     .select("*")
     .eq("organizacao_id", organizationId);
-
-  if (outrasDespesasError) {
-    console.warn("⚠️ Erro ao buscar outras despesas:", outrasDespesasError.message);
-  }
   
   // Inicializar outras despesas com zero
   anosFiltrados.forEach(ano => {
@@ -407,10 +399,6 @@ export async function getFluxoCaixaSimplificado(
     .from("investimentos")
     .select("*")
     .eq("organizacao_id", organizationId);
-
-  if (investimentosError) {
-    console.warn("⚠️ Erro ao buscar investimentos:", investimentosError.message);
-  }
   
   // 12. Processar investimentos agrupados por categoria
   const investimentosTotal: Record<string, number> = {};
@@ -849,7 +837,6 @@ async function calcularDadosFinanceiras(
     (dadosDividasImoveis || []).forEach(divida => {
       // Debug: log estrutura da dívida
       if (dadosDividasImoveis && dadosDividasImoveis.length > 0 && dadosDividasImoveis.indexOf(divida) === 0) {
-        console.log('🏠 Debug estrutura dívida terra:', Object.keys(divida));
       }
       // Converter valores_por_ano para o formato esperado
       const valoresPorAno = divida.valores_por_ano || {};
@@ -979,7 +966,6 @@ async function calcularDadosFinanceiras(
     const totalConsolidadoReal = dividasConsolidadas.reduce((sum, d) => sum + d.valor_original, 0);
     const totalContratos = dividasConsolidadas.length;
     
-    console.log(`📊 Dívidas consolidadas: ${totalContratos} contratos (${(dadosDividasBancarias || []).length} bancárias + ${(dadosDividasImoveis || []).length} terras + ${(dadosFornecedores || []).length} fornecedores), Total: R$ ${totalConsolidadoReal.toLocaleString('pt-BR')}`);
     
     // 2. BUSCAR DADOS DE NOVAS LINHAS DE CRÉDITO
     const { data: financeirasData } = await supabase
@@ -1128,7 +1114,6 @@ async function calcularDadosFinanceiras(
       planoPagamentoAnual[ano] = plano;
       
       // Log do plano de pagamento
-      console.log(`📅 ${ano}: Disponível: R$ ${plano.valor_disponivel.toLocaleString('pt-BR')}, Pago: R$ ${plano.total_pago.toLocaleString('pt-BR')}, Saldo após: R$ ${plano.saldo_caixa_apos.toLocaleString('pt-BR')}`);
     }
     
     // Análise final e métricas do plano
@@ -1136,7 +1121,6 @@ async function calcularDadosFinanceiras(
     const totalDividaOriginal = dividasConsolidadas.reduce((sum, d) => sum + d.valor_original, 0);
     const totalPagoNoPlano = Object.values(planoPagamentoAnual).reduce((sum, plano) => sum + plano.total_pago, 0);
     
-    console.log(`✅ Plano de pagamento concluído. Dívida restante: R$ ${totalDividaRestante.toLocaleString('pt-BR')}`);
     
     // Calcular métricas do plano para cada ano
     const planoPagamentoMetricas: Record<string, {
@@ -1167,9 +1151,6 @@ async function calcularDadosFinanceiras(
     }
     
     // Log das métricas do plano para análise
-    console.log("📊 Métricas do plano de pagamento:", planoPagamentoMetricas);
-    console.log(`💰 Dívida Total Inicial: R$ ${dividaTotalInicial.toLocaleString('pt-BR')}`);
-    console.log(`📉 Saldo Devedor Final: R$ ${saldoDevedorTotal.toLocaleString('pt-BR')}`);
     
     // Calcular valores separados das dívidas bancárias e de terras
     const valorTotalBancarias = (dadosDividasBancarias || []).reduce((sum, dividaBancaria) => {
@@ -1202,8 +1183,6 @@ async function calcularDadosFinanceiras(
       dividasFornecedores[ano] = valorTotalFornecedores;
     });
     
-    console.log(`💰 Valores separados - Bancárias: R$ ${valorTotalBancarias.toLocaleString('pt-BR')}, Terras: R$ ${valorTotalTerras.toLocaleString('pt-BR')}, Fornecedores: R$ ${valorTotalFornecedores.toLocaleString('pt-BR')}`);
-    console.log(`🔍 Debug - dividasBancarias object:`, Object.keys(dividasBancarias).slice(0,3).map(k => `${k}: ${dividasBancarias[k]}`));
     
     // Retornar dados no formato esperado
     return {

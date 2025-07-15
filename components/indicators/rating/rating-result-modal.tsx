@@ -81,24 +81,19 @@ export function RatingResultModal({
 
   // Extract metrics data
   const getMetricsData = () => {
-    console.log("detalhes_calculo:", detalhes);
     
     // For SR/Prime model, detalhes might have metrics property
     if (detalhes.metrics && Array.isArray(detalhes.metrics)) {
-      console.log("Using detalhes.metrics:", detalhes.metrics);
       return detalhes.metrics;
     }
     // Or it might be metricas (Portuguese)
     if (detalhes.metricas && Array.isArray(detalhes.metricas)) {
-      console.log("Using detalhes.metricas:", detalhes.metricas);
       return detalhes.metricas;
     }
     // For other models, detalhes might be an array directly
     if (Array.isArray(detalhes)) {
-      console.log("Using detalhes as array:", detalhes);
       return detalhes;
     }
-    console.log("No metrics found, returning empty array");
     return [];
   };
 
@@ -106,7 +101,6 @@ export function RatingResultModal({
 
   // Debug: Check MARGEM_EBITDA specifically
   const margemEbitdaMetric = metrics.find(m => m.codigo === 'MARGEM_EBITDA');
-  console.log("MARGEM_EBITDA metric:", margemEbitdaMetric);
 
   // Separate metrics by type
   const quantitativeMetrics = metrics.filter(m => m.tipo === 'QUANTITATIVE' || m.source_type === 'CALCULATED');

@@ -60,7 +60,6 @@ export function ScenarioSelectorBar({
     try {
       // Carregar cenários do banco
       const dbScenarios = await getScenarios(organizationId);
-      console.log("Cenários carregados:", dbScenarios);
       
       if (dbScenarios && dbScenarios.length > 0) {
         setScenarios(dbScenarios);
@@ -76,11 +75,9 @@ export function ScenarioSelectorBar({
 
   const handleScenarioChange = async (value: string) => {
     setSelectedScenario(value);
-    console.log("Mudando para cenário:", value);
 
     if (value === "base") {
       // Usar dados reais
-      console.log("Cenário base selecionado - resetando para dados reais");
       onScenarioChange(null);
     } else if (value === "new") {
       // Abrir editor para novo cenário
@@ -91,7 +88,6 @@ export function ScenarioSelectorBar({
     } else {
       // Carregar dados do cenário selecionado
       const scenario = scenarios.find((s) => s.id === value);
-      console.log("Cenário encontrado:", scenario);
       if (scenario) {
         loadScenarioData(scenario);
       }
@@ -127,13 +123,11 @@ export function ScenarioSelectorBar({
             adjustments,
           };
 
-          console.log("Enviando dados do cenário para o contexto:", scenarioData);
           onScenarioChange(scenarioData);
           return;
         }
       }
     } catch (error) {
-      console.log("Erro ao carregar dados do cenário do banco:", error);
     }
 
     // Fallback para dados simulados

@@ -13,7 +13,6 @@ export async function calculateQuantitativeMetricsOptimized(
   const supabase = await createClient();
   
   if (!safraId) {
-    console.warn("No safraId provided, returning default values");
     return {
       LIQUIDEZ_CORRENTE: 0,
       DIVIDA_EBITDA: 0,
@@ -29,9 +28,6 @@ export async function calculateQuantitativeMetricsOptimized(
   }
   
   try {
-    // Usar método otimizado via SQL function primeiro
-    console.log('Tentando usar método otimizado para cálculo de métricas');
-    
     // Use the SQL function for optimized performance
     const { data, error } = await supabase.rpc('calculate_rating_metrics_optimized', {
       p_organization_id: organizationId,
@@ -89,8 +85,6 @@ export async function calculateQuantitativeMetrics(
   const supabase = await createClient();
   const metrics: Record<string, number> = {};
   
-  console.log("Calculating metrics for org:", organizationId, "safra:", safraId, "projection:", projectionId);
-  
   try {
     // Import the same functions used in financial metrics
     const { getDebtPosition } = await import("./debt-position-actions");
@@ -100,7 +94,6 @@ export async function calculateQuantitativeMetrics(
     let safraName = "";
     
     if (!safraId) {
-      console.warn("No safraId provided, returning default values");
       return {
         LIQUIDEZ_CORRENTE: 0,
         DIVIDA_EBITDA: 0,
@@ -130,19 +123,8 @@ export async function calculateQuantitativeMetrics(
     const debtPosition = await getDebtPosition(organizationId, projectionId || undefined);
     const cultureProjections = await getCultureProjections(organizationId, projectionId || undefined);
     
-    console.log("Rating metrics - debtPosition indicators:", debtPosition.indicadores);
-    console.log("Rating metrics - cultureProjections consolidado:", cultureProjections.consolidado);
-    console.log("Rating metrics - safraName:", safraName);
     
-    // Additional debug for MARGEM_EBITDA issue
-    if (cultureProjections.consolidado?.projections_by_year?.[safraName]) {
-      const projectionData = cultureProjections.consolidado.projections_by_year[safraName];
-      console.log("MARGEM_EBITDA debug - projection data for safra:", safraName, projectionData);
-    } else {
-      console.log("MARGEM_EBITDA debug - NO projection data found for safra:", safraName);
-      console.log("Available projections_by_year keys:", 
-        Object.keys(cultureProjections.consolidado?.projections_by_year || {}));
-    }
+    
     
     // Get values for the specific safra
     const dividaTotal = debtPosition.indicadores.endividamento_total[safraName] || 0;
@@ -164,16 +146,6 @@ export async function calculateQuantitativeMetrics(
       ebitda = cultureProjections.consolidado.projections_by_year[safraName].ebitda || 0;
     }
     
-    console.log("Debt and financial data:", {
-      safraName,
-      dividaTotal,
-      dividaLiquida,
-      patrimonioLiquido,
-      ltv,
-      receita,
-      ebitda,
-      custoTotal
-    });
     
     // Calculate metrics using the same logic as financial metrics module
     
@@ -202,13 +174,6 @@ export async function calculateQuantitativeMetrics(
       liquidezCorrente = 0;
     }
     
-    console.log("Liquidez Corrente calculation:", {
-      caixasDisponibilidades,
-      ativoBiologico,
-      ativosCirculantes,
-      passivosCirculantes,
-      liquidezCorrente
-    });
     
     metrics.LIQUIDEZ_CORRENTE = liquidezCorrente;
 
@@ -217,23 +182,8 @@ export async function calculateQuantitativeMetrics(
     // Calculate ratio even when EBITDA is negative to show true financial situation
     metrics.DIVIDA_EBITDA = ebitda !== 0 ? dividaTotal / ebitda : (dividaTotal > 0 ? 999 : 0);
     
-    console.log("DIVIDA_EBITDA calculation (using real data):", {
-      dividaTotal,
-      ebitda,
-      resultado: metrics.DIVIDA_EBITDA,
-      safraName,
-      organizationId
-    });
-    
     // 3. DIVIDA_FATURAMENTO - Usar sempre dados reais
     metrics.DIVIDA_FATURAMENTO = receita > 0 ? dividaTotal / receita : (dividaTotal > 0 ? 999 : 0);
-    
-    console.log("DIVIDA_FATURAMENTO calculation (using real data):", {
-      dividaTotal,
-      receita,
-      resultado: metrics.DIVIDA_FATURAMENTO,
-      safraName
-    });
     
     // 4. DIVIDA_PATRIMONIO_LIQUIDO
     // Ajustar cálculo para considerar valor absoluto do patrimônio líquido
@@ -251,23 +201,8 @@ export async function calculateQuantitativeMetrics(
     // 5. LTV - já vem em porcentagem da posição de dívida
     metrics.LTV = ltv; // Manter em porcentagem (0-100) para comparação com thresholds
     
-    console.log("LTV calculation debug:", {
-      ltv,
-      safraName,
-      ltvFromIndicators: debtPosition.indicadores.ltv[safraName],
-      resultado: metrics.LTV
-    });
-    
     // 6. MARGEM_EBITDA
     metrics.MARGEM_EBITDA = receita > 0 ? (ebitda / receita) * 100 : 0;
-    
-    console.log("MARGEM_EBITDA calculation debug:", {
-      receita,
-      ebitda,
-      safraName,
-      calculoMargemEbitda: receita > 0 ? (ebitda / receita) * 100 : 0,
-      resultado: metrics.MARGEM_EBITDA
-    });
 
     // 7. ENTENDIMENTO_FLUXO_DE_CAIXA (Cash Flow Understanding - qualitative, set to 0)
     metrics.ENTENDIMENTO_FLUXO_DE_CAIXA = 0;
@@ -282,12 +217,7 @@ export async function calculateQuantitativeMetrics(
     const areaArrendada = propertyStats.areaPropriedadesArrendadas || 0;
     
     metrics.AREA_PROPRIA = areaTotal > 0 ? (areaArrendada / areaTotal) * 100 : 0;
-    
-    console.log("AREA_PROPRIA calculation:", {
-      areaTotal,
-      areaArrendada,
-      percentualArrendada: metrics.AREA_PROPRIA
-    });
+
 
     // 9. CULTURAS_CORE - Calculate percentage of area with core crops (soja, milho, algodão)
     // Import culture projections to get area by crop
@@ -312,17 +242,7 @@ export async function calculateQuantitativeMetrics(
     }
     
     metrics.CULTURAS_CORE = areaPlantadaTotal > 0 ? (areaCoreTotal / areaPlantadaTotal) * 100 : 0;
-    
-    console.log("CULTURAS_CORE calculation:", {
-      safraName,
-      areaPlantadaTotal,
-      areaCoreTotal,
-      percentualCore: metrics.CULTURAS_CORE,
-      projections: cultureProjections.projections?.map(p => ({
-        cultura: p.cultura_nome,
-        area: p.projections_by_year[safraName]?.area_plantada || 0
-      }))
-    });
+
 
     // 10. TENDENCIA_PRODUTIVIDADE - Calculate 5-year productivity trend
     metrics.TENDENCIA_PRODUTIVIDADE = await calculate5YearProductivityTrend(
@@ -330,30 +250,6 @@ export async function calculateQuantitativeMetrics(
       organizationId,
       year
     );
-    
-    console.log("TENDENCIA_PRODUTIVIDADE calculation:", {
-      trend: metrics.TENDENCIA_PRODUTIVIDADE,
-      year
-    });
-
-    console.log("Calculated metrics final result:", {
-      safraName,
-      projectionId,
-      dividaTotal,
-      receita,
-      ebitda,
-      ltv: ltv,
-      margemEbitdaCalculation: receita > 0 ? (ebitda / receita) * 100 : 0,
-      metrics
-    });
-    
-    // Specific debug for the problematic metrics
-    if (metrics.LTV === 0 && ltv > 0) {
-      console.warn("⚠️ LTV DEBUG: LTV was > 0 but final metric is 0");
-    }
-    if (metrics.MARGEM_EBITDA === 0 && receita > 0 && ebitda > 0) {
-      console.warn("⚠️ MARGEM_EBITDA DEBUG: receita and ebitda > 0 but final metric is 0");
-    }
 
     return metrics;
   } catch (error) {
@@ -392,7 +288,6 @@ async function calculate5YearProductivityTrend(
       .order("ano_inicio", { ascending: true });
 
     if (safrasError || !safras || safras.length < 2) {
-      console.log("Not enough safras data for productivity trend calculation");
       return 0;
     }
 
@@ -403,7 +298,6 @@ async function calculate5YearProductivityTrend(
       .eq("organizacao_id", organizationId);
 
     if (prodError || !produtividades || produtividades.length === 0) {
-      console.log("No productivity data found");
       return 0;
     }
 
@@ -431,7 +325,6 @@ async function calculate5YearProductivityTrend(
     }
 
     if (yearlyProductivity.length < 2) {
-      console.log("Not enough productivity data points for trend calculation");
       return 0;
     }
 
@@ -459,15 +352,7 @@ async function calculate5YearProductivityTrend(
     
     // Calculate total percentage change over the period
     const totalPercentageChange = percentageChangePerYear * (n - 1);
-    
-    console.log("Productivity trend calculation:", {
-      yearlyProductivity,
-      slope,
-      avgProductivity,
-      percentageChangePerYear,
-      totalPercentageChange,
-      years: n
-    });
+  
 
     // Return the total percentage change
     // Positive values indicate growth, negative values indicate decline

@@ -197,9 +197,7 @@ export function PriceEditorModal({
         }, []);
         
         setExchangeRates(uniqueRates);
-        console.log("Cotações de câmbio carregadas:", uniqueRates);
       } else {
-        console.log("Nenhuma cotação de câmbio encontrada ou erro:", exchangeError);
       }
 
       // Buscar áreas de plantio

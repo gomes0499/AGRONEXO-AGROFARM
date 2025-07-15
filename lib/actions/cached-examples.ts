@@ -83,7 +83,6 @@ export const getCachedChartData = (
 
 // 7. Cache warming para dados principais
 export async function warmEssentialCaches(orgId: string) {
-  console.log(`🔥 Warming caches for organization ${orgId}...`);
   
   try {
     // Warm up em paralelo os dados mais usados
@@ -93,7 +92,6 @@ export async function warmEssentialCaches(orgId: string) {
       getCachedSafrasForOrg(orgId)
     ]);
     
-    console.log(`✅ Cache warming completed for ${orgId}`);
   } catch (error) {
     console.error(`❌ Cache warming failed for ${orgId}:`, error);
   }
@@ -104,7 +102,6 @@ export async function invalidateFormCaches(orgId: string) {
   // Este seria implementado com revalidateTag do Next.js
   // revalidateTag(CacheKeys.financialFormData(orgId));
   // revalidateTag(CacheKeys.assetFormData(orgId));
-  console.log(`🗑️ Invalidated form caches for ${orgId}`);
 }
 
 // 9. Cache para dados de produção KPI

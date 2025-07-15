@@ -59,7 +59,9 @@ export function EquipmentImportDialog({
   const [isProcessing, setIsProcessing] = useState(false);
   const [validData, setValidData] = useState<ImportRow[]>([]);
   const [errors, setErrors] = useState<ValidationError[]>([]);
-  const [step, setStep] = useState<"upload" | "preview" | "importing">("upload");
+  const [step, setStep] = useState<"upload" | "preview" | "importing">(
+    "upload"
+  );
 
   const downloadTemplate = () => {
     // Criar dados de exemplo para o template
@@ -119,7 +121,7 @@ export function EquipmentImportDialog({
     // Converter para CSV com separador padrão brasileiro
     const headers = [
       "equipamento",
-      "marca", 
+      "marca",
       "modelo",
       "ano_fabricacao",
       "quantidade",
@@ -130,25 +132,29 @@ export function EquipmentImportDialog({
 
     const csvContent = [
       headers.join(";"),
-      ...templateData.map(row => 
-        headers.map(header => `"${row[header as keyof typeof row] || ""}"`).join(";")
+      ...templateData.map((row) =>
+        headers
+          .map((header) => `"${row[header as keyof typeof row] || ""}"`)
+          .join(";")
       ),
     ].join("\n");
 
     // Adicionar BOM para garantir encoding UTF-8
     const bom = "\uFEFF";
-    const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([bom + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute("href", url);
     link.setAttribute("download", "template_equipamentos.csv");
     link.style.visibility = "hidden";
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast.success("Template baixado com sucesso!");
   };
 
@@ -205,30 +211,43 @@ export function EquipmentImportDialog({
 
   const processFile = async (file: File) => {
     setIsProcessing(true);
-    
+
     try {
       const text = await file.text();
-      
+
       // Processar CSV com suporte a separadores diferentes
-      const lines = text.split(/\r?\n/).filter(line => line.trim());
-      
+      const lines = text.split(/\r?\n/).filter((line) => line.trim());
+
       if (lines.length < 2) {
-        throw new Error("Arquivo deve conter pelo menos uma linha de dados além do cabeçalho");
+        throw new Error(
+          "Arquivo deve conter pelo menos uma linha de dados além do cabeçalho"
+        );
       }
 
       // Detectar separador (vírgula ou ponto e vírgula)
       const firstLine = lines[0];
-      const separator = firstLine.includes(';') ? ';' : ',';
-      
-      const headers = firstLine.split(separator).map(h => h.trim().replace(/"/g, ''));
-      const requiredHeaders = ["equipamento", "marca", "ano_fabricacao", "quantidade", "valor_unitario"];
-      
+      const separator = firstLine.includes(";") ? ";" : ",";
+
+      const headers = firstLine
+        .split(separator)
+        .map((h) => h.trim().replace(/"/g, ""));
+      const requiredHeaders = [
+        "equipamento",
+        "marca",
+        "ano_fabricacao",
+        "quantidade",
+        "valor_unitario",
+      ];
+
       // Verificar se todas as colunas obrigatórias estão presentes
-      const missingHeaders = requiredHeaders.filter(header => 
-        !headers.some(h => h.toLowerCase() === header.toLowerCase())
+      const missingHeaders = requiredHeaders.filter(
+        (header) =>
+          !headers.some((h) => h.toLowerCase() === header.toLowerCase())
       );
       if (missingHeaders.length > 0) {
-        throw new Error(`Colunas obrigatórias faltando: ${missingHeaders.join(", ")}`);
+        throw new Error(
+          `Colunas obrigatórias faltando: ${missingHeaders.join(", ")}`
+        );
       }
 
       const rows = [];
@@ -236,41 +255,66 @@ export function EquipmentImportDialog({
 
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue; // Pular linhas vazias
-        
-        const values = lines[i].split(separator).map(v => v.trim().replace(/"/g, ''));
+
+        const values = lines[i]
+          .split(separator)
+          .map((v) => v.trim().replace(/"/g, ""));
         const row: any = {};
-        
+
         headers.forEach((header, index) => {
           const normalizedHeader = header.toLowerCase();
           let mappedHeader = header;
-          
+
           // Mapear headers case-insensitive
-          if (normalizedHeader === 'equipamento') mappedHeader = 'equipamento';
-          else if (normalizedHeader === 'marca') mappedHeader = 'marca';
-          else if (normalizedHeader === 'modelo') mappedHeader = 'modelo';
-          else if (normalizedHeader === 'ano_fabricacao' || normalizedHeader === 'ano') mappedHeader = 'ano_fabricacao';
-          else if (normalizedHeader === 'quantidade' || normalizedHeader === 'qtd') mappedHeader = 'quantidade';
-          else if (normalizedHeader === 'valor_unitario' || normalizedHeader === 'valor') mappedHeader = 'valor_unitario';
-          else if (normalizedHeader === 'numero_serie' || normalizedHeader === 'serie') mappedHeader = 'numero_serie';
-          else if (normalizedHeader === 'numero_chassi' || normalizedHeader === 'chassi') mappedHeader = 'numero_chassi';
-          
+          if (normalizedHeader === "equipamento") mappedHeader = "equipamento";
+          else if (normalizedHeader === "marca") mappedHeader = "marca";
+          else if (normalizedHeader === "modelo") mappedHeader = "modelo";
+          else if (
+            normalizedHeader === "ano_fabricacao" ||
+            normalizedHeader === "ano"
+          )
+            mappedHeader = "ano_fabricacao";
+          else if (
+            normalizedHeader === "quantidade" ||
+            normalizedHeader === "qtd"
+          )
+            mappedHeader = "quantidade";
+          else if (
+            normalizedHeader === "valor_unitario" ||
+            normalizedHeader === "valor"
+          )
+            mappedHeader = "valor_unitario";
+          else if (
+            normalizedHeader === "numero_serie" ||
+            normalizedHeader === "serie"
+          )
+            mappedHeader = "numero_serie";
+          else if (
+            normalizedHeader === "numero_chassi" ||
+            normalizedHeader === "chassi"
+          )
+            mappedHeader = "numero_chassi";
+
           row[mappedHeader] = values[index] || "";
         });
 
         // Converter tipos com tratamento de erro
         try {
-          row.ano_fabricacao = row.ano_fabricacao ? parseInt(row.ano_fabricacao.toString().replace(/\D/g, '')) : 0;
-          row.quantidade = row.quantidade ? parseInt(row.quantidade.toString().replace(/\D/g, '')) : 0;
-          
+          row.ano_fabricacao = row.ano_fabricacao
+            ? parseInt(row.ano_fabricacao.toString().replace(/\D/g, ""))
+            : 0;
+          row.quantidade = row.quantidade
+            ? parseInt(row.quantidade.toString().replace(/\D/g, ""))
+            : 0;
+
           // Tratar valor monetário (remover R$, pontos, vírgulas etc)
-          let valorStr = row.valor_unitario.toString()
-            .replace(/[R$\s]/g, '')
-            .replace(/\./g, '') // Remover pontos (separadores de milhares)
-            .replace(',', '.'); // Trocar vírgula por ponto decimal
+          let valorStr = row.valor_unitario
+            .toString()
+            .replace(/[R$\s]/g, "")
+            .replace(/\./g, "") // Remover pontos (separadores de milhares)
+            .replace(",", "."); // Trocar vírgula por ponto decimal
           row.valor_unitario = valorStr ? parseFloat(valorStr) : 0;
-        } catch (e) {
-          console.warn(`Erro ao converter tipos na linha ${i + 1}:`, e);
-        }
+        } catch (e) {}
 
         const rowErrors = validateRow(row, i - 1);
         allErrors.push(...rowErrors);
@@ -282,16 +326,19 @@ export function EquipmentImportDialog({
 
       setValidData(rows);
       setErrors(allErrors);
-      
+
       if (allErrors.length === 0) {
         setStep("preview");
         toast.success(`${rows.length} equipamentos validados com sucesso!`);
       } else {
-        toast.error(`${allErrors.length} erros encontrados. Corrija e tente novamente.`);
+        toast.error(
+          `${allErrors.length} erros encontrados. Corrija e tente novamente.`
+        );
       }
-      
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao processar arquivo");
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao processar arquivo"
+      );
       setErrors([]);
       setValidData([]);
     } finally {
@@ -315,7 +362,7 @@ export function EquipmentImportDialog({
 
     try {
       // Preparar dados para importação em lote
-      const equipmentsData = validData.map(row => ({
+      const equipmentsData = validData.map((row) => ({
         organizacao_id: organizationId,
         equipamento: row.equipamento,
         marca: row.marca,
@@ -328,24 +375,27 @@ export function EquipmentImportDialog({
       }));
 
       const result = await createEquipmentsBatch(equipmentsData);
-      
-      if ('error' in result) {
+
+      if ("error" in result) {
         throw new Error(`Erro ao importar equipamentos: ${result.error}`);
       }
-      
+
       onSuccess(result.data);
       onOpenChange(false);
-      
-      toast.success(`${result.data.length} equipamentos importados com sucesso!`);
-      
+
+      toast.success(
+        `${result.data.length} equipamentos importados com sucesso!`
+      );
+
       // Reset state
       setFile(null);
       setValidData([]);
       setErrors([]);
       setStep("upload");
-      
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao importar equipamentos");
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao importar equipamentos"
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -364,7 +414,8 @@ export function EquipmentImportDialog({
         <DialogHeader>
           <DialogTitle>Importar Equipamentos via Excel/CSV</DialogTitle>
           <DialogDescription>
-            Importe múltiplos equipamentos de uma vez usando um arquivo Excel ou CSV
+            Importe múltiplos equipamentos de uma vez usando um arquivo Excel ou
+            CSV
           </DialogDescription>
         </DialogHeader>
 
@@ -379,9 +430,14 @@ export function EquipmentImportDialog({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                Baixe o template com exemplos de equipamentos e a estrutura correta de dados.
+                Baixe o template com exemplos de equipamentos e a estrutura
+                correta de dados.
               </p>
-              <Button variant="outline" onClick={downloadTemplate} className="w-full">
+              <Button
+                variant="outline"
+                onClick={downloadTemplate}
+                className="w-full"
+              >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Baixar Template CSV
               </Button>
@@ -416,7 +472,7 @@ export function EquipmentImportDialog({
                     disabled={isProcessing}
                   />
                 </div>
-                
+
                 {isProcessing && (
                   <div className="flex items-center justify-center mt-4">
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -443,7 +499,9 @@ export function EquipmentImportDialog({
                       </p>
                     ))}
                     {errors.length > 10 && (
-                      <p className="text-xs">... e mais {errors.length - 10} erro(s)</p>
+                      <p className="text-xs">
+                        ... e mais {errors.length - 10} erro(s)
+                      </p>
                     )}
                   </div>
                 </div>
@@ -498,7 +556,7 @@ export function EquipmentImportDialog({
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex gap-2 mt-4">
                   <Button
                     onClick={importEquipments}
@@ -532,7 +590,9 @@ export function EquipmentImportDialog({
               <CardContent className="pt-6">
                 <div className="text-center">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-sm font-medium">Importando equipamentos...</p>
+                  <p className="text-sm font-medium">
+                    Importando equipamentos...
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     Por favor, aguarde enquanto os dados são processados
                   </p>
@@ -544,17 +604,39 @@ export function EquipmentImportDialog({
           {/* Instructions */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Instruções de Importação</CardTitle>
+              <CardTitle className="text-sm">
+                Instruções de Importação
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
               <p>• Baixe o template e preencha com os dados dos equipamentos</p>
-              <p>• Campos obrigatórios: equipamento, marca, ano_fabricacao, quantidade, valor_unitario</p>
+              <p>
+                • Campos obrigatórios: equipamento, marca, ano_fabricacao,
+                quantidade, valor_unitario
+              </p>
               <p>• Campos opcionais: modelo, numero_serie, numero_chassi</p>
-              <p>• <strong>Equipamentos aceitos:</strong> TRATOR, COLHEITADEIRA, PULVERIZADOR, PLANTADEIRA, GRADE_PESADA, ARADO, CULTIVADOR, SUBSOLADOR, DISTRIBUIDOR_CALCARIO, DISTRIBUIDORA_ADUBO, OUTROS</p>
-              <p>• <strong>Marcas aceitas:</strong> JOHN_DEERE, CASE, NEW_HOLLAND, MASSEY_FERGUSON, VALTRA, FENDT, CLAAS, JACTO, SEMEATO, MARCHESAN, BALDAN, TATU, OUTROS</p>
-              <p>• Valores monetários podem usar formato brasileiro (ex: 350.000,00) ou decimal (350000.00)</p>
-              <p>• O valor total será calculado automaticamente (quantidade × valor_unitario)</p>
-              <p>• Suporta arquivos CSV com separador vírgula (,) ou ponto e vírgula (;)</p>
+              <p>
+                • <strong>Equipamentos aceitos:</strong> TRATOR, COLHEITADEIRA,
+                PULVERIZADOR, PLANTADEIRA, GRADE_PESADA, ARADO, CULTIVADOR,
+                SUBSOLADOR, DISTRIBUIDOR_CALCARIO, DISTRIBUIDORA_ADUBO, OUTROS
+              </p>
+              <p>
+                • <strong>Marcas aceitas:</strong> JOHN_DEERE, CASE,
+                NEW_HOLLAND, MASSEY_FERGUSON, VALTRA, FENDT, CLAAS, JACTO,
+                SEMEATO, MARCHESAN, BALDAN, TATU, OUTROS
+              </p>
+              <p>
+                • Valores monetários podem usar formato brasileiro (ex:
+                350.000,00) ou decimal (350000.00)
+              </p>
+              <p>
+                • O valor total será calculado automaticamente (quantidade ×
+                valor_unitario)
+              </p>
+              <p>
+                • Suporta arquivos CSV com separador vírgula (,) ou ponto e
+                vírgula (;)
+              </p>
             </CardContent>
           </Card>
         </div>

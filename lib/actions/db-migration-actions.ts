@@ -66,10 +66,8 @@ export async function runPropertyMigration() {
         );
         
         if (error) {
-          console.warn(`Warning: Could not add column ${column.name}:`, error);
         }
       } catch (columnError) {
-        console.warn(`Exception adding column ${column.name}:`, columnError);
       }
     }
     

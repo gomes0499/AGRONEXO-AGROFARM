@@ -473,15 +473,11 @@ export async function calculateRating(
 
   // FORÇA LIMPEZA de dados antigos com problema 0.69x para Wilsemar Elger
   if (actualOrgId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
-    console.log("🔄 [flexible-rating] Limpando dados antigos de rating para Wilsemar Elger...");
-    
     // Deletar cálculos antigos que podem conter valor 0.69x
     await supabase
       .from("rating_calculations")
       .delete()
       .eq("organizacao_id", actualOrgId);
-    
-    console.log("✅ [flexible-rating] Dados antigos de rating limpos, forçando recálculo via SQL");
   }
 
   // Check if it's the SR/Prime model and use the database function
@@ -492,18 +488,12 @@ export async function calculateRating(
     .single();
 
   if (modelData?.nome === 'SR/Prime Rating Model' && safraId) {
-    console.log("🔄 [SR/Prime] Usando cálculo TypeScript dinâmico em vez de função SQL hardcoded");
-    
     // Use TypeScript calculation - DYNAMIC, not hardcoded
     const quantitativeMetrics = await calculateQuantitativeMetrics(actualOrgId, safraId);
-    
-    console.log("📊 [SR/Prime] Métricas calculadas dinamicamente:", quantitativeMetrics);
     
     // Get all predefined metrics for SR/Prime model
     const allMetrics = await getRatingMetrics(actualOrgId);
     const predefinedMetrics = allMetrics.filter(m => m.is_predefined);
-    
-    console.log("📋 [SR/Prime] Métricas predefinidas encontradas:", predefinedMetrics.length);
     
     // Calculate scores for each metric dynamically
     const metricResults = [];
@@ -515,10 +505,6 @@ export async function calculateRating(
       let metricScore = 0;
       const metricWeight = metric.peso || 1;
       
-      // Debug: Check if score_criteria exists
-      if (metric.tipo === 'QUALITATIVE' && metric.codigo === 'ROTACAO_CULTURAS') {
-        console.log(`🔍 [DEBUG] ${metric.codigo} score_criteria:`, (metric as any).score_criteria);
-      }
       
       if (metric.tipo === 'QUANTITATIVE') {
         // Get calculated value from TypeScript calculations
@@ -527,8 +513,6 @@ export async function calculateRating(
         // Get thresholds for this metric and calculate score
         const thresholds = await getRatingMetricThresholds(metric.id!);
         metricScore = calculateMetricScore(metricValue, thresholds);
-        
-        console.log(`📊 [${metric.codigo}] Quantitativa: valor=${metricValue}, score=${metricScore}, peso=${metricWeight}`);
       } else {
         // For qualitative metrics, get user evaluations from rating_manual_evaluations
         const { data: manualEvaluations } = await supabase
@@ -543,9 +527,7 @@ export async function calculateRating(
           metricValue = manualEvaluations.score;
           // Convert score (1-5) to percentage (20-100)
           metricScore = manualEvaluations.score * 20;
-          console.log(`📊 [${metric.codigo}] Qualitativa: valor=${metricValue}, score=${metricScore}, peso=${metricWeight}, safraId=${safraId}`);
         } else {
-          console.log(`⚠️ [${metric.codigo}] Qualitativa não avaliada para safra ${safraId}, score=0`);
         }
       }
       
@@ -573,13 +555,6 @@ export async function calculateRating(
     const finalScore = totalWeight > 0 ? (totalWeightedScore / totalWeight) * 100 : 0;
     const rating = getRatingFromScore(finalScore);
     
-    console.log("🎯 [SR/Prime] Resultado final:", {
-      totalWeightedScore,
-      totalWeight,
-      finalScore,
-      ratingLetra: rating.letra,
-      ratingDescricao: rating.descricao
-    });
     
     // Create calculation result using dynamic TypeScript calculations
     const data = {
@@ -835,7 +810,6 @@ export async function checkManualMetricsEvaluated(
     .eq("is_active", true)
     .eq("source_type", "MANUAL");
     
-  console.log("Manual metrics found:", manualMetrics?.length || 0);
     
   if (metricsError || !manualMetrics || manualMetrics.length === 0) {
     // If there are no manual metrics, consider as evaluated
@@ -863,7 +837,6 @@ export async function checkManualMetricsEvaluated(
     return false;
   }
   
-  console.log("Evaluations found:", evaluations?.length || 0);
   
   // Get list of evaluated metric codes
   const evaluatedCodes = new Set(evaluations?.map(e => e.metric_code) || []);
@@ -871,9 +844,6 @@ export async function checkManualMetricsEvaluated(
   // Check if all manual metrics have been evaluated
   const allEvaluated = manualMetrics.every(metric => evaluatedCodes.has(metric.codigo));
   
-  console.log("Manual metrics required:", manualMetrics.map(m => m.codigo));
-  console.log("Evaluated metrics:", Array.from(evaluatedCodes));
-  console.log("All evaluated?", allEvaluated);
   
   return allEvaluated;
 }

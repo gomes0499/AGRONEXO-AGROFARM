@@ -53,14 +53,9 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
         
         // Debug: verificar se os dados de empréstimos estão chegando
         if (organizationId === '4a8327ab-d9ae-44a5-9189-bb098bce924b') {
-          console.log('📊 Debug Balanço - Dados recebidos:');
-          console.log('   Passivo Circulante:', newData.passivo?.circulante);
-          console.log('   Passivo Não Circulante:', newData.passivo?.nao_circulante);
           
           // Verificar especificamente 2023/24
           const ano = '2023/24';
-          console.log(`   Empréstimos CP ${ano}:`, newData.passivo?.circulante?.emprestimos_financiamentos_curto_prazo?.[ano]);
-          console.log(`   Empréstimos LP ${ano}:`, newData.passivo?.nao_circulante?.emprestimos_financiamentos_longo_prazo?.[ano]);
         }
         
         setData(newData);
@@ -530,7 +525,6 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                               const valor = data.passivo.circulante.emprestimos_financiamentos_curto_prazo?.[ano] || 0;
                               // Debug específico para 2023/24
                               if (ano === '2023/24' && organizationId === '4a8327ab-d9ae-44a5-9189-bb098bce924b') {
-                                console.log(`📊 Renderizando Empréstimos CP ${ano}: ${valor}`);
                               }
                               return (
                                 <TableCell 
@@ -629,7 +623,6 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                               const valor = data.passivo.nao_circulante.emprestimos_financiamentos_longo_prazo?.[ano] || 0;
                               // Debug específico para 2023/24
                               if (ano === '2023/24' && organizationId === '4a8327ab-d9ae-44a5-9189-bb098bce924b') {
-                                console.log(`📊 Renderizando Empréstimos LP ${ano}: ${valor}`);
                               }
                               return (
                                 <TableCell 

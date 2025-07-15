@@ -256,7 +256,6 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
     
     // Envia o email com as credenciais
     try {
-      console.log('Attempting to send admin account email to:', email);
       
       const emailResult = await sendEmail({
         to: email,
@@ -272,7 +271,6 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
       if (!emailResult.success) {
         console.error('Failed to send admin account email:', (emailResult as any).error);
       } else {
-        console.log('Admin account email sent successfully to:', email);
       }
     } catch (emailError) {
       console.error("Erro ao enviar email de admin:", emailError);
@@ -440,7 +438,6 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
     
     // Envia o email diretamente (sem setTimeout)
     try {
-      console.log('Attempting to send member account email to:', email);
       
       const emailResult = await sendEmail({
         to: email,
@@ -457,7 +454,6 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
       if (!emailResult.success) {
         console.error('Failed to send member account email:', (emailResult as any).error);
       } else {
-        console.log('Member account email sent successfully to:', email);
       }
     } catch (emailError) {
       console.error("Erro ao enviar email de boas-vindas:", emailError);

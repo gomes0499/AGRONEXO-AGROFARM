@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
     
     lastUpdate = new Date();
     
-    console.log(`Dados CEPEA atualizados: ${cepeaDataCache.length} itens`);
     
     return NextResponse.json({ 
       success: true, 

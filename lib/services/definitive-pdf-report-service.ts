@@ -2601,13 +2601,10 @@ export class DefinitivePDFReportService {
   ) {
     // Validate inputs
     if (!indicators || indicators.length === 0) {
-      console.log('No indicators data provided');
       return;
     }
     
     // Debug log
-    console.log('Indicators data:', JSON.stringify(indicators, null, 2));
-    console.log('Metrics to display:', metrics);
     
     // Se todos os valores estiverem zerados, usar dados de exemplo da tabela
     const hasValidData = indicators.some(ind => 

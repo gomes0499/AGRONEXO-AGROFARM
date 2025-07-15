@@ -55,11 +55,9 @@ export function useLeaseForm({
   // Buscar dados da propriedade para preenchimento automático (apenas no modo create)
   useEffect(() => {
     const fetchPropertyData = async () => {
-      console.log("useLeaseForm - mode:", mode, "propertyId:", propertyId, "lease:", lease);
       if (mode === "create" && propertyId && !lease) {
         try {
           const property = await getPropertyById(propertyId);
-          console.log("Property data:", property);
           
           // Preencher automaticamente os campos relacionados à propriedade
           form.setValue("propriedade_id", propertyId);
@@ -68,7 +66,6 @@ export function useLeaseForm({
           setTimeout(() => {
             // Handle possible null values for area_total
             if (property.area_total !== null && property.area_total !== undefined) {
-              console.log("Setting area_fazenda to:", property.area_total);
               form.setValue("area_fazenda", property.area_total, {
                 shouldValidate: false,
                 shouldDirty: true,
@@ -116,9 +113,6 @@ export function useLeaseForm({
       }
       
       // Log para debug
-      console.log("Valores finais antes de salvar:", values);
-      console.log("custos_por_ano:", values.custos_por_ano);
-      console.log("Chaves de custos_por_ano:", Object.keys(values.custos_por_ano));
  
       if (mode === "edit" && lease?.id) {
         await updateLease(lease.id, values);

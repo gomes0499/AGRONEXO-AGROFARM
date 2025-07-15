@@ -57,37 +57,6 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       throw safras.error;
     }
     
-    // Debug: verificar estrutura completa do debtPosition
-    if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1') { // ID do Wilsemar
-      console.log('🔍 Debug DebtPosition para Wilsemar:');
-      console.log('   dividas:', debtPosition?.dividas?.map(d => ({
-        categoria: d.categoria,
-        anos: Object.keys(d.valores_por_ano || {})
-      })));
-      console.log('   Amostra de valores BANCOS:', debtPosition?.dividas?.find(d => d.categoria === 'BANCOS')?.valores_por_ano);
-      
-      // Debug caixa_disponibilidades
-      console.log('🔍 Debug Caixa Disponibilidades:');
-      console.log('   Total de registros:', caixaDisponibilidades?.length);
-      if (caixaDisponibilidades?.length > 0) {
-        console.log('   Categorias encontradas:', [...new Set(caixaDisponibilidades.map((c: any) => c.categoria))]);
-        console.log('   Exemplo de valores_por_ano:', caixaDisponibilidades[0]?.valores_por_ano);
-      }
-      
-      // Debug propriedades
-      console.log('🔍 Debug Propriedades:');
-      console.log('   Total de propriedades:', properties?.length);
-      console.log('   Equipments estrutura:', equipments);
-      console.log('   Total de equipamentos:', 'data' in equipments ? equipments.data?.length : ('length' in equipments ? equipments.length : 0));
-      console.log('   Total de benfeitorias:', improvements?.length);
-      console.log('   Investments estrutura:', investments);
-      console.log('   Total de investimentos:', 'data' in investments ? investments.data?.length : ('length' in investments ? investments.length : 0));
-      
-      // Debug safras
-      console.log('🔍 Debug Safras:');
-      console.log('   Total de safras:', safras.data?.length);
-      console.log('   Safras:', safras.data?.map(s => ({ id: s.id, nome: s.nome })));
-    }
 
     // Handle empty safras gracefully
     if (!safras.data || safras.data.length === 0) {
@@ -158,11 +127,6 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       return acc;
     }, {} as Record<string, string>);
     
-    // Debug SafraNameToId para Wilsemar
-    if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1') {
-      console.log('🔍 Debug SafraNameToId:');
-      console.log('   safraNameToId:', safraNameToId);
-    }
 
     const anos = fluxoCaixaData.anos;
     // Filtrar anos para remover 2030/31 e 2031/32
@@ -270,13 +234,6 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
     anosFiltrados.forEach((ano: string, index: number) => {
       const safraId = safraNameToId[ano];
       
-      // Debug para Wilsemar - verificar mapeamento de safras
-      if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && ano === '2023/24') {
-        console.log(`🔍 Debug Safra Mapping para ${ano}:`);
-        console.log('   safraId encontrado:', safraId);
-        console.log('   safraNameToId completo:', safraNameToId);
-        console.log('   anos filtrados:', anosFiltrados);
-      }
       
       // 1. ATIVO CIRCULANTE
       
@@ -304,14 +261,6 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
             const valores = item.valores_por_ano || item.valores_por_safra || {};
             const valorAno = getValorPorAno(valores, safraId, ano);
             
-            // Debug para Wilsemar - verificar adiantamentos
-            if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && (ano === '2023/24' || ano === '2024/25')) {
-              console.log(`🔍 Debug Adiantamentos para ${ano}:`);
-              console.log('   item.nome:', item.nome);
-              console.log('   item.valores_por_ano:', item.valores_por_ano);
-              console.log('   safraId:', safraId);
-              console.log('   valorAno calculado:', valorAno);
-            }
             
             return acc + valorAno;
           }, 0);
@@ -419,18 +368,6 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
           // Usar valor_total ao invés de valor_aquisicao para máquinas
           const valor = item.valor_total || item.valor_aquisicao || 0;
           
-          // Debug para Wilsemar - verificar máquinas
-          if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && ano === '2023/24' && acc === 0) {
-            console.log(`🔍 Debug Máquinas para ${ano}:`);
-            console.log('   Total de equipamentos:', 'data' in equipments ? equipments.data?.length : 0);
-            console.log('   Exemplo de equipamento:', {
-              equipamento: item.equipamento,
-              valor_total: item.valor_total,
-              valor_unitario: item.valor_unitario,
-              quantidade: item.quantidade,
-              valor_calculado: valor
-            });
-          }
           
           return acc + valor;
         }, 0);
@@ -471,24 +408,12 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       let dividasLongoPrazo = 0;
       let financiamentosTerras = 0;
       
-      // Log para debug
-      if (ano === '2023/24') {
-        console.log('🔍 Debug Dívidas para 2023/24:');
-        console.log('   organizacaoId:', organizacaoId);
-        console.log('   debtPosition disponível:', !!debtPosition);
-        console.log('   debtPosition.dividas:', debtPosition?.dividas);
-        console.log('   debtPosition.indicadores.endividamento_total:', debtPosition?.indicadores?.endividamento_total);
-      }
       
       if (debtPosition && debtPosition.dividas && Array.isArray(debtPosition.dividas)) {
         debtPosition.dividas.forEach((divida: any) => {
           const valoresPorAno = divida.valores_por_ano || {};
           const valorAtual = valoresPorAno[ano] || 0; // Usar o nome do ano diretamente
           
-          // Debug detalhado para cada categoria
-          if (ano === '2023/24' || ano === '2024/25' || ano === '2025/26') {
-            console.log(`     ${divida.categoria} - ${ano}: R$ ${valorAtual.toLocaleString('pt-BR')}`);
-          }
           
           // Para classificar curto vs longo prazo, precisamos olhar o fluxo de pagamento
           // Curto prazo: pagamentos devidos no próximo ano (safra seguinte)
@@ -538,13 +463,6 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
         }
       }
       
-      // Log após processar dívidas
-      if (ano === '2023/24') {
-        console.log('   Dívidas processadas:');
-        console.log('     - Curto prazo:', dividasCurtoPrazo);
-        console.log('     - Longo prazo:', dividasLongoPrazo);
-        console.log('     - Financiamento terras:', financiamentosTerras);
-      }
 
       // Arrendamentos
       let arrendamentosValor = 0;
@@ -573,59 +491,16 @@ export async function getBalancoPatrimonialDataV2(organizacaoId: string, project
       // O patrimônio líquido será apenas capital social + lucros acumulados
       const patrimonioLiquidoTotal = capitalSocial + lucrosAcumulados + reservas;
       
-      // Log para debug
-      if (index === 0) {
-        console.log(`📊 Balanço Patrimonial - ${ano}:`);
-        console.log(`   Ativo Total: R$ ${ativoTotal.toLocaleString('pt-BR')}`);
-        console.log(`   Passivo Total: R$ ${passivoTotal.toLocaleString('pt-BR')}`);
-        console.log(`   Capital Social: R$ ${capitalSocial.toLocaleString('pt-BR')}`);
-        console.log(`   Lucros Acumulados: R$ ${lucrosAcumulados.toLocaleString('pt-BR')}`);
-        console.log(`   Reservas: R$ ${reservas.toLocaleString('pt-BR')}`);
-        console.log(`   Patrimônio Líquido: R$ ${patrimonioLiquidoTotal.toLocaleString('pt-BR')}`);
-      }
       
       // Validar integridade do balanço
       const diferencaBalanco = ativoTotal - (passivoTotal + patrimonioLiquidoTotal);
       
       if (Math.abs(diferencaBalanco) > 1) {
-        console.warn(`⚠️ Balanço patrimonial não fecha para ${ano}. Diferença: R$ ${diferencaBalanco.toFixed(2)}`);
-        console.log(`   Ativo Total: R$ ${ativoTotal.toFixed(2)}`);
-        console.log(`   Passivo + PL: R$ ${(passivoTotal + patrimonioLiquidoTotal).toFixed(2)}`);
       }
       
       // Usar valores calculados
       const lucrosAcumuladosAjustados = lucrosAcumulados;
       
-      // Log detalhado para WILSEMAR ELGER
-      if (organizacaoId === '41ee5785-2d48-4f68-a307-d4636d114ab1' && ano === '2023/24') {
-        console.log('🔍 Debug Balanço Patrimonial Wilsemar Elger 2023/24:');
-        console.log('   === ATIVO CIRCULANTE ===');
-        console.log('   Caixa e Bancos:', caixaBancosValor);
-        console.log('   Adiantamentos:', adiantamentosFornecedoresValor);
-        console.log('   Estoques Defensivos:', estoquesDefensivosValor);
-        console.log('   Estoques Fertilizantes:', estoquesFertilizantesValor);
-        console.log('   Estoques Commodities:', estoquesCommoditiesValor);
-        console.log('   Estoques Sementes:', estoquesSementesValor);
-        console.log('   Total Ativo Circulante:', ativoCirculanteTotal);
-        console.log('   === ATIVO NÃO CIRCULANTE ===');
-        console.log('   Propriedades (terras):', terrasValor);
-        console.log('   Máquinas e Equipamentos:', maquinasEquipamentosValor);
-        console.log('   Benfeitorias:', benfeitoriasValor);
-        console.log('   Investimentos:', investimentosValor);
-        console.log('   Imobilizado Total:', imobilizadoTotal);
-        console.log('   Total Ativo Não Circulante:', ativoNaoCirculanteTotal);
-        console.log('   === TOTAL DOS ATIVOS ===');
-        console.log('   Total de Ativos:', ativoTotal);
-        console.log('   === PASSIVOS ===');
-        console.log('   Passivo Circulante:', passivoCirculanteTotal);
-        console.log('   Passivo Não Circulante:', passivoNaoCirculanteTotal);
-        console.log('   Total Passivos:', passivoTotal);
-        console.log('   === PATRIMÔNIO LÍQUIDO ===');
-        console.log('   Capital Social:', capitalSocial);
-        console.log('   Lucros Acumulados:', lucrosAcumulados);
-        console.log('   Reservas:', reservas);
-        console.log('   Patrimônio Líquido Total:', patrimonioLiquidoTotal);
-      }
 
       // Verificar se as propriedades "veiculos" e "depreciacao_acumulada" precisam ser adicionadas ao imobilizado
       if (!balancoData.ativo.nao_circulante.imobilizado.veiculos) {

@@ -874,7 +874,6 @@ export class CompletePDFReportGenerator {
       try {
         await this.addOrganizationLogoInCard(organization.logoUrl, cardX + 10, this.currentY + 10, 30, 30);
       } catch (error) {
-        console.warn("Erro ao carregar logo da organização:", error);
       }
     }
     
@@ -1036,7 +1035,6 @@ export class CompletePDFReportGenerator {
         this.addOrganizationLogoFallback();
       }
     } catch (error) {
-      console.warn('Erro ao carregar logo da organização:', error);
       this.addOrganizationLogoFallback();
     }
   }
@@ -1074,7 +1072,6 @@ export class CompletePDFReportGenerator {
             this.doc.addImage(imgData, 'PNG', x, y, width, height);
           }
         } catch (error) {
-          console.warn('Erro ao adicionar logo:', error);
         }
         resolve();
       };

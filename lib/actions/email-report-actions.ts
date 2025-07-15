@@ -179,7 +179,6 @@ export async function sendReportByEmail(
         console.error("Erro ao enviar email em lote:", error);
         
         // Se falhar, tentar enviar individualmente
-        console.log("Tentando enviar emails individualmente...");
         
         const results = [];
         for (const email of recipients) {

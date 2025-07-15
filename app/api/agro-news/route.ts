@@ -248,22 +248,18 @@ export async function GET(request: NextRequest) {
     // Verificar se precisa atualizar o cache
     const now = new Date();
     if (!lastFetch || now.getTime() - lastFetch.getTime() > CACHE_DURATION) {
-      console.log("Atualizando cache de notícias...");
       
       const allNews: NewsItem[] = [];
       
       // Tentar News API se configurada
       if (process.env.NEWS_API_KEY) {
         const newsApiItems = await fetchNewsAPI();
-        console.log(`News API retornou ${newsApiItems.length} notícias filtradas`);
         allNews.push(...newsApiItems);
       } else {
-        console.log("NEWS_API_KEY não configurada");
       }
       
       // Se não conseguiu notícias reais, usar exemplos
       if (allNews.length === 0) {
-        console.log("Usando notícias de exemplo pois não há notícias da API");
         newsCache = EXAMPLE_NEWS;
       } else {
         // Ordenar por data mais recente

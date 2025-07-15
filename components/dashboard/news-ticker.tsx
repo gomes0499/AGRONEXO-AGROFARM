@@ -16,9 +16,6 @@ export function NewsTicker() {
         const response = await fetch("/api/agro-news/rss");
         const data = await response.json();
 
-        console.log(
-          `Ticker de notícias RSS: ${data.total || 0} notícias carregadas`
-        );
         setNewsItems(data.news || []);
       } catch (error) {
         console.error("Erro ao buscar notícias:", error);

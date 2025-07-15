@@ -149,7 +149,6 @@ async function parseRSSFeed(url: string, sourceName: string, category: string): 
       index++;
     }
 
-    console.log(`RSS ${sourceName}: ${items.length} notícias filtradas`);
     return items;
   } catch (error) {
     console.error(`Erro ao processar RSS de ${sourceName}:`, error);
@@ -171,7 +170,6 @@ export async function GET() {
       });
     }
 
-    console.log("Atualizando notícias RSS do agronegócio...");
     
     // Buscar de todas as fontes em paralelo
     const promises = RSS_SOURCES.map(source => 
@@ -226,7 +224,6 @@ export async function GET() {
     
     lastFetch = now;
     
-    console.log(`Total de notícias RSS coletadas: ${newsCache.length}`);
     
     return NextResponse.json({
       news: newsCache,
