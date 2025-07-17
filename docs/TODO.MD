@@ -8,8 +8,6 @@ Para tornar o sistema completamente dinâmico no futuro:
 
 MODULO VISÃO GERAL >> ABA POSIÇÃO DA DIVIDA AO INVEZ DE CONSOLIDAR POR TODOS AS SAFRAS, CONSOLIDAR POR SAFRA. (EX: Dividas bancos consolidar o valor por 2020/21) E fazer o mesmo para terras, fornecedores. e o calculo do Endividamento Total vai ser por safra. Divida liquida a mesma ideia usando o consolidado por safra.
 
-If u need to access the database. U have access using MCP. The project id is: vnqovsdcychjczfjamdc
-
-Change the cash flow minimum political
+I have a button to configure the minimum cash flow political, and i want a option to remove or edit the cash flow set, actualy it's possible to configure
 
 
