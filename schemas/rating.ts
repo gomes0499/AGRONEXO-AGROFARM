@@ -166,7 +166,41 @@ export const RATING_SCALE = [
 
 // Helper function to get rating letter from score
 export function getRatingFromScore(score: number): typeof RATING_SCALE[number] {
-  return RATING_SCALE.find(rating => score >= rating.min && score <= rating.max) || RATING_SCALE[RATING_SCALE.length - 1];
+  const found = RATING_SCALE.find(rating => score >= rating.min && score <= rating.max);
+  
+  if (!found) {
+    // Se não encontrou exatamente, busca o rating mais próximo
+    console.warn(`Rating not found for score ${score}, finding closest`);
+    
+    // Se o score for maior que o máximo, retorna o melhor rating
+    if (score > 100) {
+      return RATING_SCALE[0]; // AAA
+    }
+    
+    // Se o score for menor que o mínimo, retorna o pior rating
+    if (score < 0) {
+      return RATING_SCALE[RATING_SCALE.length - 1]; // H
+    }
+    
+    // Caso contrário, encontra o mais próximo
+    let closestRating: typeof RATING_SCALE[number] = RATING_SCALE[0];
+    let minDiff = Math.abs(score - closestRating.min);
+    
+    for (const rating of RATING_SCALE) {
+      const diffMin = Math.abs(score - rating.min);
+      const diffMax = Math.abs(score - rating.max);
+      const minDiffForRating = Math.min(diffMin, diffMax);
+      
+      if (minDiffForRating < minDiff) {
+        minDiff = minDiffForRating;
+        closestRating = rating;
+      }
+    }
+    
+    return closestRating;
+  }
+  
+  return found;
 }
 
 // Type exports
