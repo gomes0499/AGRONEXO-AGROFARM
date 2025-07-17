@@ -239,21 +239,11 @@ export function FinancialKpiCards({
       return null;
     }
     
-    // Special handling for debt/EBITDA indicators with negative values
-    // A negative debt/EBITDA ratio means negative EBITDA, which is a critical situation
-    if ((indicatorType === 'DIVIDA_EBITDA' || indicatorType.includes('EBITDA')) && value < 0) {
-      // Return the most critical threshold (usually the first one with lowest score)
-      const criticalThreshold = configs.find(t => 
-        t.level === 'THRESHOLD' || t.level === 'LIMITE_CRITICO' || t.level === 'CRITICO'
-      );
-      
-      if (criticalThreshold) {
-        return criticalThreshold;
-      }
-      
-      // If no critical threshold found, return the first threshold (worst case)
-      return configs[0] || null;
-    }
+    // Special handling for debt/EBITDA indicators with negative values is NOT needed anymore
+    // The threshold configuration already handles negative values correctly:
+    // MUITO_BOM: -100 to -2
+    // BOM: -1.9 to 0
+    // So we'll just let the normal threshold matching logic handle it
     
     // Find the matching threshold
     for (const threshold of configs) {
@@ -369,9 +359,7 @@ export function FinancialKpiCards({
         thresholdInfo: getThresholdInfo(m.indicadores.dividaReceita, 'DIVIDA_FATURAMENTO'),
       },
       dividaLiquidaEbitda: {
-        value: m.indicadores.dividaLiquidaEbitda === 0 ? "N/A" : 
-               m.indicadores.dividaLiquidaEbitda < 0 ? formatRatio(Math.abs(m.indicadores.dividaLiquidaEbitda)) : 
-               formatRatio(m.indicadores.dividaLiquidaEbitda),
+        value: m.indicadores.dividaLiquidaEbitda === 0 ? "N/A" : formatRatio(m.indicadores.dividaLiquidaEbitda),
         change: "--",
         changeType: getIndicatorChangeType(
           m.indicadores.dividaLiquidaEbitda,

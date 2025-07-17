@@ -156,8 +156,22 @@ const KpiItem = React.memo(function KpiItem({
     ) {
       try {
         const numValue = parseFloat(String(cardValue).replace("x", ""));
-        // Corrigido conforme os limiares definidos
-        if (numValue > 0.8) {
+        // Se for DÍV. LÍQUIDA/RECEITA e negativo, é excelente
+        if (title.includes("DÍV. LÍQUIDA/RECEITA") && numValue < 0) {
+          return (
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                backgroundColor: "#52C41A20",
+                color: "#52C41A",
+                borderColor: "#52C41A",
+              }}
+            >
+              Excelente
+            </Badge>
+          );
+        } else if (numValue > 0.8) {
           return (
             <Badge
               variant="outline"
@@ -208,22 +222,57 @@ const KpiItem = React.memo(function KpiItem({
     if (title.includes("DÍV. LÍQUIDA/EBITDA")) {
       try {
         const numValue = parseFloat(String(cardValue).replace("x", ""));
-        // Corrigido conforme os limiares definidos
-        if (numValue > 3.0) {
+        
+        // Baseado nos limiares fornecidos:
+        // MUITO BOM: -100.00 a -2.00
+        // BOM: -1.90 a 0.00
+        // CONFORTÁVEL: 0.10 a 1.19
+        // ATENÇÃO: 1.20 a 2.90
+        // LIMITE CRÍTICO: 3.10 a ∞
+        
+        if (numValue <= -2.0) {
           return (
             <Badge
               variant="outline"
               className="text-xs"
               style={{
-                backgroundColor: "#FF4D4F20",
-                color: "#FF4D4F",
-                borderColor: "#FF4D4F",
+                backgroundColor: "#0066CC20",
+                color: "#0066CC",
+                borderColor: "#0066CC",
               }}
             >
-              Crítico
+              Muito Bom
             </Badge>
           );
-        } else if (numValue > 2.5) {
+        } else if (numValue < 0) {
+          return (
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                backgroundColor: "#52C41A20",
+                color: "#52C41A",
+                borderColor: "#52C41A",
+              }}
+            >
+              Bom
+            </Badge>
+          );
+        } else if (numValue < 1.2) {
+          return (
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                backgroundColor: "#52C41A20",
+                color: "#52C41A",
+                borderColor: "#52C41A",
+              }}
+            >
+              Confortável
+            </Badge>
+          );
+        } else if (numValue < 3.1) {
           return (
             <Badge
               variant="outline"
@@ -243,12 +292,12 @@ const KpiItem = React.memo(function KpiItem({
               variant="outline"
               className="text-xs"
               style={{
-                backgroundColor: "#52C41A20",
-                color: "#52C41A",
-                borderColor: "#52C41A",
+                backgroundColor: "#FF4D4F20",
+                color: "#FF4D4F",
+                borderColor: "#FF4D4F",
               }}
             >
-              Bom
+              Limite Crítico
             </Badge>
           );
         }
@@ -332,8 +381,14 @@ export function FinancialKpiCardsProductionStyleRefactored({
 }: FinancialKpiCardsRefactoredProps) {
   const [data, setData] = useState<FinancialKpiCardsData>(initialData);
   const [selectedSafraId, setSelectedSafraId] = useState<string>(() => {
-    // Definir safra inicial
+    // Definir safra inicial - procurar 2024/25 especificamente
     if (initialData.safras.length > 0) {
+      // Primeiro tentar encontrar a safra 2024/25
+      const safra202425 = initialData.safras.find((s) => s.nome === "2024/25");
+      if (safra202425) {
+        return safra202425.id;
+      }
+      // Se não encontrar, usar a lógica anterior
       const currentYear = new Date().getFullYear();
       const currentSafra = initialData.safras.find((s) => s.ano_inicio === currentYear) || initialData.safras[0];
       return currentSafra.id;
@@ -661,15 +716,13 @@ export function FinancialKpiCardsProductionStyleRefactored({
                   title="DÍV. LÍQUIDA/RECEITA"
                   value={
                     metrics
-                      ? `${metrics.indicadores.dividaLiquidaReceita.toFixed(
-                          1
-                        )}x`
+                      ? `${metrics.indicadores.dividaLiquidaReceita.toFixed(1)}x`
                       : "0.0x"
                   }
                   change="Ideal: até 1,5x"
                   isPositive={
                     metrics
-                      ? metrics.indicadores.dividaLiquidaReceita <= 1.5
+                      ? metrics.indicadores.dividaLiquidaReceita <= 1.5 || metrics.dividaLiquida.valorAtual < 0
                       : true
                   }
                   icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
@@ -694,7 +747,7 @@ export function FinancialKpiCardsProductionStyleRefactored({
                   change="Ideal: até 2,5x"
                   isPositive={
                     metrics
-                      ? metrics.indicadores.dividaLiquidaEbitda <= 2.5
+                      ? metrics.indicadores.dividaLiquidaEbitda <= 2.5 || metrics.dividaLiquida.valorAtual < 0
                       : true
                   }
                   icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
@@ -713,11 +766,21 @@ export function FinancialKpiCardsProductionStyleRefactored({
               <Info className="h-4 w-4 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
                 {metrics?.indicadores.dividaLiquidaEbitda
-                  ? metrics.indicadores.dividaLiquidaEbitda > 3.0
-                    ? "⚠️ Indicadores de endividamento acima do recomendado. Considere estratégias de redução de dívida."
-                    : metrics.indicadores.dividaLiquidaEbitda > 1.2
-                    ? "📊 Indicadores de endividamento em níveis moderados. Continue monitorando."
-                    : "✅ Indicadores de endividamento saudáveis. Boa capacidade de pagamento."
+                  ? (() => {
+                      const dividaLiquida = metrics.dividaLiquida.valorAtual;
+                      const indicador = metrics.indicadores.dividaLiquidaEbitda;
+                      
+                      // Se dívida líquida for negativa, é excelente
+                      if (dividaLiquida < 0) {
+                        return "🌟 Excelente! A empresa tem mais caixa do que dívidas. Situação financeira muito saudável.";
+                      } else if (indicador > 3.0) {
+                        return "⚠️ Indicadores de endividamento acima do recomendado. Considere estratégias de redução de dívida.";
+                      } else if (indicador > 1.2) {
+                        return "📊 Indicadores de endividamento em níveis moderados. Continue monitorando.";
+                      } else {
+                        return "✅ Indicadores de endividamento saudáveis. Boa capacidade de pagamento.";
+                      }
+                    })()
                   : "Configure os dados financeiros para análise de indicadores."}
               </p>
             </div>

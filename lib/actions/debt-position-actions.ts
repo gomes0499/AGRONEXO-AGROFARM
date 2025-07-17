@@ -568,12 +568,18 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
             if (safra) {
               const anoNome = safra.nome;
               if (valores[anoNome] !== undefined) {
-                valores[anoNome] = valoresPorAno[safraId] || 0;
+                valores[anoNome] += valoresPorAno[safraId] || 0;
               }
             }
           });
         } catch (e) {
           console.error(`❌ Erro ao processar valores do caixa ${caixa.id}:`, e);
+        }
+      } else if (caixa.valor_total && caixa.valor_total > 0) {
+        // Se não tem valores_por_ano mas tem valor_total, atribuir à safra atual
+        const safraAtual = safras.find(s => s.nome === '2024/25');
+        if (safraAtual && valores[safraAtual.nome] !== undefined) {
+          valores[safraAtual.nome] += caixa.valor_total;
         }
       }
     });
@@ -608,12 +614,18 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
             if (safra) {
               const anoNome = safra.nome;
               if (valores[anoNome] !== undefined) {
-                valores[anoNome] = valoresPorAno[safraId] || 0;
+                valores[anoNome] += valoresPorAno[safraId] || 0;
               }
             }
           });
         } catch (e) {
           console.error(`❌ Erro ao processar valores do ativo biológico ${item.id}:`, e);
+        }
+      } else if (item.valor_total && item.valor_total > 0) {
+        // Se não tem valores_por_ano mas tem valor_total, atribuir à safra atual
+        const safraAtual = safras.find(s => s.nome === '2024/25');
+        if (safraAtual && valores[safraAtual.nome] !== undefined) {
+          valores[safraAtual.nome] += item.valor_total;
         }
       }
     });
@@ -628,14 +640,16 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     // Inicializar com zero todos os anos
     anos.forEach(ano => valores[ano] = 0);
     
-    // Filtrar para incluir apenas registros de ESTOQUE_DEFENSIVOS
-    const estoqueDefensivosItens = fatoresLiquidez?.filter(item => 
-      item.categoria === 'ESTOQUE_DEFENSIVOS'
+    // Filtrar para incluir registros de ESTOQUE_DEFENSIVOS, ESTOQUE_FERTILIZANTES e ESTOQUE_ALMOXARIFADO
+    const estoqueInsumosItens = fatoresLiquidez?.filter(item => 
+      item.categoria === 'ESTOQUE_DEFENSIVOS' ||
+      item.categoria === 'ESTOQUE_FERTILIZANTES' ||
+      item.categoria === 'ESTOQUE_ALMOXARIFADO'
     );
     
     
-    // Processar cada item de ESTOQUE_DEFENSIVOS
-    estoqueDefensivosItens?.forEach(item => {
+    // Processar cada item de estoque de insumos
+    estoqueInsumosItens?.forEach(item => {
       if (item.valores_por_ano) {
         try {
           const valoresPorAno = typeof item.valores_por_ano === 'string'
@@ -648,12 +662,18 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
             if (safra) {
               const anoNome = safra.nome;
               if (valores[anoNome] !== undefined) {
-                valores[anoNome] = valoresPorAno[safraId] || 0;
+                valores[anoNome] += valoresPorAno[safraId] || 0; // Usar += para somar múltiplos itens
               }
             }
           });
         } catch (e) {
-          console.error(`❌ Erro ao processar valores do estoque de defensivos ${item.id}:`, e);
+          console.error(`❌ Erro ao processar valores do estoque ${item.id}:`, e);
+        }
+      } else if (item.valor_total && item.valor_total > 0) {
+        // Se não tem valores_por_ano mas tem valor_total, atribuir à safra atual
+        const safraAtual = safras.find(s => s.nome === '2024/25');
+        if (safraAtual && valores[safraAtual.nome] !== undefined) {
+          valores[safraAtual.nome] += item.valor_total;
         }
       }
     });
@@ -688,16 +708,66 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
             if (safra) {
               const anoNome = safra.nome;
               if (valores[anoNome] !== undefined) {
-                valores[anoNome] = valoresPorAno[safraId] || 0;
+                valores[anoNome] += valoresPorAno[safraId] || 0;
               }
             }
           });
         } catch (e) {
           console.error(`❌ Erro ao processar valores do estoque de commodities ${item.id}:`, e);
         }
+      } else if (item.valor_total && item.valor_total > 0) {
+        // Se não tem valores_por_ano mas tem valor_total, atribuir à safra atual
+        const safraAtual = safras.find(s => s.nome === '2024/25');
+        if (safraAtual && valores[safraAtual.nome] !== undefined) {
+          valores[safraAtual.nome] += item.valor_total;
+        }
       }
     });
     
+    
+    return valores;
+  };
+
+  // Consolidar adiantamentos por safra
+  const consolidarAdiantamentos = (): Record<string, number> => {
+    const valores: Record<string, number> = {};
+    // Inicializar com zero todos os anos
+    anos.forEach(ano => valores[ano] = 0);
+    
+    // Filtrar para incluir apenas registros de ADIANTAMENTOS
+    const adiantamentosItens = fatoresLiquidez?.filter(item => 
+      item.categoria === 'ADIANTAMENTOS'
+    );
+    
+    // Processar cada item de ADIANTAMENTOS
+    adiantamentosItens?.forEach(item => {
+      if (item.valores_por_ano) {
+        try {
+          const valoresPorAno = typeof item.valores_por_ano === 'string'
+            ? JSON.parse(item.valores_por_ano)
+            : item.valores_por_ano;
+          
+          // Para cada safra_id nos valores, mapear para o ano correto
+          Object.keys(valoresPorAno).forEach(safraId => {
+            const safra = safras.find(s => s.id === safraId);
+            if (safra) {
+              const anoNome = safra.nome;
+              if (valores[anoNome] !== undefined) {
+                valores[anoNome] += valoresPorAno[safraId] || 0;
+              }
+            }
+          });
+        } catch (e) {
+          console.error(`❌ Erro ao processar valores de adiantamentos ${item.id}:`, e);
+        }
+      } else if (item.valor_total && item.valor_total > 0) {
+        // Se não tem valores_por_ano mas tem valor_total, atribuir à safra atual
+        const safraAtual = safras.find(s => s.nome === '2024/25');
+        if (safraAtual && valores[safraAtual.nome] !== undefined) {
+          valores[safraAtual.nome] += item.valor_total;
+        }
+      }
+    });
     
     return valores;
   };
@@ -802,6 +872,7 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
   const ativoBiologicoValues = consolidarAtivoBiologico();
   const estoquesInsumosValues = consolidarEstoquesInsumos();
   const estoquesCommoditiesValues = consolidarEstoquesCommodities();
+  const adiantamentosValues = consolidarAdiantamentos();
 
   // Receita e EBITDA
   const { receitas, ebitdas } = await buscarReceitaEbitda();
@@ -852,7 +923,8 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     caixasDisponibilidades[ano] = (caixaValues[ano] || 0) + 
                                  (ativoBiologicoValues[ano] || 0) + 
                                  (estoquesInsumosValues[ano] || 0) + 
-                                 (estoquesCommoditiesValues[ano] || 0);
+                                 (estoquesCommoditiesValues[ano] || 0) +
+                                 (adiantamentosValues[ano] || 0);
                                  
     // Ativo biológico separado para o indicador
     ativoBiologico[ano] = ativoBiologicoValues[ano] || 0;

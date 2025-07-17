@@ -94,6 +94,7 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
     const debtPosition = await getDebtPosition(organizationId, projectionId);
     const cultureProjections = await getCultureProjections(organizationId, projectionId);
     
+    
     // Safra atual baseada no ano selecionado
     let safraAtual = "";
     for (const ano of debtPosition.anos) {
@@ -116,6 +117,7 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
       
       safraAtual = anosOrdenados[0];
     }
+    
     
     // Safra anterior
     const indexSafraAtual = debtPosition.anos.indexOf(safraAtual);
@@ -165,6 +167,7 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
     const dividaLiquidaAnterior = safraAnterior ? 
       debtPosition.indicadores.divida_liquida[safraAnterior] || 0 : 
       dividaLiquidaAtual * 1.15; // 15% maior no ano anterior (simulado)
+    
     
     // Buscar receita e EBITDA das projeções de cultura
     const consolidado = cultureProjections.consolidado;
@@ -224,6 +227,18 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
       dividaLiquidaReceita = receita > 0 ? dividaLiquidaAtual / receita : 0;
       dividaLiquidaEbitda = ebitda !== 0 ? dividaLiquidaAtual / ebitda : 0;
     }
+    
+    // SEMPRE garantir que quando dívida líquida for negativa, os indicadores reflitam isso
+    if (dividaLiquidaAtual < 0) {
+      // Se a dívida líquida é negativa mas o indicador está positivo, corrigir
+      if (dividaLiquidaEbitda > 0 && ebitda !== 0) {
+        dividaLiquidaEbitda = -Math.abs(dividaLiquidaEbitda);
+      }
+      if (dividaLiquidaReceita > 0 && receita > 0) {
+        dividaLiquidaReceita = -Math.abs(dividaLiquidaReceita);
+      }
+    }
+    
     
     // Calcular prazo médio ponderado das dívidas
     let prazoMedioAtual = 0;

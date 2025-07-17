@@ -924,7 +924,7 @@ async function calcularDadosFinanceiras(
       });
       
       // Somar valores de todas as terras desta propriedade
-      terras.forEach(terra => {
+      terras?.forEach(terra => {
         if (terra.safra_id && terra.valor_total) {
           const ano = safraToYear[terra.safra_id];
           if (ano && dividasTerrasDetalhado[propriedade][ano] !== undefined) {

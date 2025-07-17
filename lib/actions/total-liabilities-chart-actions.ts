@@ -271,7 +271,8 @@ export async function getTotalLiabilitiesChartData(
         'ESTOQUE_DEFENSIVOS',
         'ESTOQUE_FERTILIZANTES',
         'ESTOQUE_ALMOXARIFADO',
-        'ATIVO_BIOLOGICO'
+        'ATIVO_BIOLOGICO',
+        'ADIANTAMENTOS' // Adicionar adiantamentos
       ];
       
       if (!categoriasValidas.includes(item.categoria)) {
@@ -289,15 +290,34 @@ export async function getTotalLiabilitiesChartData(
         }
       }
 
-      // Adicionar valor de caixa para cada safra específica
-      if (valoresSafras && typeof valoresSafras === "object") {
+      // Se tem valores por safra, distribuir
+      if (valoresSafras && typeof valoresSafras === "object" && Object.keys(valoresSafras).length > 0) {
         for (const safraId in valoresSafras) {
-          if (safrasParaAnalisar.includes(safraId)) {
+          // Verificar se a safra existe no array de safras filtradas
+          const safraExiste = safrasFiltradas.find(s => s.id === safraId);
+          if (safraExiste && safrasParaAnalisar.includes(safraId)) {
             const valor = parseFloat(valoresSafras[safraId]) || 0;
             if (valor > 0) {
+              if (!caixasPorSafra[safraId]) {
+                caixasPorSafra[safraId] = 0;
+              }
               caixasPorSafra[safraId] += valor;
             }
           }
+        }
+      } else if (item.valor_total && item.valor_total > 0) {
+        // Se não tem valores por safra mas tem valor_total, considerar como saldo atual
+        // Atribuir à safra atual (primeira safra com valores de dívida)
+        const safraAtual = safrasFiltradas.find(s => {
+          const valores = valoresPorSafra[s.id];
+          return valores && (valores.bancos > 0 || valores.outros > 0);
+        });
+        
+        if (safraAtual) {
+          if (!caixasPorSafra[safraAtual.id]) {
+            caixasPorSafra[safraAtual.id] = 0;
+          }
+          caixasPorSafra[safraAtual.id] += item.valor_total;
         }
       }
     }
@@ -319,16 +339,6 @@ export async function getTotalLiabilitiesChartData(
       // Calcular a dívida líquida específica desta safra:
       // Dívida Líquida = Dívida Total da Safra - Caixas e Disponibilidades desta safra
       const liquidoSafra = Math.max(0, totalPassivosSafra - totalCaixaSafra);
-      
-      // Debug temporário
-      if (safra.nome === "2024/25") {
-        console.log("Debug 2024/25:", {
-          totalPassivosSafra,
-          totalCaixaSafra,
-          liquidoSafra,
-          caixaItens: caixaDisponibilidades.filter(c => c.valores_por_ano || c.valores_por_safra).length
-        });
-      }
 
       // Adicionar ao resultado com valores específicos por safra
       resultado.push({
