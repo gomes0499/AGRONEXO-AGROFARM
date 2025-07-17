@@ -399,7 +399,8 @@ async function getDividaLiquida(
     // Somar valores de caixa para a safra específica
     if (caixaDisponibilidades) {
       caixaDisponibilidades.forEach((caixa: any) => {
-        let valores = caixa.valores_por_safra;
+        // IMPORTANTE: caixa_disponibilidades usa valores_por_ano, não valores_por_safra
+        let valores = caixa.valores_por_ano || caixa.valores_por_safra;
         if (typeof valores === 'string') {
           try {
             valores = JSON.parse(valores);

@@ -34,12 +34,10 @@ export async function getTotalLiabilitiesChartData(
       return { data: [] };
     }
 
-    // Filtramos safras a partir de 2020/2021 até o presente
-    // Queremos mostrar a evolução histórica completa dos passivos
+    // Filtrar apenas as safras até 2033/34 para exibição no gráfico
     const safrasFiltradas = safras.filter((safra) => {
-      // Pegar o ano de início da safra (primeiro número da string nome)
-      const anoInicio = parseInt(safra.nome.split("/")[0]);
-      return anoInicio >= 2020; // Incluir safras de 2020 em diante
+      const anoFim = parseInt(safra.ano_fim);
+      return anoFim <= 2034; // 2033/34 é a última safra que queremos mostrar
     });
 
     // Usar todas as safras filtradas para o gráfico
@@ -65,6 +63,30 @@ export async function getTotalLiabilitiesChartData(
     }
 
     // Sempre usar tabelas base, dados financeiros não mudam com cenários
+    // Buscar cotações de dólar primeiro
+    const { data: cotacoesData } = await supabase
+      .from("cotacoes_cambio")
+      .select("*")
+      .eq("organizacao_id", organizationId)
+      .eq("tipo_moeda", "DOLAR_FECHAMENTO");
+    
+    const dolarFechamento: Record<string, number> = {};
+    if (cotacoesData && cotacoesData.length > 0) {
+      const cotacao = cotacoesData[0];
+      const cotacoesPorAno = typeof cotacao.cotacoes_por_ano === 'string'
+        ? JSON.parse(cotacao.cotacoes_por_ano)
+        : cotacao.cotacoes_por_ano || {};
+      
+      // Mapear ID da safra para nome da safra
+      safrasFiltradas.forEach(safra => {
+        if (cotacoesPorAno[safra.id]) {
+          dolarFechamento[safra.nome] = cotacoesPorAno[safra.id];
+        } else {
+          dolarFechamento[safra.nome] = cotacao.cotacao_atual || 5.70;
+        }
+      });
+    }
+
     const [dividasBancariasResult, caixaDisponibilidadesResult, dividasTerrasResult, dividasFornecedoresResult] =
       await Promise.all([
         supabase
@@ -146,38 +168,89 @@ export async function getTotalLiabilitiesChartData(
       return 0;
     };
 
-    // Buscar o total consolidado de dívidas bancárias (BANCO + TRADING + OUTROS)
-    const totalBancosConsolidado = await getTotalDividasBancariasConsolidado(organizationId, projectionId);
-    const totalBancosTodos = (totalBancosConsolidado as any).total_consolidado_brl || 0;
+    // Criar mapeamento safraId -> nome da safra
+    const safraToYear: Record<string, string> = {};
+    safrasFiltradas.forEach(safra => {
+      safraToYear[safra.id] = safra.nome;
+    });
 
-    // Calcular total de dívidas de terras
-    let totalTerras = 0;
-    for (const terra of dividasTerras) {
-      if (terra.valor_total) {
-        totalTerras += terra.valor_total;
+    // Processar dívidas bancárias por safra (incluindo BANCO, TRADING e OUTROS)
+    for (const divida of dividasBancarias) {
+      // Se tem fluxo_pagamento_anual, processar cada safra
+      const valoresField = divida.valores_por_ano || divida.fluxo_pagamento_anual;
+      if (valoresField) {
+        const fluxo = typeof valoresField === 'string' 
+          ? JSON.parse(valoresField) 
+          : valoresField;
+        
+        // Verificar a moeda da dívida
+        const moeda = divida.moeda || 'BRL';
+        const isUSD = moeda === 'USD';
+          
+        for (const safraId in fluxo) {
+          if (valoresPorSafra[safraId]) {
+            let valor = Number(fluxo[safraId]) || 0;
+            
+            // Se for USD, converter para BRL usando a taxa de câmbio
+            if (isUSD && valor > 0) {
+              const anoNome = safraToYear[safraId];
+              const taxaCambio = dolarFechamento[anoNome] || 5.55;
+              valor = valor * taxaCambio;
+            }
+            
+            if (valor > 0) {
+              valoresPorSafra[safraId].bancos += valor;
+            }
+          }
+        }
       }
     }
 
-    // Calcular total de dívidas de fornecedores
-    let totalFornecedores = 0;
+    // Processar dívidas de terras por safra
+    for (const terra of dividasTerras) {
+      // Dívidas de terras usam safra_id diretamente
+      if (terra.safra_id && terra.valor_total && valoresPorSafra[terra.safra_id]) {
+        let valor = terra.valor_total;
+        
+        // Verificar a moeda e converter se necessário
+        if (terra.moeda === 'USD' && valor > 0) {
+          const anoNome = safraToYear[terra.safra_id];
+          const taxaCambio = dolarFechamento[anoNome] || 5.55;
+          valor = valor * taxaCambio;
+        }
+        
+        valoresPorSafra[terra.safra_id].outros += valor;
+      }
+    }
+
+    // Processar dívidas de fornecedores por safra
     for (const fornecedor of dividasFornecedores) {
       if (fornecedor.valores_por_ano) {
         const valoresPorAno = typeof fornecedor.valores_por_ano === 'string'
           ? JSON.parse(fornecedor.valores_por_ano)
           : fornecedor.valores_por_ano;
         
-        // Somar todos os valores
-        Object.values(valoresPorAno).forEach(valor => {
-          totalFornecedores += Number(valor) || 0;
-        });
+        // Verificar a moeda do fornecedor
+        const moeda = fornecedor.moeda || 'BRL';
+        const isUSD = moeda === 'USD';
+        
+        // Adicionar valores por safra
+        for (const safraId in valoresPorAno) {
+          if (valoresPorSafra[safraId]) {
+            let valor = Number(valoresPorAno[safraId]) || 0;
+            
+            // Se for USD, converter para BRL
+            if (isUSD && valor > 0) {
+              const anoNome = safraToYear[safraId];
+              const taxaCambio = dolarFechamento[anoNome] || 5.55;
+              valor = valor * taxaCambio;
+            }
+            
+            valoresPorSafra[safraId].outros += valor;
+          }
+        }
       }
     }
-
-    // "Outros Passivos" é a soma de Terras + Fornecedores
-    const totalOutrosTodos = totalTerras + totalFornecedores;
-
-    // Calcular o total global de passivos
-    const totalPassivosTodos = totalBancosTodos + totalOutrosTodos;
 
     // Vamos agora calcular o total de caixas e disponibilidades por safra
     // Isso é necessário para calcular a dívida líquida específica de cada safra
@@ -189,9 +262,25 @@ export async function getTotalLiabilitiesChartData(
     }
 
     // Calcular os totais de caixa para cada safra específica
-    for (const caixa of caixaDisponibilidades) {
+    // Incluir todas as categorias: CAIXA_BANCOS, ESTOQUE_COMMODITIES, ESTOQUE_DEFENSIVOS, etc.
+    for (const item of caixaDisponibilidades) {
+      // Incluir apenas categorias relevantes de caixa e disponibilidades
+      const categoriasValidas = [
+        'CAIXA_BANCOS',
+        'ESTOQUE_COMMODITIES', 
+        'ESTOQUE_DEFENSIVOS',
+        'ESTOQUE_FERTILIZANTES',
+        'ESTOQUE_ALMOXARIFADO',
+        'ATIVO_BIOLOGICO'
+      ];
+      
+      if (!categoriasValidas.includes(item.categoria)) {
+        continue;
+      }
+      
       // Verificar se é um objeto ou JSON
-      let valoresSafras = caixa.valores_por_safra || caixa.fluxo_pagamento_anual || caixa.valores_por_ano || {};
+      // IMPORTANTE: caixa_disponibilidades usa valores_por_ano, não valores_por_safra
+      let valoresSafras = item.valores_por_ano || item.valores_por_safra || item.fluxo_pagamento_anual || {};
       if (typeof valoresSafras === "string") {
         try {
           valoresSafras = JSON.parse(valoresSafras);
@@ -218,19 +307,35 @@ export async function getTotalLiabilitiesChartData(
       const safra = safras.find((s) => s.id === safraId);
       if (!safra) continue;
 
+      // Obter os valores desta safra específica
+      const valoresSafra = valoresPorSafra[safraId];
+      const totalBancosSafra = valoresSafra.bancos;
+      const totalOutrosSafra = valoresSafra.outros;
+      const totalPassivosSafra = totalBancosSafra + totalOutrosSafra;
+      
       // Obter o total de caixas desta safra específica
       const totalCaixaSafra = caixasPorSafra[safraId] || 0;
 
       // Calcular a dívida líquida específica desta safra:
-      // Dívida Líquida = Dívida Total - Caixas e Disponibilidades desta safra
-      const liquidoSafra = Math.max(0, totalPassivosTodos - totalCaixaSafra);
+      // Dívida Líquida = Dívida Total da Safra - Caixas e Disponibilidades desta safra
+      const liquidoSafra = Math.max(0, totalPassivosSafra - totalCaixaSafra);
+      
+      // Debug temporário
+      if (safra.nome === "2024/25") {
+        console.log("Debug 2024/25:", {
+          totalPassivosSafra,
+          totalCaixaSafra,
+          liquidoSafra,
+          caixaItens: caixaDisponibilidades.filter(c => c.valores_por_ano || c.valores_por_safra).length
+        });
+      }
 
-      // Adicionar ao resultado: bancos/outros/total são globais, líquida é específica da safra
+      // Adicionar ao resultado com valores específicos por safra
       resultado.push({
         safra: safra.nome,
-        bancos_tradings: totalBancosTodos,
-        outros: totalOutrosTodos,
-        total: totalPassivosTodos,
+        bancos_tradings: totalBancosSafra,
+        outros: totalOutrosSafra,
+        total: totalPassivosSafra,
         liquido: liquidoSafra,
       });
     }

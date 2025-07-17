@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getTotalDividasBancariasConsolidado } from "./financial-actions/dividas-bancarias";
 
 export interface DebtPositionData {
   categoria: string;
@@ -298,23 +297,49 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
 
   
 
-  // Consolidar dívidas bancárias - mostrar valor total consolidado em todos os anos
+  // Consolidar dívidas bancárias - mostrar valor por safra com conversão de moeda
   const consolidarBancosCompleto = async (): Promise<Record<string, number>> => {
     const valores: Record<string, number> = {};
     
+    // Inicializar todos os anos com zero
+    anos.forEach(ano => {
+      valores[ano] = 0;
+    });
+    
     try {
-      // Usar função dinâmica do banco para calcular total consolidado
-      const totalConsolidado = await getTotalDividasBancariasConsolidado(organizationId, projectionId);
-      
-      // IGUAL AO FLUXO DE CAIXA: mostrar o valor total consolidado em TODOS os anos
-      anos.forEach(ano => {
-        valores[ano] = (totalConsolidado as any).total_consolidado_brl || 0;
+      // Processar cada dívida bancária
+      dividasBancarias?.forEach(divida => {
+        // Filtrar apenas tipos que não são OUTROS e TRADING (esses são tratados separadamente)
+        if (divida.tipo !== 'OUTROS' && divida.tipo !== 'TRADING') {
+          // Verificar se valores_por_ano ou fluxo_pagamento_anual existe
+          const valoresField = divida.valores_por_ano || divida.fluxo_pagamento_anual;
+          const valoresDivida = typeof valoresField === 'string' 
+            ? JSON.parse(valoresField)
+            : valoresField || {};
+
+          // Verificar a moeda da dívida
+          const moeda = divida.moeda || 'BRL';
+          const isUSD = moeda === 'USD';
+
+          // Para cada safra, somar o valor correspondente
+          Object.keys(valoresDivida).forEach(safraId => {
+            const anoNome = safraToYear[safraId];
+            if (anoNome && valores[anoNome] !== undefined) {
+              let valorSafra = valoresDivida[safraId] || 0;
+              
+              // Se for USD, converter para BRL usando a taxa de câmbio
+              if (isUSD) {
+                const taxaCambio = dolarFechamento[anoNome] || 5.55;
+                valorSafra = valorSafra * taxaCambio;
+              }
+              
+              valores[anoNome] += valorSafra;
+            }
+          });
+        }
       });
-      
     } catch (error) {
-      console.error('❌ Erro ao consolidar bancos com função DB:', error);
-      // Fallback para método anterior em caso de erro
-      return valores;
+      console.error('❌ Erro ao consolidar bancos por safra:', error);
     }
 
     return valores;
@@ -406,28 +431,42 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     return valores;
   };
 
-  // Consolidar fornecedores - mostrar valor total em todos os anos
+  // Consolidar fornecedores - mostrar valor por safra com conversão de moeda
   const consolidarFornecedores = (): Record<string, number> => {
     const valores: Record<string, number> = {};
     
-    // Calcular total de todas as dívidas de fornecedores
-    let totalFornecedores = 0;
+    // Inicializar todos os anos com zero
+    anos.forEach(ano => {
+      valores[ano] = 0;
+    });
+    
+    // Processar cada fornecedor
     fornecedores?.forEach(fornecedor => {
       if (fornecedor.valores_por_ano) {
         const valoresPorAno = typeof fornecedor.valores_por_ano === 'string'
           ? JSON.parse(fornecedor.valores_por_ano)
           : fornecedor.valores_por_ano;
         
-        // Somar todos os valores
-        Object.values(valoresPorAno).forEach(valor => {
-          totalFornecedores += Number(valor) || 0;
+        // Verificar a moeda do fornecedor
+        const moeda = fornecedor.moeda || 'BRL';
+        const isUSD = moeda === 'USD';
+        
+        // Para cada safra, somar o valor correspondente
+        Object.keys(valoresPorAno).forEach(safraId => {
+          const anoNome = safraToYear[safraId];
+          if (anoNome && valores[anoNome] !== undefined) {
+            let valorSafra = valoresPorAno[safraId] || 0;
+            
+            // Se for USD, converter para BRL usando a taxa de câmbio
+            if (isUSD) {
+              const taxaCambio = dolarFechamento[anoNome] || 5.55;
+              valorSafra = valorSafra * taxaCambio;
+            }
+            
+            valores[anoNome] += valorSafra;
+          }
         });
       }
-    });
-    
-    // IGUAL AO FLUXO DE CAIXA: mostrar o valor total em TODOS os anos
-    anos.forEach(ano => {
-      valores[ano] = totalFornecedores;
     });
     
     return valores;
@@ -464,23 +503,42 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     return valores;
   };
 
-  // Consolidar dívidas de imóveis (terras) - mostrar valor total em todos os anos
+  // Consolidar dívidas de imóveis (terras) - mostrar valor por safra
   const consolidarTerras = (): Record<string, number> => {
     const valores: Record<string, number> = {};
     
-    // Calcular total de todas as dívidas de terras
-    let totalTerras = 0;
+    // Inicializar todos os anos com zero
+    anos.forEach(ano => {
+      valores[ano] = 0;
+    });
+    
+    // Processar cada dívida de terra
     dividasTerras?.forEach(terra => {
-      if (terra.valor_total) {
-        totalTerras += terra.valor_total;
+      // Para aquisição de terras, usar safra_id e valor_total
+      if (terra.safra_id && terra.valor_total) {
+        const anoNome = safraToYear[terra.safra_id];
+        if (anoNome && valores[anoNome] !== undefined) {
+          valores[anoNome] += terra.valor_total || 0;
+        }
+      } else {
+        // Fallback: verificar se tem valores_por_ano ou valores_por_safra
+        const valoresField = terra.valores_por_ano || terra.valores_por_safra || terra.fluxo_pagamento_anual;
+        
+        if (valoresField) {
+          const valoresPorAno = typeof valoresField === 'string'
+            ? JSON.parse(valoresField)
+            : valoresField;
+          
+          // Para cada safra, somar o valor correspondente
+          Object.keys(valoresPorAno).forEach(safraId => {
+            const anoNome = safraToYear[safraId];
+            if (anoNome && valores[anoNome] !== undefined) {
+              valores[anoNome] += valoresPorAno[safraId] || 0;
+            }
+          });
+        }
       }
     });
-    
-    // IGUAL AO FLUXO DE CAIXA: mostrar o valor total em TODOS os anos
-    anos.forEach(ano => {
-      valores[ano] = totalTerras;
-    });
-    
     
     return valores;
   };
@@ -722,6 +780,9 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
     }
   };
 
+  // Buscar cotações de dólar ANTES de consolidar dívidas
+  const dolarFechamento = await buscarCotacoesDolar();
+  
   // Calcular valores consolidados
   const bancosConsolidadoCompleto = await consolidarBancosCompleto(); // Consolidado: BANCO + TRADING + OUTROS
   const arrendamento = await consolidarArrendamentos(); // Converter sacas para reais quando necessário
@@ -744,9 +805,6 @@ export async function getDebtPosition(organizationId: string, projectionId?: str
 
   // Receita e EBITDA
   const { receitas, ebitdas } = await buscarReceitaEbitda();
-  
-  // Buscar cotações de dólar
-  const dolarFechamento = await buscarCotacoesDolar();
 
   // Buscar valor real das propriedades para cálculo correto de LTV
   let valorPropriedades = 0;

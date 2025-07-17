@@ -813,9 +813,24 @@ async function calcularDadosFinanceiras(
         dividasBancariasDetalhado[contrato] = {};
       }
       
-      // Mostrar valor consolidado (total) em todos os anos
+      // Mostrar valor por safra (não consolidado)
       anos.forEach(ano => {
-        dividasBancariasDetalhado[contrato][ano] = valorTotal;
+        dividasBancariasDetalhado[contrato][ano] = 0; // Inicializar com zero
+      });
+      
+      // Distribuir valores por safra
+      Object.keys(fluxoOriginal).forEach(safraId => {
+        const ano = safraToYear[safraId];
+        if (ano && dividasBancariasDetalhado[contrato][ano] !== undefined) {
+          let valorSafra = fluxoOriginal[safraId] || 0;
+          
+          // Converter para BRL se necessário
+          if (divida.moeda === 'USD' && valorSafra > 0) {
+            valorSafra = valorSafra * taxaCambio;
+          }
+          
+          dividasBancariasDetalhado[contrato][ano] = valorSafra;
+        }
       });
       
       dividasConsolidadas.push({
@@ -833,75 +848,132 @@ async function calcularDadosFinanceiras(
       });
     });
 
-    // Adicionar dívidas de terras/imóveis
-    (dadosDividasImoveis || []).forEach(divida => {
-      // Debug: log estrutura da dívida
-      if (dadosDividasImoveis && dadosDividasImoveis.length > 0 && dadosDividasImoveis.indexOf(divida) === 0) {
-      }
-      // Converter valores_por_ano para o formato esperado
-      const valoresPorAno = divida.valores_por_ano || {};
-      const fluxoOriginal: Record<string, number> = {};
-      
-      // Mapear valores por ano para formato de fluxo
-      Object.keys(valoresPorAno).forEach(anoId => {
-        const ano = safraToYear[anoId];
-        if (ano && valoresPorAno[anoId]) {
-          fluxoOriginal[anoId] = valoresPorAno[anoId];
+    // Adicionar dívidas de terras/imóveis - USAR MESMA LÓGICA DA POSIÇÃO DA DÍVIDA
+    // Primeiro, calcular totais por ano
+    const dividasTerrasPorAno: Record<string, number> = {};
+    
+    // Inicializar todos os anos com zero
+    anos.forEach(ano => {
+      dividasTerrasPorAno[ano] = 0;
+    });
+    
+    // Processar cada dívida de terra - EXATAMENTE COMO NA POSIÇÃO DA DÍVIDA
+    (dadosDividasImoveis || []).forEach(terra => {
+      // Para aquisição de terras, usar safra_id e valor_total
+      if (terra.safra_id && terra.valor_total) {
+        const anoNome = safraToYear[terra.safra_id];
+        if (anoNome && dividasTerrasPorAno[anoNome] !== undefined) {
+          let valorSafra = terra.valor_total || 0;
+          // Converter para BRL se necessário
+          if (terra.moeda === 'USD' && valorSafra > 0) {
+            valorSafra = valorSafra * taxaCambio;
+          }
+          dividasTerrasPorAno[anoNome] += valorSafra;
         }
-      });
-      
-      // Usar valor_total ou somar valores por ano
-      let valorTotal = divida.valor_total || 0;
-      
-      // Se valor_total for 0, somar valores por ano
-      if (valorTotal === 0) {
-        valorTotal = Object.values(valoresPorAno).reduce((sum, valor) => (sum as number) + (Number(valor) || 0), 0);
+      } else {
+        // Fallback: verificar se tem valores_por_ano ou valores_por_safra
+        const valoresField = terra.valores_por_ano || terra.valores_por_safra || terra.fluxo_pagamento_anual;
+        
+        if (valoresField) {
+          const valoresPorAno = typeof valoresField === 'string'
+            ? JSON.parse(valoresField)
+            : valoresField;
+          
+          // Para cada safra, somar o valor correspondente
+          Object.keys(valoresPorAno).forEach(safraId => {
+            const anoNome = safraToYear[safraId];
+            if (anoNome && dividasTerrasPorAno[anoNome] !== undefined) {
+              let valorSafra = valoresPorAno[safraId] || 0;
+              // Converter para BRL se necessário
+              if (terra.moeda === 'USD' && valorSafra > 0) {
+                valorSafra = valorSafra * taxaCambio;
+              }
+              dividasTerrasPorAno[anoNome] += valorSafra;
+            }
+          });
+        }
       }
+    });
+    
+    // Agora preencher o detalhamento para exibição
+    // Agrupar por propriedade para o detalhamento
+    const terrasAgrupadas: Record<string, typeof dadosDividasImoveis> = {};
+    
+    (dadosDividasImoveis || []).forEach(terra => {
+      const nomeFazenda = terra.nome_fazenda || 
+                         terra.nome || 
+                         terra.descricao || 
+                         terra.credor || 
+                         `Propriedade ${terra.id}`;
       
-      // Converter para BRL se a dívida estiver em USD
-      if (divida.moeda === 'USD' && valorTotal > 0) {
-        valorTotal = valorTotal * taxaCambio;
+      if (!terrasAgrupadas[nomeFazenda]) {
+        terrasAgrupadas[nomeFazenda] = [];
       }
-      
-      // Criar identificador detalhado da dívida de terra
-      // Tentar usar vários campos possíveis para obter o nome
-      const propriedade = divida.nome_fazenda || 
-                         divida.nome || 
-                         divida.descricao || 
-                         divida.credor || 
-                         divida.propriedade_id || 
-                         `Propriedade ${divida.id}`;
-      
-      // Adicionar aos dados detalhados
+      terrasAgrupadas[nomeFazenda].push(terra);
+    });
+    
+    // Preencher o detalhamento
+    Object.entries(terrasAgrupadas).forEach(([propriedade, terras]) => {
       if (!dividasTerrasDetalhado[propriedade]) {
         dividasTerrasDetalhado[propriedade] = {};
       }
       
-      // Mostrar valor consolidado (total) em todos os anos
+      // Inicializar todos os anos com zero
       anos.forEach(ano => {
-        dividasTerrasDetalhado[propriedade][ano] = valorTotal;
+        dividasTerrasDetalhado[propriedade][ano] = 0;
       });
+      
+      // Somar valores de todas as terras desta propriedade
+      terras.forEach(terra => {
+        if (terra.safra_id && terra.valor_total) {
+          const ano = safraToYear[terra.safra_id];
+          if (ano && dividasTerrasDetalhado[propriedade][ano] !== undefined) {
+            let valorSafra = terra.valor_total || 0;
+            if (terra.moeda === 'USD' && valorSafra > 0) {
+              valorSafra = valorSafra * taxaCambio;
+            }
+            dividasTerrasDetalhado[propriedade][ano] += valorSafra;
+          }
+        }
+      });
+    });
+    
+    // Adicionar dívidas de terras ao pool consolidado - uma entrada por terra
+    (dadosDividasImoveis || []).forEach(terra => {
+      // Usar valor_total da terra
+      let valorTotal = terra.valor_total || 0;
+      
+      // Converter para BRL se necessário
+      if (terra.moeda === 'USD' && valorTotal > 0) {
+        valorTotal = valorTotal * taxaCambio;
+      }
+      
+      // Criar fluxo original baseado no safra_id
+      const fluxoOriginal: Record<string, number> = {};
+      if (terra.safra_id) {
+        fluxoOriginal[terra.safra_id] = terra.valor_total || 0;
+      }
       
       // Extrair ano da data de aquisição
       let anoAquisicao = new Date().getFullYear();
-      if (divida.data_aquisicao) {
-        anoAquisicao = new Date(divida.data_aquisicao).getFullYear();
-      } else if (divida.ano) {
-        anoAquisicao = parseInt(divida.ano);
+      if (terra.data_aquisicao) {
+        anoAquisicao = new Date(terra.data_aquisicao).getFullYear();
+      } else if (terra.ano) {
+        anoAquisicao = parseInt(terra.ano);
       }
       
       dividasConsolidadas.push({
-        id: divida.id,
-        instituicao_bancaria: divida.credor || 'IMÓVEL',
+        id: terra.id,
+        instituicao_bancaria: terra.credor || terra.nome_fazenda || 'IMÓVEL',
         valor_original: valorTotal,
         ano_contratacao: anoAquisicao,
         taxa_real: 6.5, // Taxa padrão para dívidas de terras
         indexador: 'IPCA',
-        modalidade: divida.tipo_divida || 'FINANCIAMENTO_AQUISICAO',
+        modalidade: 'FINANCIAMENTO_AQUISICAO',
         saldo_devedor: valorTotal,
         pagamentos_realizados: {},
         fluxo_original: fluxoOriginal,
-        moeda: divida.moeda || 'BRL'
+        moeda: terra.moeda || 'BRL'
       });
     });
     
@@ -939,9 +1011,24 @@ async function calcularDadosFinanceiras(
         dividasFornecedoresDetalhado[nomeFornecedor] = {};
       }
       
-      // Mostrar valor consolidado (total) em todos os anos
+      // Mostrar valor por safra (não consolidado)
       anos.forEach(ano => {
-        dividasFornecedoresDetalhado[nomeFornecedor][ano] = valorTotal;
+        dividasFornecedoresDetalhado[nomeFornecedor][ano] = 0; // Inicializar com zero
+      });
+      
+      // Distribuir valores por safra
+      Object.keys(valoresPorAno).forEach(safraId => {
+        const ano = safraToYear[safraId];
+        if (ano && dividasFornecedoresDetalhado[nomeFornecedor][ano] !== undefined) {
+          let valorSafra = valoresPorAno[safraId] || 0;
+          
+          // Converter para BRL se necessário
+          if (fornecedor.moeda === 'USD' && valorSafra > 0) {
+            valorSafra = valorSafra * taxaCambio;
+          }
+          
+          dividasFornecedoresDetalhado[nomeFornecedor][ano] = valorSafra;
+        }
       });
       
       // Adicionar ao pool de dívidas consolidadas
@@ -1008,8 +1095,7 @@ async function calcularDadosFinanceiras(
         pagamentosBancos[ano] = 0;
         novasLinhasCredito[ano] = 0;
         totalPorAno[ano] = 0;
-        dividaTotalConsolidada[ano] = dividaTotalInicial;
-        saldoDevedor[ano] = saldoDevedorTotal;
+        // Não preencher aqui - será calculado por safra no final
         continue;
       }
       
@@ -1101,10 +1187,7 @@ async function calcularDadosFinanceiras(
       // Registrar valores no formato esperado
       servicoDivida[ano] = plano.total_pago;
       
-      // Registrar dívida total e saldo devedor
-      dividaTotalConsolidada[ano] = dividaTotalInicial; // Sempre mostra o total original
-      saldoDevedorTotal = dividasSimulacao.reduce((sum, d) => sum + d.saldo_devedor, 0);
-      saldoDevedor[ano] = saldoDevedorTotal;
+      // NÃO preencher dívida total e saldo devedor aqui - será calculado por safra no final
       
       
       // Total do ano (entrada - saída)
@@ -1176,11 +1259,26 @@ async function calcularDadosFinanceiras(
     const valorTotalFornecedores = dividasConsolidadas.filter(d => d.modalidade === 'FORNECEDOR')
       .reduce((sum, d) => sum + d.valor_original, 0);
     
-    // Preencher valores separados para todos os anos
+    // Preencher valores separados por safra
     anos.forEach(ano => {
-      dividasBancarias[ano] = valorTotalBancarias;
-      dividasTerras[ano] = valorTotalTerras;
-      dividasFornecedores[ano] = valorTotalFornecedores;
+      // Somar valores de dívidas bancárias para este ano específico
+      dividasBancarias[ano] = Object.entries(dividasBancariasDetalhado).reduce((sum, [contrato, valores]) => {
+        return sum + (valores[ano] || 0);
+      }, 0);
+      
+      // Usar o valor já calculado de dívidas de terras para este ano
+      dividasTerras[ano] = dividasTerrasPorAno[ano] || 0;
+      
+      // Somar valores de dívidas de fornecedores para este ano específico
+      dividasFornecedores[ano] = Object.entries(dividasFornecedoresDetalhado).reduce((sum, [fornecedor, valores]) => {
+        return sum + (valores[ano] || 0);
+      }, 0);
+      
+      // Calcular dívida total consolidada por safra
+      dividaTotalConsolidada[ano] = dividasBancarias[ano] + dividasTerras[ano] + dividasFornecedores[ano];
+      
+      // Calcular saldo devedor por safra (igual à dívida total consolidada por safra)
+      saldoDevedor[ano] = dividaTotalConsolidada[ano];
     });
     
     
