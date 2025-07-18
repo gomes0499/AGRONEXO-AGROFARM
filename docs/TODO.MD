@@ -1,13 +1,33 @@
 [] CRIAR CONTA (LUCIO, DIOGENES, REINALDO)
 
 Para tornar o sistema completamente dinâmico no futuro:
+
 1. Remover o enum commodity_type gradualmente
 2. Permitir que cada organização defina suas próprias culturas sem limitações
+Exportar json de apresentacao de dados completo e fazer apresentacao em python
 
+EXCEL:
 
-
-MODULO VISÃO GERAL >> ABA POSIÇÃO DA DIVIDA AO INVEZ DE CONSOLIDAR POR TODOS AS SAFRAS, CONSOLIDAR POR SAFRA. (EX: Dividas bancos consolidar o valor por 2020/21) E fazer o mesmo para terras, fornecedores. e o calculo do Endividamento Total vai ser por safra. Divida liquida a mesma ideia usando o consolidado por safra.
-
-I have a button to configure the minimum cash flow political, and i want a option to remove or edit the cash flow set, actualy it's possible to configure
-
-
+1-DADOS DA ORGANIZAÇÃO
+2-PREÇOS
+3-AREAS DE PLANTIO
+4-PRODUTIVIDADE
+5-CUSTOS DE PRODUCAO
+6-BENS IMOVEIS
+7-ARRENDAMENTOS (VALORES)
+8-EQUIPAMENTOS
+9-INVESTIMENTOS
+10-VENDAS DE ATIVOS
+11-DIVIDAS BANCARIAS
+12-DIVIDAS TERRAS
+13-DIVIDAS FORNECEDORES
+14-CAIXA E DISPONIBILIDADES
+15-OPERAÇÕES FINANCEIRAS
+16-OUTRAS DESPESAS
+17-OUTRAS RECEITAS
+18-LIMIARES INDICADORES
+19-PROJEÇÕES DE CULTURA
+20-POSIÇÃO DE DIVIDA
+21-FLUXO DE CAIXA
+22-DRE
+23-BALANÇO PATRIMONIAL

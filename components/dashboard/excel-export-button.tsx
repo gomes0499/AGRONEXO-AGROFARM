@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, Loader2, Download, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { exportOrganizationDataToExcel } from "@/lib/actions/excel-export-actions";
+import { exportOrganizationDataToExcel } from "@/lib/actions/excel-export-actions-v3";
 import { sendExcelByEmail } from "@/lib/actions/email-excel-actions";
 import {
   Dialog,
