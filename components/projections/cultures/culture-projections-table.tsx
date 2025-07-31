@@ -45,8 +45,8 @@ interface ConsolidatedCultureProjections {
 
 export function CultureProjectionsTable({ organizationId, initialCultureProjections, safras }: CultureProjectionsTableProps) {
   const { projections, sementes, consolidado, anos } = initialCultureProjections;
-  // Filtrar anos para remover 2030/31 e 2031/32
-  const anosFiltrados = anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
+  // Usar todos os anos disponíveis
+  const anosFiltrados = anos;
   
   // Estado para controlar expansão de custos
   const [expandedCosts, setExpandedCosts] = useState<Record<string, boolean>>({});

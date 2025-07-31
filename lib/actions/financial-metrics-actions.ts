@@ -374,8 +374,8 @@ export const getDREData = async (organizacaoId: string): Promise<DREData> => {
     // Buscar dados de projeções de culturas
     const culturasData = await getCultureProjections(organizacaoId);
 
-    // Filtrar anos para remover 2030/31 e 2031/32
-    const anosFiltrados = anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
+    // Usar todos os anos disponíveis
+    const anosFiltrados = anos;
     
     // Inicializar objeto de retorno
     const dreData: DREData = {

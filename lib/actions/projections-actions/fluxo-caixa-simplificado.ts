@@ -115,8 +115,8 @@ export async function getFluxoCaixaSimplificado(
   const cultureProjections = await getCultureProjections(organizationId, projectionId);
   const anos = cultureProjections.anos;
   
-  // Filtrar anos para remover 2030/31 e 2031/32
-  const anosFiltrados = anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
+  // Usar todos os anos disponíveis
+  const anosFiltrados = anos;
   
   // 2. Inicializar estruturas de dados
   const receitasAgricolas: Record<string, Record<string, number>> = {};

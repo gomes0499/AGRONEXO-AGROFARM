@@ -34,8 +34,8 @@ interface CashFlowSummaryProps {
 export function CashFlowSummary({ data, selectedYear, onYearChange }: CashFlowSummaryProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
-  // Filtrar anos
-  const anosFiltrados = data.anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
+  // Usar todos os anos disponíveis
+  const anosFiltrados = data.anos;
   const currentYear = selectedYear || anosFiltrados[0];
 
   // Calcular métricas para o ano selecionado

@@ -57,11 +57,8 @@ export function FluxoCaixaTable({ data }: FluxoCaixaTableProps) {
     );
   }
   
-  // Filtrar anos para remover 2030/31 e 2031/32
-  const anosFiltrados = data.anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
-  
-  // Criar uma cópia dos dados com os anos filtrados
-  const dataFiltrada = { ...data, anos: anosFiltrados };
+  // Usar os dados diretamente (filtragem já feita no server-side)
+  const dataFiltrada = data;
   
   // Type guard para verificar se é FluxoCaixaCorrigidoData
   const isFluxoCaixaCorrigido = (data: FluxoCaixaUnifiedData): data is FluxoCaixaCorrigidoData => {

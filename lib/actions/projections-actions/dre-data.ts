@@ -18,8 +18,8 @@ export async function getDREData(organizacaoId: string): Promise<DREData> {
     const fluxoCaixaData = await getFluxoCaixaSimplificado(organizacaoId);
     const anos = fluxoCaixaData.anos;
 
-    // Filtrar anos para remover 2030/31 e 2031/32
-    const anosFiltrados = anos.filter(ano => ano !== "2030/31" && ano !== "2031/32");
+    // Usar todos os anos disponíveis
+    const anosFiltrados = anos;
     
     // Inicializar objeto de retorno com valores zerados
     const dreData: DREData = {
