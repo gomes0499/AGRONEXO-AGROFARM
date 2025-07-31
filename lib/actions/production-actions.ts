@@ -188,6 +188,92 @@ export async function updateSafra(id: string, data: {
 export async function deleteSafra(id: string) {
   const supabase = await createClient();
   
+  // Primeiro, deletar registros dependentes que referenciam esta safra
+  const tablesToClean = [
+    'rating_manual_evaluations',
+    'dividas_bancarias',
+    'arrendamentos',
+    'receitas_financeiras',
+    'precos',
+    'commodity_price_projections_projections',
+    'cotacoes_cambio_projections',
+    'aquisicao_terras',
+    'investimentos',
+    'vendas_ativos',
+    'rating_history',
+    'commodity_price_projections',
+    'parametros_sensibilidade',
+    'cotacoes_cambio',
+    'projection_harvest_data',
+    'qualitative_metric_values',
+    'projection_culture_data',
+    'projecoes_posicao_divida',
+    'productivity_scenario_data',
+    'rating_calculations',
+    'precos_projections'
+  ];
+  
+  // Deletar registros dependentes
+  for (const table of tablesToClean) {
+    try {
+      const { error: cleanError } = await supabase
+        .from(table)
+        .delete()
+        .eq(table === 'projection_harvest_data' || table === 'projection_culture_data' ? 'harvest_id' : 'safra_id', id);
+      
+      if (cleanError && cleanError.code !== '42P01') { // Ignora se tabela não existe
+        console.warn(`Erro ao limpar tabela ${table}:`, cleanError);
+      }
+    } catch (err) {
+      console.warn(`Tabela ${table} não existe ou erro:`, err);
+    }
+  }
+  
+  // Deletar registros em tabelas com JSONB que podem conter esta safra como chave
+  const jsonbTables = [
+    { table: 'areas_plantio', column: 'areas_por_safra' },
+    { table: 'produtividades', column: 'produtividades_por_safra' },
+    { table: 'custos_producao', column: 'custos_por_safra' },
+    { table: 'commodity_price_projections', column: 'precos_por_ano' },
+    { table: 'cotacoes_cambio', column: 'cotacoes_por_ano' },
+    { table: 'caixa_disponibilidades', column: 'valores_por_ano' },
+    { table: 'outras_despesas', column: 'valores_por_ano' },
+    { table: 'financeiras', column: 'valores_por_ano' },
+    { table: 'dividas_fornecedores', column: 'valores_por_ano' },
+    { table: 'propriedades', column: 'custos_por_safra' }
+  ];
+  
+  // Atualizar registros JSONB removendo a chave da safra deletada
+  for (const { table, column } of jsonbTables) {
+    try {
+      // Buscar registros que contêm a chave da safra
+      const { data: records } = await supabase
+        .from(table)
+        .select(`id, ${column}`)
+        .not(column, 'is', null);
+      
+      if (records && records.length > 0) {
+        for (const record of records) {
+          const jsonData = (record as any)[column] as Record<string, any>;
+          if (jsonData && typeof jsonData === 'object' && jsonData[id]) {
+            // Criar nova versão sem a chave da safra
+            const updatedJson = { ...jsonData };
+            delete updatedJson[id];
+            
+            // Atualizar o registro
+            await supabase
+              .from(table)
+              .update({ [column]: updatedJson })
+              .eq('id', (record as any).id);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`Erro ao atualizar JSONB na tabela ${table}:`, err);
+    }
+  }
+  
+  // Finalmente, deletar a safra
   const { error } = await supabase
     .from("safras")
     .delete()

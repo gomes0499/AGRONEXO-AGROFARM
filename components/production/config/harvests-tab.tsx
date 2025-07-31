@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Harvest, HarvestFormValues, harvestFormSchema } from "@/schemas/production";
-import { createHarvest, updateHarvest, deleteHarvest } from "@/lib/actions/production-actions";
+import { createHarvest, updateHarvest, deleteSafra } from "@/lib/actions/production-actions";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -60,6 +60,7 @@ interface HarvestsTabProps {
 export const HarvestsTab = forwardRef<any, HarvestsTabProps>(function HarvestsTab({ initialHarvests, organizationId }, ref) {
   const [harvests, setHarvests] = useState<Harvest[]>(initialHarvests);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingHarvest, setEditingHarvest] = useState<Harvest | null>(null);
   
@@ -128,12 +129,15 @@ export const HarvestsTab = forwardRef<any, HarvestsTabProps>(function HarvestsTa
   // Função para excluir
   const handleDelete = async (id: string) => {
     try {
-      await deleteHarvest(id);
+      setIsDeleting(id);
+      await deleteSafra(id);
       setHarvests(harvests.filter(h => h.id !== id));
       toast.success("Safra excluída com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir safra:", error);
       toast.error("Ocorreu um erro ao excluir a safra.");
+    } finally {
+      setIsDeleting(null);
     }
   };
   
@@ -202,8 +206,12 @@ export const HarvestsTab = forwardRef<any, HarvestsTabProps>(function HarvestsTa
                               <AlertDialogAction
                                 className="bg-destructive text-white hover:bg-destructive/90"
                                 onClick={() => handleDelete(harvest.id!)}
+                                disabled={isDeleting === harvest.id}
                               >
-                                Excluir
+                                {isDeleting === harvest.id && (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                )}
+                                {isDeleting === harvest.id ? "Excluindo..." : "Excluir"}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
