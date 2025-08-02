@@ -521,13 +521,17 @@ export async function calculateRating(
           .eq("organizacao_id", actualOrgId)
           .eq("metric_code", metric.codigo)
           .eq("safra_id", safraId)
-          .single();
+          .order("created_at", { ascending: false })
+          .limit(1);
         
-        if (manualEvaluations) {
-          metricValue = manualEvaluations.score;
+        if (manualEvaluations && manualEvaluations.length > 0) {
+          metricValue = manualEvaluations[0].score;
           // Convert score (1-5) to percentage (20-100)
-          metricScore = manualEvaluations.score * 20;
+          metricScore = manualEvaluations[0].score * 20;
         } else {
+          // Se não há avaliação, usar valor padrão 3 (neutro)
+          metricValue = 3;
+          metricScore = 60; // 3 * 20
         }
       }
       
