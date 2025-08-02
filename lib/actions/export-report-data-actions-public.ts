@@ -29,6 +29,7 @@ export interface ReportDataJSON {
     telefone?: string;
     endereco?: any;
     socios?: any[];
+    estrutura_societaria?: any[]; // Duplicado para compatibilidade
     generatedAt: string;
   };
   financialKpis?: {
@@ -1526,6 +1527,9 @@ export async function exportReportDataAsJSONPublic(
       });
     });
 
+    // Debug - verificar estrutura societária
+    console.log('DEBUG: estrutura_societaria da organização:', organization.estrutura_societaria);
+    
     // Estrutura completa de dados
     const reportData: ReportDataJSON = {
       organization: {
@@ -1537,6 +1541,7 @@ export async function exportReportDataAsJSONPublic(
         telefone: organization.telefone || '',
         endereco: organization.endereco || {},
         socios: organization.estrutura_societaria || [],
+        estrutura_societaria: organization.estrutura_societaria || [], // Duplicar para compatibilidade
         generatedAt: new Date().toISOString()
       },
       properties: {
