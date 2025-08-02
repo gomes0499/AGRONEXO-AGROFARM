@@ -29,7 +29,7 @@ import {
   ReportData
 } from "@/lib/services/definitive-pdf-report-service";
 import { HtmlPdfReportService } from "@/lib/services/html-pdf-report";
-import { PythonPDFReportService } from "@/lib/services/python-pdf-report-service";
+import { PythonPDFReportServiceRemote } from "@/lib/services/python-pdf-report-service-remote";
 import { createClient } from "@/lib/supabase/server";
 
 export async function generateDefinitiveReport(organizationId: string, projectionId?: string) {
@@ -1351,8 +1351,8 @@ export async function generatePythonReport(organizationId: string, projectionId?
       throw new Error("Organização não encontrada");
     }
 
-    // Gerar o PDF usando o serviço Python
-    const pythonService = new PythonPDFReportService();
+    // Gerar o PDF usando o serviço Python remoto
+    const pythonService = new PythonPDFReportServiceRemote();
     const pdfBuffer = await pythonService.generateReport(organizationId, projectionId);
     
     // Converter buffer para base64

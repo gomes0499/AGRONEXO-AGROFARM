@@ -44,3 +44,20 @@ next-env.d.ts
 
 # temporary files
 /tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+scripts/venv/
+.venv/
+*.egg-info/
+dist/
+build/
