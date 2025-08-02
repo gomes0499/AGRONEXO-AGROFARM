@@ -403,6 +403,8 @@ export async function exportReportDataAsJSONPublic(
     if (error || !organization) {
       throw new Error("Organização não encontrada");
     }
+    
+    // Os sócios estão no campo estrutura_societaria da organização (JSONB)
 
     // Buscar dados das propriedades
     const { data: properties } = await supabase
@@ -1534,7 +1536,7 @@ export async function exportReportDataAsJSONPublic(
         email: organization.email || '',
         telefone: organization.telefone || '',
         endereco: organization.endereco || {},
-        socios: organization.socios || [],
+        socios: organization.estrutura_societaria || [],
         generatedAt: new Date().toISOString()
       },
       properties: {

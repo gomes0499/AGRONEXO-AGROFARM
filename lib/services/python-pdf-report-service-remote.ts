@@ -7,10 +7,20 @@ export class PythonPDFReportServiceRemote {
 
   constructor() {
     this.apiUrl = process.env.PYTHON_SERVICE_URL || 'http://localhost:5000';
+    console.log('Python PDF Service URL:', this.apiUrl);
   }
 
   async generateReport(organizationId: string, projectionId?: string): Promise<Buffer> {
     try {
+      // Verificar se o serviço está disponível
+      const isHealthy = await this.healthCheck();
+      if (!isHealthy) {
+        throw new Error('Serviço Python não está disponível. Verifique se está rodando corretamente.');
+      }
+      
+      console.log(`Chamando serviço Python em: ${this.apiUrl}/generate-complete-report`);
+      console.log('Payload:', { organizationId, projectionId, apiBaseUrl: process.env.NEXT_PUBLIC_APP_URL });
+      
       const response = await fetch(`${this.apiUrl}/generate-complete-report`, {
         method: 'POST',
         headers: {
@@ -24,8 +34,22 @@ export class PythonPDFReportServiceRemote {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `HTTP error! status: ${response.status}`);
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const error = await response.json();
+            errorMessage = error.error || errorMessage;
+          } else {
+            // Se não for JSON, tentar ler como texto
+            const text = await response.text();
+            console.error('Resposta não-JSON do servidor:', text.substring(0, 500));
+            errorMessage = `Servidor retornou HTML/texto em vez de PDF. Status: ${response.status}`;
+          }
+        } catch (e) {
+          console.error('Erro ao processar resposta de erro:', e);
+        }
+        throw new Error(errorMessage);
       }
 
       const arrayBuffer = await response.arrayBuffer();
