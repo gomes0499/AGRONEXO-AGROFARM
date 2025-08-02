@@ -18,6 +18,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatCurrency } from "@/lib/utils/property-formatters";
+import { cleanPropertyName } from "@/lib/utils/property-name-cleaner";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useDashboardFilterContext } from "@/components/dashboard/dashboard-filter-provider";
@@ -25,6 +26,7 @@ import { useDashboardFilterContext } from "@/components/dashboard/dashboard-filt
 interface PropertyValueChartClientProps {
   organizationId: string;
 }
+
 
 interface PropertyData {
   id: string;
@@ -163,12 +165,15 @@ export function PropertyValueChartClient({
 
   // Dados já estão ordenados do menor para o maior pela query
   const chartData = properties
-    .map((property) => ({
-      nome: "", // Removendo os nomes para não aparecerem na label do eixo X
-      nomeCompleto: property.nome,
-      valor: property.valor_atual,
-      valorFormatado: formatCurrency(property.valor_atual),
-    }));
+    .map((property) => {
+      const cleanName = cleanPropertyName(property.nome);
+      return {
+        nome: "", // Removendo os nomes para não aparecerem na label do eixo X
+        nomeCompleto: cleanName,
+        valor: property.valor_atual,
+        valorFormatado: formatCurrency(property.valor_atual),
+      };
+    });
 
   // Calcular total
   const totalValue = properties.reduce((acc, p) => acc + p.valor_atual, 0);

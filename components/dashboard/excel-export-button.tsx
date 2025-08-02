@@ -193,21 +193,26 @@ export function ExcelExportButton({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <h4 className="text-sm font-medium">Dados incluídos (27 abas):</h4>
+            <h4 className="text-sm font-medium">Dados incluídos (19 abas):</h4>
             <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-              <li>• Resumo Executivo com KPIs</li>
-              <li>• Propriedades e Arrendamentos</li>
-              <li>• Áreas de Plantio com Totais</li>
-              <li>• Produtividade e Custos</li>
+              <li>• Avisos e Informações Legais</li>
+              <li>• Dados da Organização</li>
               <li>• Preços e Cotações</li>
-              <li>• Máquinas e Equipamentos</li>
-              <li>• Benfeitorias e Investimentos</li>
-              <li>• Rebanhos e Associações</li>
-              <li>• Dívidas Detalhadas</li>
+              <li>• Áreas de Plantio</li>
+              <li>• Produtividade</li>
+              <li>• Custos de Produção</li>
+              <li>• Bens Imóveis</li>
+              <li>• Arrendamentos</li>
+              <li>• Equipamentos</li>
+              <li>• Investimentos</li>
+              <li>• Vendas de Ativos</li>
+              <li>• Dívidas Bancárias</li>
+              <li>• Dívidas de Terras</li>
+              <li>• Dívidas de Fornecedores</li>
               <li>• Caixa e Disponibilidades</li>
-              <li>• Fluxo de Caixa e DRE</li>
-              <li>• Balanço Patrimonial</li>
-              <li>• Indicadores e Análise de Sensibilidade</li>
+              <li>• Operações Financeiras</li>
+              <li>• Outras Despesas</li>
+              <li>• Outras Receitas</li>
             </ul>
           </div>
 

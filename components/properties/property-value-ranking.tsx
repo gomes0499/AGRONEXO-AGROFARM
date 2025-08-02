@@ -1,11 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/property-formatters";
+import { cleanPropertyName } from "@/lib/utils/property-name-cleaner";
 import { TrendingUp } from "lucide-react";
 
 interface PropertyValueRankingProps {
   organizationId: string;
 }
+
 
 async function getPropertyRanking(organizationId: string) {
   const supabase = await createClient();
@@ -86,7 +88,7 @@ async function PropertyValueRankingContent({
               <div key={property.id} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium truncate flex-1 mr-2">
-                    {property.nome.toUpperCase()}
+                    {cleanPropertyName(property.nome).toUpperCase()}
                   </span>
                   <span className="font-semibold">
                     {formatCurrency(property.valor_atual)}

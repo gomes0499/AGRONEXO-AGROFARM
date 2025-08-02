@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Download, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { generateDefinitiveReport } from "@/lib/actions/definitive-report-actions";
+import { generateDefinitiveReport, generatePythonReport } from "@/lib/actions/definitive-report-actions";
 import { sendDefinitiveReportByEmail } from "@/lib/actions/email-definitive-report-actions";
 import { getProjections, type Projection } from "@/lib/actions/projections-actions";
 import {
@@ -151,7 +151,8 @@ export function PDFReportButton({
           setProgress((prev) => Math.min(prev + 10, 80));
         }, 500);
 
-        const result = await generateDefinitiveReport(organizationId, selectedProjection !== 'base' ? selectedProjection : undefined);
+        // Usar o gerador Python ao invés do TypeScript
+        const result = await generatePythonReport(organizationId, selectedProjection !== 'base' ? selectedProjection : undefined);
         
         clearInterval(progressInterval);
         setProgress(90);

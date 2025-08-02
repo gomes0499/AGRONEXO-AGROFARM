@@ -338,7 +338,7 @@ export class DefinitivePDFReportService {
     const avisos = [
       {
         numero: "1",
-        texto: "A SR Consultoria informa que as informações recebidas do Grupo Safra, incluindo plano estratégico, objetivos empresariais, estratégias comerciais e técnicas de produção foram e permanecerão sendo tratados como Informações Confidenciais."
+        texto: `A SR Consultoria informa que as informações recebidas do ${data.organizationName}, incluindo plano estratégico, objetivos empresariais, estratégias comerciais e técnicas de produção foram e permanecerão sendo tratados como Informações Confidenciais.`
       },
       {
         numero: "2",

@@ -19,8 +19,20 @@ export async function generateCompleteExcelExport(organizationId: string, supaba
   try {
     const supabase = supabaseClient || await createClient();
     
+    // Buscar dados da organização para usar o nome
+    const { data: orgData } = await supabase
+      .from('organizacoes')
+      .select('nome')
+      .eq('id', organizationId)
+      .single();
+    
+    const organizationName = orgData?.nome || 'Organização';
+    
     // Criar workbook
     const wb = XLSX.utils.book_new();
+    
+    // Aba 0: Avisos (nova aba)
+    await addWarningsSheet(wb, organizationName);
     
     // Aba 1: Dados da Organização
     await addOrganizationDataSheet(wb, supabase, organizationId);
@@ -1861,4 +1873,59 @@ function formatCategoriaFornecedor(categoria: string): string {
   };
   
   return categorias[categoria] || categoria;
+}
+
+async function addWarningsSheet(wb: XLSX.WorkBook, organizationName: string) {
+  try {
+    // Dados da aba de avisos
+    const warningsData = [
+      [`RELATÓRIO DE APRESENTAÇÃO`],
+      [`ORGANIZAÇÃO ${organizationName.toUpperCase()}`],
+      [],
+      [],
+      [],
+      [`AVISOS`],
+      [],
+      [`1- A SR Consultoria informa que as informações recebidas do ${organizationName}, incluindo plano estratégico, objetivos empresariais, estratégias comerciais e técnicas de produção foram e permanecerão sendo tratados como Informações Confidenciais.`],
+      [],
+      [`2- A SR Consultoria ressalta que parte das informações, projeções e cenários futuros constantes neste trabalho são fundamentadas e condicionadas a eventos futuros e incertos, entendendo a SR Consultoria e o cliente serem as melhores premissas as serem adotadas para o momento.`],
+      [],
+      [`3- Este material foi confeccionado com base em informações e dados fornecidos pelo cliente e portanto é deste a inteira responsabilidade pela veracidade das informações.`],
+      [],
+      [`4- A SR Consultoria afirma que os cenários e pareceres apresentados neste trabalho não são de caráter definitivos, devendo portanto, serem revisados periodicamente.`]
+    ];
+    
+    // Criar worksheet
+    const ws = XLSX.utils.aoa_to_sheet(warningsData);
+    
+    // Configurar larguras das colunas
+    ws['!cols'] = [
+      { wch: 120 } // Uma coluna larga para o texto
+    ];
+    
+    // Configurar altura das linhas
+    ws['!rows'] = [
+      { hpt: 25 }, // Título principal
+      { hpt: 20 }, // Nome da organização
+      { hpt: 15 }, // Espaço
+      { hpt: 15 }, // Espaço
+      { hpt: 15 }, // Espaço
+      { hpt: 20 }, // AVISOS
+      { hpt: 15 }, // Espaço
+      { hpt: 60 }, // Aviso 1 (texto longo)
+      { hpt: 15 }, // Espaço
+      { hpt: 60 }, // Aviso 2 (texto longo)
+      { hpt: 15 }, // Espaço
+      { hpt: 40 }, // Aviso 3
+      { hpt: 15 }, // Espaço
+      { hpt: 40 }  // Aviso 4
+    ];
+    
+    // Adicionar worksheet ao workbook como primeira aba
+    XLSX.utils.book_append_sheet(wb, ws, '0-Avisos');
+    
+  } catch (error) {
+    console.error('Erro ao adicionar aba de avisos:', error);
+    throw error;
+  }
 }

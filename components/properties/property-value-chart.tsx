@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { createClient } from "@/lib/supabase/server"
 import { formatCurrency } from "@/lib/utils/property-formatters"
+import { cleanPropertyName } from "@/lib/utils/property-name-cleaner"
 
 interface PropertyValueChartProps {
   organizationId: string;
@@ -59,14 +60,17 @@ async function PropertyValueChartContent({ organizationId }: PropertyValueChartP
     const displayProperties = properties.slice(0, maxProperties);
     
     // Preparar dados para o gráfico
-    const chartData = displayProperties.map(property => ({
-      nome: property.nome.length > 10 
-        ? property.nome.substring(0, 10) + "..." 
-        : property.nome,
-      nomeCompleto: property.nome,
-      valor: property.valor_atual,
-      valorFormatado: formatCurrency(property.valor_atual)
-    }));
+    const chartData = displayProperties.map(property => {
+      const cleanName = cleanPropertyName(property.nome);
+      return {
+        nome: cleanName.length > 10 
+          ? cleanName.substring(0, 10) + "..." 
+          : cleanName,
+        nomeCompleto: cleanName,
+        valor: property.valor_atual,
+        valorFormatado: formatCurrency(property.valor_atual)
+      };
+    });
 
     // Calcular total
     const totalValue = properties.reduce((acc, p) => acc + p.valor_atual, 0);

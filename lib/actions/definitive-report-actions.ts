@@ -29,6 +29,7 @@ import {
   ReportData
 } from "@/lib/services/definitive-pdf-report-service";
 import { HtmlPdfReportService } from "@/lib/services/html-pdf-report";
+import { PythonPDFReportService } from "@/lib/services/python-pdf-report-service";
 import { createClient } from "@/lib/supabase/server";
 
 export async function generateDefinitiveReport(organizationId: string, projectionId?: string) {
@@ -1323,6 +1324,47 @@ export async function generateHtmlPdfReport(organizationId: string, projectionId
     };
   } catch (error) {
     console.error("Erro ao gerar relatório HTML/PDF:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erro desconhecido"
+    };
+  }
+}
+
+/**
+ * Gera relatório completo usando o script Python
+ */
+export async function generatePythonReport(organizationId: string, projectionId?: string) {
+  try {
+    // Verificar permissão do usuário
+    await verifyUserPermission();
+    
+    // Buscar dados da organização para obter o nome
+    const supabase = await createClient();
+    const { data: organization, error } = await supabase
+      .from("organizacoes")
+      .select("nome")
+      .eq("id", organizationId)
+      .single();
+
+    if (error || !organization) {
+      throw new Error("Organização não encontrada");
+    }
+
+    // Gerar o PDF usando o serviço Python
+    const pythonService = new PythonPDFReportService();
+    const pdfBuffer = await pythonService.generateReport(organizationId, projectionId);
+    
+    // Converter buffer para base64
+    const base64 = pdfBuffer.toString('base64');
+    
+    return {
+      success: true,
+      data: base64,
+      filename: `Relatorio_Completo_${organization.nome.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`
+    };
+  } catch (error) {
+    console.error("Erro ao gerar relatório Python:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erro desconhecido"

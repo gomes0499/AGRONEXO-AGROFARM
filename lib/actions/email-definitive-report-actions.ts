@@ -2,7 +2,7 @@
 
 import { Resend } from "resend";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
-import { generateDefinitiveReport } from "./definitive-report-actions";
+import { generateDefinitiveReport, generatePythonReport } from "./definitive-report-actions";
 import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -19,8 +19,8 @@ export async function sendDefinitiveReportByEmail(
     // Verificar permissão do usuário
     await verifyUserPermission();
     
-    // Gerar o relatório definitivo
-    const reportResult = await generateDefinitiveReport(organizationId, projectionId);
+    // Gerar o relatório definitivo usando o Python
+    const reportResult = await generatePythonReport(organizationId, projectionId);
     
     if (!reportResult.success || !reportResult.data) {
       throw new Error(reportResult.error || "Erro ao gerar relatório");
