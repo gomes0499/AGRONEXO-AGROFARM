@@ -1666,10 +1666,10 @@ export async function exportReportDataAsJSONPublic(
         indicadores: {
           endividamento_total: debtPositionData?.indicadores?.endividamento_total || {},
           divida_liquida: debtPositionData?.indicadores?.divida_liquida || {},
-          dividas_cp: debtPositionData?.indicadores?.dividas_cp || {},
-          dividas_lp: debtPositionData?.indicadores?.dividas_lp || {},
-          servico_divida: debtPositionData?.indicadores?.servico_divida || {},
-          cobertura_juros: debtPositionData?.indicadores?.cobertura_juros || {},
+          dividas_cp: {},
+          dividas_lp: {},
+          servico_divida: {},
+          cobertura_juros: {},
           receita_ano_safra: debtPositionData?.indicadores?.receita_ano_safra || {},
           ebitda_ano_safra: debtPositionData?.indicadores?.ebitda_ano_safra || {},
           indicadores_calculados: debtPositionData?.indicadores?.indicadores_calculados || {
