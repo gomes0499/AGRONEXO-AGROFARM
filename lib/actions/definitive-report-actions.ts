@@ -376,8 +376,122 @@ export async function generateDefinitiveReport(organizationId: string, projectio
       });
     }
     
-    // Usar dados reais para distribuição por banco - se não houver dados reais, deixar vazio
-    // Não incluir valores hardcoded para evitar inconsistências
+    // Buscar distribuição de dívidas por tipo (Custeio vs Investimento)
+    const { getDebtTypeDistributionData } = await import("@/lib/actions/debt-type-distribution-actions");
+    
+    // Distribuição consolidada (todas as safras)
+    if (dividasBancariasData && Array.isArray(dividasBancariasData) && dividasBancariasData.length > 0) {
+      const totalPorTipo: Record<string, number> = {
+        CUSTEIO: 0,
+        INVESTIMENTOS: 0
+      };
+      
+      // Processar todas as dívidas para consolidado
+      dividasBancariasData.forEach((divida: any) => {
+        const modalidade = divida.modalidade || "OUTROS";
+        let valores = divida.fluxo_pagamento_anual || divida.valores_por_ano;
+        
+        if (typeof valores === "string") {
+          try {
+            valores = JSON.parse(valores);
+          } catch (e) {
+            valores = {};
+          }
+        }
+        
+        // Somar todos os valores de todas as safras
+        let totalDivida = 0;
+        if (valores && typeof valores === "object") {
+          Object.values(valores).forEach((valor: any) => {
+            totalDivida += Number(valor) || 0;
+          });
+        }
+        
+        // Se não tem fluxo, usar valor total
+        if (totalDivida === 0 && divida.valor_total) {
+          totalDivida = divida.valor_total;
+        }
+        
+        // Acumular por tipo
+        if (modalidade === "CUSTEIO") {
+          totalPorTipo.CUSTEIO += totalDivida;
+        } else {
+          // Tudo que não é custeio vai para investimentos
+          totalPorTipo.INVESTIMENTOS += totalDivida;
+        }
+      });
+      
+      const totalGeral = totalPorTipo.CUSTEIO + totalPorTipo.INVESTIMENTOS;
+      
+      if (totalGeral > 0) {
+        debtDistributionConsolidated.push(
+          {
+            tipo: "Custeio",
+            valor: totalPorTipo.CUSTEIO,
+            percentual: (totalPorTipo.CUSTEIO / totalGeral) * 100
+          },
+          {
+            tipo: "Investimentos",
+            valor: totalPorTipo.INVESTIMENTOS,
+            percentual: (totalPorTipo.INVESTIMENTOS / totalGeral) * 100
+          }
+        );
+      }
+      
+      // Distribuição para 2025/26
+      const safra2025 = safras?.find(s => s.nome === "2025/26");
+      if (safra2025) {
+        const totalPorTipo2025: Record<string, number> = {
+          CUSTEIO: 0,
+          INVESTIMENTOS: 0
+        };
+        
+        dividasBancariasData.forEach((divida: any) => {
+          const modalidade = divida.modalidade || "OUTROS";
+          let valores = divida.fluxo_pagamento_anual || divida.valores_por_ano;
+          
+          if (typeof valores === "string") {
+            try {
+              valores = JSON.parse(valores);
+            } catch (e) {
+              valores = {};
+            }
+          }
+          
+          // Buscar valor para safra 2025/26
+          let valor2025 = 0;
+          if (valores && typeof valores === "object") {
+            valor2025 = valores[safra2025.id] || 0;
+          }
+          
+          // Acumular por tipo
+          if (valor2025 > 0) {
+            if (modalidade === "CUSTEIO") {
+              totalPorTipo2025.CUSTEIO += valor2025;
+            } else {
+              totalPorTipo2025.INVESTIMENTOS += valor2025;
+            }
+          }
+        });
+        
+        const totalGeral2025 = totalPorTipo2025.CUSTEIO + totalPorTipo2025.INVESTIMENTOS;
+        
+        if (totalGeral2025 > 0) {
+          debtDistribution2025.push(
+            {
+              tipo: "Custeio",
+              valor: totalPorTipo2025.CUSTEIO,
+              percentual: (totalPorTipo2025.CUSTEIO / totalGeral2025) * 100
+            },
+            {
+              tipo: "Investimentos",
+              valor: totalPorTipo2025.INVESTIMENTOS,
+              percentual: (totalPorTipo2025.INVESTIMENTOS / totalGeral2025) * 100
+            }
+          );
+        }
+      }
+    }
     
     const liabilitiesData: LiabilitiesData = {
       debtBySafra,
