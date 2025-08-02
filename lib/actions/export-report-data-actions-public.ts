@@ -23,6 +23,12 @@ export interface ReportDataJSON {
   organization: {
     id: string;
     nome: string;
+    cpf?: string;
+    cnpj?: string;
+    email?: string;
+    telefone?: string;
+    endereco?: any;
+    socios?: any[];
     generatedAt: string;
   };
   financialKpis?: {
@@ -363,10 +369,19 @@ export interface ReportDataJSON {
     }>;
     indicadores: {
       endividamento_total: Record<string, number>;
+      divida_liquida: Record<string, number>;
       dividas_cp: Record<string, number>;
       dividas_lp: Record<string, number>;
       servico_divida: Record<string, number>;
       cobertura_juros: Record<string, number>;
+      receita_ano_safra: Record<string, number>;
+      ebitda_ano_safra: Record<string, number>;
+      indicadores_calculados: {
+        divida_receita: Record<string, number>;
+        divida_ebitda: Record<string, number>;
+        divida_liquida_receita: Record<string, number>;
+        divida_liquida_ebitda: Record<string, number>;
+      };
     };
   };
 }
@@ -1514,6 +1529,12 @@ export async function exportReportDataAsJSONPublic(
       organization: {
         id: organization.id,
         nome: organization.nome,
+        cpf: organization.cpf || '',
+        cnpj: organization.cnpj || '',
+        email: organization.email || '',
+        telefone: organization.telefone || '',
+        endereco: organization.endereco || {},
+        socios: organization.socios || [],
         generatedAt: new Date().toISOString()
       },
       properties: {
@@ -1644,10 +1665,19 @@ export async function exportReportDataAsJSONPublic(
         })) || [],
         indicadores: {
           endividamento_total: debtPositionData?.indicadores?.endividamento_total || {},
-          dividas_cp: {},
-          dividas_lp: {},
-          servico_divida: {},
-          cobertura_juros: {}
+          divida_liquida: debtPositionData?.indicadores?.divida_liquida || {},
+          dividas_cp: debtPositionData?.indicadores?.dividas_cp || {},
+          dividas_lp: debtPositionData?.indicadores?.dividas_lp || {},
+          servico_divida: debtPositionData?.indicadores?.servico_divida || {},
+          cobertura_juros: debtPositionData?.indicadores?.cobertura_juros || {},
+          receita_ano_safra: debtPositionData?.indicadores?.receita_ano_safra || {},
+          ebitda_ano_safra: debtPositionData?.indicadores?.ebitda_ano_safra || {},
+          indicadores_calculados: debtPositionData?.indicadores?.indicadores_calculados || {
+            divida_receita: {},
+            divida_ebitda: {},
+            divida_liquida_receita: {},
+            divida_liquida_ebitda: {}
+          }
         }
       }
     };
