@@ -308,7 +308,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Usar o serviço Python de web scraping no Render
-    const pythonServiceUrl = process.env.PDF_SERVICE_URL || 'https://sr-consultoria-pdf-service.onrender.com';
+    const pythonServiceUrl = process.env.PDF_SERVICE_URL || 'https://generate-pdf-40yr.onrender.com';
     
     console.log('Fetching market data from Python scraper service');
     
