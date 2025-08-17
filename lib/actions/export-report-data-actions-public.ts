@@ -1713,8 +1713,40 @@ export async function exportReportDataAsJSONPublic(
             data_vencimento: '', // Não existe na tabela
             taxa_juros: d.taxa_real || 0,
             taxa_real: d.taxa_real || 0,
-            fluxo_pagamento_anual: d.fluxo_pagamento_anual || {},
-            valores_por_ano: d.fluxo_pagamento_anual || d.valores_por_ano || {}
+            fluxo_pagamento_anual: (() => {
+              const fluxoOriginal = d.fluxo_pagamento_anual || {};
+              const fluxoConvertido: Record<string, number> = {};
+              
+              // Converter IDs de safra para nomes
+              Object.entries(fluxoOriginal).forEach(([safraId, valor]) => {
+                const safra = safras?.find(s => s.id === safraId);
+                if (safra) {
+                  fluxoConvertido[safra.nome] = Number(valor) || 0;
+                } else {
+                  // Se não encontrar a safra, pode ser que já seja um nome
+                  fluxoConvertido[safraId] = Number(valor) || 0;
+                }
+              });
+              
+              return fluxoConvertido;
+            })(),
+            valores_por_ano: (() => {
+              const fluxoOriginal = d.fluxo_pagamento_anual || d.valores_por_ano || {};
+              const fluxoConvertido: Record<string, number> = {};
+              
+              // Converter IDs de safra para nomes
+              Object.entries(fluxoOriginal).forEach(([safraId, valor]) => {
+                const safra = safras?.find(s => s.id === safraId);
+                if (safra) {
+                  fluxoConvertido[safra.nome] = Number(valor) || 0;
+                } else {
+                  // Se não encontrar a safra, pode ser que já seja um nome
+                  fluxoConvertido[safraId] = Number(valor) || 0;
+                }
+              });
+              
+              return fluxoConvertido;
+            })()
           };
         }) || []
       },
@@ -2080,7 +2112,23 @@ export async function exportReportDataAsJSONPublic(
         taxa_real: divida.taxa_real,
         valor_principal: divida.valor_principal,
         saldo_devedor: divida.saldo_devedor,
-        fluxo_pagamento_anual: divida.fluxo_pagamento_anual || {}
+        fluxo_pagamento_anual: (() => {
+          const fluxoOriginal = divida.fluxo_pagamento_anual || {};
+          const fluxoConvertido: Record<string, number> = {};
+          
+          // Converter IDs de safra para nomes
+          Object.entries(fluxoOriginal).forEach(([safraId, valor]) => {
+            const safra = safras?.find(s => s.id === safraId);
+            if (safra) {
+              fluxoConvertido[safra.nome] = Number(valor) || 0;
+            } else {
+              // Se não encontrar a safra, pode ser que já seja um nome
+              fluxoConvertido[safraId] = Number(valor) || 0;
+            }
+          });
+          
+          return fluxoConvertido;
+        })()
       })) || [];
 
       // Adicionar safras para o PDF (necessário para buscar por ID)
