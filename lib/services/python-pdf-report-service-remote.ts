@@ -19,9 +19,8 @@ export class PythonPDFReportServiceRemote {
       }
       
       // Determinar a URL base da API
-      const apiBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                        'https://srconsultoria.vercel.app';
+      // Usar o domínio de produção
+      const apiBaseUrl = 'https://www.srconsultoria.online';
       
       console.log(`Chamando serviço Python em: ${this.apiUrl}/generate-complete-report`);
       console.log('Payload:', { organizationId, projectionId, apiBaseUrl });
@@ -68,9 +67,8 @@ export class PythonPDFReportServiceRemote {
   async generateRatingReport(organizationId: string, safraId: string): Promise<Buffer> {
     try {
       // Determinar a URL base da API
-      const apiBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                        'https://srconsultoria.vercel.app';
+      // Usar o domínio de produção
+      const apiBaseUrl = 'https://www.srconsultoria.online';
       
       const response = await fetch(`${this.apiUrl}/generate-rating-report`, {
         method: 'POST',
