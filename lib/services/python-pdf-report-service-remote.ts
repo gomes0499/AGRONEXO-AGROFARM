@@ -18,8 +18,13 @@ export class PythonPDFReportServiceRemote {
         throw new Error('Serviço Python não está disponível. Verifique se está rodando corretamente.');
       }
       
+      // Determinar a URL base da API
+      const apiBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                        'https://srconsultoria.vercel.app';
+      
       console.log(`Chamando serviço Python em: ${this.apiUrl}/generate-complete-report`);
-      console.log('Payload:', { organizationId, projectionId, apiBaseUrl: process.env.NEXT_PUBLIC_APP_URL });
+      console.log('Payload:', { organizationId, projectionId, apiBaseUrl });
       
       const response = await fetch(`${this.apiUrl}/generate-complete-report`, {
         method: 'POST',
@@ -29,7 +34,7 @@ export class PythonPDFReportServiceRemote {
         body: JSON.stringify({
           organizationId,
           projectionId,
-          apiBaseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          apiBaseUrl,
         }),
       });
 
@@ -62,6 +67,11 @@ export class PythonPDFReportServiceRemote {
 
   async generateRatingReport(organizationId: string, safraId: string): Promise<Buffer> {
     try {
+      // Determinar a URL base da API
+      const apiBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                        'https://srconsultoria.vercel.app';
+      
       const response = await fetch(`${this.apiUrl}/generate-rating-report`, {
         method: 'POST',
         headers: {
@@ -70,7 +80,7 @@ export class PythonPDFReportServiceRemote {
         body: JSON.stringify({
           organizationId,
           safraId,
-          apiBaseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          apiBaseUrl,
         }),
       });
 
