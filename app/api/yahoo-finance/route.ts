@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 // Símbolos que vamos monitorar
 const YAHOO_SYMBOLS = [
@@ -33,6 +34,159 @@ let cachedData: any = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
+// Cache para token OAuth
+let cachedToken: { token: string; expires: number } | null = null;
+
+async function getYahooAccessToken() {
+  // Verificar se temos token em cache e ainda é válido
+  if (cachedToken && cachedToken.expires > Date.now()) {
+    return cachedToken.token;
+  }
+  
+  try {
+    // Buscar token do banco de dados
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.warn('No authenticated user for Yahoo Finance');
+      return null;
+    }
+    
+    // Buscar tokens do usuário
+    const { data: tokenData, error } = await supabase
+      .from('yahoo_tokens')
+      .select('access_token, refresh_token, expires_at')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (error || !tokenData) {
+      console.warn('No Yahoo tokens found for user');
+      return null;
+    }
+    
+    // Verificar se o token ainda é válido
+    const expiresAt = new Date(tokenData.expires_at).getTime();
+    
+    if (expiresAt > Date.now() + 60000) { // Ainda válido por mais de 1 minuto
+      // Cachear e retornar
+      cachedToken = {
+        token: tokenData.access_token,
+        expires: expiresAt - 60000,
+      };
+      return tokenData.access_token;
+    }
+    
+    // Token expirado, renovar com refresh token
+    console.log('Token expired, refreshing...');
+    const clientId = process.env.YAHOO_CLIENT_ID!;
+    const clientSecret = process.env.YAHOO_CLIENT_SECRET!;
+    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    
+    const response = await fetch('https://api.login.yahoo.com/oauth2/get_token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: tokenData.refresh_token,
+        grant_type: 'refresh_token',
+      }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Failed to refresh Yahoo token:', error);
+      return null;
+    }
+    
+    const newTokenData = await response.json();
+    
+    // Atualizar tokens no banco
+    const { error: updateError } = await supabase
+      .from('yahoo_tokens')
+      .update({
+        access_token: newTokenData.access_token,
+        refresh_token: newTokenData.refresh_token || tokenData.refresh_token,
+        expires_at: new Date(Date.now() + (newTokenData.expires_in * 1000)).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id);
+    
+    if (updateError) {
+      console.error('Failed to update tokens:', updateError);
+    }
+    
+    // Cachear e retornar novo token
+    cachedToken = {
+      token: newTokenData.access_token,
+      expires: Date.now() + ((newTokenData.expires_in || 3600) * 1000) - 60000,
+    };
+    
+    return newTokenData.access_token;
+    
+  } catch (error) {
+    console.error('Failed to get Yahoo token:', error);
+    return null;
+  }
+}
+
+async function fetchYahooFinanceData(accessToken: string, symbols: string[]) {
+  // Yahoo Finance API endpoints com OAuth2
+  // Nota: A documentação específica da API Finance pode variar
+  // Tentando endpoints conhecidos do Yahoo
+  
+  const symbolsStr = symbols.join(',');
+  
+  // Tentar v8 API (requer autenticação)
+  const endpoints = [
+    `https://yfapi.net/v8/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`,
+    `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`,
+    `https://query2.finance.yahoo.com/v8/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`,
+  ];
+  
+  for (const url of endpoints) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch from ${url}:`, error);
+    }
+  }
+  
+  // Se falhar, tentar API pública sem auth (pode estar limitada)
+  try {
+    const response = await fetch(
+      `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+          'Accept': 'application/json',
+        },
+      }
+    );
+    
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.warn('Public API also failed:', error);
+  }
+  
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Verificar se temos dados em cache válidos
@@ -41,22 +195,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cachedData);
     }
 
-    // Buscar dados do Yahoo Finance usando a API pública
-    // Nota: Yahoo Finance não requer autenticação OAuth para cotações básicas
-    const symbols = YAHOO_SYMBOLS.join(',');
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}`;
+    // Obter token automaticamente (server-to-server)
+    const accessToken = await getYahooAccessToken();
     
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Yahoo Finance API error: ${response.status}`);
+    let data = null;
+    
+    // Se temos token, tentar buscar dados autenticados
+    if (accessToken) {
+      data = await fetchYahooFinanceData(accessToken, YAHOO_SYMBOLS);
+    }
+    
+    // Se não conseguiu com token ou não tem token, usar fallback
+    if (!data || !data.quoteResponse?.result) {
+      console.warn('Yahoo Finance API not available, using fallback data');
+      // Retornar para dados de fallback se API não funcionar
+      throw new Error('Yahoo Finance API unavailable');
     }
 
-    const data = await response.json();
     const quotes = data.quoteResponse?.result || [];
 
     // Buscar cotação do dólar para conversões
