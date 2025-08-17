@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 
 // Símbolos que vamos monitorar
 const YAHOO_SYMBOLS = [
@@ -34,105 +33,8 @@ let cachedData: any = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
-// Cache para token OAuth
-let cachedToken: { token: string; expires: number } | null = null;
-
-async function getYahooAccessToken() {
-  // Verificar se temos token em cache e ainda é válido
-  if (cachedToken && cachedToken.expires > Date.now()) {
-    return cachedToken.token;
-  }
-  
-  try {
-    // Buscar token do banco de dados
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.warn('No authenticated user for Yahoo Finance');
-      return null;
-    }
-    
-    // Buscar tokens do usuário
-    const { data: tokenData, error } = await supabase
-      .from('yahoo_tokens')
-      .select('access_token, refresh_token, expires_at')
-      .eq('user_id', user.id)
-      .single();
-    
-    if (error || !tokenData) {
-      console.warn('No Yahoo tokens found for user');
-      return null;
-    }
-    
-    // Verificar se o token ainda é válido
-    const expiresAt = new Date(tokenData.expires_at).getTime();
-    
-    if (expiresAt > Date.now() + 60000) { // Ainda válido por mais de 1 minuto
-      // Cachear e retornar
-      cachedToken = {
-        token: tokenData.access_token,
-        expires: expiresAt - 60000,
-      };
-      return tokenData.access_token;
-    }
-    
-    // Token expirado, renovar com refresh token
-    console.log('Token expired, refreshing...');
-    const clientId = process.env.YAHOO_CLIENT_ID!;
-    const clientSecret = process.env.YAHOO_CLIENT_SECRET!;
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    
-    const response = await fetch('https://api.login.yahoo.com/oauth2/get_token', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: tokenData.refresh_token,
-        grant_type: 'refresh_token',
-      }),
-    });
-    
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Failed to refresh Yahoo token:', error);
-      return null;
-    }
-    
-    const newTokenData = await response.json();
-    
-    // Atualizar tokens no banco
-    const { error: updateError } = await supabase
-      .from('yahoo_tokens')
-      .update({
-        access_token: newTokenData.access_token,
-        refresh_token: newTokenData.refresh_token || tokenData.refresh_token,
-        expires_at: new Date(Date.now() + (newTokenData.expires_in * 1000)).toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id);
-    
-    if (updateError) {
-      console.error('Failed to update tokens:', updateError);
-    }
-    
-    // Cachear e retornar novo token
-    cachedToken = {
-      token: newTokenData.access_token,
-      expires: Date.now() + ((newTokenData.expires_in || 3600) * 1000) - 60000,
-    };
-    
-    return newTokenData.access_token;
-    
-  } catch (error) {
-    console.error('Failed to get Yahoo token:', error);
-    return null;
-  }
-}
+// OAuth2 removido - não é mais necessário
+// Usamos o serviço Python com APIs brasileiras gratuitas
 
 async function fetchAlternativeMarketData(symbols: string[]) {
   console.log('Fetching market data from alternative sources');
@@ -205,99 +107,8 @@ async function fetchAlternativeMarketData(symbols: string[]) {
   }
 }
 
-async function fetchYahooFinanceData(accessToken: string, symbols: string[]) {
-  console.log('Attempting to fetch Yahoo Finance data with access token');
-  
-  const symbolsStr = symbols.join(',');
-  
-  // Lista de endpoints possíveis do Yahoo Finance
-  // Nota: A documentação do Yahoo não é clara sobre qual endpoint usar com OAuth2
-  const endpoints = [
-    // YFapi.net (serviço terceiro que pode usar tokens Yahoo)
-    {
-      url: `https://yfapi.net/v6/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`,
-      headers: {
-        'x-api-key': accessToken, // Alguns serviços esperam o token assim
-        'Accept': 'application/json',
-      }
-    },
-    // Yahoo Finance API v10 (endpoint mais recente)
-    {
-      url: `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbols[0]}?modules=price`,
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
-      }
-    },
-    // Yahoo Finance API v8
-    {
-      url: `https://query1.finance.yahoo.com/v8/finance/chart/${symbols[0]}`,
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
-      }
-    },
-    // Yahoo Finance API v7 com Bearer token
-    {
-      url: `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`,
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0',
-      }
-    },
-  ];
-  
-  for (const endpoint of endpoints) {
-    console.log(`Trying endpoint: ${endpoint.url.split('?')[0]}`);
-    try {
-      const response = await fetch(endpoint.url, {
-        headers: endpoint.headers,
-      });
-      
-      console.log(`Response status: ${response.status}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Successfully fetched data from:', endpoint.url.split('?')[0]);
-        
-        // Normalizar resposta dependendo do endpoint
-        if (data.quoteResponse) {
-          return data; // Formato v7/v8
-        } else if (data.quoteSummary) {
-          // Formato v10 - converter para formato esperado
-          return {
-            quoteResponse: {
-              result: [data.quoteSummary.result[0].price]
-            }
-          };
-        } else if (data.chart) {
-          // Formato chart - converter para formato esperado
-          return {
-            quoteResponse: {
-              result: [{
-                symbol: symbols[0],
-                regularMarketPrice: data.chart.result[0].meta.regularMarketPrice,
-                regularMarketChange: data.chart.result[0].meta.regularMarketPrice - data.chart.result[0].meta.previousClose,
-                regularMarketPreviousClose: data.chart.result[0].meta.previousClose,
-                regularMarketTime: data.chart.result[0].meta.regularMarketTime,
-              }]
-            }
-          };
-        }
-        return data;
-      } else {
-        const errorText = await response.text();
-        console.warn(`Failed ${response.status}:`, errorText.substring(0, 200));
-      }
-    } catch (error) {
-      console.warn(`Error fetching from endpoint:`, error);
-    }
-  }
-  
-  console.warn('All authenticated endpoints failed');
-  return null;
-}
+// Função removida - não usamos mais OAuth2 do Yahoo
+// Agora usamos o serviço Python com APIs brasileiras
 
 export async function GET(request: NextRequest) {
   try {

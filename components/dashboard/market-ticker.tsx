@@ -210,12 +210,102 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
   };
 
   if (loading && tickerData.length === 0) {
+    // Skeleton loader com itens de placeholder
+    const skeletonItems = [
+      { name: "Carregando", value: "---", change: "---" },
+      { name: "mercado", value: "---", change: "---" },
+      { name: "financeiro", value: "---", change: "---" },
+      { name: "...", value: "---", change: "---" },
+    ];
+    
     return (
-      <div className="w-full h-10 flex items-center overflow-hidden">
-        <p className="text-sm text-muted-foreground animate-pulse">
-          Carregando dados de mercado...
-        </p>
-      </div>
+      <>
+        <style jsx global>{`
+          .market-ticker-container {
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            height: 2.5rem;
+            background-color: #000000;
+            border-bottom: 1px solid #1a1a1a;
+          }
+
+          .market-ticker-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            white-space: nowrap;
+            overflow: hidden;
+          }
+
+          .market-ticker-skeleton {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 1.5rem;
+          }
+
+          .skeleton-item {
+            display: flex;
+            align-items: center;
+            margin-right: 2rem;
+            opacity: 0.5;
+          }
+
+          .skeleton-label {
+            color: #6b7280;
+            margin-right: 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            font-weight: 500;
+          }
+
+          .skeleton-value {
+            color: #9ca3af;
+            margin-right: 0.5rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+          }
+
+          .skeleton-change {
+            color: #6b7280;
+            font-size: 0.75rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            background-color: rgba(107, 114, 128, 0.1);
+          }
+
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 0.3;
+            }
+            50% {
+              opacity: 0.6;
+            }
+          }
+
+          .animate-skeleton {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+        `}</style>
+        
+        <div className="market-ticker-container">
+          <div className="market-ticker-wrapper">
+            <div className="market-ticker-skeleton animate-skeleton">
+              {skeletonItems.map((item, index) => (
+                <div key={index} className="skeleton-item">
+                  <span className="skeleton-label">{item.name}</span>
+                  <span className="skeleton-value">{item.value}</span>
+                  <span className="skeleton-change">{item.change}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
