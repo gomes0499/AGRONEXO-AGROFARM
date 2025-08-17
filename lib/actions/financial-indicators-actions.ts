@@ -7,6 +7,9 @@ export interface FinancialIndicatorData {
   dividaReceita: number | null;
   dividaEbitda: number | null;
   dividaLucroLiquido: number | null;
+  ltv: number | null;
+  ltvLiquido: number | null;
+  liquidezCorrente: number | null;
 }
 
 export async function getFinancialIndicatorsChart(organizationId: string): Promise<FinancialIndicatorData[]> {
@@ -238,18 +241,48 @@ export async function getFinancialIndicatorsChart(organizationId: string): Promi
       const dividaEbitda = ebitda > 0 ? totalDividas / ebitda : null;
       const dividaLucroLiquido = lucroLiquido > 0 ? totalDividas / lucroLiquido : null;
 
+      // 8. Calcular LTV e LTV Líquido (valores decimais)
+      // Para o gráfico, vamos buscar dos indicadores consolidados se disponível
+      const { data: debtPosition } = await supabase.rpc('get_debt_position_data', {
+        p_organization_id: organizationId
+      });
+      
+      let ltv = null;
+      let ltvLiquido = null;
+      let liquidezCorrente = null;
+      
+      if (debtPosition && debtPosition.length > 0) {
+        const indicators = debtPosition[0].indicadores;
+        if (indicators.ltv && indicators.ltv[safra.id]) {
+          ltv = indicators.ltv[safra.id] / 100; // Converter para decimal
+        }
+        if (indicators.ltv_liquido && indicators.ltv_liquido[safra.id]) {
+          ltvLiquido = indicators.ltv_liquido[safra.id] / 100; // Converter para decimal
+        }
+        if (indicators.caixas_disponibilidades && indicators.caixas_disponibilidades[safra.id]) {
+          const caixa = indicators.caixas_disponibilidades[safra.id];
+          liquidezCorrente = totalDividas > 0 ? caixa / totalDividas : null;
+        }
+      }
+
       indicatorsData.push({
         ano,
         dividaReceita,
         dividaEbitda,
-        dividaLucroLiquido
+        dividaLucroLiquido,
+        ltv,
+        ltvLiquido,
+        liquidezCorrente
       });
     }
 
     return indicatorsData.filter(item => 
       item.dividaReceita !== null || 
       item.dividaEbitda !== null || 
-      item.dividaLucroLiquido !== null
+      item.dividaLucroLiquido !== null ||
+      item.ltv !== null ||
+      item.ltvLiquido !== null ||
+      item.liquidezCorrente !== null
     );
 
   } catch (error) {

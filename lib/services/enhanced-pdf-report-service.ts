@@ -1320,7 +1320,7 @@ export class EnhancedPDFReportService {
     this.doc.setTextColor(COLORS.textPrimary);
     this.doc.setFontSize(FONTS.heading);
     this.doc.text(
-      `${indicators.ltv.percentual}%`,
+      `${(indicators.ltv.percentual / 100).toFixed(2)}`,
       this.margin + barWidth + 40,
       this.currentY + barHeight / 2 + 5
     );

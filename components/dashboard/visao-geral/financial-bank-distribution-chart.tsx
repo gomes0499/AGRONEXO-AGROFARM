@@ -209,11 +209,11 @@ export function FinancialBankDistributionChartClient({
               </div>
               <div>
                 <CardTitle className="text-white">
-                  Endividamento por Banco{" "}
+                  Endividamento por Banco - R$ milhões{" "}
                   {displaySafra ? `(${displaySafra})` : `(${displayYear})`}
                 </CardTitle>
                 <CardDescription className="text-white/80">
-                  Distribuição das dívidas bancárias por instituição
+                  Top 8 bancos + outros - Ranking por valor de dívida
                 </CardDescription>
               </div>
             </div>
@@ -252,7 +252,7 @@ export function FinancialBankDistributionChartClient({
             </div>
             <div>
               <CardTitle className="text-white">
-                Endividamento por Banco ({displayYear})
+                Endividamento por Banco - R$ milhões ({displayYear})
               </CardTitle>
               <CardDescription className="text-white/80">
                 Top 8 bancos + outros - Ranking por valor de dívida
@@ -292,7 +292,7 @@ export function FinancialBankDistributionChartClient({
                   fontSize={12}
                   width={40}
                   tick={{ fill: "var(--foreground)" }}
-                  tickFormatter={(value) => formatCurrency(value, 0)}
+                  tickFormatter={(value) => (value/1000000).toFixed(0)}
                 />
                 <ChartTooltip
                   content={<CustomTooltip />}
@@ -310,7 +310,7 @@ export function FinancialBankDistributionChartClient({
                   <LabelList
                     dataKey="valor"
                     position="top"
-                    formatter={(value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)}
+                    formatter={(value: number) => (value/1000000).toFixed(1)}
                     fill="var(--color-valor)"
                     fontSize={11}
                     fontWeight="600"

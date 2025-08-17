@@ -9,12 +9,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronDown, ChevronUp, Loader2, CalendarIcon, FileText } from "lucide-react";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
 import { getSafras } from "@/lib/actions/production-actions";
 import { getCotacoesCambio } from "@/lib/actions/financial-actions/cotacoes-cambio-actions";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface SafraData {
   id: string;
@@ -149,14 +152,81 @@ export function DividasBancariasSafraDetail({
       </Button>
       
       {isExpanded && (
-        <Card className="mt-2 border-dashed">
-          <CardContent className="p-3">
-            {isPending || safras.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-4 text-center">
-                Carregando dados das safras...
-              </div>
-            ) : (
-              <Table>
+        <div className="space-y-3 mt-2">
+          {/* Informações do Contrato */}
+          {(divida.numero_contrato || divida.quantidade_parcelas || divida.periodicidade || divida.datas_pagamento_irregular) && (
+            <Card className="border-dashed">
+              <CardHeader className="p-3 pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Informações do Contrato
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  {divida.numero_contrato && (
+                    <div>
+                      <span className="text-muted-foreground">Contrato:</span>
+                      <p className="font-mono font-medium">{divida.numero_contrato}</p>
+                    </div>
+                  )}
+                  {divida.quantidade_parcelas && (
+                    <div>
+                      <span className="text-muted-foreground">Parcelas:</span>
+                      <p className="font-medium">{divida.quantidade_parcelas}x</p>
+                    </div>
+                  )}
+                  {divida.periodicidade && (
+                    <div>
+                      <span className="text-muted-foreground">Periodicidade:</span>
+                      <Badge 
+                        variant={divida.periodicidade === "IRREGULAR" ? "destructive" : "outline"}
+                        className="mt-1"
+                      >
+                        {divida.periodicidade === "MENSAL" ? "Mensal" :
+                         divida.periodicidade === "BIMESTRAL" ? "Bimestral" :
+                         divida.periodicidade === "TRIMESTRAL" ? "Trimestral" :
+                         divida.periodicidade === "QUADRIMESTRAL" ? "Quadrimestral" :
+                         divida.periodicidade === "SEMESTRAL" ? "Semestral" :
+                         divida.periodicidade === "ANUAL" ? "Anual" :
+                         divida.periodicidade === "IRREGULAR" ? "Irregular" : 
+                         divida.periodicidade}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Datas Irregulares */}
+                {divida.periodicidade === "IRREGULAR" && divida.datas_pagamento_irregular && divida.datas_pagamento_irregular.length > 0 && (
+                  <div className="mt-4 border-t pt-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Datas de Pagamento:</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {divida.datas_pagamento_irregular
+                        .sort((a: string, b: string) => new Date(a).getTime() - new Date(b).getTime())
+                        .map((data: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="justify-center">
+                            {format(new Date(data), "dd/MM/yyyy", { locale: ptBR })}
+                          </Badge>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tabela de Valores por Safra */}
+          <Card className="border-dashed">
+            <CardContent className="p-3">
+              {isPending || safras.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-4 text-center">
+                  Carregando dados das safras...
+                </div>
+              ) : (
+                <Table>
                 <TableHeader>
                   <TableRow className="bg-muted hover:bg-muted">
                     <TableHead className="font-medium text-sm uppercase">Safra</TableHead>
@@ -191,7 +261,8 @@ export function DividasBancariasSafraDetail({
             )}
           </CardContent>
         </Card>
-      )}
+      </div>
+    )}
     </div>
   );
 }

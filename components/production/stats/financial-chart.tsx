@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import {
   Card,
@@ -238,7 +239,7 @@ export function FinancialChartClient({
               </div>
               <div>
                 <CardTitle className="text-white">
-                  Evolução Financeira
+                  Evolução do Resultado
                 </CardTitle>
                 <CardDescription className="text-white/80">
                   Nenhum dado financeiro encontrado
@@ -268,9 +269,9 @@ export function FinancialChartClient({
             <div className="rounded-full p-2 bg-white/20">
               <LineChartIcon className="h-4 w-4 text-white" />
             </div>
-            <div>
+            <div className="flex-1">
               <CardTitle className="text-white">
-                {projectionId ? "Projeção Financeira" : "Evolução Financeira"}
+                {projectionId ? "Projeção Financeira (R$ milhões)" : "Evolução do Resultado (R$ milhões)"}
                 {currentScenario && " - Cenário"}
                 {isPending && " (Atualizando...)"}
               </CardTitle>
@@ -286,12 +287,58 @@ export function FinancialChartClient({
         </div>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
-        <div className="w-full h-[350px] sm:h-[400px]">
-          <ChartContainer config={chartConfig} className="w-full h-full">
+        <div className="w-full h-[350px] sm:h-[400px] relative">
+          {/* Indicadores R/P com linhas no topo */}
+          <div className="absolute top-2 left-0 right-0 h-8 pointer-events-none z-20" style={{ marginLeft: "40px", marginRight: "10px" }}>
+            <div className="relative w-full h-full">
+              {/* Encontrar o ponto de divisão entre R e P */}
+              {(() => {
+                const projectedIndex = data.findIndex(item => parseInt(item.safra.split('/')[0]) >= 2025);
+                const realizedWidth = projectedIndex === -1 ? 100 : (projectedIndex / data.length) * 100;
+                const projectedWidth = projectedIndex === -1 ? 0 : ((data.length - projectedIndex) / data.length) * 100;
+                
+                return (
+                  <>
+                    {/* Linha e label para Realizado */}
+                    {realizedWidth > 0 && (
+                      <div 
+                        className="absolute top-4 h-[2px] bg-gray-600"
+                        style={{ 
+                          left: '0%',
+                          width: `${realizedWidth - 2}%`
+                        }}
+                      >
+                        <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-xs font-bold text-gray-600">
+                          Realizado
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Linha e label para Projetado */}
+                    {projectedWidth > 0 && (
+                      <div 
+                        className="absolute top-4 h-[2px] bg-red-500"
+                        style={{ 
+                          right: '0%',
+                          width: `${projectedWidth - 2}%`
+                        }}
+                      >
+                        <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-xs font-bold text-red-500">
+                          Projetado
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+          
+          <ChartContainer config={chartConfig} className="w-full h-full relative z-10">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={data}
-                margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                margin={{ top: 45, right: 10, left: 0, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
@@ -303,12 +350,12 @@ export function FinancialChartClient({
                   tick={{ fontSize: 10 }}
                 />
                 <YAxis
-                  tickFormatter={(value) => formatCurrency(value)}
+                  tickFormatter={(value) => (value/1000000).toFixed(0)}
                   tickLine={false}
                   axisLine={false}
                   tickMargin={10}
                   fontSize={12}
-                  width={70}
+                  width={50}
                 />
                 <ChartTooltip
                   content={<ChartTooltipContent />}
@@ -318,23 +365,37 @@ export function FinancialChartClient({
                   ]}
                   labelFormatter={(label) => `Safra: ${label}`}
                 />
-                <ChartLegend content={<ChartLegendMultirow itemsPerRow={3} />} />
+                <ChartLegend
+                  content={
+                    <ChartLegendMultirow 
+                      itemsPerRow={4}
+                      payload={[
+                        { value: chartConfig.receitaTotal.label, color: chartConfig.receitaTotal.color, type: 'rect' },
+                        { value: chartConfig.custoTotal.label, color: chartConfig.custoTotal.color, type: 'rect' },
+                        { value: chartConfig.ebitda.label, color: chartConfig.ebitda.color, type: 'rect' },
+                        { value: chartConfig.lucroLiquido.label, color: chartConfig.lucroLiquido.color, type: 'rect' }
+                      ]}
+                    />
+                  }
+                />
                 
                 {/* Receita Total */}
                 <Line
                   type="monotone"
                   dataKey="receitaTotal"
                   stroke={chartConfig.receitaTotal.color}
-                  strokeWidth={3}
+                  strokeWidth={2}
                   dot={{ fill: chartConfig.receitaTotal.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
+                  connectNulls={false}
                   name={chartConfig.receitaTotal.label as string}
                   label={{
                     position: "top",
-                    fill: chartConfig.receitaTotal.color,
-                    fontSize: 11,
-                    offset: 10,
-                    formatter: (value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)
+                    className: "fill-foreground",
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    offset: 8,
+                    formatter: (value: number) => value ? (value/1000000).toFixed(0) : ""
                   }}
                 />
                 
@@ -343,16 +404,18 @@ export function FinancialChartClient({
                   type="monotone"
                   dataKey="custoTotal"
                   stroke={chartConfig.custoTotal.color}
-                  strokeWidth={3}
+                  strokeWidth={2}
                   dot={{ fill: chartConfig.custoTotal.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
+                  connectNulls={false}
                   name={chartConfig.custoTotal.label as string}
                   label={{
                     position: "bottom",
-                    fill: chartConfig.custoTotal.color,
-                    fontSize: 11,
-                    offset: 10,
-                    formatter: (value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)
+                    className: "fill-foreground",
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    offset: 8,
+                    formatter: (value: number) => value ? (value/1000000).toFixed(0) : ""
                   }}
                 />
                 
@@ -361,16 +424,18 @@ export function FinancialChartClient({
                   type="monotone"
                   dataKey="ebitda"
                   stroke={chartConfig.ebitda.color}
-                  strokeWidth={3}
+                  strokeWidth={2}
                   dot={{ fill: chartConfig.ebitda.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
+                  connectNulls={false}
                   name={chartConfig.ebitda.label as string}
                   label={{
                     position: "top",
-                    fill: chartConfig.ebitda.color,
-                    fontSize: 11,
-                    offset: 10,
-                    formatter: (value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)
+                    className: "fill-foreground",
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    offset: 8,
+                    formatter: (value: number) => value ? (value/1000000).toFixed(0) : ""
                   }}
                 />
                 
@@ -379,16 +444,18 @@ export function FinancialChartClient({
                   type="monotone"
                   dataKey="lucroLiquido"
                   stroke={chartConfig.lucroLiquido.color}
-                  strokeWidth={3}
+                  strokeWidth={2}
                   dot={{ fill: chartConfig.lucroLiquido.color, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, strokeWidth: 2 }}
+                  connectNulls={false}
                   name={chartConfig.lucroLiquido.label as string}
                   label={{
                     position: "bottom",
-                    fill: chartConfig.lucroLiquido.color,
-                    fontSize: 11,
-                    offset: 10,
-                    formatter: (value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)
+                    className: "fill-foreground",
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    offset: 8,
+                    formatter: (value: number) => value ? (value/1000000).toFixed(0) : ""
                   }}
                 />
               </LineChart>
@@ -396,85 +463,6 @@ export function FinancialChartClient({
           </ChartContainer>
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm px-6 pt-4">
-        {!projectionId ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-xs">
-              {/* Período Realizado 2021-2024 */}
-              <div className="space-y-1">
-                <div className="font-medium text-muted-foreground">Realizado (2021-2024)</div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
-                  <span>EBITDA: {mediasMargens.ebitdaRealizado}%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
-                  <span>Lucro Líquido: {mediasMargens.lucroRealizado}%</span>
-                </div>
-              </div>
-              
-              {/* Período Projetado 2025-2030 */}
-              <div className="space-y-1">
-                <div className="font-medium text-muted-foreground">Projetado (2025-2030)</div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
-                  <span>EBITDA: {mediasMargens.ebitdaProjetado}%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
-                  <span>Lucro Líquido: {mediasMargens.lucroProjetado}%</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="leading-none text-muted-foreground text-xs pt-2 border-t border-muted-foreground/20 w-full">
-              {currentScenario 
-                ? `Projeção baseada no cenário "${currentScenario.scenarioName}" - Safras ${data[0]?.safra} a ${data[data.length - 1]?.safra}`
-                : "Margens médias calculadas sobre a receita total por período"}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="w-full">
-              <div className="font-medium text-muted-foreground text-xs mb-2">
-                Indicadores projetados
-              </div>
-              {/* Mostrar margens médias do período */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.ebitda.color }}></div>
-                    <span>Margem EBITDA média: {
-                      data.length > 0 
-                        ? ((data.reduce((sum, item) => sum + (item.ebitda / item.receitaTotal * 100), 0) / data.length).toFixed(1))
-                        : "0.0"
-                    }%</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: chartConfig.lucroLiquido.color }}></div>
-                    <span>Margem LL média: {
-                      data.length > 0 
-                        ? ((data.reduce((sum, item) => sum + (item.lucroLiquido / item.receitaTotal * 100), 0) / data.length).toFixed(1))
-                        : "0.0"
-                    }%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="leading-none text-muted-foreground text-xs pt-2 border-t border-muted-foreground/20 w-full">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                {currentScenario 
-                  ? `Cenário "${currentScenario.scenarioName}" aplicado`
-                  : "Projeção baseada em áreas, produtividades, preços e custos estimados"}
-              </div>
-            </div>
-          </>
-        )}
-      </CardFooter>
     </Card>
   );
 }

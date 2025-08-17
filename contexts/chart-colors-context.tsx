@@ -13,14 +13,14 @@ import {
   DEFAULT_CHART_COLORS as DEFAULT_ORG_COLORS,
 } from "@/lib/constants/chart-colors";
 
-// Mapeamento das cores antigas para as novas
+// Paleta de cores padrão baseada em #17134F
 export const DEFAULT_CHART_COLORS = {
-  color1: "#10b981", // primary
-  color2: "#3b82f6", // secondary
-  color3: "#f59e0b", // tertiary
-  color4: "#ef4444", // quaternary
-  color5: "#8b5cf6", // quinary
-  color6: "#ec4899", // senary
+  color1: "#17134F", // primary - Azul escuro principal
+  color2: "#5046C1", // secondary - Roxo médio
+  color3: "#8678E9", // tertiary - Lavanda
+  color4: "#BCAAFF", // quaternary - Lavanda claro
+  color5: "#2A2475", // quinary - Azul escuro alternativo
+  color6: "#3D359B", // senary - Azul médio
 };
 
 interface ChartColorsContextType {

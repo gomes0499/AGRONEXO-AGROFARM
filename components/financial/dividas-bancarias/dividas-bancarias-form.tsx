@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Building2 } from "lucide-react";
+import { Building2, CalendarIcon, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { createDividaBancaria, updateDividaBancaria } from "@/lib/actions/financial-actions/dividas-bancarias";
 import { SafraFinancialEditorAllVisible } from "../common/safra-financial-editor-all-visible";
 import { CurrencySelector } from "../common/currency-selector";
@@ -19,6 +19,11 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface DividasBancariasFormClientProps {
   open: boolean;
@@ -38,6 +43,9 @@ export function DividasBancariasForm({
   initialSafras,
 }: DividasBancariasFormClientProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [datasIrregulares, setDatasIrregulares] = useState<Date[]>(
+    existingDivida?.datas_pagamento_irregular?.map((d: string) => new Date(d)) || []
+  );
 
   const form = useForm({
     defaultValues: {
@@ -48,8 +56,15 @@ export function DividasBancariasForm({
       taxa_real: existingDivida?.taxa_real || 6.5,
       moeda: existingDivida?.moeda || "BRL",
       valores_por_safra: existingDivida?.valores_por_safra || {},
+      // Novos campos de contrato
+      numero_contrato: existingDivida?.numero_contrato || "",
+      quantidade_parcelas: existingDivida?.quantidade_parcelas || "",
+      periodicidade: existingDivida?.periodicidade || "",
+      datas_pagamento_irregular: existingDivida?.datas_pagamento_irregular || [],
     },
   });
+
+  const periodicidade = form.watch("periodicidade");
 
   // Reset form when modal opens/closes or existing data changes
   useEffect(() => {
@@ -62,7 +77,14 @@ export function DividasBancariasForm({
         taxa_real: existingDivida.taxa_real || 6.5,
         moeda: existingDivida.moeda || "BRL",
         valores_por_safra: existingDivida.valores_por_safra || {},
+        numero_contrato: existingDivida.numero_contrato || "",
+        quantidade_parcelas: existingDivida.quantidade_parcelas || "",
+        periodicidade: existingDivida.periodicidade || "",
+        datas_pagamento_irregular: existingDivida.datas_pagamento_irregular || [],
       });
+      setDatasIrregulares(
+        existingDivida.datas_pagamento_irregular?.map((d: string) => new Date(d)) || []
+      );
     } else if (open && !existingDivida) {
       form.reset({
         nome: "",
@@ -72,21 +94,34 @@ export function DividasBancariasForm({
         taxa_real: 6.5,
         moeda: "BRL",
         valores_por_safra: {},
+        numero_contrato: "",
+        quantidade_parcelas: "",
+        periodicidade: "",
+        datas_pagamento_irregular: [],
       });
+      setDatasIrregulares([]);
     }
   }, [open, existingDivida, form]);
 
   const handleFormSubmit = async (data: any) => {
     setIsLoading(true);
     try {
+      // Adicionar datas irregulares se a periodicidade for IRREGULAR
+      const formData = {
+        ...data,
+        datas_pagamento_irregular: data.periodicidade === "IRREGULAR" 
+          ? datasIrregulares.map(d => d.toISOString())
+          : null,
+      };
+      
       let result;
       
       if (existingDivida) {
         // Atualizar dívida existente
-        result = await updateDividaBancaria(existingDivida.id, data, organizationId);
+        result = await updateDividaBancaria(existingDivida.id, formData, organizationId);
       } else {
         // Criar nova dívida
-        result = await createDividaBancaria(data, organizationId);
+        result = await createDividaBancaria(formData, organizationId);
       }
       
       onSubmit(result);
@@ -121,6 +156,28 @@ export function DividasBancariasForm({
     { value: "PRE_FIXADO", label: "Pré-fixado" },
     { value: "DOLAR", label: "Dólar" }
   ];
+
+  // Periodicidades disponíveis
+  const periodicidades = [
+    { value: "MENSAL", label: "Mensal" },
+    { value: "BIMESTRAL", label: "Bimestral" },
+    { value: "TRIMESTRAL", label: "Trimestral" },
+    { value: "QUADRIMESTRAL", label: "Quadrimestral" },
+    { value: "SEMESTRAL", label: "Semestral" },
+    { value: "ANUAL", label: "Anual" },
+    { value: "IRREGULAR", label: "Irregular" }
+  ];
+
+  // Funções para gerenciar datas irregulares
+  const addDataIrregular = (date: Date | undefined) => {
+    if (date) {
+      setDatasIrregulares([...datasIrregulares, date]);
+    }
+  };
+
+  const removeDataIrregular = (index: number) => {
+    setDatasIrregulares(datasIrregulares.filter((_, i) => i !== index));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -285,6 +342,141 @@ export function DividasBancariasForm({
                 </FormItem>
               )}
             />
+
+            {/* Seção de Informações do Contrato */}
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Informações do Contrato</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="numero_contrato"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número do Contrato</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: 123456/2024" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="quantidade_parcelas"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantidade de Parcelas</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="1" 
+                          placeholder="Ex: 12"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : "")}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="periodicidade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Periodicidade dos Pagamentos</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a periodicidade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {periodicidades.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Campo de datas irregulares - aparece apenas quando periodicidade é IRREGULAR */}
+              {periodicidade === "IRREGULAR" && (
+                <div className="space-y-3">
+                  <FormLabel>Datas de Pagamento</FormLabel>
+                  <FormDescription>
+                    Adicione as datas específicas de cada pagamento
+                  </FormDescription>
+                  
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !datasIrregulares.length && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          Adicionar data de pagamento
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          onSelect={addDataIrregular}
+                          initialFocus
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Lista de datas adicionadas */}
+                  {datasIrregulares.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        {datasIrregulares.length} data(s) adicionada(s):
+                      </p>
+                      <div className="max-h-32 overflow-y-auto space-y-1">
+                        {datasIrregulares
+                          .sort((a, b) => a.getTime() - b.getTime())
+                          .map((date, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-2 bg-muted rounded-md"
+                            >
+                              <span className="text-sm">
+                                {format(date, "dd/MM/yyyy", { locale: ptBR })}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeDataIrregular(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             
             <FormField
               control={form.control}

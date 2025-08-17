@@ -88,14 +88,20 @@ export default async function DashboardLayout({
 
   // Import direto ao invés de lazy loading para evitar problemas de hidratação
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const DashboardProvidersWrapper = require("@/components/dashboard/dashboard-providers-wrapper").default;
-  
+  const DashboardProvidersWrapper =
+    require("@/components/dashboard/dashboard-providers-wrapper").default;
+
   // Buscar cores do gráfico da organização
   let chartColors = null;
   if (organizationId) {
-    const { getOrganizationChartColors } = await import("@/lib/actions/organization-chart-colors-actions");
+    const { getOrganizationChartColors } = await import(
+      "@/lib/actions/organization-chart-colors-actions"
+    );
     chartColors = await getOrganizationChartColors(organizationId);
   }
+
+  // Import do componente de limpeza de blob cache
+  const { ClearBlobCache } = await import("@/app/dashboard/clear-blob-cache");
 
   return (
     <DashboardProvidersWrapper
@@ -104,6 +110,7 @@ export default async function DashboardLayout({
       commercialPrices={latestPrice}
       chartColors={chartColors}
     >
+      <ClearBlobCache />
       {children}
     </DashboardProvidersWrapper>
   );

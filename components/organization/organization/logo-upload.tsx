@@ -55,6 +55,7 @@ export function OrganizationLogoUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [filePath, setFilePath] = useState<string | null>(null);
   const [temporaryImage, setTemporaryImage] = useState<File | null>(null);
+  const [temporaryBlobUrl, setTemporaryBlobUrl] = useState<string | null>(null);
 
   const handleImageCropped = async (file: File) => {
     setIsUploading(true);
@@ -65,8 +66,14 @@ export function OrganizationLogoUpload({
       if (isTemporary) {
         setTemporaryImage(file);
 
+        // Limpa a URL blob anterior se houver
+        if (temporaryBlobUrl) {
+          URL.revokeObjectURL(temporaryBlobUrl);
+        }
+
         // Convertemos o arquivo para uma URL temporária
         const tempUrl = URL.createObjectURL(file);
+        setTemporaryBlobUrl(tempUrl);
 
         if (onSuccess) {
           onSuccess(tempUrl);
@@ -110,6 +117,12 @@ export function OrganizationLogoUpload({
     // Se estamos no modo temporário, apenas limpamos a referência
     if (isTemporary) {
       setTemporaryImage(null);
+      
+      // Limpa a URL blob se houver
+      if (temporaryBlobUrl) {
+        URL.revokeObjectURL(temporaryBlobUrl);
+        setTemporaryBlobUrl(null);
+      }
 
       if (onRemove) {
         onRemove();
@@ -156,6 +169,15 @@ export function OrganizationLogoUpload({
       (uploadRef.current as any).__temporaryImage = temporaryImage;
     }
   }, [temporaryImage]);
+
+  // Limpar URLs blob ao desmontar o componente
+  useEffect(() => {
+    return () => {
+      if (temporaryBlobUrl) {
+        URL.revokeObjectURL(temporaryBlobUrl);
+      }
+    };
+  }, [temporaryBlobUrl]);
 
   // Configurações baseadas nas variantes
   const getPreviewSize = () => {

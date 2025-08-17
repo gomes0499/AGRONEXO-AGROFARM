@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
+  Label,
 } from "recharts";
 import { PercentIcon } from "lucide-react";
 import {
@@ -164,21 +165,19 @@ export function FinancialDebtTypeDistributionAllSafrasChart({
         </div>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
-        <div className="w-full h-[350px] sm:h-[400px]">
-          <ChartContainer config={chartConfig} className="w-full h-full">
+        <div className="w-full h-[350px] sm:h-[400px] flex flex-col items-center justify-center">
+          <ChartContainer config={chartConfig} className="w-full h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={data.data}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
+                  innerRadius={80}
                   outerRadius={120}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) =>
-                    `${name}: ${formatPercent(percent)}`
-                  }
+                  strokeWidth={0}
                 >
                   {data.data.map((entry, index) => (
                     <Cell
@@ -186,26 +185,64 @@ export function FinancialDebtTypeDistributionAllSafrasChart({
                       fill={colorMapping[entry.color as keyof typeof colorMapping] || colors.color1}
                     />
                   ))}
+                  <Label
+                    content={({ viewBox }) => {
+                      if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                        const totalFormatted = total >= 1000000 
+                          ? `R$ ${(total / 1000000).toFixed(1)}M`
+                          : total >= 1000
+                          ? `R$ ${(total / 1000).toFixed(0)}k`
+                          : `R$ ${total.toFixed(0)}`;
+                        
+                        return (
+                          <text
+                            x={viewBox.cx}
+                            y={viewBox.cy}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                          >
+                            <tspan
+                              x={viewBox.cx}
+                              y={viewBox.cy}
+                              className="fill-foreground text-3xl font-bold"
+                            >
+                              {totalFormatted}
+                            </tspan>
+                            <tspan
+                              x={viewBox.cx}
+                              y={(viewBox.cy || 0) + 24}
+                              className="fill-muted-foreground text-sm"
+                            >
+                              Consolidado
+                            </tspan>
+                          </text>
+                        );
+                      }
+                    }}
+                  />
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  formatter={(value, entry, index) => {
-                    if (entry && entry.payload) {
-                      const payload = entry.payload as unknown as DebtTypeData;
-                      return (
-                        <span className="text-sm dark:text-white">
-                          {payload.name} ({formatPercent(payload.percentual)})
-                        </span>
-                      );
-                    }
-                    return null;
-                  }}
-                />
               </PieChart>
             </ResponsiveContainer>
           </ChartContainer>
+          
+          {/* Legendas customizadas abaixo do gráfico */}
+          <div className="mt-6 flex flex-wrap gap-4 justify-center">
+            {data.data.map((item, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: colorMapping[item.color as keyof typeof colorMapping] || colors.color1 }}
+                />
+                <span className="text-sm font-medium">
+                  {item.name}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {formatPercent(item.percentual)}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
       {/* Footer com estatísticas */}

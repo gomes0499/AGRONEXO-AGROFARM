@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useCallback, useEffect } from "react";
+import React, { useState, useTransition, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   PlusIcon,
@@ -113,10 +113,14 @@ export function DividasBancariasListing({
   );
 
   const handleSaveDivida = useCallback(() => {
+    const message = editingDivida 
+      ? "Dívida bancária atualizada com sucesso!" 
+      : "Dívida bancária criada com sucesso!";
+    toast.success(message);
     setIsAddModalOpen(false);
     setEditingDivida(null);
     refreshData();
-  }, [refreshData]);
+  }, [refreshData, editingDivida]);
 
   const handleImportSuccess = useCallback(() => {
     setIsImportModalOpen(false);
@@ -134,14 +138,13 @@ export function DividasBancariasListing({
     );
   }, []);
 
-  // Paginação
-  const totalItems = dividasBancarias.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedDividas = dividasBancarias.slice(startIndex, endIndex);
-
   const calculateTotal = useCallback((divida: any) => {
+    // Usar valor_principal se disponível (consistente com debt-metrics.tsx)
+    if (divida.valor_principal) {
+      return divida.valor_principal;
+    }
+    
+    // Fallback para cálculo baseado no fluxo
     const valores =
       divida.fluxo_pagamento_anual || divida.valores_por_ano || {};
     return Object.values(valores).reduce(
@@ -149,6 +152,46 @@ export function DividasBancariasListing({
       0
     );
   }, []);
+
+  // Ordenar e agrupar dívidas por moeda
+  const sortedDividas = useMemo(() => {
+    // Separar por moeda
+    const brlDividas = dividasBancarias.filter(d => d.moeda === "BRL");
+    const usdDividas = dividasBancarias.filter(d => d.moeda === "USD");
+    
+    // Ordenar cada grupo por valor total (maior para menor)
+    const sortByTotal = (a: any, b: any) => {
+      const totalA = calculateTotal(a);
+      const totalB = calculateTotal(b);
+      return totalB - totalA; // Ordem decrescente
+    };
+    
+    brlDividas.sort(sortByTotal);
+    usdDividas.sort(sortByTotal);
+    
+    // Combinar: primeiro BRL, depois USD
+    return [...brlDividas, ...usdDividas];
+  }, [dividasBancarias, calculateTotal]);
+
+  // Paginação
+  const totalItems = sortedDividas.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDividas = sortedDividas.slice(startIndex, endIndex);
+
+  // Calcular totais gerais por moeda
+  const grandTotals = useMemo(() => {
+    const totalBRL = sortedDividas
+      .filter(d => d.moeda === "BRL")
+      .reduce((sum, divida) => sum + calculateTotal(divida), 0);
+    
+    const totalUSD = sortedDividas
+      .filter(d => d.moeda === "USD")
+      .reduce((sum, divida) => sum + calculateTotal(divida), 0);
+    
+    return { totalBRL, totalUSD };
+  }, [sortedDividas, calculateTotal]);
 
   if (error) {
     return (
@@ -223,8 +266,10 @@ export function DividasBancariasListing({
                     <TableRow>
                       <TableHead className="w-[40px]"></TableHead>
                       <TableHead>Instituição Bancária</TableHead>
+                      <TableHead>Contrato</TableHead>
                       <TableHead>Modalidade</TableHead>
-                      <TableHead>Ano</TableHead>
+                      <TableHead>Periodicidade</TableHead>
+                      <TableHead>Parcelas</TableHead>
                       <TableHead>Indexador</TableHead>
                       <TableHead>Taxa Real</TableHead>
                       <TableHead>Moeda</TableHead>
@@ -233,8 +278,31 @@ export function DividasBancariasListing({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedDividas.map((divida) => (
+                    {/* Cabeçalho de grupo para primeira moeda se houver dados */}
+                    {paginatedDividas.length > 0 && paginatedDividas[0].moeda === "BRL" && (
+                      <TableRow>
+                        <TableCell colSpan={11} className="bg-muted/30 py-2 text-center font-semibold text-sm">
+                          — Dívidas em Real (BRL) —
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    
+                    {paginatedDividas.map((divida, index) => {
+                      // Verificar se deve mostrar separador de moeda
+                      const prevDivida = index > 0 ? paginatedDividas[index - 1] : null;
+                      const showCurrencySeparator = prevDivida && prevDivida.moeda !== divida.moeda;
+                      
+                      return (
                       <React.Fragment key={divida.id}>
+                        {/* Linha separadora entre moedas */}
+                        {showCurrencySeparator && (
+                          <TableRow>
+                            <TableCell colSpan={11} className="bg-muted/30 py-2 text-center font-semibold text-sm">
+                              — {divida.moeda === "USD" ? "Dívidas em Dólar (USD)" : `Dívidas em ${divida.moeda}`} —
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        
                         <TableRow className="cursor-pointer hover:bg-muted/50">
                           <TableCell>
                             <Button
@@ -258,6 +326,11 @@ export function DividasBancariasListing({
                             </div>
                           </TableCell>
                           <TableCell>
+                            <span className="text-sm font-mono">
+                              {divida.numero_contrato || "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
                             <Badge
                               variant={
                                 divida.modalidade === "CUSTEIO"
@@ -268,7 +341,26 @@ export function DividasBancariasListing({
                               {divida.modalidade}
                             </Badge>
                           </TableCell>
-                          <TableCell>{divida.ano_contratacao || "-"}</TableCell>
+                          <TableCell>
+                            {divida.periodicidade ? (
+                              <Badge 
+                                variant={divida.periodicidade === "IRREGULAR" ? "destructive" : "outline"}
+                                className="text-xs"
+                              >
+                                {divida.periodicidade === "MENSAL" ? "Mensal" :
+                                 divida.periodicidade === "BIMESTRAL" ? "Bimestral" :
+                                 divida.periodicidade === "TRIMESTRAL" ? "Trimestral" :
+                                 divida.periodicidade === "QUADRIMESTRAL" ? "Quadrimestral" :
+                                 divida.periodicidade === "SEMESTRAL" ? "Semestral" :
+                                 divida.periodicidade === "ANUAL" ? "Anual" :
+                                 divida.periodicidade === "IRREGULAR" ? "Irregular" : 
+                                 divida.periodicidade}
+                              </Badge>
+                            ) : "-"}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {divida.quantidade_parcelas || "-"}
+                          </TableCell>
                           <TableCell>
                             <span className="text-sm">{divida.indexador}</span>
                           </TableCell>
@@ -301,7 +393,7 @@ export function DividasBancariasListing({
 
                         {divida.isExpanded && (
                           <TableRow>
-                            <TableCell colSpan={9} className="bg-muted/20 p-0">
+                            <TableCell colSpan={11} className="bg-muted/20 p-0">
                               <DividasBancariasSafraDetail
                                 divida={divida}
                                 organizacaoId={organization.id}
@@ -311,7 +403,35 @@ export function DividasBancariasListing({
                           </TableRow>
                         )}
                       </React.Fragment>
-                    ))}
+                    );
+                    })}
+                    
+                    {/* Linha de totalização */}
+                    {dividasBancarias.length > 0 && (
+                      <TableRow className="bg-muted/50 font-bold border-t-2">
+                        <TableCell colSpan={9} className="text-right font-bold">
+                          TOTAL GERAL
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          <div className="space-y-0.5">
+                            {grandTotals.totalBRL > 0 && (
+                              <div className="text-sm">{formatGenericCurrency(grandTotals.totalBRL, "BRL")}</div>
+                            )}
+                            {grandTotals.totalUSD > 0 && (
+                              <div className="text-sm">
+                                {formatGenericCurrency(grandTotals.totalUSD, "USD")} = {formatGenericCurrency(grandTotals.totalUSD * 5.7, "BRL")}
+                              </div>
+                            )}
+                            {(grandTotals.totalBRL > 0 || grandTotals.totalUSD > 0) && (
+                              <div className="pt-0.5 border-t text-sm text-primary">
+                                Total: {formatGenericCurrency(grandTotals.totalBRL + (grandTotals.totalUSD * 5.7), "BRL")}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -334,7 +454,7 @@ export function DividasBancariasListing({
 
       {/* Modais */}
       <DividasBancariasForm
-        open={isAddModalOpen || !!editingDivida}
+        open={isAddModalOpen}
         onOpenChange={(open) => {
           setIsAddModalOpen(open);
           if (!open) setEditingDivida(null);

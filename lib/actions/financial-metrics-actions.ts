@@ -32,6 +32,9 @@ export interface FinancialMetrics {
     dividaEbitda: number;           // Dívida total / EBITDA
     dividaLiquidaReceita: number;   // Dívida líquida / Receita
     dividaLiquidaEbitda: number;    // Dívida líquida / EBITDA
+    liquidezCorrente: number;       // Ativos circulantes / Passivos circulantes
+    ltv: number;                    // Loan to Value
+    ltvLiquido: number;             // LTV Líquido
   };
   receita: number;
   ebitda: number;
@@ -285,6 +288,39 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
       prazoMedioAnterior = prazoMedioAtual;
     }
 
+    // Calcular indicadores adicionais
+    // 1. Índice de Liquidez (Caixa / Dívida Total)
+    const caixasDisponibilidades = debtPosition.indicadores.caixas_disponibilidades?.[safraAtual] || 0;
+    const dividaTotalAtual = dividaBancariaValor + outrosPassivosValor;
+    const liquidezCorrente = dividaTotalAtual > 0 ? caixasDisponibilidades / dividaTotalAtual : 0;
+    
+    // 2. LTV (Loan to Value) - Dívida de Terras / Valor das Propriedades
+    const ltvBruto = debtPosition.indicadores.ltv?.[safraAtual] || 0;
+    const ltv = ltvBruto / 100; // Converter percentual para decimal
+    
+    // 3. LTV Líquido - Ajustado pelo caixa disponível
+    let ltvLiquido = 0;
+    let dividaTerras = 0;
+    
+    // Encontrar dívida de terras
+    debtPosition.dividas.forEach(divida => {
+      if (divida.categoria === "TERRAS") {
+        dividaTerras = divida.valores_por_ano[safraAtual] || 0;
+      }
+    });
+    
+    // Calcular LTV Líquido
+    if (ltv > 0 && dividaTerras > 0) {
+      // Derivar valor das propriedades do LTV: Valor = Dívida / LTV (assumindo LTV como decimal)
+      const valorPropriedades = dividaTerras / ltv;
+      // Calcular dívida de terras líquida (após caixa) como percentual do valor das propriedades
+      const dividaTerrasLiquida = Math.max(0, dividaTerras - caixasDisponibilidades);
+      ltvLiquido = valorPropriedades > 0 ? (dividaTerrasLiquida / valorPropriedades) : 0;
+    } else if (ltv > 0) {
+      // Se temos LTV mas não encontramos dividaTerras, usar cálculo simplificado
+      ltvLiquido = Math.max(0, ltv - (caixasDisponibilidades > 0 ? 0.05 : 0));
+    }
+
     return {
       dividaBancaria: {
         valorAtual: dividaBancariaValor,
@@ -310,7 +346,10 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
         dividaReceita,
         dividaEbitda,
         dividaLiquidaReceita,
-        dividaLiquidaEbitda
+        dividaLiquidaEbitda,
+        liquidezCorrente,
+        ltv: ltvBruto, // Manter valor original em percentual
+        ltvLiquido: ltvLiquido * 100 // Converter de volta para percentual
       },
       receita,
       ebitda
@@ -344,7 +383,10 @@ export async function getFinancialMetrics(organizationId: string, selectedYear?:
         dividaReceita: 0,
         dividaEbitda: 0,
         dividaLiquidaReceita: 0,
-        dividaLiquidaEbitda: 0
+        dividaLiquidaEbitda: 0,
+        liquidezCorrente: 0,
+        ltv: 0,
+        ltvLiquido: 0
       },
       receita: 0,
       ebitda: 0

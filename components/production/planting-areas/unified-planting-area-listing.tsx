@@ -238,7 +238,7 @@ export function UnifiedPlantingAreaListing({
                       <td className="p-3 border-r">
                         <Badge 
                           variant={area.propriedade_id ? "default" : "secondary"} 
-                          className="text-xs font-medium"
+                          className="text-xs font-medium whitespace-nowrap"
                         >
                           {area.propriedades?.nome || "Todas as Propriedades"}
                         </Badge>

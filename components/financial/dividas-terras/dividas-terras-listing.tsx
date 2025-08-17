@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, MapPin, MoreHorizontal, Edit2Icon, Trash2 } from "lucide-react";
+import { Plus, MapPin, MoreHorizontal, Edit2Icon, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import React from "react";
 import { DividasTerrasForm } from "./dividas-terras-form";
 import { Badge } from "@/components/ui/badge";
 import { CardHeaderPrimary } from "@/components/organization/common/data-display/card-header-primary";
@@ -68,24 +69,37 @@ export function DividasTerrasListing({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [expandedFazendas, setExpandedFazendas] = useState<Set<string>>(new Set());
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   
-  // Ordenar os dados: primeiro por nome da fazenda, depois por ano (decrescente)
-  const sortedLandPlans = [...landPlans].sort((a, b) => {
-    // Primeiro, ordenar por nome da fazenda
-    const fazendaCompare = a.nome_fazenda.localeCompare(b.nome_fazenda);
-    if (fazendaCompare !== 0) return fazendaCompare;
-    
-    // Se a fazenda for a mesma, ordenar por ano (mais recente primeiro)
-    return b.ano - a.ano;
-  });
+  // Agrupar dívidas por fazenda
+  const groupedByFazenda = useMemo(() => {
+    const groups = landPlans.reduce((acc, plan) => {
+      const fazenda = plan.nome_fazenda;
+      if (!acc[fazenda]) {
+        acc[fazenda] = [];
+      }
+      acc[fazenda].push(plan);
+      return acc;
+    }, {} as Record<string, LandAcquisition[]>);
 
-  const totalPages = Math.ceil((sortedLandPlans || []).length / itemsPerPage);
+    // Ordenar cada grupo por ano (mais recente primeiro)
+    Object.keys(groups).forEach(fazenda => {
+      groups[fazenda].sort((a, b) => b.ano - a.ano);
+    });
+
+    return groups;
+  }, [landPlans]);
+
+  // Ordenar fazendas por nome
+  const sortedFazendas = Object.keys(groupedByFazenda).sort();
+
+  const totalPages = Math.ceil(sortedFazendas.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedItems = sortedLandPlans.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedFazendas = sortedFazendas.slice(startIndex, startIndex + itemsPerPage);
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -94,6 +108,16 @@ export function DividasTerrasListing({
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
+  };
+
+  const toggleFazendaExpansion = (fazenda: string) => {
+    const newExpanded = new Set(expandedFazendas);
+    if (newExpanded.has(fazenda)) {
+      newExpanded.delete(fazenda);
+    } else {
+      newExpanded.add(fazenda);
+    }
+    setExpandedFazendas(newExpanded);
   };
 
   // Função para recarregar os dados do banco
@@ -153,18 +177,26 @@ export function DividasTerrasListing({
     }
   };
 
-  const totalValue = Array.isArray(sortedLandPlans) ? sortedLandPlans.reduce(
-    (total, landPlan) => total + landPlan.valor_total,
-    0
-  ) : 0;
-  const totalHectares = Array.isArray(sortedLandPlans) ? sortedLandPlans.reduce(
-    (total, landPlan) => total + landPlan.hectares,
-    0
-  ) : 0;
-  const totalSacas = Array.isArray(sortedLandPlans) ? sortedLandPlans.reduce(
-    (total, landPlan) => total + (landPlan.total_sacas || 0),
-    0
-  ) : 0;
+  // Calcular totais por fazenda
+  const calculateFazendaTotals = (fazenda: string) => {
+    const plans = groupedByFazenda[fazenda] || [];
+    return {
+      totalValue: plans.reduce((sum, plan) => sum + plan.valor_total, 0),
+      totalHectares: plans.reduce((sum, plan) => sum + plan.hectares, 0),
+      totalSacas: plans.reduce((sum, plan) => sum + (plan.total_sacas || 0), 0),
+      count: plans.length
+    };
+  };
+
+  // Calcular totais gerais
+  const grandTotals = useMemo(() => {
+    return {
+      totalValue: landPlans.reduce((sum, plan) => sum + plan.valor_total, 0),
+      totalHectares: landPlans.reduce((sum, plan) => sum + plan.hectares, 0),
+      totalSacas: landPlans.reduce((sum, plan) => sum + (plan.total_sacas || 0), 0),
+      count: landPlans.length
+    };
+  }, [landPlans]);
 
 
   return (
@@ -208,71 +240,142 @@ export function DividasTerrasListing({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary hover:bg-primary">
-                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md">Tipo</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground rounded-tl-md w-[40px]"></TableHead>
                     <TableHead className="font-semibold text-primary-foreground">Fazenda</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Ano</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Hectares</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Total Sacas</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground">Valor Total</TableHead>
-                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right">Quantidade</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right">Hectares</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right">Total Sacas</TableHead>
+                    <TableHead className="font-semibold text-primary-foreground text-right rounded-tr-md">Valor Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedItems.map((landPlan) => (
-                  <TableRow key={landPlan.id}>
-                    <TableCell>
-                      <Badge>
-                        <div className="flex items-center gap-1">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              (landPlan.tipo as string) === "REALIZADO"
-                                ? "bg-green-500"
-                                : "bg-blue-500"
-                            }`}
-                          />
-                          {(landPlan.tipo as string) === "REALIZADO" ? "Realizado" : "Planejado"}
-                        </div>
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{landPlan.nome_fazenda}</TableCell>
-                    <TableCell>{landPlan.ano}</TableCell>
-                    <TableCell>{landPlan.hectares.toLocaleString()} ha</TableCell>
-                    <TableCell>{(landPlan.total_sacas || 0).toLocaleString()} sacas</TableCell>
-                    <TableCell className="font-medium">
-                      {formatCurrency(landPlan.valor_total)}
-                    </TableCell>
+                  {paginatedFazendas.map((fazenda) => {
+                    const totals = calculateFazendaTotals(fazenda);
+                    const isExpanded = expandedFazendas.has(fazenda);
+                    const plans = groupedByFazenda[fazenda] || [];
+                    
+                    return (
+                      <React.Fragment key={fazenda}>
+                        {/* Linha agregada da fazenda */}
+                        <TableRow className="cursor-pointer hover:bg-muted/50 font-medium">
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleFazendaExpansion(fazenda)}
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              {fazenda}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">{totals.count}</TableCell>
+                          <TableCell className="text-right">{totals.totalHectares.toLocaleString()} ha</TableCell>
+                          <TableCell className="text-right">{totals.totalSacas.toLocaleString()} sacas</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(totals.totalValue)}
+                          </TableCell>
+                        </TableRow>
+                        
+                        {/* Linhas detalhadas quando expandido */}
+                        {isExpanded && plans.map((landPlan) => (
+                          <TableRow key={landPlan.id} className="bg-muted/20">
+                            <TableCell></TableCell>
+                            <TableCell colSpan={5}>
+                              <div className="pl-4">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="font-semibold">Tipo</TableHead>
+                                      <TableHead className="font-semibold">Ano</TableHead>
+                                      <TableHead className="font-semibold text-right">Hectares</TableHead>
+                                      <TableHead className="font-semibold text-right">Total Sacas</TableHead>
+                                      <TableHead className="font-semibold text-right">Valor Total</TableHead>
+                                      <TableHead className="font-semibold text-right w-[100px]">Ações</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    <TableRow>
+                                      <TableCell>
+                                        <Badge>
+                                          <div className="flex items-center gap-1">
+                                            <div
+                                              className={`w-2 h-2 rounded-full ${
+                                                (landPlan.tipo as string) === "REALIZADO"
+                                                  ? "bg-green-500"
+                                                  : "bg-blue-500"
+                                              }`}
+                                            />
+                                            {(landPlan.tipo as string) === "REALIZADO" ? "Realizado" : "Planejado"}
+                                          </div>
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>{landPlan.ano}</TableCell>
+                                      <TableCell className="text-right">{landPlan.hectares.toLocaleString()} ha</TableCell>
+                                      <TableCell className="text-right">{(landPlan.total_sacas || 0).toLocaleString()} sacas</TableCell>
+                                      <TableCell className="text-right font-medium">
+                                        {formatCurrency(landPlan.valor_total)}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                              <span className="sr-only">Abrir menu</span>
+                                              <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end">
+                                            <DropdownMenuItem
+                                              onClick={() => {
+                                                setEditingLandPlan(landPlan);
+                                                setIsEditModalOpen(true);
+                                              }}
+                                            >
+                                              <Edit2Icon className="mr-2 h-4 w-4" />
+                                              Editar
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                              onClick={() => landPlan.id && handleDelete(landPlan.id)}
+                                              className="text-destructive"
+                                              disabled={deletingItemId === landPlan.id}
+                                            >
+                                              <Trash2 className="mr-2 h-4 w-4" />
+                                              {deletingItemId === landPlan.id ? "Excluindo..." : "Excluir"}
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </TableCell>
+                                    </TableRow>
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </React.Fragment>
+                    );
+                  })}
+                  
+                  {/* Linha de totalizacao */}
+                  <TableRow className="bg-muted/50 font-bold border-t-2">
+                    <TableCell></TableCell>
+                    <TableCell className="font-bold">TOTAL GERAL</TableCell>
+                    <TableCell className="text-right">{grandTotals.count}</TableCell>
+                    <TableCell className="text-right">{grandTotals.totalHectares.toLocaleString()} ha</TableCell>
+                    <TableCell className="text-right">{grandTotals.totalSacas.toLocaleString()} sacas</TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Abrir menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setEditingLandPlan(landPlan);
-                              setIsEditModalOpen(true);
-                            }}
-                          >
-                            <Edit2Icon className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => landPlan.id && handleDelete(landPlan.id)}
-                            className="text-destructive"
-                            disabled={deletingItemId === landPlan.id}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {deletingItemId === landPlan.id ? "Excluindo..." : "Excluir"}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {formatCurrency(grandTotals.totalValue)}
                     </TableCell>
                   </TableRow>
-                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -281,7 +384,7 @@ export function DividasTerrasListing({
             <FinancialPagination
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={(landPlans || []).length}
+              totalItems={sortedFazendas.length}
               itemsPerPage={itemsPerPage}
               onPageChange={handlePageChange}
               onItemsPerPageChange={handleItemsPerPageChange}

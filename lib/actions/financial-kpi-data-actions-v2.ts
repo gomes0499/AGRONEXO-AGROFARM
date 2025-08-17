@@ -62,6 +62,9 @@ export interface FinancialMetrics {
     dividaEbitda: number;
     dividaLiquidaReceita: number;
     dividaLiquidaEbitda: number;
+    liquidezCorrente: number;
+    ltv: number;
+    ltvLiquido: number;
   };
   receita: number;
   ebitda: number;
@@ -152,12 +155,76 @@ export async function getFinancialKpiDataV2(
         const safraName = currentSafra.nome; // e.g., "2025/26"
         
 
+        // Debug available data for this safra
+        console.log(`DEBUG: Checking data for safra ${safraName}:`, {
+          indicadores_keys: Object.keys(debtPosition.indicadores),
+          caixas_disponibilidades_available: !!debtPosition.indicadores.caixas_disponibilidades,
+          ltv_available: !!debtPosition.indicadores.ltv,
+          caixas_keys: debtPosition.indicadores.caixas_disponibilidades ? Object.keys(debtPosition.indicadores.caixas_disponibilidades) : [],
+          ltv_keys: debtPosition.indicadores.ltv ? Object.keys(debtPosition.indicadores.ltv) : [],
+          safra_requested: safraName,
+        });
+
         // Get values for current safra
-        const dividaTotalAtual = debtPosition.indicadores.endividamento_total[safraName] || 0;
-        const caixaAtual = debtPosition.indicadores.caixas_disponibilidades[safraName] || 0;
-        const dividaLiquidaAtual = debtPosition.indicadores.divida_liquida[safraName] || 0;
-        const receitaAtual = debtPosition.indicadores.receita_ano_safra[safraName] || 0;
-        const ebitdaAtual = debtPosition.indicadores.ebitda_ano_safra[safraName] || 0;
+        const dividaTotalAtual = debtPosition.indicadores.endividamento_total?.[safraName] || 0;
+        const caixaAtual = debtPosition.indicadores.caixas_disponibilidades?.[safraName] || 0;
+        const dividaLiquidaAtual = debtPosition.indicadores.divida_liquida?.[safraName] || 0;
+        const receitaAtual = debtPosition.indicadores.receita_ano_safra?.[safraName] || 0;
+        const ebitdaAtual = debtPosition.indicadores.ebitda_ano_safra?.[safraName] || 0;
+        
+        // Get LTV and liquidity metrics with safe defaults - SAME LOGIC AS RATING SYSTEM
+        const ltv = Number(debtPosition.indicadores.ltv?.[safraName] || 0); // Already in percentage (0-100)
+        const caixasDisponibilidades = Number(debtPosition.indicadores.caixas_disponibilidades?.[safraName] || 0);
+        const ativoBiologico = Number(debtPosition.indicadores.ativo_biologico?.[safraName] || 0);
+        
+        // Calculate LIQUIDEZ_CORRENTE - EXACT SAME LOGIC AS RATING SYSTEM
+        // Ativos circulantes incluem: caixas_disponibilidades + ativo biológico
+        // Passivos circulantes = dívida total (simplified)
+        const ativosCirculantes = caixasDisponibilidades + ativoBiologico;
+        const passivosCirculantes = dividaTotalAtual;
+        
+        let liquidezCorrente = 0;
+        if (passivosCirculantes > 0) {
+          liquidezCorrente = ativosCirculantes / passivosCirculantes;
+        } else if (ativosCirculantes > 0) {
+          // Se há ativos mas não há passivos, liquidez é extremamente alta
+          liquidezCorrente = 999.99;
+        } else {
+          // Sem ativos nem passivos
+          liquidezCorrente = 0;
+        }
+        
+        // Calculate LTV Líquido (Net LTV) - LTV adjusted for available cash
+        // This is a custom calculation not in rating system, but follows similar logic
+        const dividaTerras = debtPosition.dividas?.filter(d => d.categoria === "TERRAS")
+          ?.reduce((sum, d) => sum + Number(d.valores_por_ano?.[safraName] || 0), 0) || 0;
+        
+        // Debug LTV calculations
+        console.log(`DEBUG LTV for safra ${safraName}:`, {
+          ltv,
+          dividaTerras,
+          caixasDisponibilidades,
+          debtPositionLTV: debtPosition.indicadores.ltv,
+          allLTVBySafra: debtPosition.indicadores.ltv,
+          dividasTerrasData: debtPosition.dividas?.filter(d => d.categoria === "TERRAS")?.map(d => ({
+            categoria: d.categoria,
+            valores: d.valores_por_ano
+          }))
+        });
+        
+        // Calculate net LTV: If we have land debt and LTV > 0, adjust for cash
+        let ltvLiquido = 0;
+        if (ltv > 0 && dividaTerras > 0) {
+          // Derive property value from LTV: Value = Debt / (LTV/100)
+          const valorPropriedades = dividaTerras / (ltv / 100);
+          // Calculate net land debt (after cash) as percentage of property value
+          const dividaTerrasLiquida = Math.max(0, dividaTerras - caixasDisponibilidades);
+          ltvLiquido = valorPropriedades > 0 ? (dividaTerrasLiquida / valorPropriedades) * 100 : 0;
+        } else if (ltv > 0) {
+          // If we have LTV but no dividaTerras found, use a simplified calculation
+          // LTV Líquido = LTV - (cash impact on LTV)
+          ltvLiquido = Math.max(0, ltv - 5); // Simplified approach - reduce LTV by small amount for cash impact
+        }
         
         // Get calculated indicators from debt position
         const indicadoresCalculados = debtPosition.indicadores.indicadores_calculados;
@@ -236,10 +303,13 @@ export async function getFinancialKpiDataV2(
             diferenca: prazoMedioAtual - prazoMedioAnterior,
           },
           indicadores: {
-            dividaReceita,
-            dividaEbitda,
-            dividaLiquidaReceita,
-            dividaLiquidaEbitda,
+            dividaReceita: Number(dividaReceita || 0),
+            dividaEbitda: Number(dividaEbitda || 0),
+            dividaLiquidaReceita: Number(dividaLiquidaReceita || 0),
+            dividaLiquidaEbitda: Number(dividaLiquidaEbitda || 0),
+            liquidezCorrente: Number(liquidezCorrente || 0),
+            ltv: Number(ltv || 0),
+            ltvLiquido: Number(ltvLiquido || 0),
           },
           receita: receitaAtual,
           ebitda: ebitdaAtual,
@@ -275,6 +345,9 @@ export async function getFinancialKpiDataV2(
             dividaEbitda: 0,
             dividaLiquidaReceita: 0,
             dividaLiquidaEbitda: 0,
+            liquidezCorrente: 0,
+            ltv: 0,
+            ltvLiquido: 0,
           },
           receita: 0,
           ebitda: 0,

@@ -37,8 +37,6 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { MetricHistoryChartModal } from "./metric-history-chart-modal";
-import type { MetricType } from "@/lib/actions/production-historical-stats-actions";
 import {
   Select,
   SelectContent,
@@ -71,8 +69,6 @@ interface KpiItemProps {
   icon: React.ReactNode;
   loading?: boolean;
   tooltip?: string;
-  onClick?: () => void;
-  clickable?: boolean;
 }
 
 function KpiItem({
@@ -83,16 +79,10 @@ function KpiItem({
   icon,
   loading,
   tooltip,
-  onClick,
-  clickable = false,
 }: KpiItemProps) {
   return (
     <div
-      className={cn(
-        "flex items-start p-5 transition-colors",
-        clickable && "cursor-pointer hover:bg-muted/50 active:bg-muted"
-      )}
-      onClick={onClick}
+      className="flex items-start p-5 transition-colors"
     >
       <div className={`rounded-full p-2 mr-3 bg-primary`}>{icon}</div>
       <div className="flex-1">
@@ -101,16 +91,6 @@ function KpiItem({
             {title}
           </p>
           <div className="flex items-center gap-1">
-            {clickable && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TrendingUpIcon className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="bg-background dark:bg-gray-800 border dark:border-gray-700 dark:text-white">
-                  <p>Clique para ver evolução histórica</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
             {tooltip && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -199,8 +179,6 @@ export function ProductionKPICardsClient({
   defaultCultureIds,
 }: ProductionKpiCardsProps) {
   const [stats, setStats] = useState<any>(initialStats);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedMetric, setSelectedMetric] = useState<MetricType>("area");
   // Definir safra padrão como 2025/26
   const defaultSafraId = safras?.find(s => s.nome === "2025/26")?.id || safraId || "";
   const [selectedSafraId, setSelectedSafraId] = useState<string>(defaultSafraId);
@@ -252,11 +230,6 @@ export function ProductionKPICardsClient({
       });
     }
   }, [projectionId]); // Executar quando projectionId mudar
-
-  const handleMetricClick = (metricType: MetricType) => {
-    setSelectedMetric(metricType);
-    setModalOpen(true);
-  };
 
   const handleSafraChange = (value: string) => {
     setSelectedSafraId(value);
@@ -541,7 +514,7 @@ export function ProductionKPICardsClient({
           <CardContent>
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-              {/* Loading state for all 4 KPIs */}
+              {/* Loading state for 3 KPIs */}
               <div className="relative">
                 <KpiItem
                   title="Área Plantada"
@@ -550,18 +523,6 @@ export function ProductionKPICardsClient({
                   isPositive={true}
                   loading={true}
                   icon={<Sprout className="h-5 w-5 text-white dark:text-white" />}
-                />
-                <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-              </div>
-
-              <div className="relative">
-                <KpiItem
-                  title="Produtividade"
-                  value="0 sc/ha"
-                  change="0% YoY"
-                  isPositive={true}
-                  loading={true}
-                  icon={<Target className="h-5 w-5 text-white dark:text-white" />}
                 />
                 <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
               </div>
@@ -580,15 +541,29 @@ export function ProductionKPICardsClient({
                 <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
               </div>
 
-              <div>
+              <div className="relative">
                 <KpiItem
                   title="EBITDA"
                   value="R$ 0"
-                  change="0% margem"
+                  change="0% YoY"
                   isPositive={true}
                   loading={true}
                   icon={
                     <BarChart3 className="h-5 w-5 text-white dark:text-white" />
+                  }
+                />
+                <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
+              </div>
+
+              <div>
+                <KpiItem
+                  title="Margem EBITDA"
+                  value="0.0%"
+                  change="Base"
+                  isPositive={true}
+                  loading={true}
+                  icon={
+                    <Target className="h-5 w-5 text-white dark:text-white" />
                   }
                 />
               </div>
@@ -616,37 +591,6 @@ export function ProductionKPICardsClient({
                   }
                   icon={<Sprout className="h-5 w-5 text-white dark:text-white" />}
                   tooltip={`Área total destinada ao plantio de culturas agrícolas em hectares.${currentScenario ? ` Cenário: ${currentScenario.scenarioName}` : ""}`}
-                  clickable={true}
-                  onClick={() => handleMetricClick("area")}
-                />
-                <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-              </div>
-
-              {/* Produtividade */}
-              <div className="relative">
-                <KpiItem
-                  title={`Produtividade${currentScenario ? " (Projetada)" : ""}`}
-                  value={`${((
-                    currentScenario && selectedSafraId
-                      ? getProjectedValue(selectedSafraId, '', '', 'productivity', statsToUse.produtividadeMedia)
-                      : statsToUse.produtividadeMedia
-                  ) || 0).toFixed(1)} sc/ha`}
-                  change={
-                    statsToUse.temComparacao
-                      ? `${statsToUse.crescimentoProdutividade >= 0 ? '+' : ''}${statsToUse.crescimentoProdutividade.toFixed(1)}% YoY`
-                      : "Sem comparação"
-                  }
-                  isPositive={
-                    currentScenario
-                      ? getProjectedValue(selectedSafraId, '', '', 'productivity', statsToUse.produtividadeMedia) >= statsToUse.produtividadeMedia
-                      : statsToUse.temComparacao
-                      ? statsToUse.crescimentoProdutividade >= 0
-                      : true
-                  }
-                  icon={<Target className="h-5 w-5 text-white dark:text-white" />}
-                  tooltip={`Produtividade média das culturas em sacas por hectare.${currentScenario ? ` Cenário: ${currentScenario.scenarioName}` : ""}`}
-                  clickable={true}
-                  onClick={() => handleMetricClick("produtividade")}
                 />
                 <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
               </div>
@@ -674,14 +618,12 @@ export function ProductionKPICardsClient({
                     <DollarSign className="h-5 w-5 text-white dark:text-white" />
                   }
                   tooltip={`Receita operacional bruta estimada com base na produção e preços de mercado.${currentScenario ? ` Cenário: ${currentScenario.scenarioName}` : ""}`}
-                  clickable={true}
-                  onClick={() => handleMetricClick("receita")}
                 />
                 <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
               </div>
 
               {/* EBITDA */}
-              <div>
+              <div className="relative">
                 <KpiItem
                   title={`EBITDA${currentScenario ? " (Projetado)" : ""}`}
                   value={formatCurrency(
@@ -689,7 +631,29 @@ export function ProductionKPICardsClient({
                       ? getProjectedValue(selectedSafraId, '', '', 'production_cost_per_hectare', statsToUse.ebitda)
                       : statsToUse.ebitda
                   )}
-                  change={(() => {
+                  change={
+                    statsToUse.temComparacao && statsToUse.crescimentoEbitda !== undefined
+                      ? `${statsToUse.crescimentoEbitda >= 0 ? '+' : ''}${statsToUse.crescimentoEbitda.toFixed(1)}% YoY`
+                      : "Sem comparação"
+                  }
+                  isPositive={
+                    currentScenario
+                      ? getProjectedValue(selectedSafraId, '', '', 'production_cost_per_hectare', statsToUse.ebitda) >= statsToUse.ebitda
+                      : statsToUse.temComparacao && statsToUse.crescimentoEbitda !== undefined ? statsToUse.crescimentoEbitda >= 0 : true
+                  }
+                  icon={
+                    <BarChart3 className="h-5 w-5 text-white dark:text-white" />
+                  }
+                  tooltip={`Resultado operacional antes de juros, impostos, depreciação e amortização.${currentScenario ? ` Cenário: ${currentScenario.scenarioName}` : ""}`}
+                />
+                <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
+              </div>
+
+              {/* Margem EBITDA */}
+              <div>
+                <KpiItem
+                  title={`Margem EBITDA${currentScenario ? " (Projetada)" : ""}`}
+                  value={(() => {
                     let margem = 0;
                     if (currentScenario && selectedSafraId) {
                       const receitaProjetada = getProjectedValue(selectedSafraId, '', '', 'price_per_unit', statsToUse.receita);
@@ -698,8 +662,13 @@ export function ProductionKPICardsClient({
                     } else {
                       margem = statsToUse.margemEbitda || 0;
                     }
-                    return `${margem.toFixed(1)}% margem`;
+                    return `${margem.toFixed(1)}%`;
                   })()}
+                  change={
+                    statsToUse.temComparacao && statsToUse.safraComparada
+                      ? `vs ${statsToUse.safraComparada}`
+                      : "Base"
+                  }
                   isPositive={(() => {
                     if (currentScenario && selectedSafraId) {
                       const receitaProjetada = getProjectedValue(selectedSafraId, '', '', 'price_per_unit', statsToUse.receita);
@@ -709,44 +678,16 @@ export function ProductionKPICardsClient({
                     return statsToUse.margemEbitda > 30;
                   })()}
                   icon={
-                    <BarChart3 className="h-5 w-5 text-white dark:text-white" />
+                    <Target className="h-5 w-5 text-white dark:text-white" />
                   }
-                  tooltip={`Resultado operacional antes de juros, impostos, depreciação e amortização.${currentScenario ? ` Cenário: ${currentScenario.scenarioName}` : ""}`}
-                  clickable={true}
-                  onClick={() => handleMetricClick("ebitda")}
+                  tooltip={`Margem EBITDA sobre a receita total. Meta ideal: > 30%.${currentScenario ? ` Cenário: ${currentScenario.scenarioName}` : ""}`}
                 />
               </div>
             </div>
           )}
           </CardContent>
-          
-          {/* Footer com insights */}
-          <CardFooter>
-            <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {currentScenario 
-                  ? `Cenário ativo: ${currentScenario.scenarioName}. Os valores projetados são baseados nas configurações do cenário.`
-                  : statsToUse.temComparacao 
-                    ? `Comparação com ${statsToUse.safraComparada}. Crescimento geral de ${formatPercentage(statsToUse.crescimentoReceita)}.`
-                    : "Adicione mais safras para habilitar comparações de crescimento ano a ano."
-                }
-              </p>
-            </div>
-          </CardFooter>
         </Card>
       </TooltipProvider>
-
-      {/* Modal com gráfico histórico */}
-      <MetricHistoryChartModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        metricType={selectedMetric}
-        organizationId={organizationId}
-        propertyIds={propertyIds}
-        cultureIds={selectedCultureIds}
-        projectionId={projectionId}
-      />
     </>
   );
 }

@@ -19,6 +19,8 @@ interface BasicInfoStepProps {
   logoUrl: string | null;
   onLogoSuccess: (url: string) => void;
   onLogoRemove: () => void;
+  organizationId?: string;
+  isEditMode?: boolean;
 }
 
 export function BasicInfoStep({
@@ -27,6 +29,8 @@ export function BasicInfoStep({
   logoUrl,
   onLogoSuccess,
   onLogoRemove,
+  organizationId,
+  isEditMode = false,
 }: BasicInfoStepProps) {
   return (
     <div className="space-y-6">
@@ -35,6 +39,8 @@ export function BasicInfoStep({
         logoUrl={logoUrl}
         onSuccess={onLogoSuccess}
         onRemove={onLogoRemove}
+        organizationId={organizationId}
+        isEditMode={isEditMode}
       />
 
       <div className="grid gap-4 grid-cols-1">

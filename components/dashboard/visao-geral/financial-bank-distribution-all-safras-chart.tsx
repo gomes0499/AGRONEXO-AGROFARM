@@ -121,10 +121,10 @@ export function FinancialBankDistributionAllSafrasChart({
               </div>
               <div>
                 <CardTitle className="text-white">
-                  Endividamento por Banco (Consolidado)
+                  Endividamento por Banco (Consolidado) - R$ milhões
                 </CardTitle>
                 <CardDescription className="text-white/80">
-                  Distribuição das dívidas bancárias por instituição
+                  Top 8 bancos + outros - Ranking por valor de dívida
                 </CardDescription>
               </div>
             </div>
@@ -162,7 +162,7 @@ export function FinancialBankDistributionAllSafrasChart({
             </div>
             <div>
               <CardTitle className="text-white">
-                Endividamento por Banco (Consolidado)
+                Endividamento por Banco (Consolidado) - R$ milhões
                 {isPending && " (Atualizando...)"}
               </CardTitle>
               <CardDescription className="text-white/80">
@@ -203,7 +203,7 @@ export function FinancialBankDistributionAllSafrasChart({
                   fontSize={12}
                   width={40}
                   tick={{ fill: "var(--foreground)" }}
-                  tickFormatter={(value) => formatCurrency(value, 0)}
+                  tickFormatter={(value) => (value/1000000).toFixed(0)}
                 />
                 <ChartTooltip
                   content={<CustomTooltip />}
@@ -221,8 +221,8 @@ export function FinancialBankDistributionAllSafrasChart({
                   <LabelList
                     dataKey="valor"
                     position="top"
-                    formatter={(value: number) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : value >= 1000 ? `${(value/1000).toFixed(1)}K` : value.toFixed(0)}
-                    fill="var(--color-valor)"
+                    formatter={(value: number) => (value/1000000).toFixed(1)}
+                    fill="var(--foreground)"
                     fontSize={11}
                     fontWeight="600"
                     offset={8}

@@ -1095,7 +1095,7 @@ export class HtmlPdfReportGenerator {
           </div>
           <div class="kpi-card">
             <div class="kpi-label">LTV (Loan to Value)</div>
-            <div class="kpi-value">${((ltvData.ltvRatio || 0) * 100).toFixed(1)}%</div>
+            <div class="kpi-value">${(ltvData.ltvRatio || 0).toFixed(2)}</div>
             <div class="kpi-variation ${(ltvData.ltvRatio || 0) < 0.6 ? 'positive' : (ltvData.ltvRatio || 0) < 0.8 ? 'neutral' : 'negative'}">
               ${(ltvData.ltvRatio || 0) < 0.6 ? 'Baixo Risco' : (ltvData.ltvRatio || 0) < 0.8 ? 'Risco Moderado' : 'Alto Risco'}
             </div>
@@ -1133,8 +1133,8 @@ export class HtmlPdfReportGenerator {
             <tbody>
               <tr>
                 <td>Dívida/Patrimônio</td>
-                <td class="text-right">${((ltvData.ltvRatio || 0) * 100).toFixed(1)}%</td>
-                <td class="text-right">< 60%</td>
+                <td class="text-right">${(ltvData.ltvRatio || 0).toFixed(2)}</td>
+                <td class="text-right">< 0.60</td>
                 <td class="${(ltvData.ltvRatio || 0) < 0.6 ? 'positive' : 'negative'}">${(ltvData.ltvRatio || 0) < 0.6 ? 'Adequado' : 'Atenção'}</td>
               </tr>
               <tr>

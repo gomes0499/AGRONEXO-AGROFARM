@@ -122,6 +122,7 @@ export function CashFlowSummary({ data, selectedYear, onYearChange }: CashFlowSu
         { label: "Terras", value: data.investimentos?.terras?.[currentYear] || 0 },
         { label: "Maquinários", value: data.investimentos?.maquinarios?.[currentYear] || 0 },
         { label: "Outros", value: data.investimentos?.outros?.[currentYear] || 0 },
+        { label: "(-) Vendas de Ativos", value: -(data.investimentos?.vendas_ativos?.[currentYear] || 0) },
       ],
     },
   ];

@@ -350,8 +350,13 @@ export async function getTotalLiabilitiesChartData(
       });
     }
 
+    // Filtrar apenas safras que têm algum valor de dívida (total > 0)
+    const resultadoFiltrado = resultado.filter(item => 
+      item.total > 0 || item.liquido > 0 || item.bancos_tradings > 0 || item.outros > 0
+    );
+    
     // Como já buscamos em ordem crescente, as safras mais antigas já estarão à esquerda
-    return { data: resultado, safraName: safraAtualNome };
+    return { data: resultadoFiltrado, safraName: safraAtualNome };
   } catch (error) {
     console.error("Erro ao buscar dados de passivos totais:", error);
     return { data: [] };

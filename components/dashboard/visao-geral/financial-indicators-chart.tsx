@@ -59,6 +59,18 @@ export function FinancialIndicatorsChartClient({
       label: "Dívida/Lucro Líquido",
       color: colors.color3,
     },
+    ltv: {
+      label: "LTV",
+      color: colors.color4,
+    },
+    ltvLiquido: {
+      label: "LTV Líquido",
+      color: colors.color5,
+    },
+    liquidezCorrente: {
+      label: "Liquidez Corrente",
+      color: colors.color6,
+    },
   } satisfies ChartConfig), [colors]);
 
   // Calcular tendências
@@ -66,7 +78,10 @@ export function FinancialIndicatorsChartClient({
     if (initialData.length < 2) return {
       dividaReceita: "0.0",
       dividaEbitda: "0.0", 
-      dividaLucroLiquido: "0.0"
+      dividaLucroLiquido: "0.0",
+      ltv: "0.0",
+      ltvLiquido: "0.0",
+      liquidezCorrente: "0.0"
     };
 
     const primeiro = initialData[0];
@@ -80,7 +95,10 @@ export function FinancialIndicatorsChartClient({
     return {
       dividaReceita: calcularVariacao(primeiro.dividaReceita, ultimo.dividaReceita),
       dividaEbitda: calcularVariacao(primeiro.dividaEbitda, ultimo.dividaEbitda),
-      dividaLucroLiquido: calcularVariacao(primeiro.dividaLucroLiquido, ultimo.dividaLucroLiquido)
+      dividaLucroLiquido: calcularVariacao(primeiro.dividaLucroLiquido, ultimo.dividaLucroLiquido),
+      ltv: calcularVariacao(primeiro.ltv, ultimo.ltv),
+      ltvLiquido: calcularVariacao(primeiro.ltvLiquido, ultimo.ltvLiquido),
+      liquidezCorrente: calcularVariacao(primeiro.liquidezCorrente, ultimo.liquidezCorrente)
     };
   };
 
@@ -203,9 +221,12 @@ export function FinancialIndicatorsChartClient({
                     </div>
                   }
                   formatter={(value, name) => [
-                    `${Number(value).toFixed(2)}x`,
+                    name === 'ltv' || name === 'ltvLiquido' ? 
+                      `${Number(value).toFixed(3)}` : 
+                      `${Number(value).toFixed(2)}x`,
                     name && typeof name === 'string' && 
-                      (name === 'dividaReceita' || name === 'dividaEbitda' || name === 'dividaLucroLiquido') ?
+                      (name === 'dividaReceita' || name === 'dividaEbitda' || name === 'dividaLucroLiquido' || 
+                       name === 'ltv' || name === 'ltvLiquido' || name === 'liquidezCorrente') ?
                       chartConfig[name as keyof typeof chartConfig].label : String(name),
                   ]}
                   labelFormatter={(label) => `Ano: ${label}`}
@@ -261,6 +282,36 @@ export function FinancialIndicatorsChartClient({
                   name="Dívida/Lucro Líquido"
                   connectNulls={false}
                 />
+                <Line
+                  type="monotone"
+                  dataKey="ltv"
+                  stroke={chartConfig.ltv.color}
+                  strokeWidth={2}
+                  dot={{ fill: chartConfig.ltv.color, strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                  name="LTV"
+                  connectNulls={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="ltvLiquido"
+                  stroke={chartConfig.ltvLiquido.color}
+                  strokeWidth={2}
+                  dot={{ fill: chartConfig.ltvLiquido.color, strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                  name="LTV Líquido"
+                  connectNulls={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="liquidezCorrente"
+                  stroke={chartConfig.liquidezCorrente.color}
+                  strokeWidth={2}
+                  dot={{ fill: chartConfig.liquidezCorrente.color, strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                  name="Liquidez Corrente"
+                  connectNulls={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </ChartContainer>
@@ -301,7 +352,8 @@ export function FinancialIndicatorsChartClient({
         
         <div className="flex gap-2 font-medium leading-none pt-2 border-t border-muted-foreground/20 dark:border-gray-700 w-full dark:text-white">
           Tendência predominante: 
-          {(Number(tendencias.dividaReceita) + Number(tendencias.dividaEbitda) + Number(tendencias.dividaLucroLiquido)) / 3 >= 0 ? (
+          {(Number(tendencias.dividaReceita) + Number(tendencias.dividaEbitda) + Number(tendencias.dividaLucroLiquido) + 
+            Number(tendencias.ltv) + Number(tendencias.ltvLiquido) - Number(tendencias.liquidezCorrente)) / 5 >= 0 ? (
             <>
               {" "}crescimento dos indicadores <TrendingUp className="h-4 w-4 text-red-500 dark:text-red-400" />
             </>

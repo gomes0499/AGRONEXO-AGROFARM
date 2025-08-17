@@ -12,14 +12,14 @@ export interface ChartColors {
 }
 
 export const DEFAULT_CHART_COLORS: ChartColors = {
-  primary: "#10b981",
-  secondary: "#3b82f6",
-  tertiary: "#f59e0b",
-  quaternary: "#ef4444",
-  quinary: "#8b5cf6",
-  senary: "#ec4899",
-  septenary: "#14b8a6",
-  octonary: "#f97316",
-  nonary: "#6366f1",
-  denary: "#84cc16",
+  primary: "#17134F",     // Azul escuro principal
+  secondary: "#5046C1",    // Roxo médio
+  tertiary: "#8678E9",     // Lavanda
+  quaternary: "#BCAAFF",   // Lavanda claro
+  quinary: "#2A2475",      // Azul escuro alternativo
+  senary: "#3D359B",       // Azul médio
+  septenary: "#6B5FD5",    // Roxo claro
+  octonary: "#A191FD",     // Lavanda médio
+  nonary: "#D7C3FF",       // Lavanda muito claro
+  denary: "#F2DCFF",       // Lavanda extremamente claro
 };

@@ -284,7 +284,7 @@ export class RatingPDFReportService {
         },
         {
           name: "Endividamento Bancário Líquido/Patrimônio (LTV)",
-          value: `${data.metrics.ltv.value.toFixed(2)}%`,
+          value: `${data.metrics.ltv.value.toFixed(2)}`,
           contribution: data.metrics.ltv.contribution,
           maxPoints: data.metrics.ltv.maxPoints,
           percentage: data.metrics.ltv.contribution / data.metrics.ltv.maxPoints,

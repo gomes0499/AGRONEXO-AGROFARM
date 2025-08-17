@@ -7,7 +7,9 @@ import { BuildingIcon,
   FileSpreadsheet,
   Download,
   Eye,
-  Sparkles
+  Sparkles,
+  Calculator,
+  Warehouse
 } from "lucide-react";
 import { LayoutDashboardIcon } from "lucide-react";
 
@@ -35,14 +37,19 @@ export const data = {
       icon: LandmarkIcon,
     },
     {
+      title: "Armazenagem",
+      url: "/dashboard/storage",
+      icon: Warehouse,
+    },
+    {
       title: "Financeiro",
       url: "/dashboard/financial",
       icon: WalletIcon,
     },
     {
-      title: "Indicadores",
-      url: "/dashboard/indicators",
-      icon: GaugeIcon,
+      title: "Premissas",
+      url: "/dashboard/premises",
+      icon: Calculator,
     },
   ],
   navSecondary: [

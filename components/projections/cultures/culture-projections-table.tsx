@@ -30,6 +30,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Função para converter safra para ano (2024/25 -> 2025)
+function safraToYear(safra: string): string {
+  const match = safra.match(/(\d{4})\/(\d{2})/);
+  if (match) {
+    const yearStart = parseInt(match[1]);
+    const yearEnd = parseInt(match[2]);
+    // Se o ano final for menor que 50, assumimos que é 20XX, senão 19XX
+    const fullYearEnd = yearEnd < 50 ? 2000 + yearEnd : 1900 + yearEnd;
+    return fullYearEnd.toString();
+  }
+  return safra; // Retorna original se não for no formato esperado
+}
+
 interface CultureProjectionsTableProps {
   organizationId: string;
   initialCultureProjections: ConsolidatedCultureProjections;
@@ -59,9 +72,8 @@ export function CultureProjectionsTable({ organizationId, initialCultureProjecti
   };
 
   const formatCurrency = (value: number) => {
+    if (value === 0) return '-';
     return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -101,7 +113,10 @@ export function CultureProjectionsTable({ organizationId, initialCultureProjecti
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary dark:bg-primary/90 dark:hover:bg-primary/90">
                   <TableHead className="font-medium text-primary-foreground min-w-[200px] w-[200px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
-                    {projection.section_title}
+                    <div>
+                      <div>{projection.section_title}</div>
+                      <div className="text-xs font-normal opacity-90">Valores em R$</div>
+                    </div>
                   </TableHead>
                   <TableHead className="font-medium text-primary-foreground text-center min-w-[100px] w-[100px] whitespace-nowrap">
                     Unidade
@@ -114,7 +129,7 @@ export function CultureProjectionsTable({ organizationId, initialCultureProjecti
                         anoIndex === anosFiltrados.length - 1 && "rounded-tr-md"
                       )}
                     >
-                      {ano}
+                      {safraToYear(ano)}
                     </TableHead>
                   ))}
                 </TableRow>

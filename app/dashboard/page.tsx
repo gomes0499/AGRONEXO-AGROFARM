@@ -1,10 +1,10 @@
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { createClient } from "@/lib/supabase/server";
 import { verifyUserPermission } from "@/lib/auth/verify-permissions";
-import { ProjectionSelector } from "@/components/production/projections/projection-selector";
-import { NewProjectionButton } from "@/components/production/projections/new-projection-button";
+import { DashboardHeaderContent } from "@/components/dashboard/dashboard-header-content";
 import { NewOrganizationButton } from "@/components/organization/organization/new-button";
 import { fetchDashboardData } from "@/lib/actions/dashboard/dashboard-actions";
+import { getCashPolicyConfig } from "@/lib/actions/financial-actions/cash-policy-actions";
 
 export default async function DashboardPage({
   searchParams,
@@ -105,9 +105,11 @@ export default async function DashboardPage({
 
   // Buscar TODOS os dados do dashboard se organizationId está disponível
   let dashboardData = null;
+  let cashPolicy = null;
   if (organizationId) {
     try {
       dashboardData = await fetchDashboardData(organizationId, projectionId);
+      cashPolicy = await getCashPolicyConfig(organizationId);
     } catch (error) {
       console.error("Erro ao carregar dados do dashboard:", error);
     }
@@ -159,13 +161,10 @@ export default async function DashboardPage({
         title={`Dashboard - ${organizationName}`} 
         rightContent={
           organizationId ? (
-            <div className="flex items-center gap-2">
-              <ProjectionSelector 
-                currentProjectionId={projectionId} 
-                organizationId={organizationId}
-              />
-              <NewProjectionButton />
-            </div>
+            <DashboardHeaderContent 
+              organizationId={organizationId}
+              projectionId={projectionId}
+            />
           ) : undefined
         }
       />
@@ -176,6 +175,7 @@ export default async function DashboardPage({
         projectionId={projectionId}
         initialData={dashboardData}
         isSuperAdmin={isSuperAdmin}
+        cashPolicy={cashPolicy}
       />
     </div>
   );

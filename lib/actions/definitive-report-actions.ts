@@ -142,18 +142,27 @@ export async function generateDefinitiveReport(organizationId: string, projectio
           if (areaValue > 0) {
             // Normalizar nome da cultura - remover "IRRIGADO" ou "SEQUEIRO" do nome se estiver junto
             let culturaNome = area.culturas?.nome || "OUTRA";
+            const cicloNome = area.ciclos?.nome || "";
             
             // Se tiver IRRIGADO ou SEQUEIRO no nome da cultura, mover para o sistema
             if (culturaNome.includes("IRRIGADO") || culturaNome.includes("SEQUEIRO")) {
               culturaNome = culturaNome.replace(/\s*(IRRIGADO|SEQUEIRO)\s*/g, "").trim();
             }
             
-            // Casos especiais de normalização
-            if (culturaNome === "MILHO SAFRINHA" || culturaNome === "MILHO/SAFRINHA") {
-              culturaNome = "MILHO";
+            // Incluir ciclo no nome para distinguir 1ª e 2ª safra
+            let chaveCompleta = culturaNome;
+            if (cicloNome) {
+              // Padronizar formato do ciclo
+              let cicloFormatado = cicloNome;
+              if (cicloNome.toLowerCase().includes('1') || cicloNome.toLowerCase().includes('primeira')) {
+                cicloFormatado = '1ª Safra';
+              } else if (cicloNome.toLowerCase().includes('2') || cicloNome.toLowerCase().includes('segunda') || cicloNome.toLowerCase().includes('safrinha')) {
+                cicloFormatado = '2ª Safra';
+              }
+              chaveCompleta = `${culturaNome} - ${cicloFormatado}`;
             }
             
-            safraData.culturas[culturaNome] = (safraData.culturas[culturaNome] || 0) + areaValue;
+            safraData.culturas[chaveCompleta] = (safraData.culturas[chaveCompleta] || 0) + areaValue;
             safraData.total += areaValue;
           }
         });
@@ -1035,18 +1044,27 @@ export async function generateHtmlPdfReport(organizationId: string, projectionId
           if (areaValue > 0) {
             // Normalizar nome da cultura - remover "IRRIGADO" ou "SEQUEIRO" do nome se estiver junto
             let culturaNome = area.culturas?.nome || "OUTRA";
+            const cicloNome = area.ciclos?.nome || "";
             
             // Se tiver IRRIGADO ou SEQUEIRO no nome da cultura, mover para o sistema
             if (culturaNome.includes("IRRIGADO") || culturaNome.includes("SEQUEIRO")) {
               culturaNome = culturaNome.replace(/\s*(IRRIGADO|SEQUEIRO)\s*/g, "").trim();
             }
             
-            // Casos especiais de normalização
-            if (culturaNome === "MILHO SAFRINHA" || culturaNome === "MILHO/SAFRINHA") {
-              culturaNome = "MILHO";
+            // Incluir ciclo no nome para distinguir 1ª e 2ª safra
+            let chaveCompleta = culturaNome;
+            if (cicloNome) {
+              // Padronizar formato do ciclo
+              let cicloFormatado = cicloNome;
+              if (cicloNome.toLowerCase().includes('1') || cicloNome.toLowerCase().includes('primeira')) {
+                cicloFormatado = '1ª Safra';
+              } else if (cicloNome.toLowerCase().includes('2') || cicloNome.toLowerCase().includes('segunda') || cicloNome.toLowerCase().includes('safrinha')) {
+                cicloFormatado = '2ª Safra';
+              }
+              chaveCompleta = `${culturaNome} - ${cicloFormatado}`;
             }
             
-            safraData.culturas[culturaNome] = (safraData.culturas[culturaNome] || 0) + areaValue;
+            safraData.culturas[chaveCompleta] = (safraData.culturas[chaveCompleta] || 0) + areaValue;
             safraData.total += areaValue;
           }
         });

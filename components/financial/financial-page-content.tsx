@@ -13,7 +13,6 @@ import { DividasBancariasListing } from "./dividas-bancarias/dividas-bancarias-l
 import { DividasTerrasListing } from "./dividas-terras/dividas-terras-listing";
 import { DividasFornecedoresListing } from "./dividas-fornecedores/dividas-fornecedores-listing";
 import { CaixaDisponibilidadesListing } from "./caixa-disponibilidades/caixa-disponibilidades-listing";
-import { FinanceirasListing } from "./financeiras/financeiras-listing";
 import { OutrasDespesasListing } from "./outras-despesas/outras-despesas-listing";
 import { ReceitasFinanceirasListing } from "./receitas-financeiras/receitas-financeiras-listing";
 import { MobileTabs } from "@/components/ui/mobile-tabs";
@@ -28,25 +27,25 @@ interface FinancialPageContentProps {
   dividasTerras: any[];
   dividasFornecedores: any[];
   caixaDisponibilidades: any[];
-  financeiras: any[];
   outrasDespesasWithTotal: any[];
   receitasFinanceiras: any[];
   safras: any[];
   organizationId: string;
 }
 
-export function FinancialPageContent({
-  organization,
-  dividasBancarias,
-  dividasTerras,
-  dividasFornecedores,
-  caixaDisponibilidades,
-  financeiras,
-  outrasDespesasWithTotal,
-  receitasFinanceiras,
-  safras,
-  organizationId,
-}: FinancialPageContentProps) {
+export function FinancialPageContent(props: FinancialPageContentProps) {
+  const {
+    organization,
+    dividasBancarias,
+    dividasTerras,
+    dividasFornecedores,
+    caixaDisponibilidades,
+    outrasDespesasWithTotal,
+    receitasFinanceiras,
+    safras,
+    organizationId,
+  } = props;
+  
   const isMobile = useIsMobile();
 
   const tabs = [
@@ -95,18 +94,6 @@ export function FinancialPageContent({
         <CaixaDisponibilidadesListing
           organization={organization}
           initialItems={caixaDisponibilidades}
-          safras={safras}
-        />
-      ),
-    },
-    {
-      value: "financeiras",
-      label: isMobile ? "Operações" : "Operações Financeiras",
-      icon: TrendingUp,
-      content: (
-        <FinanceirasListing
-          organization={organization}
-          initialFinanceiras={financeiras}
           safras={safras}
         />
       ),
@@ -176,9 +163,6 @@ export function FinancialPageContent({
               <TabsTriggerPrimary value="caixa-disponibilidades">
                 Caixa e Disponibilidades
               </TabsTriggerPrimary>
-              <TabsTriggerPrimary value="financeiras">
-                Operações Financeiras
-              </TabsTriggerPrimary>
               <TabsTriggerPrimary value="outras-despesas">
                 Outras Despesas
               </TabsTriggerPrimary>
@@ -238,13 +222,6 @@ export function FinancialPageContent({
               />
             </TabsContent>
 
-            <TabsContent value="financeiras" className="space-y-4">
-              <FinanceirasListing
-                organization={organization}
-                initialFinanceiras={financeiras}
-                safras={safras}
-              />
-            </TabsContent>
 
             <TabsContent value="outras-despesas" className="space-y-4">
               <OutrasDespesasListing

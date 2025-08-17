@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { fetchAllMarketData } from "@/lib/services/market-data-service";
+import { fetchYahooFinanceQuotes, formatQuoteValue } from "@/lib/services/yahoo-finance-service";
 
 // Definição dos tipos para os dados financeiros
 interface TickerItem {
@@ -44,10 +45,19 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
       try {
         setLoading(true);
 
-        // 1. Buscar dados de todas as APIs integradas (moedas, taxas e commodities)
-        const apiMarketData = await fetchAllMarketData();
+        // 1. Primeiro tentar buscar dados do Yahoo Finance
+        let yahooData: any[] = [];
+        try {
+          yahooData = await fetchYahooFinanceQuotes();
+          console.log("Dados do Yahoo Finance recebidos:", yahooData.length, "itens");
+        } catch (e) {
+          console.error("Erro ao buscar dados do Yahoo Finance:", e);
+        }
+
+        // 2. Buscar dados de todas as APIs integradas (moedas, taxas e commodities) como fallback
+        const apiMarketData = yahooData.length > 0 ? yahooData : await fetchAllMarketData();
         
-        // 2. Buscar dados de moedas da Awesome API como fallback
+        // 3. Buscar dados de moedas da Awesome API como último fallback
         let currencyData: Record<string, any> = {};
         if (!apiMarketData.some(item => item.code === "USD")) {
           try {
@@ -187,9 +197,9 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
       }
     };
 
-    // Buscar dados imediatamente e depois a cada 1 hora
+    // Buscar dados imediatamente e depois a cada 5 minutos para Yahoo Finance
     fetchMarketData();
-    const interval = setInterval(fetchMarketData, 3600000); // 1 hora (60 * 60 * 1000)
+    const interval = setInterval(fetchMarketData, 5 * 60 * 1000); // 5 minutos
 
     return () => clearInterval(interval);
   }, [commercialPrices]);
@@ -220,7 +230,8 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           position: relative;
           overflow: hidden;
           height: 2.5rem;
-          background-color: hsl(var(--primary));
+          background-color: #000000;
+          border-bottom: 1px solid #1a1a1a;
         }
 
         .market-ticker-wrapper {
@@ -237,7 +248,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           position: absolute;
           height: 100%;
           display: inline-flex;
-          animation: marketTickerScroll 60s linear infinite;
+          animation: marketTickerScroll 80s linear infinite;
           will-change: transform;
         }
 
@@ -254,10 +265,10 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           display: flex;
           align-items: center;
           height: 100%;
-          padding: 0 0.75rem;
-          border-right: 1px solid hsl(var(--primary-foreground) / 0.2);
+          padding: 0 1.5rem;
           white-space: nowrap;
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         .market-ticker-divider {
@@ -266,7 +277,7 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           top: 0;
           bottom: 0;
           width: 1px;
-          background-color: hsl(var(--primary-foreground) / 0.2);
+          background-color: #1a1a1a;
           z-index: 10;
         }
 
@@ -275,45 +286,52 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
           right: 0;
           top: 0;
           bottom: 0;
-          width: 50px;
+          width: 60px;
           background: linear-gradient(
             to right,
             transparent,
-            hsl(var(--primary))
+            #000000
           );
           z-index: 5;
+          pointer-events: none;
         }
 
         .market-ticker-prefix {
-          color: hsl(var(--primary-foreground) / 0.8);
-          margin-right: 0.5rem;
+          color: #9ca3af;
+          margin-right: 0.75rem;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.025em;
+          font-weight: 500;
         }
 
         .market-ticker-value {
           font-weight: 600;
-          margin-right: 0.25rem;
-          color: hsl(var(--primary-foreground));
+          margin-right: 0.5rem;
+          color: #ffffff;
+          font-size: 0.8125rem;
         }
 
         .market-ticker-variation {
           font-size: 0.75rem;
-          font-weight: 500;
+          font-weight: 600;
+          padding: 0.125rem 0.375rem;
+          border-radius: 0.25rem;
         }
 
         .market-value-positive {
-          color: hsl(142 76% 70%); /* Verde mais claro para contraste com primary */
+          color: #10b981;
+          background-color: rgba(16, 185, 129, 0.1);
         }
 
         .market-value-negative {
-          color: hsl(0 84% 70%); /* Vermelho mais claro para contraste com primary */
+          color: #ef4444;
+          background-color: rgba(239, 68, 68, 0.1);
         }
 
-        html.dark .market-value-positive {
-          color: hsl(142 76% 70%);
-        }
-
-        html.dark .market-value-negative {
-          color: hsl(0 84% 70%);
+        .market-value-neutral {
+          color: #6b7280;
+          background-color: rgba(107, 114, 128, 0.1);
         }
       `}</style>
 
@@ -327,24 +345,40 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
                 item.value,
                 item.previousValue
               );
-              const isPositive = variation >= 0;
-              const variationClassName = isPositive
+              const isPositive = variation > 0;
+              const isNeutral = variation === 0;
+              const variationClassName = isNeutral 
+                ? "market-value-neutral"
+                : isPositive
                 ? "market-value-positive"
                 : "market-value-negative";
-              const valueWithUnit =
-                item.unit === "R$"
-                  ? `R$ ${item.value.toFixed(2)}`
-                  : item.unit === "% a.a."
-                  ? `${item.value.toFixed(2)}% a.a.`
-                  : `${item.value.toFixed(2)} ${item.unit}`;
+              
+              // Formatação específica para cada tipo
+              let displayValue = "";
+              if (item.unit === "R$") {
+                displayValue = item.value.toFixed(4);
+              } else if (item.unit === "% a.a.") {
+                displayValue = `${item.value.toFixed(2)}%`;
+              } else if (item.unit === "pts") {
+                displayValue = item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+              } else if (item.unit === "R$/sc") {
+                displayValue = `${item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/sc`;
+              } else if (item.unit === "R$/@") {
+                displayValue = `${item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/@`;
+              } else if (item.unit === "¢/bu") {
+                displayValue = `${item.value.toFixed(2)} ¢/bu`;
+              } else if (item.unit === "¢/lb") {
+                displayValue = `${item.value.toFixed(2)} ¢/lb`;
+              } else {
+                displayValue = `${item.value.toFixed(2)} ${item.unit}`;
+              }
 
               return (
                 <div key={`${item.code}-${index}`} className="market-ticker-item">
                   <span className="market-ticker-prefix">{item.name}</span>
-                  <span className="market-ticker-value">{valueWithUnit}</span>
+                  <span className="market-ticker-value">{displayValue}</span>
                   <span className={`market-ticker-variation ${variationClassName}`}>
-                    {isPositive ? "+" : ""}
-                    {variation.toFixed(2)}%
+                    {isPositive ? "↑" : isNeutral ? "→" : "↓"} {Math.abs(variation).toFixed(2)}%
                   </span>
                 </div>
               );
@@ -356,24 +390,40 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
                 item.value,
                 item.previousValue
               );
-              const isPositive = variation >= 0;
-              const variationClassName = isPositive
+              const isPositive = variation > 0;
+              const isNeutral = variation === 0;
+              const variationClassName = isNeutral 
+                ? "market-value-neutral"
+                : isPositive
                 ? "market-value-positive"
                 : "market-value-negative";
-              const valueWithUnit =
-                item.unit === "R$"
-                  ? `R$ ${item.value.toFixed(2)}`
-                  : item.unit === "% a.a."
-                  ? `${item.value.toFixed(2)}% a.a.`
-                  : `${item.value.toFixed(2)} ${item.unit}`;
+              
+              // Formatação específica para cada tipo
+              let displayValue = "";
+              if (item.unit === "R$") {
+                displayValue = item.value.toFixed(4);
+              } else if (item.unit === "% a.a.") {
+                displayValue = `${item.value.toFixed(2)}%`;
+              } else if (item.unit === "pts") {
+                displayValue = item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+              } else if (item.unit === "R$/sc") {
+                displayValue = `${item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/sc`;
+              } else if (item.unit === "R$/@") {
+                displayValue = `${item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/@`;
+              } else if (item.unit === "¢/bu") {
+                displayValue = `${item.value.toFixed(2)} ¢/bu`;
+              } else if (item.unit === "¢/lb") {
+                displayValue = `${item.value.toFixed(2)} ¢/lb`;
+              } else {
+                displayValue = `${item.value.toFixed(2)} ${item.unit}`;
+              }
 
               return (
                 <div key={`${item.code}-dup-${index}`} className="market-ticker-item">
                   <span className="market-ticker-prefix">{item.name}</span>
-                  <span className="market-ticker-value">{valueWithUnit}</span>
+                  <span className="market-ticker-value">{displayValue}</span>
                   <span className={`market-ticker-variation ${variationClassName}`}>
-                    {isPositive ? "+" : ""}
-                    {variation.toFixed(2)}%
+                    {isPositive ? "↑" : isNeutral ? "→" : "↓"} {Math.abs(variation).toFixed(2)}%
                   </span>
                 </div>
               );
@@ -385,24 +435,40 @@ export function MarketTicker({ commercialPrices }: MarketTickerProps) {
                 item.value,
                 item.previousValue
               );
-              const isPositive = variation >= 0;
-              const variationClassName = isPositive
+              const isPositive = variation > 0;
+              const isNeutral = variation === 0;
+              const variationClassName = isNeutral 
+                ? "market-value-neutral"
+                : isPositive
                 ? "market-value-positive"
                 : "market-value-negative";
-              const valueWithUnit =
-                item.unit === "R$"
-                  ? `R$ ${item.value.toFixed(2)}`
-                  : item.unit === "% a.a."
-                  ? `${item.value.toFixed(2)}% a.a.`
-                  : `${item.value.toFixed(2)} ${item.unit}`;
+              
+              // Formatação específica para cada tipo
+              let displayValue = "";
+              if (item.unit === "R$") {
+                displayValue = item.value.toFixed(4);
+              } else if (item.unit === "% a.a.") {
+                displayValue = `${item.value.toFixed(2)}%`;
+              } else if (item.unit === "pts") {
+                displayValue = item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+              } else if (item.unit === "R$/sc") {
+                displayValue = `${item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/sc`;
+              } else if (item.unit === "R$/@") {
+                displayValue = `${item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/@`;
+              } else if (item.unit === "¢/bu") {
+                displayValue = `${item.value.toFixed(2)} ¢/bu`;
+              } else if (item.unit === "¢/lb") {
+                displayValue = `${item.value.toFixed(2)} ¢/lb`;
+              } else {
+                displayValue = `${item.value.toFixed(2)} ${item.unit}`;
+              }
 
               return (
                 <div key={`${item.code}-dup2-${index}`} className="market-ticker-item">
                   <span className="market-ticker-prefix">{item.name}</span>
-                  <span className="market-ticker-value">{valueWithUnit}</span>
+                  <span className="market-ticker-value">{displayValue}</span>
                   <span className={`market-ticker-variation ${variationClassName}`}>
-                    {isPositive ? "+" : ""}
-                    {variation.toFixed(2)}%
+                    {isPositive ? "↑" : isNeutral ? "→" : "↓"} {Math.abs(variation).toFixed(2)}%
                   </span>
                 </div>
               );

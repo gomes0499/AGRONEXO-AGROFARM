@@ -93,6 +93,8 @@ export function OrganizationFormContainer({
             logoUrl={logoUrl}
             onLogoSuccess={setLogoUrl}
             onLogoRemove={() => setLogoUrl(null)}
+            organizationId={organizationData?.id}
+            isEditMode={mode === "edit"}
           />
         );
       case 2:

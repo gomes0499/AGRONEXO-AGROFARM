@@ -299,20 +299,7 @@ export function UnifiedPricesListing({
       }
     }
     
-    // Para câmbios, buscar por ano_inicio da safra
-    const isExchangeRate = EXCHANGE_RATE_TYPES.includes(
-      price.commodity_type || ""
-    ) || price.tipo_moeda;
-    
-    if (isExchangeRate) {
-      const safra = displaySafras.find(s => s.id === safraId);
-      if (safra?.ano_inicio) {
-        const yearKey = safra.ano_inicio.toString();
-        return precosPorAno[yearKey] || 0;
-      }
-    }
-    
-    // Para commodities, usar o ID da safra
+    // Sempre usar o ID da safra como chave, tanto para commodities quanto para câmbios
     return precosPorAno[safraId] || 0;
   };
 

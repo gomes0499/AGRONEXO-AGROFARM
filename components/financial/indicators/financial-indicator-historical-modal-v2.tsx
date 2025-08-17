@@ -35,7 +35,10 @@ interface FinancialIndicatorHistoricalModalV2Props {
     | "divida_receita"
     | "divida_ebitda"
     | "divida_liquida_receita"
-    | "divida_liquida_ebitda";
+    | "divida_liquida_ebitda"
+    | "ltv"
+    | "ltv_liquido"
+    | "liquidez_corrente";
   indicatorTitle: string;
 }
 
@@ -130,20 +133,23 @@ export function FinancialIndicatorHistoricalModalV2({
   };
 
   const getUnit = () => {
-    if (
-      indicatorType === "divida_receita" ||
-      indicatorType === "divida_liquida_receita"
-    ) {
-      return "ratio";
+    if (indicatorType === "ltv" || indicatorType === "ltv_liquido") {
+      return "decimal";
     }
-    return "ratio"; // All indicators are ratios
+    return "ratio"; // All other indicators are ratios
   };
 
   const formatValue = (value: number): string => {
+    if (indicatorType === "ltv" || indicatorType === "ltv_liquido") {
+      return value.toFixed(3);
+    }
     return `${value.toFixed(2)}x`;
   };
 
   const formatYAxisValue = (value: number): string => {
+    if (indicatorType === "ltv" || indicatorType === "ltv_liquido") {
+      return value.toFixed(2);
+    }
     return value.toFixed(1);
   };
 
@@ -211,6 +217,43 @@ export function FinancialIndicatorHistoricalModalV2({
             <path d="M4 10v12"></path>
             <path d="M20 10v12"></path>
             <path d="M4 22h16"></path>
+          </svg>
+        );
+      case "ltv":
+      case "ltv_liquido":
+        return (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-white"
+          >
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        );
+      case "liquidez_corrente":
+        return (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-white"
+          >
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
           </svg>
         );
       default:

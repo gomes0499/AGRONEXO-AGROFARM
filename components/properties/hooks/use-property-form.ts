@@ -41,6 +41,8 @@ export function usePropertyForm({
       // Garantir que valores de data sejam Date ou null
       data_inicio: initialData.data_inicio ? new Date(initialData.data_inicio) : null,
       data_termino: initialData.data_termino ? new Date(initialData.data_termino) : null,
+      // Campo de armazenagem
+      possui_armazem: initialData.possui_armazem || false,
     } : {
       nome: "",
       proprietario: "",
@@ -60,6 +62,8 @@ export function usePropertyForm({
       data_inicio: undefined,
       data_termino: undefined,
       tipo_anuencia: "",
+      // Campo de armazenagem
+      possui_armazem: false,
     },
   }) as any;
 
@@ -89,6 +93,7 @@ export function usePropertyForm({
             data_inicio: property.data_inicio ? new Date(property.data_inicio) : undefined,
             data_termino: property.data_termino ? new Date(property.data_termino) : undefined,
             tipo_anuencia: property.tipo_anuencia || "",
+            possui_armazem: property.possui_armazem || false,
           });
 
           // Atualizar a imagem se existir

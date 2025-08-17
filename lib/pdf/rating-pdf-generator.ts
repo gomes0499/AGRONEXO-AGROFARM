@@ -128,7 +128,18 @@ export async function generateRatingPDF(calculation: any, organizationName: stri
           yPosition = margin;
         }
         
-        const metricText = `${metric.nome}: ${metric.valor?.toFixed(2) || 'N/A'}`;
+        // Format value based on metric type
+        let formattedValue = 'N/A';
+        if (metric.valor !== null && metric.valor !== undefined) {
+          // LTV already comes as decimal (e.g., 0.008 for 0.8%), just format with 2 decimals
+          if (metric.codigo === 'LTV' || metric.codigo === 'LTV_LIQUIDO') {
+            formattedValue = metric.valor.toFixed(2);
+          } else {
+            formattedValue = metric.valor.toFixed(2);
+          }
+        }
+        
+        const metricText = `${metric.nome}: ${formattedValue}`;
         const scoreText = `${metric.pontuacao} pts (peso ${metric.peso}%)`;
         
         doc.text(metricText, margin, yPosition);

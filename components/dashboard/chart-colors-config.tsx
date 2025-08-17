@@ -95,7 +95,7 @@ export function ChartColorsConfig() {
   const [open, setOpen] = useState(false);
   const [localColors, setLocalColors] = useState(colors);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedPalette, setSelectedPalette] = useState<string | null>(null);
+  const [selectedPalette, setSelectedPalette] = useState<string | null>("default");
 
   const colorLabels = {
     color1: "Cor 1 - Principal",
@@ -213,7 +213,18 @@ export function ChartColorsConfig() {
       open={open}
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (!isOpen) {
+        if (isOpen) {
+          // Ao abrir, sincronizar com as cores atuais
+          setLocalColors(colors);
+          // Verificar se as cores atuais correspondem a alguma paleta
+          const matchingPalette = Object.entries(colorPalettes).find(([key, palette]) => {
+            return Object.entries(palette.colors).every(([colorKey, colorValue]) => {
+              return colors[colorKey as keyof typeof colors] === colorValue;
+            });
+          });
+          setSelectedPalette(matchingPalette ? matchingPalette[0] : null);
+        } else {
+          // Ao fechar, resetar para as cores atuais
           setLocalColors(colors);
         }
       }}

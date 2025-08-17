@@ -53,7 +53,6 @@ export function FinancialPageClient({
       dividasTerras={initialData.dividasTerras || []}
       dividasFornecedores={initialData.dividasFornecedores || []}
       caixaDisponibilidades={initialData.caixaDisponibilidades || []}
-      financeiras={initialData.financeiras || []}
       outrasDespesasWithTotal={outrasDespesasWithTotal}
       receitasFinanceiras={initialData.receitasFinanceiras || []}
       safras={initialData.safras || []}

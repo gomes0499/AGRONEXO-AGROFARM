@@ -12,13 +12,19 @@ export type FinancialIndicatorHistoricalData = {
   dividaEbitda: number;
   dividaLiquidaReceita: number;
   dividaLiquidaEbitda: number;
+  ltv: number;
+  ltvLiquido: number;
+  liquidezCorrente: number;
 };
 
 type IndicatorType = 
   | "divida_receita" 
   | "divida_ebitda" 
   | "divida_liquida_receita" 
-  | "divida_liquida_ebitda";
+  | "divida_liquida_ebitda"
+  | "ltv"
+  | "ltv_liquido"
+  | "liquidez_corrente";
 
 async function _getFinancialIndicatorHistoricalData(
   organizationId: string,
@@ -43,6 +49,9 @@ async function _getFinancialIndicatorHistoricalData(
         dividaEbitda: indicadores.divida_ebitda[safraName] || 0,
         dividaLiquidaReceita: indicadores.divida_liquida_receita[safraName] || 0,
         dividaLiquidaEbitda: indicadores.divida_liquida_ebitda[safraName] || 0,
+        ltv: (debtPosition.indicadores.ltv?.[safraName] || 0) / 100, // Converter de percentual para decimal
+        ltvLiquido: (debtPosition.indicadores.ltv_liquido?.[safraName] || 0) / 100, // Converter de percentual para decimal
+        liquidezCorrente: debtPosition.indicadores.liquidez_corrente?.[safraName] || 0,
       };
     });
 
@@ -85,12 +94,26 @@ export async function getIndicatorChartData(
         value = item.dividaLiquidaEbitda;
         label = "Dívida Líquida/EBITDA";
         break;
+      case "ltv":
+        value = item.ltv;
+        label = "LTV";
+        break;
+      case "ltv_liquido":
+        value = item.ltvLiquido;
+        label = "LTV Líquido";
+        break;
+      case "liquidez_corrente":
+        value = item.liquidezCorrente;
+        label = "Índice de Liquidez Corrente";
+        break;
     }
     
     return {
       safra: item.safraName,
       year: item.year,
-      value: Number(value.toFixed(2)),
+      value: indicatorType === "ltv" || indicatorType === "ltv_liquido" 
+        ? Number(value.toFixed(3)) 
+        : Number(value.toFixed(2)),
       label,
     };
   });

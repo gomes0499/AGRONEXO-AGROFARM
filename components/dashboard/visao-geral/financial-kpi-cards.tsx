@@ -15,6 +15,7 @@ import {
   Info,
   Loader2,
   Calculator,
+  TrendingUpIcon,
 } from "lucide-react";
 import {
   Select,
@@ -44,7 +45,6 @@ import {
 } from "@/lib/utils/financial-indicators";
 import { getFinancialMetrics } from "@/lib/actions/financial-metrics-actions";
 import type { FinancialMetrics } from "@/lib/actions/financial-metrics-actions";
-import { FinancialIndicatorHistoricalModalV2 } from "@/components/financial/indicators/financial-indicator-historical-modal-v2";
 
 interface FinancialKpiCardsProps {
   organizationId: string;
@@ -62,12 +62,10 @@ interface KpiItemProps {
   icon: React.ReactNode;
   tooltip?: string;
   loading?: boolean;
-  onClick?: () => void;
-  isClickable?: boolean;
   thresholdInfo?: any;
 }
 
-function KpiItem({ title, value, change, changeType, icon, tooltip, loading, onClick, isClickable, thresholdInfo }: KpiItemProps) {
+function KpiItem({ title, value, change, changeType, icon, tooltip, loading, thresholdInfo }: KpiItemProps) {
   const getChangeColor = () => {
     switch (changeType) {
       case "positive":
@@ -92,11 +90,7 @@ function KpiItem({ title, value, change, changeType, icon, tooltip, loading, onC
 
   return (
     <div 
-      className={cn(
-        "flex items-start p-5 transition-colors",
-        isClickable && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-      )}
-      onClick={onClick}
+      className="flex items-start p-5 transition-colors"
     >
       <div className="rounded-full p-2 mr-3 bg-primary">
         {icon}
@@ -147,12 +141,12 @@ function KpiItem({ title, value, change, changeType, icon, tooltip, loading, onC
                    thresholdInfo.level}
                 </Badge>
               </div>
-            ) : (
+            ) : change && change !== "" ? (
               <p className={cn("flex items-center text-xs font-medium mt-1", getChangeColor())}>
                 {change !== "--" && getChangeIcon()}
                 {change}
               </p>
-            )}
+            ) : null}
           </>
         )}
       </div>
@@ -179,13 +173,6 @@ export function FinancialKpiCards({
   const selectedSafraId = externalSelectedSafraId !== undefined ? externalSelectedSafraId : internalSelectedSafraId;
   
   const [isPending, startTransition] = useTransition();
-  
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedIndicator, setSelectedIndicator] = useState<{
-    type: "divida_receita" | "divida_ebitda" | "divida_liquida_receita" | "divida_liquida_ebitda";
-    title: string;
-  } | null>(null);
 
   // Reload data when projectionId changes
   useEffect(() => {
@@ -264,19 +251,26 @@ export function FinancialKpiCards({
   const metrics = useMemo(() => {
     if (!data?.metrics || typeof data.metrics !== 'object') {
       return {
-        dividaBancaria: { value: "R$ 0", change: "0%", changeType: "neutral" as const, thresholdInfo: null },
-        outrosPassivos: { value: "R$ 0", change: "0%", changeType: "neutral" as const, thresholdInfo: null },
-        dividaLiquida: { value: "R$ 0", change: "0%", changeType: "neutral" as const, thresholdInfo: null },
-        prazoMedio: { value: "0 anos", change: "0 anos", changeType: "neutral" as const, thresholdInfo: null },
+        dividaBancaria: { value: "R$ 0", change: "", changeType: "neutral" as const, thresholdInfo: null },
+        outrosPassivos: { value: "R$ 0", change: "", changeType: "neutral" as const, thresholdInfo: null },
+        dividaTotal: { value: "R$ 0", change: "", changeType: "neutral" as const, thresholdInfo: null },
+        dividaLiquida: { value: "R$ 0", change: "", changeType: "neutral" as const, thresholdInfo: null },
+        prazoMedio: { value: "0 anos", change: "", changeType: "neutral" as const, thresholdInfo: null },
         dividaLiquidaEbitda: { value: "0.0x", change: "--", changeType: "neutral" as const, thresholdInfo: null },
         dividaEbitda: { value: "0.0x", change: "--", changeType: "neutral" as const, thresholdInfo: null },
         dividaReceita: { value: "0.0x", change: "--", changeType: "neutral" as const, thresholdInfo: null },
         dividaLiquidaReceita: { value: "0.0x", change: "--", changeType: "neutral" as const, thresholdInfo: null },
+        liquidezCorrente: { value: "0.0x", change: "--", changeType: "neutral" as const, thresholdInfo: null },
+        ltv: { value: "0.0%", change: "--", changeType: "neutral" as const, thresholdInfo: null },
+        ltvLiquido: { value: "0.0%", change: "--", changeType: "neutral" as const, thresholdInfo: null },
         indicadores: {
           dividaReceita: 0,
           dividaEbitda: 0,
           dividaLiquidaReceita: 0,
-          dividaLiquidaEbitda: 0
+          dividaLiquidaEbitda: 0,
+          liquidezCorrente: 0,
+          ltv: 0,
+          ltvLiquido: 0
         }
       };
     }
@@ -311,29 +305,39 @@ export function FinancialKpiCards({
       return { limiar1, limiar2 };
     };
 
+    // Calcular dívida total (bancária + outros passivos)
+    const dividaTotal = safeMetric(m.dividaBancaria, 'valorAtual') + safeMetric(m.outrosPassivos, 'valorAtual');
+    const dividaTotalMudanca = (safeMetric(m.dividaBancaria, 'percentualMudanca') + safeMetric(m.outrosPassivos, 'percentualMudanca')) / 2;
+
     const calculatedMetrics = {
       dividaBancaria: {
         value: formatMilhoes(safeMetric(m.dividaBancaria, 'valorAtual')),
-        change: `${safeMetric(m.dividaBancaria, 'percentualMudanca').toFixed(1)}%`,
-        changeType: getDividaChangeType(safeMetric(m.dividaBancaria, 'percentualMudanca')),
+        change: "",
+        changeType: "neutral" as const,
         thresholdInfo: null,
       },
       outrosPassivos: {
         value: formatMilhoes(safeMetric(m.outrosPassivos, 'valorAtual')),
-        change: `${safeMetric(m.outrosPassivos, 'percentualMudanca').toFixed(1)}%`,
-        changeType: getDividaChangeType(safeMetric(m.outrosPassivos, 'percentualMudanca')),
+        change: "",
+        changeType: "neutral" as const,
+        thresholdInfo: null,
+      },
+      dividaTotal: {
+        value: formatMilhoes(dividaTotal),
+        change: "",
+        changeType: "neutral" as const,
         thresholdInfo: null,
       },
       dividaLiquida: {
         value: formatMilhoes(safeMetric(m.dividaLiquida, 'valorAtual')),
-        change: `${safeMetric(m.dividaLiquida, 'percentualMudanca').toFixed(1)}%`,
-        changeType: getDividaChangeType(safeMetric(m.dividaLiquida, 'percentualMudanca')),
+        change: "",
+        changeType: "neutral" as const,
         thresholdInfo: null,
       },
       prazoMedio: {
         value: formatAnos(safeMetric(m.prazoMedio, 'valorAtual')),
-        change: `${safeMetric(m.prazoMedio, 'diferenca').toFixed(1)} anos`,
-        changeType: getDividaChangeType(safeMetric(m.prazoMedio, 'diferenca')),
+        change: "",
+        changeType: "neutral" as const,
         thresholdInfo: null,
       },
       dividaEbitda: {
@@ -378,6 +382,36 @@ export function FinancialKpiCards({
         ),
         thresholdInfo: getThresholdInfo(m.indicadores.dividaLiquidaReceita, 'DIVIDA_FATURAMENTO'),
       },
+      liquidezCorrente: {
+        value: formatRatio(m.indicadores.liquidezCorrente || 0),
+        change: "--",
+        changeType: getIndicatorChangeType(
+          m.indicadores.liquidezCorrente || 0,
+          getThresholds('LIQUIDEZ_CORRENTE').limiar1,
+          getThresholds('LIQUIDEZ_CORRENTE').limiar2
+        ),
+        thresholdInfo: getThresholdInfo(m.indicadores.liquidezCorrente || 0, 'LIQUIDEZ_CORRENTE'),
+      },
+      ltv: {
+        value: `${((m.indicadores.ltv || 0) / 100).toFixed(2)}`,
+        change: "--",
+        changeType: getIndicatorChangeType(
+          (m.indicadores.ltv || 0) / 100,
+          getThresholds('LTV').limiar1,
+          getThresholds('LTV').limiar2
+        ),
+        thresholdInfo: getThresholdInfo((m.indicadores.ltv || 0) / 100, 'LTV'),
+      },
+      ltvLiquido: {
+        value: `${((m.indicadores.ltvLiquido || 0) / 100).toFixed(2)}`,
+        change: "--",
+        changeType: getIndicatorChangeType(
+          (m.indicadores.ltvLiquido || 0) / 100,
+          getThresholds('LTV').limiar1,
+          getThresholds('LTV').limiar2
+        ),
+        thresholdInfo: getThresholdInfo((m.indicadores.ltvLiquido || 0) / 100, 'LTV'),
+      },
       indicadores: m.indicadores
     };
 
@@ -419,8 +453,8 @@ export function FinancialKpiCards({
             </div>
           </CardHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-            {/* Loading state for all 8 KPIs */}
-            {Array.from({ length: 8 }).map((_, index) => (
+            {/* Loading state for all 12 KPIs */}
+            {Array.from({ length: 12 }).map((_, index) => (
               <div key={index} className="relative">
                 <KpiItem
                   title="Carregando..."
@@ -430,7 +464,7 @@ export function FinancialKpiCards({
                   loading={true}
                   icon={<Loader2 className="h-5 w-5 text-white animate-spin" />}
                 />
-                {index < 7 && (
+                {index < 11 && (
                   <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
                 )}
               </div>
@@ -518,6 +552,19 @@ export function FinancialKpiCards({
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
           </div>
 
+          {/* Dívida Total */}
+          <div className="relative">
+            <KpiItem
+              title="Dívida Total"
+              value={metrics.dividaTotal.value}
+              change={metrics.dividaTotal.change}
+              changeType={metrics.dividaTotal.changeType}
+              icon={<TrendingUpIcon className="h-5 w-5 text-white" />}
+              tooltip="Soma da dívida bancária com outros passivos"
+            />
+            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
+          </div>
+
           {/* Dívida Líquida */}
           <div className="relative">
             <KpiItem
@@ -530,7 +577,10 @@ export function FinancialKpiCards({
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
           </div>
+        </div>
 
+        {/* Segunda linha de indicadores */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
           {/* Prazo Médio */}
           <div className="relative">
             <KpiItem
@@ -552,12 +602,7 @@ export function FinancialKpiCards({
               change={metrics.dividaLiquidaEbitda.change}
               changeType={metrics.dividaLiquidaEbitda.changeType}
               icon={<DollarSign className="h-5 w-5 text-white" />}
-              tooltip="Indicador de capacidade de pagamento líquida (clique para ver histórico)"
-              isClickable={true}
-              onClick={() => {
-                setSelectedIndicator({ type: "divida_liquida_ebitda", title: "Dívida Líquida/EBITDA" });
-                setModalOpen(true);
-              }}
+              tooltip="Indicador de capacidade de pagamento líquida"
               thresholdInfo={metrics.dividaLiquidaEbitda.thresholdInfo}
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
@@ -571,12 +616,7 @@ export function FinancialKpiCards({
               change={metrics.dividaEbitda.change}
               changeType={metrics.dividaEbitda.changeType}
               icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
-              tooltip="Indicador de capacidade de pagamento (clique para ver histórico)"
-              isClickable={true}
-              onClick={() => {
-                setSelectedIndicator({ type: "divida_ebitda", title: "Dívida/EBITDA" });
-                setModalOpen(true);
-              }}
+              tooltip="Indicador de capacidade de pagamento"
               thresholdInfo={metrics.dividaEbitda.thresholdInfo}
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
@@ -590,12 +630,7 @@ export function FinancialKpiCards({
               change={metrics.dividaReceita.change}
               changeType={metrics.dividaReceita.changeType}
               icon={<Building2Icon className="h-5 w-5 text-white" />}
-              tooltip="Dívida total em relação à receita anual (clique para ver histórico)"
-              isClickable={true}
-              onClick={() => {
-                setSelectedIndicator({ type: "divida_receita", title: "Dívida/Receita" });
-                setModalOpen(true);
-              }}
+              tooltip="Dívida total em relação à receita anual"
               thresholdInfo={metrics.dividaReceita.thresholdInfo}
             />
             <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
@@ -609,13 +644,50 @@ export function FinancialKpiCards({
               change={metrics.dividaLiquidaReceita.change}
               changeType={metrics.dividaLiquidaReceita.changeType}
               icon={<TrendingDownIcon className="h-5 w-5 text-white" />}
-              tooltip="Dívida líquida em relação à receita anual (clique para ver histórico)"
-              isClickable={true}
-              onClick={() => {
-                setSelectedIndicator({ type: "divida_liquida_receita", title: "Dívida Líquida/Receita" });
-                setModalOpen(true);
-              }}
+              tooltip="Dívida líquida em relação à receita anual"
               thresholdInfo={metrics.dividaLiquidaReceita.thresholdInfo}
+            />
+            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
+          </div>
+
+          {/* Índice de Liquidez - NOVO */}
+          <div className="relative">
+            <KpiItem
+              title="Índice de Liquidez"
+              value={metrics.liquidezCorrente.value}
+              change={metrics.liquidezCorrente.change}
+              changeType={metrics.liquidezCorrente.changeType}
+              icon={<DollarSign className="h-5 w-5 text-white" />}
+              tooltip="Capacidade de pagar dívidas de curto prazo"
+              thresholdInfo={metrics.liquidezCorrente.thresholdInfo}
+            />
+            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
+          </div>
+
+          {/* LTV - NOVO */}
+          <div className="relative">
+            <KpiItem
+              title="LTV"
+              value={metrics.ltv.value}
+              change={metrics.ltv.change}
+              changeType={metrics.ltv.changeType}
+              icon={<FileTextIcon className="h-5 w-5 text-white" />}
+              tooltip="Loan to Value - Dívida de terras sobre valor das propriedades"
+              thresholdInfo={metrics.ltv.thresholdInfo}
+            />
+            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
+          </div>
+
+          {/* LTV Líquido - NOVO */}
+          <div className="relative">
+            <KpiItem
+              title="LTV Líquido"
+              value={metrics.ltvLiquido.value}
+              change={metrics.ltvLiquido.change}
+              changeType={metrics.ltvLiquido.changeType}
+              icon={<TrendingUpIcon className="h-5 w-5 text-white" />}
+              tooltip="LTV ajustado pelo caixa disponível"
+              thresholdInfo={metrics.ltvLiquido.thresholdInfo}
             />
           </div>
         </div>
@@ -631,17 +703,6 @@ export function FinancialKpiCards({
           </div>
         </div>
       </Card>
-      
-      {/* Modal para gráfico histórico */}
-      {selectedIndicator && (
-        <FinancialIndicatorHistoricalModalV2
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          organizationId={organizationId}
-          indicatorType={selectedIndicator.type}
-          indicatorTitle={selectedIndicator.title}
-        />
-      )}
     </TooltipProvider>
   );
 }

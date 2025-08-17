@@ -13,7 +13,6 @@ import {
   Calendar,
   Percent,
   Building2,
-  Globe,
   Wallet,
   Info,
   Loader2,
@@ -30,6 +29,7 @@ import {
 import { convertCurrency } from "@/lib/utils/currency-converter";
 import { getCurrentExchangeRate } from "@/lib/actions/financial-exchange-rate-actions";
 import { getTotalDividasBancariasConsolidado } from "@/lib/actions/financial-actions/dividas-bancarias";
+import { DebtCurrencyChart } from "./debt-currency-chart";
 
 interface DividaBancaria {
   id: string;
@@ -135,7 +135,7 @@ export function DebtMetrics({
   organizationId,
 }: DebtMetricsProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [exchangeRate, setExchangeRate] = useState(5.7); // Taxa padrão
+  const [exchangeRate, setExchangeRate] = useState(5.7); // Taxa padrão - será atualizada com DOLAR_SOJA
   const [metrics, setMetrics] = useState({
     totalDividas: 0,
     totalBancarias: 0,
@@ -145,6 +145,9 @@ export function DebtMetrics({
     percentualBRL: 0,
     taxaMediaJuros: 0,
     prazoMedio: 0,
+    totalBRLOriginal: 0,
+    totalUSDOriginal: 0,
+    totalSOJAOriginal: 0,
   });
 
   useEffect(() => {
@@ -170,11 +173,28 @@ export function DebtMetrics({
           return;
         }
 
-        // Usar a mesma função consolidada do fluxo de caixa
-        const totalBancariasConsolidado =
-          await getTotalDividasBancariasConsolidado(organizationId);
-        const totalBancarias =
-          (totalBancariasConsolidado as any).total_consolidado_brl || 0;
+        // Calcular total de dívidas bancárias localmente com a taxa correta
+        let totalBancariasUSD = 0;
+        let totalBancariasBRL = 0;
+        
+        dividasBancarias.forEach((divida: any) => {
+          const valor = divida.valor_principal || divida.valor_total || 0;
+          if (divida.moeda === "USD") {
+            totalBancariasUSD += valor;
+          } else {
+            totalBancariasBRL += valor;
+          }
+        });
+        
+        // Converter USD para BRL com a taxa correta
+        const totalBancarias = totalBancariasBRL + (totalBancariasUSD * exchangeRate);
+        
+        console.log('Debug Dívidas Bancárias:', {
+          totalBancariasUSD,
+          totalBancariasBRL,
+          exchangeRate,
+          totalBancarias
+        });
 
         // Calcular total de dívidas de terras (em BRL)
         const totalTerras = dividasTerras.reduce((sum, divida) => {
@@ -232,6 +252,7 @@ export function DebtMetrics({
         // Calcular percentual por moeda baseado no valor total em BRL
         let totalUSDOriginal = 0;
         let totalBRLOriginal = 0;
+        let totalSOJAOriginal = 0;
 
         // Dívidas bancárias
         dividasBancarias.forEach((divida: any) => {
@@ -260,6 +281,8 @@ export function DebtMetrics({
 
             if (divida.moeda === "USD") {
               totalUSDOriginal += valor;
+            } else if (divida.moeda === "SOJA") {
+              totalSOJAOriginal += valor;
             } else {
               totalBRLOriginal += valor;
             }
@@ -272,6 +295,8 @@ export function DebtMetrics({
         dividasTerras.forEach((divida) => {
           if (divida.moeda === "USD") {
             totalUSDOriginal += divida.valor_total;
+          } else if (divida.moeda === "SOJA") {
+            totalSOJAOriginal += divida.valor_total;
           } else {
             totalBRLOriginal += divida.valor_total;
           }
@@ -300,6 +325,8 @@ export function DebtMetrics({
 
             if (fornecedor.moeda === "USD") {
               totalUSDOriginal += total;
+            } else if (fornecedor.moeda === "SOJA") {
+              totalSOJAOriginal += total;
             } else {
               totalBRLOriginal += total;
             }
@@ -317,18 +344,61 @@ export function DebtMetrics({
         );
         const totalBRLInBRL = totalBRLOriginal;
         const totalGeralInBRL = totalUSDInBRL + totalBRLInBRL;
+        
+        // Debug do cálculo
+        console.log('Debug Cálculo Total Dívidas:', {
+          totalUSDOriginal,
+          exchangeRate,
+          totalUSDInBRL,
+          totalBRLOriginal,
+          totalGeralInBRL,
+          expectedTotal: (totalUSDOriginal * exchangeRate) + totalBRLOriginal
+        });
 
         const percentualUSD =
           totalGeralInBRL > 0 ? (totalUSDInBRL / totalGeralInBRL) * 100 : 0;
         const percentualBRL =
           totalGeralInBRL > 0 ? (totalBRLInBRL / totalGeralInBRL) * 100 : 0;
 
-        // Calcular taxa média de juros (apenas dívidas bancárias)
-        const taxaMediaJuros =
-          dividasBancarias.length > 0
-            ? dividasBancarias.reduce((sum, d) => sum + (d.taxa_real || 0), 0) /
-              dividasBancarias.length
-            : 0;
+        // Calcular taxa média de juros ponderada pelo valor da dívida
+        let somaTaxaPonderada = 0;
+        let somaValorDividas = 0;
+        
+        dividasBancarias.forEach((divida: any) => {
+          // Calcular o valor total da dívida do fluxo de pagamento
+          let valorDivida = 0;
+          if (divida.fluxo_pagamento_anual) {
+            const fluxo = typeof divida.fluxo_pagamento_anual === "string"
+              ? JSON.parse(divida.fluxo_pagamento_anual)
+              : divida.fluxo_pagamento_anual || {};
+            
+            // Somar todos os valores do fluxo
+            Object.values(fluxo).forEach((valor: any) => {
+              valorDivida += parseFloat(valor.toString()) || 0;
+            });
+          }
+          
+          // Se não tem fluxo, usar valor principal ou total
+          if (valorDivida === 0) {
+            valorDivida = divida.valor_principal || divida.valor_total || divida.saldo_devedor || 0;
+          }
+          
+          // Converter para BRL se necessário para ponderação
+          const valorEmBRL = divida.moeda === "USD" 
+            ? valorDivida * exchangeRate 
+            : valorDivida;
+          
+          const taxa = parseFloat(divida.taxa_real) || 0;
+          
+          if (taxa > 0 && valorEmBRL > 0) {
+            somaTaxaPonderada += taxa * valorEmBRL;
+            somaValorDividas += valorEmBRL;
+          }
+        });
+        
+        const taxaMediaJuros = somaValorDividas > 0 
+          ? somaTaxaPonderada / somaValorDividas 
+          : 0;
 
         // Calcular prazo médio (anos restantes)
         const currentYear = new Date().getFullYear();
@@ -391,6 +461,9 @@ export function DebtMetrics({
           percentualBRL,
           taxaMediaJuros,
           prazoMedio,
+          totalBRLOriginal,
+          totalUSDOriginal,
+          totalSOJAOriginal,
         });
       } catch (error) {
         console.error("Erro ao calcular métricas de dívida:", error);
@@ -453,103 +526,82 @@ export function DebtMetrics({
             </div>
           </div>
         </CardHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-          {/* Total de Dívidas */}
-          <div className="relative">
-            <KpiItem
-              title="Total de Dívidas"
-              value={formatCurrency(metrics.totalDividas, 0)}
-              change="Soma de todas as dívidas"
-              isPositive={true}
-              icon={<DollarSign className="h-5 w-5 text-white" />}
-            />
-            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 p-4">
+          {/* Coluna da esquerda - Gráfico de rosca */}
+          <div className="lg:col-span-1 lg:border-r lg:pr-4">
+            <DebtCurrencyChart organizationId={organizationId} />
           </div>
 
-          {/* Dívidas Bancárias */}
-          <div className="relative">
-            <KpiItem
-              title="Dívidas Bancárias"
-              value={formatCurrency(metrics.totalBancarias, 0)}
-              change={`${metrics.totalDividas > 0 ? formatPercent((metrics.totalBancarias / metrics.totalDividas) * 100) : "0%"} do total`}
-              isPositive={true}
-              icon={<Building2 className="h-5 w-5 text-white" />}
-            />
-            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-          </div>
+          {/* Coluna da direita - Métricas */}
+          <div className="lg:col-span-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Total de Dívidas */}
+              <div className="relative">
+                <KpiItem
+                  title="Total de Dívidas"
+                  value={formatCurrency(metrics.totalDividas, 0)}
+                  change="Soma de todas as dívidas"
+                  isPositive={true}
+                  icon={<DollarSign className="h-5 w-5 text-white" />}
+                />
+              </div>
 
-          {/* Exposição em USD */}
-          <div className="relative">
-            <KpiItem
-              title="Exposição em USD"
-              value={formatPercent(metrics.percentualUSD)}
-              change={`BRL: ${formatPercent(metrics.percentualBRL)}`}
-              isPositive={true}
-              icon={<Globe className="h-5 w-5 text-white" />}
-            />
-            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-          </div>
+              {/* Dívidas Bancárias */}
+              <div className="relative">
+                <KpiItem
+                  title="Dívidas Bancárias"
+                  value={formatCurrency(metrics.totalBancarias, 0)}
+                  change={`${metrics.totalDividas > 0 ? formatPercent((metrics.totalBancarias / metrics.totalDividas) * 100) : "0%"} do total`}
+                  isPositive={true}
+                  icon={<Building2 className="h-5 w-5 text-white" />}
+                />
+              </div>
 
-          {/* Taxa Média de Juros */}
-          <div>
-            <KpiItem
-              title="Taxa Média de Juros"
-              value={`${metrics.taxaMediaJuros.toFixed(2)}%`}
-              change="Média das taxas bancárias"
-              isPositive={true}
-              icon={<Percent className="h-5 w-5 text-white" />}
-            />
-          </div>
+              {/* Taxa Média de Juros */}
+              <div className="relative">
+                <KpiItem
+                  title="Taxa Média de Juros"
+                  value={`${metrics.taxaMediaJuros.toFixed(2)}%`}
+                  change="Média ponderada por valor"
+                  isPositive={true}
+                  icon={<Percent className="h-5 w-5 text-white" />}
+                  tooltip="Taxa média ponderada pelo valor de cada dívida bancária"
+                />
+              </div>
 
-          {/* Dívidas de Terras */}
-          <div className="relative">
-            <KpiItem
-              title="Dívidas de Terras"
-              value={formatCurrency(metrics.totalTerras, 0)}
-              change={`${metrics.totalDividas > 0 ? formatPercent((metrics.totalTerras / metrics.totalDividas) * 100) : "0%"} do total`}
-              isPositive={true}
-              icon={<TrendingUp className="h-5 w-5 text-white" />}
-            />
-            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-          </div>
+              {/* Dívidas de Terras */}
+              <div className="relative">
+                <KpiItem
+                  title="Dívidas de Terras"
+                  value={formatCurrency(metrics.totalTerras, 0)}
+                  change={`${metrics.totalDividas > 0 ? formatPercent((metrics.totalTerras / metrics.totalDividas) * 100) : "0%"} do total`}
+                  isPositive={true}
+                  icon={<TrendingUp className="h-5 w-5 text-white" />}
+                />
+              </div>
 
-          {/* Dívidas Fornecedores */}
-          <div className="relative">
-            <KpiItem
-              title="Dívidas Fornecedores"
-              value={formatCurrency(metrics.totalFornecedores, 0)}
-              change={`${dividasFornecedores.length} fornecedor${dividasFornecedores.length !== 1 ? "es" : ""}`}
-              isPositive={true}
-              icon={<Wallet className="h-5 w-5 text-white" />}
-            />
-            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-          </div>
+              {/* Dívidas Fornecedores */}
+              <div className="relative">
+                <KpiItem
+                  title="Dívidas Fornecedores"
+                  value={formatCurrency(metrics.totalFornecedores, 0)}
+                  change={`${dividasFornecedores.length} fornecedor${dividasFornecedores.length !== 1 ? "es" : ""}`}
+                  isPositive={true}
+                  icon={<Wallet className="h-5 w-5 text-white" />}
+                />
+              </div>
 
-          {/* Prazo Médio */}
-          <div className="relative">
-            <KpiItem
-              title="Prazo Médio"
-              value={`${metrics.prazoMedio.toFixed(1)} anos`}
-              change="Vencimento médio das dívidas"
-              isPositive={true}
-              icon={<Calendar className="h-5 w-5 text-white" />}
-            />
-            <div className="absolute top-5 bottom-5 right-0 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
-          </div>
-
-          {/* Total de Contratos */}
-          <div>
-            <KpiItem
-              title="Total de Contratos"
-              value={(
-                dividasBancarias.length +
-                dividasTerras.length +
-                dividasFornecedores.length
-              ).toString()}
-              change="Contratos ativos"
-              isPositive={true}
-              icon={<Info className="h-5 w-5 text-white" />}
-            />
+              {/* Prazo Médio */}
+              <div className="relative">
+                <KpiItem
+                  title="Prazo Médio de Dívidas Bancárias"
+                  value={`${metrics.prazoMedio.toFixed(1)} anos`}
+                  change="Vencimento médio das dívidas"
+                  isPositive={true}
+                  icon={<Calendar className="h-5 w-5 text-white" />}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </Card>

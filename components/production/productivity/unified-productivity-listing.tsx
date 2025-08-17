@@ -263,7 +263,7 @@ export function UnifiedProductivityListing({
                       <td className="p-3 border-r">
                         <Badge 
                           variant={productivity.propriedade_id ? "default" : "secondary"} 
-                          className="text-xs font-medium"
+                          className="text-xs font-medium whitespace-nowrap"
                         >
                           {productivity.propriedades?.nome || "Todas as Propriedades"}
                         </Badge>

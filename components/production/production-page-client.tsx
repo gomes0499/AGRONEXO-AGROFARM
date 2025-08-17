@@ -2,7 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTriggerPrimary } from "@/components/ui/tabs";
 import { Suspense } from "react";
-import { Loader2, Settings, DollarSign, Map, TrendingUp, Receipt, Beef, Activity } from "lucide-react";
+import { Loader2, Settings, Map, TrendingUp, Receipt, Beef, Activity } from "lucide-react";
 import { MobileTabs } from "@/components/ui/mobile-tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -13,7 +13,6 @@ import { UnifiedProductivityListing } from "@/components/production/productivity
 import { UnifiedConfig } from "@/components/production/config/unified-config";
 import { LivestockList } from "@/components/production/livestock/livestock-list";
 import { LivestockOperationList } from "@/components/production/livestock/livestock-operation-list";
-import { UnifiedPricesTab } from "@/components/production/prices/unified-prices-tab";
 import type { ProductionPageData } from "@/lib/actions/production/unified-production-actions";
 
 interface ProductionPageClientProps {
@@ -37,8 +36,6 @@ export function ProductionPageClient({
     plantingAreas,
     productivities,
     productionCosts,
-    commodityPrices,
-    exchangeRates,
   } = initialData;
 
   // Extract properties from plantingAreas if available
@@ -61,24 +58,6 @@ export function ProductionPageClient({
           cycles={cycles}
           harvests={safras}
           organizationId={organizationId}
-        />
-      ),
-    },
-    {
-      value: "prices",
-      label: "Preços",
-      icon: DollarSign,
-      content: (
-        <UnifiedPricesTab
-          key={`unified-prices-tab-${organizationId}`}
-          organizationId={organizationId}
-          cultures={cultures}
-          systems={systems}
-          cycles={cycles}
-          safras={safras}
-          commodityPrices={commodityPrices}
-          exchangeRates={exchangeRates}
-          projectionId={projectionId}
         />
       ),
     },
@@ -136,33 +115,33 @@ export function ProductionPageClient({
         />
       ),
     },
-    {
-      value: "livestock",
-      label: "Rebanho",
-      icon: Beef,
-      content: (
-        <LivestockList
-          key={`livestock-${organizationId}`}
-          initialLivestock={livestock}
-          properties={properties}
-          organizationId={organizationId}
-        />
-      ),
-    },
-    {
-      value: "livestockOperations",
-      label: isMobile ? "Operações" : "Operações Pecuárias",
-      icon: Activity,
-      content: (
-        <LivestockOperationList
-          key={`livestock-operations-${organizationId}`}
-          initialOperations={operations}
-          properties={properties}
-          harvests={safras}
-          organizationId={organizationId}
-        />
-      ),
-    },
+    // {
+    //   value: "livestock",
+    //   label: "Rebanho",
+    //   icon: Beef,
+    //   content: (
+    //     <LivestockList
+    //       key={`livestock-${organizationId}`}
+    //       initialLivestock={livestock}
+    //       properties={properties}
+    //       organizationId={organizationId}
+    //     />
+    //   ),
+    // },
+    // {
+    //   value: "livestockOperations",
+    //   label: isMobile ? "Operações" : "Operações Pecuárias",
+    //   icon: Activity,
+    //   content: (
+    //     <LivestockOperationList
+    //       key={`livestock-operations-${organizationId}`}
+    //       initialOperations={operations}
+    //       properties={properties}
+    //       harvests={safras}
+    //       organizationId={organizationId}
+    //     />
+    //   ),
+    // },
   ];
 
   if (isMobile) {
@@ -183,9 +162,6 @@ export function ProductionPageClient({
               <TabsTriggerPrimary value="config">
                 Configurações
               </TabsTriggerPrimary>
-              <TabsTriggerPrimary value="prices">
-                Preços
-              </TabsTriggerPrimary>
               <TabsTriggerPrimary value="plantingAreas">
                 Áreas de Plantio
               </TabsTriggerPrimary>
@@ -195,12 +171,12 @@ export function ProductionPageClient({
               <TabsTriggerPrimary value="costs">
                 Custos de Produção
               </TabsTriggerPrimary>
-              <TabsTriggerPrimary value="livestock">
+              {/* <TabsTriggerPrimary value="livestock">
                 Rebanho
               </TabsTriggerPrimary>
               <TabsTriggerPrimary value="livestockOperations">
                 Operações Pecuárias
-              </TabsTriggerPrimary>
+              </TabsTriggerPrimary> */}
             </TabsList>
           </div>
         </div>

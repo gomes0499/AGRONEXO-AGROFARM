@@ -83,12 +83,16 @@ const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
 
 function getWeatherIcon(code: number) {
   if (code >= 200 && code < 300)
-    return <CloudLightning className="text-yellow-400 dark:text-yellow-300" />;
-  if (code >= 300 && code < 600) return <CloudRain className="text-blue-400 dark:text-blue-300" />;
-  if (code >= 600 && code < 700) return <CloudSnow className="text-blue-200 dark:text-blue-100" />;
-  if (code === 800) return <Sun className="text-yellow-500 dark:text-yellow-400" />;
-  if (code > 800) return <Cloud className="text-gray-500 dark:text-gray-400" />;
-  return <Cloud className="text-gray-500 dark:text-gray-400" />;
+    return <CloudLightning className="text-yellow-500" style={{ width: '1rem', height: '1rem' }} />;
+  if (code >= 300 && code < 600) 
+    return <CloudRain className="text-blue-400" style={{ width: '1rem', height: '1rem' }} />;
+  if (code >= 600 && code < 700) 
+    return <CloudSnow className="text-gray-300" style={{ width: '1rem', height: '1rem' }} />;
+  if (code === 800) 
+    return <Sun className="text-yellow-400" style={{ width: '1rem', height: '1rem' }} />;
+  if (code > 800) 
+    return <Cloud className="text-gray-400" style={{ width: '1rem', height: '1rem' }} />;
+  return <Cloud className="text-gray-400" style={{ width: '1rem', height: '1rem' }} />;
 }
 
 interface ForecastDay {
@@ -172,17 +176,16 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
   return (
     <div className="w-full relative">
       <style jsx global>{`
-        .ticker-container {
+        .weather-ticker-container {
           width: 100%;
           position: relative;
           overflow: hidden;
           height: 2.5rem;
-          background-color: #f9fafb;
+          background-color: #000000;
+          border-bottom: 1px solid #1a1a1a;
         }
-        .dark .ticker-container {
-          background-color: #0a0a0a;
-        }
-        .ticker-wrapper {
+        
+        .weather-ticker-wrapper {
           position: absolute;
           top: 0;
           left: 0;
@@ -191,14 +194,16 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
           white-space: nowrap;
           overflow: hidden;
         }
-        .ticker-track {
+        
+        .weather-ticker-track {
           position: absolute;
           height: 100%;
           display: inline-flex;
-          animation: tickerScroll 30s linear infinite;
+          animation: weatherTickerScroll 40s linear infinite;
           will-change: transform;
         }
-        @keyframes tickerScroll {
+        
+        @keyframes weatherTickerScroll {
           0% {
             transform: translateX(0%);
           }
@@ -206,135 +211,168 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
             transform: translateX(-50%);
           }
         }
-        .ticker-item {
+        
+        .weather-ticker-item {
           display: flex;
           align-items: center;
           height: 100%;
-          padding: 0 0.75rem;
-          border-right: 1px solid #e5e7eb;
+          padding: 0 1.5rem;
           white-space: nowrap;
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        .dark .ticker-item {
-          border-right: 1px solid #27272a;
-        }
-        .ticker-divider {
+        
+        .weather-ticker-divider {
           position: absolute;
           right: 0;
           top: 0;
           bottom: 0;
           width: 1px;
-          background-color: #e5e7eb;
+          background-color: #1a1a1a;
           z-index: 10;
         }
-        .dark .ticker-divider {
-          background-color: #27272a;
-        }
-        .ticker-fade {
+        
+        .weather-ticker-fade {
           position: absolute;
           right: 0;
           top: 0;
           bottom: 0;
-          width: 50px;
-          background: linear-gradient(to right, transparent, #f9fafb);
+          width: 60px;
+          background: linear-gradient(to right, transparent, #000000);
           z-index: 5;
+          pointer-events: none;
         }
-        .dark .ticker-fade {
-          background: linear-gradient(to right, transparent, #0a0a0a);
+        
+        .weather-ticker-city {
+          color: #9ca3af;
+          margin-right: 0.75rem;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.025em;
+          font-weight: 500;
         }
-        .ticker-prefix {
-          color: #6b7280;
-          margin-right: 0.5rem;
-        }
-        .dark .ticker-prefix {
-          color: #a1a1aa;
-        }
-        .ticker-value {
-          font-weight: 600;
-          margin-right: 0.25rem;
-        }
-        .ticker-minmax {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          margin-right: 0.5rem;
-          font-size: 0.7rem;
-          min-width: 3.5rem;
-        }
-        .ticker-minmax-item {
+        
+        .weather-ticker-temp {
           display: flex;
           align-items: center;
+          gap: 0.5rem;
+          color: #ffffff;
+          font-weight: 600;
+          font-size: 0.8125rem;
         }
-        .ticker-variation {
+        
+        .weather-ticker-icon {
+          width: 1rem;
+          height: 1rem;
+        }
+        
+        .weather-ticker-minmax {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-left: 0.5rem;
+        }
+        
+        .weather-temp-high {
+          color: #ef4444;
           font-size: 0.75rem;
           font-weight: 500;
-          margin-left: 0.25rem;
+          display: flex;
+          align-items: center;
+          gap: 0.125rem;
         }
-        .value-positive {
+        
+        .weather-temp-low {
+          color: #3b82f6;
+          font-size: 0.75rem;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 0.125rem;
+        }
+        
+        .weather-ticker-desc {
+          color: #6b7280;
+          font-size: 0.75rem;
+          margin-left: 0.75rem;
+        }
+        
+        .weather-ticker-variation {
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 0.125rem 0.375rem;
+          border-radius: 0.25rem;
+          margin-left: 0.5rem;
+        }
+        
+        .weather-value-positive {
           color: #10b981;
+          background-color: rgba(16, 185, 129, 0.1);
         }
-        .value-negative {
-          color: #ef4444;
+        
+        .weather-value-negative {
+          color: #3b82f6;
+          background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .weather-value-neutral {
+          color: #6b7280;
+          background-color: rgba(107, 114, 128, 0.1);
         }
       `}</style>
-      <div className="ticker-container">
+      <div className="weather-ticker-container">
         {loading ? (
-          <div className="h-full flex items-center px-4 text-muted-foreground dark:text-gray-400 animate-pulse">
+          <div className="h-full flex items-center px-4 text-gray-500 animate-pulse">
             Carregando...
           </div>
         ) : error ? (
-          <div className="h-full flex items-center px-4 text-red-500 dark:text-red-400">
+          <div className="h-full flex items-center px-4 text-red-400">
             {error}
           </div>
         ) : (
-          <div className="ticker-wrapper">
-            <div className="ticker-track">
+          <div className="weather-ticker-wrapper">
+            <div className="weather-ticker-track">
               {[...forecast, ...forecast].map((item, idx) => {
                 const prev =
                   idx === 0 ? null : forecast[(idx - 1) % forecast.length];
                 const variation = prev
                   ? calculateVariation(item.max, prev.max)
                   : 0;
-                const isPositive = variation >= 0;
+                const isPositive = variation > 0;
+                const isNeutral = variation === 0;
+                const variationClass = isNeutral 
+                  ? "weather-value-neutral"
+                  : isPositive 
+                  ? "weather-value-positive" 
+                  : "weather-value-negative";
+                
                 return (
-                  <div key={idx} className="ticker-item">
-                    <span className="ticker-prefix">{item.weekday}</span>
-                    {getWeatherIcon(item.icon)}
+                  <div key={idx} className="weather-ticker-item">
+                    <span className="weather-ticker-city">{item.weekday.toUpperCase()}</span>
+                    
+                    <div className="weather-ticker-temp">
+                      <span className="weather-ticker-icon">
+                        {getWeatherIcon(item.icon)}
+                      </span>
+                      <span>{Math.round(item.max)}°</span>
+                    </div>
 
-                    <div className="ticker-minmax">
-                      <div className="ticker-minmax-item text-orange-500 dark:text-orange-400">
-                        <ArrowUp className="h-3 w-3 mr-1" />
-                        <span>{Math.round(item.max)}°</span>
-                      </div>
-                      <div className="ticker-minmax-item text-blue-500 dark:text-blue-400">
-                        <ArrowDown className="h-3 w-3 mr-1" />
-                        <span>{Math.round(item.min)}°</span>
-                      </div>
+                    <div className="weather-ticker-minmax">
+                      <span className="weather-temp-high">
+                        ↑ {Math.round(item.max)}°
+                      </span>
+                      <span className="weather-temp-low">
+                        ↓ {Math.round(item.min)}°
+                      </span>
                     </div>
 
                     {prev && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span
-                              className={`ticker-variation ${
-                                isPositive ? "value-positive" : "value-negative"
-                              }`}
-                            >
-                              {isPositive ? "+" : ""}
-                              {variation.toFixed(1)}%
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>
-                              Variação da temperatura máxima em relação ao dia
-                              anterior
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <span className={`weather-ticker-variation ${variationClass}`}>
+                        {isPositive ? "↑" : isNeutral ? "→" : "↓"} {Math.abs(variation).toFixed(1)}%
+                      </span>
                     )}
-                    <span className="text-xs text-muted-foreground dark:text-gray-400 ml-2">
+                    
+                    <span className="weather-ticker-desc">
                       {item.desc}
                     </span>
                   </div>
@@ -343,8 +381,8 @@ export function WeatherTicker({ selectedCity }: { selectedCity: string }) {
             </div>
           </div>
         )}
-        <div className="ticker-fade"></div>
-        <div className="ticker-divider"></div>
+        <div className="weather-ticker-fade"></div>
+        <div className="weather-ticker-divider"></div>
       </div>
     </div>
   );

@@ -17,13 +17,15 @@ interface FluxoCaixaClientProps {
   projectionId?: string;
   cashFlowData?: FluxoCaixaData;
   cashPolicy?: Awaited<ReturnType<typeof getCashPolicyConfig>>;
+  onConfigureCashPolicy?: () => void;
 }
 
 export function FluxoCaixaClient({ 
   organizationId, 
   projectionId,
   cashFlowData: initialData,
-  cashPolicy
+  cashPolicy,
+  onConfigureCashPolicy
 }: FluxoCaixaClientProps) {
   const [cashFlowData, setCashFlowData] = useState<FluxoCaixaData | undefined>(initialData);
   const [loading, setLoading] = useState(!initialData);
@@ -96,5 +98,5 @@ export function FluxoCaixaClient({
     );
   }
 
-  return <FluxoCaixaTable data={cashFlowData} />;
+  return <FluxoCaixaTable data={cashFlowData} cashPolicy={cashPolicy} organizationId={organizationId} onConfigureCashPolicy={onConfigureCashPolicy} />;
 }

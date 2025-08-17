@@ -198,8 +198,8 @@ export async function calculateQuantitativeMetrics(
       metrics.DIVIDA_PATRIMONIO_LIQUIDO = dividaTotal > 0 ? 999 : 0;
     }
     
-    // 5. LTV - já vem em porcentagem da posição de dívida
-    metrics.LTV = ltv; // Manter em porcentagem (0-100) para comparação com thresholds
+    // 5. LTV - converter de percentual para decimal para comparação com thresholds
+    metrics.LTV = ltv / 100; // Converter para decimal (0-1) para comparação com thresholds
     
     // 6. MARGEM_EBITDA
     metrics.MARGEM_EBITDA = receita > 0 ? (ebitda / receita) * 100 : 0;

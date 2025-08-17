@@ -91,6 +91,8 @@ export function OrganizationFormModal({
             logoUrl={logoUrl}
             onLogoSuccess={setLogoUrl}
             onLogoRemove={() => setLogoUrl(null)}
+            organizationId={organizationData?.id}
+            isEditMode={mode === "edit"}
           />
         );
       case 2:

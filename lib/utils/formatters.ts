@@ -180,6 +180,29 @@ export function formatNumber(value: number | null | undefined, decimals: number 
   });
 }
 
+// Formata valor monetário sem símbolo de moeda (para uso em tabelas com moeda no cabeçalho)
+export function formatMoneyValue(value: number | null | undefined, decimals: number = 0): string {
+  if (value === null || value === undefined) {
+    return decimals === 0 ? '0' : '0,00';
+  }
+  
+  // Detecta se é um valor negativo
+  const isNegative = value < 0;
+  const absValue = Math.abs(value);
+  
+  // Garante que decimals está dentro do intervalo válido (0-20)
+  const validDecimals = Math.max(0, Math.min(20, decimals));
+  
+  // Formata com separador de milhar e casas decimais conforme especificado
+  const formatted = new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: validDecimals,
+    maximumFractionDigits: validDecimals
+  }).format(absValue);
+  
+  // Para valores negativos, adiciona o sinal de menos manualmente
+  return isNegative ? `-${formatted}` : formatted;
+}
+
 // Formata percentual
 export function formatPercent(value: number | null | undefined, decimals: number = 2): string {
   if (value === null || value === undefined) return '0%';

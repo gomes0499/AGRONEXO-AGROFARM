@@ -139,6 +139,11 @@ export function useOrganizationForm({
       }
 
       // Prepara os dados da organização
+      // IMPORTANTE: NUNCA salvamos blob URLs no banco, seja criando ou editando
+      const hasBlobLogo = logoUrl && logoUrl.startsWith("blob:");
+      const isCreatingWithBlobLogo = mode === "create" && hasBlobLogo;
+      const isEditingWithBlobLogo = mode === "edit" && hasBlobLogo;
+      
       const orgData = {
         nome: values.nome,
         slug: values.slug,
@@ -159,7 +164,7 @@ export function useOrganizationForm({
         roteiro: values.roteiro || null,
         latitude: values.latitude || null,
         longitude: values.longitude || null,
-        logo: logoUrl,
+        logo: hasBlobLogo ? (organizationData?.logo || null) : logoUrl, // Mantém logo atual se for blob
         estrutura_societaria: values.estrutura_societaria || [],
         cor_primaria: values.cor_primaria,
         cor_secundaria: values.cor_secundaria,
@@ -179,6 +184,49 @@ export function useOrganizationForm({
 
         if (updateError) throw updateError;
 
+        // Upload do logo se houver uma blob URL temporária no modo de edição
+        if (isEditingWithBlobLogo) {
+          try {
+            const uploadComponent = document.querySelector(
+              '[data-organization-upload="true"]'
+            );
+            if (uploadComponent) {
+              const temporaryFile = (uploadComponent as any).__temporaryImage;
+
+              if (temporaryFile && temporaryFile instanceof File) {
+                const formData = new FormData();
+                formData.append("file", temporaryFile);
+
+                // Faz o upload para o Supabase Storage
+                const uploadResult = await uploadOrganizationLogo(
+                  organizationData.id,
+                  formData
+                );
+
+                if (uploadResult.success && uploadResult.data?.publicUrl) {
+                  console.log("Logo uploaded successfully in edit mode:", uploadResult.data.publicUrl);
+                } else {
+                  console.error(
+                    "Erro ao fazer upload do logo no modo de edição:",
+                    uploadResult.error
+                  );
+                  toast.warning(
+                    "A organização foi atualizada, mas houve um erro ao salvar a nova logo."
+                  );
+                }
+              }
+            }
+          } catch (uploadError) {
+            console.error(
+              "Erro ao processar upload do logo no modo de edição:",
+              uploadError
+            );
+            toast.warning(
+              "A organização foi atualizada, mas houve um erro ao salvar a nova logo."
+            );
+          }
+        }
+
         toast.success("Organização atualizada com sucesso");
         if (onSuccess) onSuccess();
         if (onClose) onClose();
@@ -193,8 +241,8 @@ export function useOrganizationForm({
 
         if (createError) throw createError;
 
-        // Upload do logo se houver
-        if (logoUrl && logoUrl.startsWith("blob:")) {
+        // Upload do logo se houver uma blob URL temporária
+        if (isCreatingWithBlobLogo) {
           try {
             const uploadComponent = document.querySelector(
               '[data-organization-upload="true"]'
@@ -206,29 +254,38 @@ export function useOrganizationForm({
                 const formData = new FormData();
                 formData.append("file", temporaryFile);
 
+                // Faz o upload para o Supabase Storage
                 const uploadResult = await uploadOrganizationLogo(
                   newOrg.id,
                   formData
                 );
 
-                if (!uploadResult.success) {
+                if (uploadResult.success && uploadResult.data?.publicUrl) {
+                  // Upload bem-sucedido - a função uploadOrganizationLogo 
+                  // já atualiza o campo logo no banco automaticamente
+                  console.log("Logo uploaded successfully:", uploadResult.data.publicUrl);
+                } else {
                   console.error(
                     "Erro ao fazer upload do logo:",
                     uploadResult.error
                   );
-                  toast.error(
-                    "A organização foi criada, mas houve um erro ao salvar o logo."
+                  toast.warning(
+                    "A organização foi criada, mas houve um erro ao salvar o logo. Você pode adicionar a logo mais tarde nas configurações."
                   );
                 }
+              } else {
+                console.error("Arquivo temporário não encontrado");
               }
+            } else {
+              console.error("Componente de upload não encontrado");
             }
           } catch (uploadError) {
             console.error(
-              "Erro ao processar upload do logo temporário:",
+              "Erro ao processar upload do logo:",
               uploadError
             );
-            toast.error(
-              "A organização foi criada, mas houve um erro ao salvar o logo."
+            toast.warning(
+              "A organização foi criada, mas houve um erro ao salvar o logo. Você pode adicionar a logo mais tarde nas configurações."
             );
           }
         }

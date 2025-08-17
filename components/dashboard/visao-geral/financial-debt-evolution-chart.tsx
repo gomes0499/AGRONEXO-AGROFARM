@@ -95,7 +95,7 @@ export function FinancialDebtEvolutionChartClient({
               </div>
               <div>
                 <CardTitle className="text-white">
-                  Evolução das Dívidas Bancárias
+                  Evolução das Dívidas Bancárias - R$ milhões
                 </CardTitle>
                 <CardDescription className="text-white/80">
                   Distribuição anual entre custeio e investimentos
@@ -131,7 +131,7 @@ export function FinancialDebtEvolutionChartClient({
             </div>
             <div>
               <CardTitle className="text-white">
-                Evolução das Dívidas Bancárias
+                Evolução das Dívidas Bancárias - R$ milhões
               </CardTitle>
               <CardDescription className="text-white/80">
                 Distribuição anual entre custeio e investimentos ({initialData[0]?.ano} - {initialData[initialData.length - 1]?.ano})
@@ -163,7 +163,7 @@ export function FinancialDebtEvolutionChartClient({
                   tickMargin={10}
                   fontSize={12}
                   width={40}
-                  tickFormatter={(value) => formatCurrency(value, 0)}
+                  tickFormatter={(value) => (value/1000000).toFixed(0)}
                   tick={{ fill: "var(--foreground)" }}
                 />
                 <ChartTooltip

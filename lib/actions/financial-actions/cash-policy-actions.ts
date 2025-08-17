@@ -7,6 +7,8 @@ export interface CashPolicyConfig {
   organizacao_id: string;
   enabled: boolean;
   minimum_cash: number | null;
+  policy_type?: "fixed" | "revenue_percentage" | "cost_percentage";
+  percentage?: number | null;
   currency: "BRL" | "USD";
   priority: "debt" | "cash";
   created_at?: string;
@@ -29,6 +31,8 @@ export async function getCashPolicyConfig(organizacaoId: string): Promise<CashPo
         organizacao_id: organizacaoId,
         enabled: false,
         minimum_cash: null,
+        policy_type: "fixed",
+        percentage: null,
         currency: "BRL",
         priority: "cash"
       };

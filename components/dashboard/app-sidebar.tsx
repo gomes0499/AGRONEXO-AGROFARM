@@ -128,7 +128,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <p className="text-xs text-muted-foreground">
             Desenvolvido por{" "}
             <a
-              href="https://agronexo.com.br"
+              href="https://agronexo.io"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium hover:text-primary transition-colors"

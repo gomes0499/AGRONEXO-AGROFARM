@@ -16,6 +16,7 @@ import { getFinancialMetrics } from "./financial-metrics-actions";
 import { getTotalDividasBancariasConsolidado } from "./financial-actions/dividas-bancarias";
 import { getDebtTypeDistributionAllSafrasData } from "./debt-type-distribution-all-safras-actions";
 import { getDebtTypeDistributionData } from "./debt-type-distribution-actions";
+import { getFinancialIndicatorsChart } from "./financial-indicators-actions";
 // Funções de DRE e Balanço requerem autenticação, então vamos calcular diretamente
 
 // Interface completa para exportação de dados
@@ -63,6 +64,20 @@ export interface ReportDataJSON {
       area_cultivada: number;
       tipo: string;
     }>;
+    areaDistribution: {
+      proprias: {
+        agricultura: number;
+        pecuaria: number;
+        outros: number;
+        total: number;
+      };
+      arrendadas: {
+        agricultura: number;
+        pecuaria: number;
+        outros: number;
+        total: number;
+      };
+    };
   };
   plantingAreas: {
     chartData: Array<{
@@ -377,6 +392,9 @@ export interface ReportDataJSON {
       cobertura_juros: Record<string, number>;
       receita_ano_safra: Record<string, number>;
       ebitda_ano_safra: Record<string, number>;
+      caixas_disponibilidades?: Record<string, number>;
+      patrimonio_liquido?: Record<string, number>;
+      ltv?: Record<string, number>;
       indicadores_calculados: {
         divida_receita: Record<string, number>;
         divida_ebitda: Record<string, number>;
@@ -385,6 +403,7 @@ export interface ReportDataJSON {
       };
     };
   };
+  fluxo_caixa_simplificado?: any;
 }
 
 export async function exportReportDataAsJSONPublic(
@@ -439,6 +458,34 @@ export async function exportReportDataAsJSONPublic(
     const valorPatrimonial = valorPropriedades + valorBenfeitorias;
     
     const areaCultivavel = properties?.reduce((sum, prop) => sum + (prop.area_cultivada || 0), 0) || 0;
+
+    // Calcular distribuição de áreas por tipo de uso
+    const areaDistribution = {
+      proprias: {
+        agricultura: 0,
+        pecuaria: 0,
+        outros: 0,
+        total: 0
+      },
+      arrendadas: {
+        agricultura: 0,
+        pecuaria: 0,
+        outros: 0,
+        total: 0
+      }
+    };
+
+    properties?.forEach(prop => {
+      const dist = prop.tipo === "PROPRIO" ? areaDistribution.proprias : areaDistribution.arrendadas;
+      const areaTotal = prop.area_total || 0;
+      const areaCultivada = prop.area_cultivada || 0;
+      const areaPecuaria = prop.area_pecuaria || 0;
+      
+      dist.agricultura += areaCultivada;
+      dist.pecuaria += areaPecuaria;
+      dist.outros += Math.max(0, areaTotal - areaCultivada - areaPecuaria);
+      dist.total += areaTotal;
+    });
 
     // Buscar dados de safras
     const { data: safras } = await supabase
@@ -497,13 +544,27 @@ export async function exportReportDataAsJSONPublic(
             const safra = safras.find(s => s.id === safraId);
             if (safra && chartDataMap.has(safra.nome) && Number(areaValue) > 0) {
               const data = chartDataMap.get(safra.nome);
-              const cultura = culturaMap.get(area.cultura_id) || 'Não Informado';
+              const culturaNome = culturaMap.get(area.cultura_id) || 'Não Informado';
+              const cicloNome = cicloMap.get(area.ciclo_id) || '';
+              
+              // Incluir ciclo no nome para distinguir 1ª e 2ª safra
+              let chaveCompleta = culturaNome;
+              if (cicloNome) {
+                // Padronizar formato do ciclo
+                let cicloFormatado = cicloNome;
+                if (cicloNome.toLowerCase().includes('1') || cicloNome.toLowerCase().includes('primeira')) {
+                  cicloFormatado = '1ª Safra';
+                } else if (cicloNome.toLowerCase().includes('2') || cicloNome.toLowerCase().includes('segunda') || cicloNome.toLowerCase().includes('safrinha')) {
+                  cicloFormatado = '2ª Safra';
+                }
+                chaveCompleta = `${culturaNome} - ${cicloFormatado}`;
+              }
               
               data.total += Number(areaValue) || 0;
-              if (!data[cultura]) {
-                data[cultura] = 0;
+              if (!data[chaveCompleta]) {
+                data[chaveCompleta] = 0;
               }
-              data[cultura] += Number(areaValue) || 0;
+              data[chaveCompleta] += Number(areaValue) || 0;
             }
           });
         }
@@ -588,11 +649,18 @@ export async function exportReportDataAsJSONPublic(
       .select("*")
       .eq("organizacao_id", organizationId);
     
+    // Buscar dívidas de terras (aquisicao_terras)
+    const { data: dividasTerras } = await supabase
+      .from("aquisicao_terras")
+      .select("*")
+      .eq("organizacao_id", organizationId);
+    
     // Buscar caixa disponibilidades
     const caixaDisponibilidadesData = await getCaixaDisponibilidades(organizationId, projectionId);
     
-    // Buscar fornecedores
+    // Buscar fornecedores usando a função unificada (igual ao frontend)
     const fornecedoresData = await getSuppliersUnified(organizationId, projectionId);
+    const dividasFornecedores = fornecedoresData?.suppliers || [];
     
     // Buscar equipamentos
     const equipamentosData = await getEquipments(organizationId);
@@ -1168,9 +1236,20 @@ export async function exportReportDataAsJSONPublic(
           if (prodValue > 0) {
             const culturaNome = (prod.cultura as any)?.nome || 'Não Informado';
             const sistemaNome = (prod.sistema as any)?.nome || '';
+            const cicloNome = (prod.ciclo as any)?.nome || '';
             
+            // Incluir ciclo no nome para distinguir 1ª e 2ª safra
             let chaveCompleta = culturaNome;
-            if (sistemaNome && sistemaNome !== 'SEQUEIRO') {
+            if (cicloNome) {
+              // Padronizar formato do ciclo
+              let cicloFormatado = cicloNome;
+              if (cicloNome.toLowerCase().includes('1') || cicloNome.toLowerCase().includes('primeira')) {
+                cicloFormatado = '1ª Safra';
+              } else if (cicloNome.toLowerCase().includes('2') || cicloNome.toLowerCase().includes('segunda') || cicloNome.toLowerCase().includes('safrinha')) {
+                cicloFormatado = '2ª Safra';
+              }
+              chaveCompleta = `${culturaNome} - ${cicloFormatado}`;
+            } else if (sistemaNome && sistemaNome !== 'SEQUEIRO') {
               chaveCompleta = `${culturaNome} ${sistemaNome}`;
             }
             
@@ -1222,7 +1301,7 @@ export async function exportReportDataAsJSONPublic(
         
         // Adicionar produtividade para cada safra
         safras.forEach(safra => {
-          const prodSafra = prod.produtividade_por_safra?.[safra.id];
+          const prodSafra = prod.produtividades_por_safra?.[safra.id];
           let prodValue = 0;
           
           if (typeof prodSafra === 'number') {
@@ -1263,7 +1342,22 @@ export async function exportReportDataAsJSONPublic(
       cultureProjections.projections.forEach(projection => {
         const dadosAno = projection.projections_by_year[ano];
         if (dadosAno && dadosAno.receita > 0) {
-          culturasReceita[projection.cultura_nome] = (culturasReceita[projection.cultura_nome] || 0) + dadosAno.receita;
+          // Incluir ciclo no nome para distinguir 1ª e 2ª safra
+          const cicloNome = projection.ciclo_nome || '';
+          let chaveCompleta = projection.cultura_nome;
+          
+          if (cicloNome) {
+            // Padronizar formato do ciclo
+            let cicloFormatado = cicloNome;
+            if (cicloNome.toLowerCase().includes('1') || cicloNome.toLowerCase().includes('primeira')) {
+              cicloFormatado = '1ª Safra';
+            } else if (cicloNome.toLowerCase().includes('2') || cicloNome.toLowerCase().includes('segunda') || cicloNome.toLowerCase().includes('safrinha')) {
+              cicloFormatado = '2ª Safra';
+            }
+            chaveCompleta = `${projection.cultura_nome} - ${cicloFormatado}`;
+          }
+          
+          culturasReceita[chaveCompleta] = (culturasReceita[chaveCompleta] || 0) + dadosAno.receita;
           totalReceita += dadosAno.receita;
         }
       });
@@ -1277,30 +1371,37 @@ export async function exportReportDataAsJSONPublic(
       }
     });
     
-    // Criar dados da tabela de receita por cultura
-    const culturasUnicas = new Set<string>();
-    cultureProjections.projections.forEach(p => culturasUnicas.add(p.cultura_nome));
+    // Criar dados da tabela de receita por cultura - com separação por sistema e ciclo
+    const revenueDataMap = new Map<string, any>();
     
-    culturasUnicas.forEach(cultura => {
-      const tableRow = {
-        categoria: cultura,
-        receitas: {} as { [safra: string]: number }
-      };
+    cultureProjections.projections.forEach(projection => {
+      const cultura = projection.cultura_nome;
+      const sistema = projection.sistema_nome || 'Sequeiro';
+      const ciclo = projection.ciclo_nome || '1ª Safra';
+      const key = `${cultura}-${sistema}-${ciclo}`;
+      
+      if (!revenueDataMap.has(key)) {
+        revenueDataMap.set(key, {
+          cultura,
+          sistema,
+          ciclo,
+          receitas: {} as { [safra: string]: number }
+        });
+      }
+      
+      const tableRow = revenueDataMap.get(key);
       
       anos.forEach(ano => {
-        let receitaCultura = 0;
-        cultureProjections.projections
-          .filter(p => p.cultura_nome === cultura)
-          .forEach(p => {
-            const dadosAno = p.projections_by_year[ano];
-            if (dadosAno && dadosAno.receita) {
-              receitaCultura += dadosAno.receita;
-            }
-          });
-        tableRow.receitas[ano] = receitaCultura;
+        const dadosAno = projection.projections_by_year[ano];
+        if (dadosAno && dadosAno.receita) {
+          tableRow.receitas[ano] = (tableRow.receitas[ano] || 0) + dadosAno.receita;
+        }
       });
-      
-      if (Object.values(tableRow.receitas).some(v => v > 0)) {
+    });
+    
+    // Adicionar ao array apenas itens com receita
+    revenueDataMap.forEach(tableRow => {
+      if (Object.values(tableRow.receitas).some((v: any) => v > 0)) {
         revenueTableData.push(tableRow);
       }
     });
@@ -1564,7 +1665,8 @@ export async function exportReportDataAsJSONPublic(
           area_total: p.area_total || 0,
           area_cultivada: p.area_cultivada || 0,
           tipo: p.tipo
-        })).sort((a, b) => b.valor_atual - a.valor_atual) || []
+        })).sort((a, b) => b.valor_atual - a.valor_atual) || [],
+        areaDistribution: areaDistribution
       },
       plantingAreas: {
         chartData: plantingChartData,
@@ -1585,7 +1687,7 @@ export async function exportReportDataAsJSONPublic(
         debtDistribution2025_26: debtDistribution2025_26,
         debtDistributionConsolidated: debtDistributionConsolidated,
         totalConsolidado: totalConsolidado || undefined,
-        list: debts?.map(d => {
+        list: dividasBancarias?.map(d => {
           // Calcular saldo devedor total
           let saldoDevedor = 0;
           if (d.fluxo_pagamento_anual) {
@@ -1599,12 +1701,20 @@ export async function exportReportDataAsJSONPublic(
           return {
             id: d.id,
             banco: d.instituicao_bancaria || '',
+            instituicao_bancaria: d.instituicao_bancaria || '',
             tipo: d.tipo || '',
+            modalidade: d.modalidade || '',
+            moeda: d.moeda || 'BRL',
             valor_original: d.valor_principal || 0,
+            valor_principal: d.valor_principal || 0,
+            valor_total: d.valor_principal || saldoDevedor || 0,
             saldo_devedor: saldoDevedor,
             safra_quitacao: d.safra?.nome || '',
             data_vencimento: '', // Não existe na tabela
-            taxa_juros: d.taxa_real || 0
+            taxa_juros: d.taxa_real || 0,
+            taxa_real: d.taxa_real || 0,
+            fluxo_pagamento_anual: d.fluxo_pagamento_anual || {},
+            valores_por_ano: d.fluxo_pagamento_anual || d.valores_por_ano || {}
           };
         }) || []
       },
@@ -1649,11 +1759,12 @@ export async function exportReportDataAsJSONPublic(
         descricao: c.descricao || c.nome,
         valores_por_ano: c.valores_por_ano || {}
       })) || [],
-      fornecedores: fornecedoresData?.suppliers?.map(f => ({
+      fornecedores: dividasFornecedores.map(f => ({
         id: f.id,
         nome: f.nome,
         tipo: f.tipo,
-        valores_por_ano: f.valores_por_ano || {}
+        valores_por_ano: f.valores_por_ano || {},
+        total: f.total // Incluir campo total se existir
       })) || [],
       equipamentos: 'data' in equipamentosData ? equipamentosData.data?.map((e: any) => ({
         id: e.id,
@@ -1679,6 +1790,9 @@ export async function exportReportDataAsJSONPublic(
           cobertura_juros: {},
           receita_ano_safra: debtPositionData?.indicadores?.receita_ano_safra || {},
           ebitda_ano_safra: debtPositionData?.indicadores?.ebitda_ano_safra || {},
+          caixas_disponibilidades: debtPositionData?.indicadores?.caixas_disponibilidades || {},
+          patrimonio_liquido: debtPositionData?.indicadores?.patrimonio_liquido || {},
+          ltv: debtPositionData?.indicadores?.ltv || {},
           indicadores_calculados: debtPositionData?.indicadores?.indicadores_calculados || {
             divida_receita: {},
             divida_ebitda: {},
@@ -1686,10 +1800,11 @@ export async function exportReportDataAsJSONPublic(
             divida_liquida_ebitda: {}
           }
         }
-      }
+      },
+      fluxo_caixa_simplificado: fluxoCaixaCompleto || {}
     };
 
-    // Calcular métricas financeiras KPIs
+    // Calcular métricas financeiras KPIs e métricas detalhadas de dívida
     try {
       const financialMetrics = await getFinancialMetrics(organizationId, undefined, projectionId);
       
@@ -1705,6 +1820,354 @@ export async function exportReportDataAsJSONPublic(
           prazoMedioDiferenca: financialMetrics.prazoMedio.diferenca
         };
       }
+
+      // Importar funções necessárias
+      const { getTotalDividasBancariasConsolidado } = await import('./financial-actions/dividas-bancarias');
+      const { getCurrentExchangeRate } = await import('./financial-exchange-rate-actions');
+      
+      // Obter taxa de câmbio atual (mesma do frontend)
+      const exchangeRateData = await getCurrentExchangeRate(organizationId);
+      const exchangeRate = exchangeRateData.exchangeRate || 5.7; // Usar fallback 5.7 como o frontend
+      
+      console.log("DEBUG - Taxa de câmbio do sistema:", exchangeRate);
+      
+      // Calcular métricas detalhadas de dívida
+      console.log("DEBUG - Iniciando cálculo de métricas de dívida");
+      console.log("DEBUG - dividasBancarias:", dividasBancarias?.length || 0, "itens");
+      console.log("DEBUG - dividasTerras:", dividasTerras?.length || 0, "itens");
+      console.log("DEBUG - dividasFornecedores:", dividasFornecedores?.length || 0, "itens");
+      
+      // Obter total consolidado das dívidas bancárias (com juros)
+      const totalBancariasConsolidado = await getTotalDividasBancariasConsolidado(organizationId, projectionId);
+      const totalBancarias = (totalBancariasConsolidado as any).total_consolidado_brl || 0;
+      
+      console.log("DEBUG - Total bancárias consolidado (com juros):", totalBancarias);
+      
+      let totalDividas = 0;
+      let totalTerras = 0;
+      let totalFornecedores = 0;
+      let totalUSD = 0;
+      let totalBRL = 0;
+      let taxaMediaJuros = 0;
+      let countTaxas = 0;
+      let prazoMedioDividas = 0;
+      let countPrazos = 0;
+
+      // Processar dívidas bancárias para taxa de juros e prazo médio
+      if (dividasBancarias && dividasBancarias.length > 0) {
+        console.log("DEBUG - Processando dívidas bancárias para métricas:");
+        dividasBancarias.forEach((divida: any) => {
+          // Para moeda, usar o valor principal (não o consolidado com juros)
+          const valorPrincipal = divida.valor_principal || divida.saldo_devedor || 0;
+          
+          // Contar por moeda
+          if (divida.moeda === 'USD') {
+            totalUSD += valorPrincipal;
+          } else {
+            totalBRL += valorPrincipal;
+          }
+          
+          // Taxa de juros
+          if (divida.taxa_real) {
+            taxaMediaJuros += divida.taxa_real;
+            countTaxas++;
+          }
+          
+          // Prazo médio (baseado em fluxo de pagamento ou parcelas)
+          if (divida.fluxo_pagamento_anual) {
+            const fluxo = typeof divida.fluxo_pagamento_anual === 'string' 
+              ? JSON.parse(divida.fluxo_pagamento_anual)
+              : divida.fluxo_pagamento_anual;
+            
+            // Contar quantos anos têm pagamentos
+            const anosComPagamento = Object.keys(fluxo).filter(safraId => {
+              const valor = fluxo[safraId];
+              return valor && Number(valor) > 0;
+            }).length;
+            
+            if (anosComPagamento > 0) {
+              prazoMedioDividas += anosComPagamento;
+              countPrazos++;
+            }
+          } else if (divida.quantidade_parcelas) {
+            prazoMedioDividas += divida.quantidade_parcelas / 12; // Converter para anos
+            countPrazos++;
+          }
+        });
+      }
+
+      // Processar dívidas de terras  
+      if (dividasTerras && dividasTerras.length > 0) {
+        console.log("DEBUG - Processando dívidas de terras:");
+        
+        dividasTerras.forEach((divida: any) => {
+          let valor = divida.valor_total || 0;
+          const valorOriginal = valor;
+          
+          // Converter USD para BRL se necessário
+          if (divida.moeda === 'USD') {
+            valor = valor * exchangeRate;
+            console.log(`  - Terra: ${divida.propriedade_id}, Valor Original USD: ${valorOriginal}, Valor em BRL: ${valor}`);
+          } else {
+            console.log(`  - Terra: ${divida.propriedade_id}, Valor BRL: ${valor}`);
+          }
+          
+          totalTerras += valor;
+          
+          // Contar por moeda (usar valor original)
+          if (divida.moeda === 'USD') {
+            totalUSD += valorOriginal;
+          } else {
+            totalBRL += valorOriginal;
+          }
+        });
+      }
+
+      // Processar dívidas de fornecedores
+      if (dividasFornecedores && dividasFornecedores.length > 0) {
+        console.log("DEBUG - Processando dívidas de fornecedores:");
+        
+        // Usar a mesma lógica do componente DebtMetrics
+        dividasFornecedores.forEach((fornecedor: any) => {
+          let valor = 0;
+          
+          // Primeiro verificar se tem campo total (pode vir de projeções)
+          if (fornecedor.total) {
+            valor = fornecedor.total;
+          } else if (fornecedor.valores_por_ano) {
+            const valores = typeof fornecedor.valores_por_ano === 'string' 
+              ? JSON.parse(fornecedor.valores_por_ano)
+              : fornecedor.valores_por_ano || {};
+            
+            // Somar todos os valores de todas as safras
+            valor = Object.values(valores).reduce((sum: number, v: any) => sum + (Number(v) || 0), 0);
+          }
+          
+          // Guardar valor original para contagem de moeda
+          const valorOriginal = valor;
+          
+          // Converter USD para BRL se necessário (igual ao componente DebtMetrics)
+          if (fornecedor.moeda === 'USD') {
+            valor = valor * exchangeRate; // Converter para BRL
+            console.log(`  - Fornecedor: ${fornecedor.nome}, Valor Original USD: ${valorOriginal}, Valor em BRL: ${valor}`);
+          } else {
+            console.log(`  - Fornecedor: ${fornecedor.nome}, Valor BRL: ${valor}`);
+          }
+          
+          totalFornecedores += valor;
+          
+          // Contar por moeda (usar valor original, não convertido)
+          if (fornecedor.moeda === 'USD') {
+            totalUSD += valorOriginal;
+          } else {
+            totalBRL += valorOriginal;
+          }
+        });
+      }
+
+      // Calcular totais e médias
+      totalDividas = totalBancarias + totalTerras + totalFornecedores;
+      
+      if (countTaxas > 0) {
+        taxaMediaJuros = taxaMediaJuros / countTaxas;
+      }
+      
+      if (countPrazos > 0) {
+        prazoMedioDividas = prazoMedioDividas / countPrazos;
+      }
+
+      console.log("DEBUG - Totais calculados:");
+      console.log(`  - Total Dívidas: ${totalDividas}`);
+      console.log(`  - Total Bancárias: ${totalBancarias}`);
+      console.log(`  - Total Terras: ${totalTerras}`);
+      console.log(`  - Total Fornecedores: ${totalFornecedores}`);
+      console.log(`  - Total BRL: ${totalBRL}`);
+      console.log(`  - Total USD: ${totalUSD}`);
+      console.log(`  - Taxa Média Juros: ${taxaMediaJuros}`);
+      console.log(`  - Prazo Médio: ${prazoMedioDividas}`);
+
+      // Calcular percentuais corretos de moeda (convertendo USD para BRL)
+      const totalUSDInBRL = totalUSD * exchangeRate;
+      const totalGeralInBRL = totalBRL + totalUSDInBRL;
+      const percentualBRL = totalGeralInBRL > 0 ? (totalBRL / totalGeralInBRL) * 100 : 0;
+      const percentualUSD = totalGeralInBRL > 0 ? (totalUSDInBRL / totalGeralInBRL) * 100 : 0;
+      
+      // Adicionar métricas detalhadas ao reportData
+      (reportData as any).debtMetrics = {
+        totalDividas,
+        totalBancarias,
+        totalTerras,
+        totalFornecedores,
+        percentualBancarias: totalDividas > 0 ? (totalBancarias / totalDividas) * 100 : 0,
+        percentualTerras: totalDividas > 0 ? (totalTerras / totalDividas) * 100 : 0,
+        percentualFornecedores: totalDividas > 0 ? (totalFornecedores / totalDividas) * 100 : 0,
+        totalBRL,
+        totalUSD,
+        percentualBRL,
+        percentualUSD,
+        taxaMediaJuros,
+        prazoMedioDividas,
+        numeroFornecedores: dividasFornecedores?.length || 0,
+        // Dados por banco para ranking - usar fluxo total com juros
+        dividasPorBanco: dividasBancarias?.reduce((acc: any, divida: any) => {
+          const banco = divida.instituicao_bancaria || 'Não informado';
+          let valor = 0;
+          
+          if (divida.fluxo_pagamento_anual) {
+            const fluxo = typeof divida.fluxo_pagamento_anual === 'string' 
+              ? JSON.parse(divida.fluxo_pagamento_anual)
+              : divida.fluxo_pagamento_anual;
+            valor = Object.values(fluxo).reduce((sum: number, v: any) => sum + (Number(v) || 0), 0);
+          } else if (divida.saldo_devedor) {
+            valor = divida.saldo_devedor;
+          } else if (divida.valor_principal) {
+            valor = divida.valor_principal;
+          }
+          
+          // Converter USD para BRL se necessário
+          if (divida.moeda === 'USD') {
+            valor = valor * exchangeRate;
+          }
+          
+          if (!acc[banco]) {
+            acc[banco] = 0;
+          }
+          acc[banco] += valor;
+          return acc;
+        }, {}) || {},
+        
+        // Adicionar dados de dívidas por safra
+        dividasPorSafra: (() => {
+          const dividasPorSafraAcc: any = {};
+          
+          dividasBancarias?.forEach((divida: any) => {
+            if (divida.fluxo_pagamento_anual) {
+              const fluxo = typeof divida.fluxo_pagamento_anual === 'string' 
+                ? JSON.parse(divida.fluxo_pagamento_anual)
+                : divida.fluxo_pagamento_anual;
+              
+              // Para cada safra no fluxo
+              Object.entries(fluxo).forEach(([safraId, valor]: [string, any]) => {
+                let valorNum = Number(valor) || 0;
+                
+                // Converter USD para BRL se necessário
+                if (divida.moeda === 'USD' && valorNum > 0) {
+                  valorNum = valorNum * exchangeRate;
+                }
+                
+                // Encontrar o nome da safra pelo ID
+                const safra = safras?.find((s: any) => s.id === safraId);
+                const safraKey = safra ? safra.nome : safraId;
+                
+                if (!dividasPorSafraAcc[safraKey]) {
+                  dividasPorSafraAcc[safraKey] = 0;
+                }
+                dividasPorSafraAcc[safraKey] += valorNum;
+              });
+            }
+          });
+          
+          return dividasPorSafraAcc;
+        })()
+      };
+      
+      // Adicionar bankDebts para o PDF (dados detalhados das dívidas bancárias)
+      (reportData as any).bankDebts = dividasBancarias?.map((divida: any) => ({
+        id: divida.id,
+        instituicao_bancaria: divida.instituicao_bancaria,
+        modalidade: divida.modalidade,
+        moeda: divida.moeda,
+        taxa_real: divida.taxa_real,
+        valor_principal: divida.valor_principal,
+        saldo_devedor: divida.saldo_devedor,
+        fluxo_pagamento_anual: divida.fluxo_pagamento_anual || {}
+      })) || [];
+
+      // Adicionar safras para o PDF (necessário para buscar por ID)
+      (reportData as any).safras = safras || [];
+      
+      // Buscar indicadores financeiros dos dados de debt position (mesma lógica do dashboard)
+      try {
+        console.log("Buscando indicadores financeiros de debt position para org:", organizationId);
+        
+        // Usar os dados de debt position que já temos
+        const debtPosition = reportData.debtPosition;
+        const financialIndicators: any[] = [];
+        
+        if (debtPosition && debtPosition.indicadores && debtPosition.indicadores.indicadores_calculados) {
+          const { indicadores_calculados } = debtPosition.indicadores;
+          const anos = debtPositionData?.anos || [];
+          
+          console.log("Processando indicadores calculados para anos:", anos);
+          console.log("Indicadores disponíveis:", Object.keys(indicadores_calculados));
+          
+          // Para cada safra/ano, pegar os indicadores calculados
+          anos.forEach((safraName: string) => {
+            // Extrair o ano da safra (ex: "2024/25" -> "25", depois "24/25")
+            const yearMatch = safraName.match(/(\d{4})\/(\d{2})/);
+            let anoDisplay = safraName;
+            
+            if (yearMatch) {
+              const year1 = yearMatch[1].slice(-2); // Últimos 2 dígitos
+              const year2 = yearMatch[2];
+              anoDisplay = `${year1}/${year2}`;
+            }
+            
+            // Pegar os indicadores já calculados
+            const dividaReceita = indicadores_calculados?.divida_receita?.[safraName] || 0;
+            const dividaEbitda = indicadores_calculados?.divida_ebitda?.[safraName] || 0;
+            const dividaLiquidaReceita = indicadores_calculados?.divida_liquida_receita?.[safraName] || 0;
+            const dividaLiquidaEbitda = indicadores_calculados?.divida_liquida_ebitda?.[safraName] || 0;
+            
+            console.log(`Safra ${safraName} (${anoDisplay}): DR=${dividaReceita}, DE=${dividaEbitda}, DLR=${dividaLiquidaReceita}, DLE=${dividaLiquidaEbitda}`);
+            
+            // Só adicionar se tiver pelo menos um indicador válido
+            if (dividaReceita > 0 || dividaEbitda > 0 || dividaLiquidaReceita > 0 || dividaLiquidaEbitda > 0) {
+              financialIndicators.push({
+                ano: anoDisplay,
+                safraName: safraName,
+                dividaReceita,
+                dividaEbitda,
+                dividaLiquidaReceita,
+                dividaLiquidaEbitda,
+              });
+            }
+          });
+          
+          // Filtrar e ordenar os dados (a partir de 23/24)
+          const filteredIndicators = financialIndicators
+            .filter(d => {
+              const yearMatch = d.ano.match(/(\d{2})\/(\d{2})/);
+              if (yearMatch) {
+                const year1 = parseInt(yearMatch[1]);
+                return year1 >= 23; // A partir de 23/24
+              }
+              return false;
+            })
+            .sort((a, b) => {
+              const aMatch = a.ano.match(/(\d{2})\/(\d{2})/);
+              const bMatch = b.ano.match(/(\d{2})\/(\d{2})/);
+              if (aMatch && bMatch) {
+                return parseInt(aMatch[1]) - parseInt(bMatch[1]);
+              }
+              return 0;
+            });
+          
+          console.log("Indicadores filtrados e ordenados:", filteredIndicators.length, "itens");
+          if (filteredIndicators.length > 0) {
+            console.log("Primeiro indicador filtrado:", filteredIndicators[0]);
+          }
+          
+          (reportData as any).financialIndicators = filteredIndicators;
+        } else {
+          console.log("Nenhum dado de debt position encontrado");
+          (reportData as any).financialIndicators = [];
+        }
+      } catch (error) {
+        console.error("Erro ao processar indicadores financeiros:", error);
+        (reportData as any).financialIndicators = [];
+      }
+      
     } catch (error) {
       console.error("Erro ao calcular métricas financeiras:", error);
       // Continuar sem as métricas financeiras

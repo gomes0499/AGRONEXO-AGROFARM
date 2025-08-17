@@ -220,7 +220,7 @@ export function OrganizationSwitcher() {
               <SidebarMenuButton className="flex w-full justify-between bg-muted/50 h-10">
                 <div className="flex items-center gap-2">
                   <Avatar className="h-7 w-7 rounded-md">
-                    {mounted && organization?.logo && (
+                    {mounted && organization?.logo && !organization.logo.startsWith('blob:') && (
                       <AvatarImage
                         src={organization.logo}
                         alt={organization.nome || ""}
@@ -260,7 +260,7 @@ export function OrganizationSwitcher() {
                         className="text-sm"
                       >
                         <Avatar className="mr-2 h-6 w-6 rounded-md">
-                          {mounted && org.logo && (
+                          {mounted && org.logo && !org.logo.startsWith('blob:') && (
                             <AvatarImage src={org.logo} alt={org.nome || ""} />
                           )}
                           <AvatarFallback className="rounded-md bg-primary text-xs text-primary-foreground">

@@ -62,7 +62,8 @@ export async function getAreaPlantadaChart(
       .select(`
         areas_por_safra,
         cultura:cultura_id(id, nome),
-        sistema:sistema_id(id, nome)
+        sistema:sistema_id(id, nome),
+        ciclo:ciclo_id(id, nome)
       `)
       .eq("organizacao_id", organizationId)
       .not("areas_por_safra", "eq", "{}");
@@ -107,11 +108,24 @@ export async function getAreaPlantadaChart(
         
         const culturaNome = (area.cultura as any)?.nome || 'Não Informado';
         const sistemaNome = (area.sistema as any)?.nome || '';
+        const cicloNome = (area.ciclo as any)?.nome || '';
         
-        // Criar chave única para cultura + sistema
+        // Criar chave única para cultura + ciclo
         let chaveCompleta = culturaNome;
-        if (sistemaNome && sistemaNome !== 'SEQUEIRO') {
-          chaveCompleta = `${culturaNome} ${sistemaNome}`;
+        
+        // Adicionar informação do ciclo se existir
+        if (cicloNome) {
+          // Formatar o ciclo: "1ª SAFRA" -> "1ª Safra", "2ª SAFRA" -> "2ª Safra"
+          let cicloFormatado = cicloNome;
+          
+          // Padronizar formato do ciclo
+          if (cicloNome.toLowerCase().includes('1') || cicloNome.toLowerCase().includes('primeira')) {
+            cicloFormatado = '1ª Safra';
+          } else if (cicloNome.toLowerCase().includes('2') || cicloNome.toLowerCase().includes('segunda') || cicloNome.toLowerCase().includes('safrinha')) {
+            cicloFormatado = '2ª Safra';
+          }
+          
+          chaveCompleta = `${culturaNome} - ${cicloFormatado}`;
         }
         
         culturaMap.set(chaveCompleta, (culturaMap.get(chaveCompleta) || 0) + areaValue);
@@ -301,7 +315,8 @@ export async function getProdutividadeChart(
       .select(`
         produtividades_por_safra,
         cultura:cultura_id(id, nome),
-        sistema:sistema_id(id, nome)
+        sistema:sistema_id(id, nome),
+        ciclo:ciclo_id(id, nome)
       `)
       .eq("organizacao_id", organizationId)
       .not("produtividades_por_safra", "eq", "{}");
@@ -376,11 +391,24 @@ export async function getProdutividadeChart(
         
         const culturaNome = (prod.cultura as any)?.nome || 'Não Informado';
         const sistemaNome = (prod.sistema as any)?.nome || '';
+        const cicloNome = (prod.ciclo as any)?.nome || '';
         
-        // Criar chave única para cultura + sistema
+        // Criar chave única para cultura + ciclo
         let chaveCompleta = culturaNome;
-        if (sistemaNome && sistemaNome !== 'SEQUEIRO') {
-          chaveCompleta = `${culturaNome} ${sistemaNome}`;
+        
+        // Adicionar informação do ciclo se existir
+        if (cicloNome) {
+          // Formatar o ciclo: "1ª SAFRA" -> "1ª Safra", "2ª SAFRA" -> "2ª Safra"
+          let cicloFormatado = cicloNome;
+          
+          // Padronizar formato do ciclo
+          if (cicloNome.toLowerCase().includes('1') || cicloNome.toLowerCase().includes('primeira')) {
+            cicloFormatado = '1ª Safra';
+          } else if (cicloNome.toLowerCase().includes('2') || cicloNome.toLowerCase().includes('segunda') || cicloNome.toLowerCase().includes('safrinha')) {
+            cicloFormatado = '2ª Safra';
+          }
+          
+          chaveCompleta = `${culturaNome} - ${cicloFormatado}`;
         }
         
         const current = culturaMap.get(chaveCompleta) || { total: 0, count: 0 };
@@ -400,10 +428,12 @@ export async function getProdutividadeChart(
       
       // Adicionar cada cultura como propriedade (média)
       culturaMap.forEach((data, cultura) => {
-        // Normalizar nome da cultura para usar como chave
+        // Para produtividade, manter a chave com hífen para distinguir ciclos
+        // Ex: "Milho - 1ª Safra" vira "MILHO-1ªSAFRA", "Milho - 2ª Safra" vira "MILHO-2ªSAFRA"
         const chaveNormalizada = cultura
           .toUpperCase()
-          .replace(/\s+/g, '')
+          .replace(/\s+-\s+/g, '-') // Mantém hífen entre cultura e ciclo
+          .replace(/\s+/g, '') // Remove outros espaços
           .replace(/[ÃÁÀÂ]/g, 'A')
           .replace(/[ÕÓÒÔ]/g, 'O')
           .replace(/[ÇC]/g, 'C')
@@ -411,8 +441,11 @@ export async function getProdutividadeChart(
           .replace(/[ÍÌÎ]/g, 'I')
           .replace(/[ÚÙÛ]/g, 'U');
         
-        const produtividadeMedia = data.count > 0 ? data.total / data.count : 0;
-        safraData[chaveNormalizada] = Math.round(produtividadeMedia * 100) / 100; // Arredondar para 2 casas decimais
+        const produtividadeMedia = data.count > 0 ? data.total / data.count : null;
+        // Usar null ao invés de 0 para valores ausentes, assim o gráfico não conecta os pontos
+        safraData[chaveNormalizada] = produtividadeMedia !== null 
+          ? Math.round(produtividadeMedia * 100) / 100 
+          : 0;
       });
       
       chartData.push(safraData);
@@ -463,21 +496,26 @@ export async function getReceitaChart(
               const sistemaNome = proj.sistema_nome || '';
               const cicloNome = proj.ciclo_nome || '';
               
-              // Incluir ciclo no nome para diferenciar culturas
-              let chaveExibicao = culturaNome;
+              // Criar chave única para cultura + ciclo (como nos outros gráficos)
+              let chaveCompleta = culturaNome;
               
-              // Adicionar detalhes para diferenciar as culturas
-              if (culturaNome.toUpperCase() === 'MILHO' && cicloNome.toUpperCase().includes('SAFRINHA')) {
-                chaveExibicao = 'Milho Safrinha';
-              } else if (sistemaNome.toUpperCase() === 'IRRIGADO') {
-                chaveExibicao = `${culturaNome} Irrigado`;
-              } else if (cicloNome && cicloNome !== '1ª Safra') {
-                chaveExibicao = `${culturaNome} ${cicloNome}`;
+              // Adicionar informação do ciclo se existir
+              if (cicloNome) {
+                // Padronizar formato do ciclo
+                let cicloFormatado = cicloNome;
+                if (cicloNome.toLowerCase().includes('1') || cicloNome.toLowerCase().includes('primeira')) {
+                  cicloFormatado = '1ª Safra';
+                } else if (cicloNome.toLowerCase().includes('2') || cicloNome.toLowerCase().includes('segunda') || cicloNome.toLowerCase().includes('safrinha')) {
+                  cicloFormatado = '2ª Safra';
+                }
+                chaveCompleta = `${culturaNome} - ${cicloFormatado}`;
               }
               
-              const chaveNormalizada = chaveExibicao
+              // Normalizar mantendo hífen para distinguir ciclos
+              const chaveNormalizada = chaveCompleta
                 .toUpperCase()
-                .replace(/\s+/g, '')
+                .replace(/\s+-\s+/g, '-') // Mantém hífen entre cultura e ciclo
+                .replace(/\s+/g, '') // Remove outros espaços
                 .replace(/[ÃÁÀÂ]/g, 'A')
                 .replace(/[ÕÓÒÔ]/g, 'O')
                 .replace(/[ÇC]/g, 'C')
@@ -600,8 +638,10 @@ export async function getReceitaChart(
         produtividades_por_safra,
         cultura_id,
         sistema_id,
+        ciclo_id,
         cultura:cultura_id(id, nome),
-        sistema:sistema_id(id, nome)
+        sistema:sistema_id(id, nome),
+        ciclo:ciclo_id(id, nome)
       `)
       .eq("organizacao_id", organizationId)
       .not("produtividades_por_safra", "eq", "{}");
@@ -700,10 +740,15 @@ export async function getReceitaChart(
               : (prodSafra as { produtividade: number; unidade: string }).produtividade;
           }
           
+          // Atualizar ciclo se estiver disponível na produtividade
+          const cicloNomeProd = '';
+          
           if (produtividadeValue > 0) {
             combinacoesCulturasSistemas.set(key, {
               ...combo,
-              produtividade: produtividadeValue
+              produtividade: produtividadeValue,
+              // Priorizar ciclo da produtividade se disponível
+              cicloNome: cicloNomeProd || combo.cicloNome
             });
           }
         }
@@ -773,16 +818,26 @@ export async function getReceitaChart(
         const producaoCultura = combo.area * combo.produtividade;
         const receitaCultura = producaoCultura * preco;
         
-        // Criar chave para exibição no gráfico
+        // Criar chave para exibição no gráfico (incluindo ciclo como nos outros gráficos)
         let chaveExibicao = culturaNome;
-        if (sistemaNome && sistemaNome.toLowerCase() !== 'sequeiro') {
-          chaveExibicao = `${culturaNome} ${sistemaNome}`;
+        
+        // Adicionar informação do ciclo se existir
+        if (cicloNome) {
+          // Padronizar formato do ciclo
+          let cicloFormatado = cicloNome;
+          if (cicloNome.toLowerCase().includes('1') || cicloNome.toLowerCase().includes('primeira')) {
+            cicloFormatado = '1ª Safra';
+          } else if (cicloNome.toLowerCase().includes('2') || cicloNome.toLowerCase().includes('segunda') || cicloNome.toLowerCase().includes('safrinha')) {
+            cicloFormatado = '2ª Safra';
+          }
+          chaveExibicao = `${culturaNome} - ${cicloFormatado}`;
         }
         
-        // Normalizar chave para o gráfico
+        // Normalizar chave para o gráfico mantendo hífen para distinguir ciclos
         const chaveNormalizada = chaveExibicao
           .toUpperCase()
-          .replace(/\s+/g, '')
+          .replace(/\s+-\s+/g, '-') // Mantém hífen entre cultura e ciclo
+          .replace(/\s+/g, '') // Remove outros espaços
           .replace(/[ÃÁÀÂ]/g, 'A')
           .replace(/[ÕÓÒÔ]/g, 'O')
           .replace(/[ÇC]/g, 'C')
@@ -790,7 +845,9 @@ export async function getReceitaChart(
           .replace(/[ÍÌÎ]/g, 'I')
           .replace(/[ÚÙÛ]/g, 'U');
         
-        culturaReceita.set(chaveNormalizada, receitaCultura);
+        // Acumular receitas da mesma cultura+ciclo
+        const receitaAtual = culturaReceita.get(chaveNormalizada) || 0;
+        culturaReceita.set(chaveNormalizada, receitaAtual + receitaCultura);
         totalSafra += receitaCultura;
       }
       
@@ -1080,10 +1137,15 @@ export async function getFinancialChart(
               : (prodSafra as { produtividade: number; unidade: string }).produtividade;
           }
           
+          // Atualizar ciclo se estiver disponível na produtividade
+          const cicloNomeProd = '';
+          
           if (produtividadeValue > 0) {
             combinacoesCulturasSistemas.set(key, {
               ...combo,
-              produtividade: produtividadeValue
+              produtividade: produtividadeValue,
+              // Priorizar ciclo da produtividade se disponível
+              cicloNome: cicloNomeProd || combo.cicloNome
             });
           }
         }

@@ -41,16 +41,35 @@ export function NewsTicker() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  // Função para determinar a classe CSS baseada na fonte ou conteúdo
+  const getSourceClass = (source: string): string => {
+    const sourceLower = source.toLowerCase();
+    if (sourceLower.includes("agro") || sourceLower.includes("beefpoint")) {
+      return "news-source-agronews";
+    } else if (sourceLower.includes("tecnologia") || sourceLower.includes("tech")) {
+      return "news-source-tecnologia";
+    } else if (sourceLower.includes("export") || sourceLower.includes("china")) {
+      return "news-source-exportacao";
+    } else if (sourceLower.includes("clima") || sourceLower.includes("tempo")) {
+      return "news-source-clima";
+    } else if (sourceLower.includes("urgente") || sourceLower.includes("inmet")) {
+      return "news-source-urgente";
+    } else if (sourceLower.includes("mercado") || sourceLower.includes("broadcast")) {
+      return "news-source-mercado";
+    }
+    return "news-source-agronews"; // default
+  };
+
   return (
-    <div className="w-full relative bg-background border-b">
+    <div className="w-full relative">
       <style jsx global>{`
         .news-ticker-container {
           width: 100%;
           position: relative;
           overflow: hidden;
           height: 2.5rem;
-          background-color: hsl(var(--background));
-          border-bottom: 1px solid hsl(var(--border));
+          background-color: #000000;
+          border-bottom: 1px solid #1a1a1a;
         }
 
         .news-ticker-wrapper {
@@ -67,7 +86,7 @@ export function NewsTicker() {
           position: absolute;
           height: 100%;
           display: inline-flex;
-          animation: newsTickerScroll 180s linear infinite;
+          animation: newsTickerScroll 120s linear infinite;
           will-change: transform;
         }
 
@@ -88,52 +107,84 @@ export function NewsTicker() {
           display: inline-flex;
           align-items: center;
           height: 100%;
-          padding: 0 1.5rem;
-          border-right: 1px solid hsl(var(--border));
+          padding: 0 2rem;
           white-space: nowrap;
           cursor: pointer;
           transition: background-color 0.2s;
           min-width: fit-content;
+          font-size: 0.8125rem;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         .news-ticker-item:hover {
-          background-color: hsl(var(--muted));
+          background-color: rgba(255, 255, 255, 0.05);
         }
 
         .news-ticker-icon {
-          width: 1rem;
-          height: 1rem;
+          width: 0.875rem;
+          height: 0.875rem;
           margin-right: 0.5rem;
-          color: hsl(var(--muted-foreground));
+          color: #6b7280;
         }
 
         .news-ticker-source {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: hsl(var(--primary));
-          margin-right: 0.5rem;
+          font-size: 0.7rem;
+          font-weight: 700;
+          margin-right: 0.75rem;
           text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.125rem 0.375rem;
+          border-radius: 0.125rem;
+        }
+        
+        .news-source-agronews {
+          color: #10b981;
+          background-color: rgba(16, 185, 129, 0.15);
+        }
+        
+        .news-source-tecnologia {
+          color: #3b82f6;
+          background-color: rgba(59, 130, 246, 0.15);
+        }
+        
+        .news-source-exportacao {
+          color: #f59e0b;
+          background-color: rgba(245, 158, 11, 0.15);
+        }
+        
+        .news-source-clima {
+          color: #06b6d4;
+          background-color: rgba(6, 182, 212, 0.15);
+        }
+        
+        .news-source-urgente {
+          color: #ef4444;
+          background-color: rgba(239, 68, 68, 0.15);
+        }
+        
+        .news-source-mercado {
+          color: #8b5cf6;
+          background-color: rgba(139, 92, 246, 0.15);
         }
 
         .news-ticker-title {
-          font-size: 0.875rem;
-          color: hsl(var(--foreground));
-          max-width: 600px;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          font-size: 0.8125rem;
+          color: #e5e7eb;
+          max-width: none;
+          overflow: visible;
         }
 
         .news-ticker-time {
           font-size: 0.75rem;
-          color: hsl(var(--muted-foreground));
-          margin-left: 0.5rem;
+          color: #6b7280;
+          margin-left: 0.75rem;
         }
 
         .news-ticker-external {
-          width: 0.875rem;
-          height: 0.875rem;
+          width: 0.75rem;
+          height: 0.75rem;
           margin-left: 0.5rem;
-          color: hsl(var(--muted-foreground));
+          color: #6b7280;
           opacity: 0;
           transition: opacity 0.2s;
         }
@@ -147,13 +198,14 @@ export function NewsTicker() {
           left: 0;
           top: 0;
           bottom: 0;
-          width: 50px;
+          width: 60px;
           background: linear-gradient(
             to right,
-            hsl(var(--background)),
+            #000000,
             transparent
           );
           z-index: 5;
+          pointer-events: none;
         }
 
         .news-ticker-fade-right {
@@ -161,13 +213,14 @@ export function NewsTicker() {
           right: 0;
           top: 0;
           bottom: 0;
-          width: 50px;
+          width: 60px;
           background: linear-gradient(
             to left,
-            hsl(var(--background)),
+            #000000,
             transparent
           );
           z-index: 5;
+          pointer-events: none;
         }
       `}</style>
 
@@ -195,8 +248,9 @@ export function NewsTicker() {
                   }
                 }}
               >
-                <Newspaper className="news-ticker-icon" />
-                <span className="news-ticker-source">{item.source}</span>
+                <span className={`news-ticker-source ${getSourceClass(item.source)}`}>
+                  {item.source}
+                </span>
                 <span className="news-ticker-title">{item.title}</span>
                 <span className="news-ticker-time">
                   {formatTimeAgo(item.publishedAt)}
@@ -219,8 +273,9 @@ export function NewsTicker() {
                   }
                 }}
               >
-                <Newspaper className="news-ticker-icon" />
-                <span className="news-ticker-source">{item.source}</span>
+                <span className={`news-ticker-source ${getSourceClass(item.source)}`}>
+                  {item.source}
+                </span>
                 <span className="news-ticker-title">{item.title}</span>
                 <span className="news-ticker-time">
                   {formatTimeAgo(item.publishedAt)}

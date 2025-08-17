@@ -129,8 +129,36 @@ export function DividasTerrasForm({
           );
           setCommodityPrices(prices);
 
-          // Se houver preços, selecionar o primeiro por padrão
-          if (prices.length > 0) {
+          // Se estamos editando, tentar encontrar a commodity usada baseado no valor
+          if (isEditing && initialData && prices.length > 0) {
+            const totalSacasValue = initialData.total_sacas || 0;
+            const valorTotalValue = initialData.valor_total || 0;
+            
+            if (totalSacasValue > 0 && valorTotalValue > 0) {
+              const calculatedPricePerUnit = valorTotalValue / totalSacasValue;
+              
+              // Encontrar a commodity cujo preço mais se aproxima do calculado
+              let bestMatch = prices[0];
+              let smallestDiff = Infinity;
+              
+              prices.forEach(commodity => {
+                const priceForSafra = commodity.precos_por_ano?.[watchedSafraId] || 
+                                    commodity.current_price || 0;
+                const diff = Math.abs(priceForSafra - calculatedPricePerUnit);
+                
+                if (diff < smallestDiff) {
+                  smallestDiff = diff;
+                  bestMatch = commodity;
+                }
+              });
+              
+              setSelectedCommodity(bestMatch);
+            } else {
+              // Se não conseguir calcular, usar o primeiro
+              setSelectedCommodity(prices[0]);
+            }
+          } else if (prices.length > 0 && !isEditing) {
+            // Se não estamos editando, selecionar o primeiro por padrão
             setSelectedCommodity(prices[0]);
           }
         } catch (error) {
@@ -146,7 +174,7 @@ export function DividasTerrasForm({
     if (organizationId) {
       loadCommodityPrices();
     }
-  }, [watchedSafraId, organizationId]);
+  }, [watchedSafraId, organizationId, isEditing, initialData]);
 
   // Calcular preço quando commodity ou sacas mudarem
   useEffect(() => {

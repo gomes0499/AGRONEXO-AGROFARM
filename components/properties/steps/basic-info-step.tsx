@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import type { UseFormReturn } from "react-hook-form";
 import type { PropertyFormValues, anuenciaTypeEnum } from "@/schemas/properties";
 import { PropertyImageUpload } from "../property-image-upload";
@@ -479,7 +480,7 @@ export function BasicInfoStep({
           />
         </div>
         
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1">
           <FormField
             control={form.control}
             name="numero_car"
@@ -496,6 +497,29 @@ export function BasicInfoStep({
                   />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="possui_armazem"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">
+                    Possui Armazém
+                  </FormLabel>
+                  <div className="text-sm text-muted-foreground">
+                    Indica se a propriedade possui estrutura de armazenagem
+                  </div>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
               </FormItem>
             )}
           />

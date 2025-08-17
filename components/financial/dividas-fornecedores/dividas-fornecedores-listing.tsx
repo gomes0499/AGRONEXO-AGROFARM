@@ -37,7 +37,7 @@ interface DividasFornecedoresListingProps {
 export function DividasFornecedoresListing({
   organization,
   initialDividasFornecedores,
-  initialExchangeRate = 5.0,
+  initialExchangeRate = 5.7, // Usar 5.70 como padrão (consistente com dívidas bancárias)
   initialCotacoes = [],
   safras = [],
 }: DividasFornecedoresListingProps) {
@@ -68,6 +68,7 @@ export function DividasFornecedoresListing({
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
   };
+
 
   // Adicionar nova dívida
   const handleAddDivida = (newDivida: DividasFornecedoresListItem) => {
@@ -137,6 +138,23 @@ export function DividasFornecedoresListing({
 
     return total;
   }, []);
+
+  // Calcular totais gerais
+  const grandTotals = useMemo(() => {
+    const totalBRL = dividasFornecedores
+      .filter(d => d.moeda === "BRL")
+      .reduce((sum, d) => sum + calculateTotal(d), 0);
+    
+    const totalUSD = dividasFornecedores
+      .filter(d => d.moeda === "USD")
+      .reduce((sum, d) => sum + calculateTotal(d), 0);
+    
+    const totalSOJA = dividasFornecedores
+      .filter(d => d.moeda === "SOJA")
+      .reduce((sum, d) => sum + calculateTotal(d), 0);
+    
+    return { totalBRL, totalUSD, totalSOJA };
+  }, [dividasFornecedores, calculateTotal]);
 
   // Toggle expanded state for a debt
   const toggleExpanded = (id: string) => {
@@ -327,6 +345,41 @@ export function DividasFornecedoresListing({
                       </React.Fragment>
                     );
                   })}
+                  
+                  {/* Linha de totalização */}
+                  {dividasFornecedores.length > 0 && (
+                    <TableRow className="bg-muted/50 font-bold border-t-2">
+                      <TableCell></TableCell>
+                      <TableCell colSpan={3} className="text-right font-bold">
+                        TOTAL GERAL
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="space-y-0.5">
+                          {grandTotals.totalBRL > 0 && (
+                            <div className="text-sm font-medium">
+                              {formatGenericCurrency(grandTotals.totalBRL, "BRL")}
+                            </div>
+                          )}
+                          {grandTotals.totalUSD > 0 && (
+                            <div className="text-sm font-medium">
+                              {formatGenericCurrency(grandTotals.totalUSD, "USD")} = {formatGenericCurrency(grandTotals.totalUSD * exchangeRate, "BRL")}
+                            </div>
+                          )}
+                          {grandTotals.totalSOJA > 0 && (
+                            <div className="text-sm font-medium">
+                              {formatGenericCurrency(grandTotals.totalSOJA, "SOJA")}
+                            </div>
+                          )}
+                          {(grandTotals.totalBRL > 0 || grandTotals.totalUSD > 0) && (
+                            <div className="pt-0.5 border-t text-sm text-primary">
+                              Total: {formatGenericCurrency(grandTotals.totalBRL + (grandTotals.totalUSD * exchangeRate), "BRL")}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
 

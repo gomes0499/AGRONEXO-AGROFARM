@@ -5,6 +5,7 @@ const categoriaDividaBancariaEnum = z.enum(["CUSTEIO", "INVESTIMENTOS", "OUTROS"
 const moedaEnum = z.enum(["BRL", "USD"]);
 const tipoDividaBancariaEnum = z.enum(["BANCO", "TRADING", "OUTROS"]);
 const indexadorEnum = z.enum(["CDI", "SELIC", "IPCA", "PRE_FIXADO", "DOLAR"]);
+const periodicidadeEnum = z.enum(["MENSAL", "BIMESTRAL", "TRIMESTRAL", "QUADRIMESTRAL", "SEMESTRAL", "ANUAL", "IRREGULAR"]);
 
 export const dividasBancariasSchema = z.object({
   id: z.string().uuid().optional(),
@@ -17,6 +18,11 @@ export const dividasBancariasSchema = z.object({
   valor_principal: z.number().min(0).optional(),
   valores_por_safra: z.record(z.string(), z.number().nonnegative()).optional(),
   moeda: moedaEnum.default("BRL"),
+  // Novos campos de contrato
+  numero_contrato: z.string().optional(),
+  quantidade_parcelas: z.number().int().min(1).optional(),
+  periodicidade: periodicidadeEnum.optional(),
+  datas_pagamento_irregular: z.array(z.string()).optional(), // Array de datas em formato ISO
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
@@ -45,3 +51,7 @@ export const dividasBancariasListItemSchema = z.object({
 });
 
 export type DividasBancariasListItem = z.infer<typeof dividasBancariasListItemSchema>;
+
+// Export enums para uso no formulário
+export { periodicidadeEnum };
+export type Periodicidade = z.infer<typeof periodicidadeEnum>;

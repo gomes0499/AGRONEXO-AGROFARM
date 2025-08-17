@@ -14,6 +14,7 @@ import { BrazilMapSvg } from "./brazil-map-svg";
 import { PropertyOwnershipBreakdown } from "./property-ownership-breakdown";
 import { PropertyEnvironmentalSummaryClient } from "./property-environmental-summary-client";
 import { PropertyKpiCardsFull } from "./property-kpi-cards-full";
+import { PropertyAreaDistributionSummaryCard } from "./property-area-distribution-summary-card";
 import { useDashboardFilterContext } from "@/components/dashboard/dashboard-filter-provider";
 import { useEffect, useState } from "react";
 import { getPropertyGeoStats } from "@/lib/actions/property-geo-stats-actions";
@@ -70,6 +71,9 @@ function PropertyMapBreakdownContent({
       <div className="space-y-6">
         {/* KPI Cards no topo */}
         <PropertyKpiCardsFull organizationId={organizationId} />
+
+        {/* Distribuição de Áreas - Logo abaixo do resumo */}
+        <PropertyAreaDistributionSummaryCard organizationId={organizationId} />
 
         {/* Segunda linha - Mapa e Breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -179,6 +183,9 @@ function PropertyMapBreakdownContent({
         {/* KPI Cards no topo */}
         <PropertyKpiCardsFull organizationId={organizationId} />
 
+        {/* Distribuição de Áreas - Logo abaixo do resumo */}
+        <PropertyAreaDistributionSummaryCard organizationId={organizationId} />
+
         {/* Segunda linha - Mapa e Breakdown com empty states */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Mapa do Brasil - Empty State */}
@@ -274,6 +281,9 @@ function PropertyMapBreakdownContent({
     <div className="space-y-6">
       {/* KPI Cards no topo */}
       <PropertyKpiCardsFull organizationId={organizationId} />
+
+      {/* Distribuição de Áreas - Logo abaixo do resumo */}
+      <PropertyAreaDistributionSummaryCard organizationId={organizationId} />
 
       {/* Segunda linha - Mapa e Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

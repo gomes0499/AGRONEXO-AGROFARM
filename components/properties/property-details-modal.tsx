@@ -30,6 +30,7 @@ import {
   User,
   TreePine,
   RefreshCw,
+  Warehouse,
 } from "lucide-react";
 import { Property } from "@/schemas/properties";
 import { Improvement } from "@/schemas/properties";
@@ -314,6 +315,15 @@ export function PropertyDetailsModal({
                       icon={FileText}
                       label="CAR"
                       value={property.numero_car}
+                    />
+                    <InfoField
+                      icon={Warehouse}
+                      label="Possui Armazém"
+                      value={
+                        <Badge variant={property.possui_armazem ? "success" : "outline"}>
+                          {property.possui_armazem ? "Sim" : "Não"}
+                        </Badge>
+                      }
                     />
                   </CardContent>
                 </Card>

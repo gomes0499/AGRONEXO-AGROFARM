@@ -26,6 +26,8 @@ export function DebtProjectionTab({ organizationId }: DebtProjectionTabProps) {
             dolar_fechamento: {},
             patrimonio_liquido: {},
             ltv: {},
+            ltv_liquido: {},
+            liquidez_corrente: {},
             indicadores_calculados: {
               divida_receita: {},
               divida_ebitda: {},

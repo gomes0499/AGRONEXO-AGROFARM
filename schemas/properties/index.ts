@@ -116,6 +116,8 @@ export const propertySchema = z.object({
   }),
   tipo_pagamento: z.enum(["SACAS", "DINHEIRO", "MISTO", "PERCENTUAL_PRODUCAO"]).nullable().optional(),
   custos_por_safra: z.record(z.string(), z.number()).nullable().optional(),
+  // Campo de armazenagem
+  possui_armazem: z.boolean().default(false).optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });

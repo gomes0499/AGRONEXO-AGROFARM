@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardContent,
 } from "@/components/ui/card";
 import {
   Tooltip,
@@ -419,7 +420,6 @@ export function PropertyKpiCardsFull({
             />
           </div>
         </div>
-
       </Card>
     </TooltipProvider>
   );

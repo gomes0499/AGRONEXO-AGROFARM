@@ -1,9 +1,16 @@
 "use client";
 
-import React, { useState, useTransition, useCallback } from "react";
+import React, { useState, useTransition, useCallback, useMemo } from "react";
 import { OutrasDespesasListItem } from "@/schemas/financial/outras_despesas";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, DollarSignIcon, ChevronDown, ChevronUp, FileSpreadsheet, Loader2 } from "lucide-react";
+import {
+  PlusIcon,
+  DollarSignIcon,
+  ChevronDown,
+  ChevronUp,
+  FileSpreadsheet,
+  Loader2,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -14,7 +21,10 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { OutrasDespesasForm } from "./outras-despesas-form";
-import { deleteOutraDespesa, getOutrasDespesas } from "@/lib/actions/financial-actions/outras-despesas";
+import {
+  deleteOutraDespesa,
+  getOutrasDespesas,
+} from "@/lib/actions/financial-actions/outras-despesas";
 import { OutrasDespesasRowActions } from "./outras-despesas-row-actions";
 import { OutrasDespesasPopoverEditor } from "./outras-despesas-popover-editor";
 import { formatGenericCurrency } from "@/lib/utils/formatters";
@@ -43,42 +53,60 @@ export function OutrasDespesasListing({
 }: OutrasDespesasListingProps) {
   const [items, setItems] = useState<
     (OutrasDespesasListItem & { isExpanded?: boolean })[]
-  >((initialOutrasDespesas || []).map(item => ({
-    ...item,
-    total: calculateTotal(item),
-    isExpanded: false
-  })));
+  >(
+    (initialOutrasDespesas || []).map((item) => ({
+      ...item,
+      total: calculateTotal(item),
+      isExpanded: false,
+    }))
+  );
   const [error, setError] = useState<string | null>(initialError || null);
   const [isPending, startTransition] = useTransition();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<OutrasDespesasListItem | null>(null);
+  const [editingItem, setEditingItem] = useState<OutrasDespesasListItem | null>(
+    null
+  );
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
-  
+
   const totalPages = Math.ceil(items.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedData = items.slice(startIndex, startIndex + itemsPerPage);
 
+  // Calcular total geral
+  const grandTotal = useMemo(() => {
+    return items.reduce(
+      (sum, item) => sum + (item.total || calculateTotal(item)),
+      0
+    );
+  }, [items]);
+
   // Function to calculate total from valores_por_safra
   function calculateTotal(item: OutrasDespesasListItem): number {
     let total = 0;
-    
+
     if (item.valores_por_safra) {
-      if (typeof item.valores_por_safra === 'string') {
+      if (typeof item.valores_por_safra === "string") {
         try {
           const parsedValues = JSON.parse(item.valores_por_safra);
-          total = Object.values(parsedValues).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
+          total = Object.values(parsedValues).reduce(
+            (acc: number, val) => acc + (Number(val) || 0),
+            0
+          );
         } catch (e) {
           console.error("Erro ao processar valores_por_safra:", e);
         }
       } else {
-        total = Object.values(item.valores_por_safra).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
+        total = Object.values(item.valores_por_safra).reduce(
+          (acc: number, val) => acc + (Number(val) || 0),
+          0
+        );
       }
     }
-    
+
     return total;
   }
 
@@ -87,11 +115,13 @@ export function OutrasDespesasListing({
     startTransition(async () => {
       try {
         const newItems = await getOutrasDespesas(organization.id);
-        setItems(newItems.map(item => ({
-          ...item,
-          total: calculateTotal(item),
-          isExpanded: false
-        })));
+        setItems(
+          newItems.map((item) => ({
+            ...item,
+            total: calculateTotal(item),
+            isExpanded: false,
+          }))
+        );
         setError(null);
       } catch (err) {
         console.error("❌ Erro ao atualizar outras despesas:", err);
@@ -103,11 +133,11 @@ export function OutrasDespesasListing({
       }
     });
   }, [organization.id]);
-  
+
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
   }, []);
-  
+
   const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
@@ -118,57 +148,66 @@ export function OutrasDespesasListing({
     const itemWithTotal = {
       ...newItem,
       total: calculateTotal(newItem),
-      isExpanded: false
+      isExpanded: false,
     };
-    setItems(prev => [itemWithTotal, ...prev]);
+    setItems((prev) => [itemWithTotal, ...prev]);
     setIsAddModalOpen(false);
     toast.success("Despesa adicionada com sucesso.");
   }, []);
 
   // Importar itens via Excel
-  const handleImportSuccess = useCallback((importedItems: OutrasDespesasListItem[]) => {
-    const itemsWithTotal = importedItems.map(item => ({
-      ...item,
-      total: calculateTotal(item),
-      isExpanded: false
-    }));
-    setItems(prev => [...itemsWithTotal, ...prev]);
-    setIsImportModalOpen(false);
-    refreshData();
-    toast.success("Itens importados com sucesso!");
-  }, [refreshData]);
+  const handleImportSuccess = useCallback(
+    (importedItems: OutrasDespesasListItem[]) => {
+      const itemsWithTotal = importedItems.map((item) => ({
+        ...item,
+        total: calculateTotal(item),
+        isExpanded: false,
+      }));
+      setItems((prev) => [...itemsWithTotal, ...prev]);
+      setIsImportModalOpen(false);
+      refreshData();
+      toast.success("Itens importados com sucesso!");
+    },
+    [refreshData]
+  );
 
   // Atualizar item existente
-  const handleUpdateItem = useCallback((updatedItem: OutrasDespesasListItem) => {
-    setItems(prev => {
-      const updatedItemData = prev.find(i => i.id === updatedItem.id);
-      const itemWithTotal = {
-        ...updatedItem,
-        total: calculateTotal(updatedItem),
-        isExpanded: updatedItemData?.isExpanded || false
-      };
-      return prev.map((item) =>
-        item.id === updatedItem.id ? itemWithTotal : item
-      );
-    });
-    setEditingItem(null);
-    toast.success("Despesa atualizada com sucesso.");
-  }, []);
+  const handleUpdateItem = useCallback(
+    (updatedItem: OutrasDespesasListItem) => {
+      setItems((prev) => {
+        const updatedItemData = prev.find((i) => i.id === updatedItem.id);
+        const itemWithTotal = {
+          ...updatedItem,
+          total: calculateTotal(updatedItem),
+          isExpanded: updatedItemData?.isExpanded || false,
+        };
+        return prev.map((item) =>
+          item.id === updatedItem.id ? itemWithTotal : item
+        );
+      });
+      setEditingItem(null);
+      toast.success("Despesa atualizada com sucesso.");
+    },
+    []
+  );
 
   // Excluir item
-  const handleDeleteItem = useCallback(async (id: string) => {
-    try {
-      await deleteOutraDespesa(id, organization.id);
-      setItems(prev => prev.filter((item) => item.id !== id));
-      toast.success("Despesa excluída com sucesso.");
-    } catch (error) {
-      toast.error("Erro ao excluir despesa");
-    }
-  }, [organization.id]);
-  
+  const handleDeleteItem = useCallback(
+    async (id: string) => {
+      try {
+        await deleteOutraDespesa(id, organization.id);
+        setItems((prev) => prev.filter((item) => item.id !== id));
+        toast.success("Despesa excluída com sucesso.");
+      } catch (error) {
+        toast.error("Erro ao excluir despesa");
+      }
+    },
+    [organization.id]
+  );
+
   // Toggle expanded state for an item
   const toggleExpanded = useCallback((id: string) => {
-    setItems(prev =>
+    setItems((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, isExpanded: !item.isExpanded } : item
       )
@@ -195,20 +234,23 @@ export function OutrasDespesasListing({
       COMUNICACAO: "Comunicação",
       VIAGENS: "Viagens",
       MATERIAL_ESCRITORIO: "Material de Escritório",
-      OUTROS: "Outros"
+      OUTROS: "Outros",
     };
-    
+
     return formatMap[categoria] || categoria;
   }, []);
 
   // Função para renderizar badge de categoria com estilo padrão
-  const renderCategoriaBadge = useCallback((categoria: string) => {
-    return (
-      <Badge variant="default" className="font-normal">
-        {formatCategoria(categoria)}
-      </Badge>
-    );
-  }, [formatCategoria]);
+  const renderCategoriaBadge = useCallback(
+    (categoria: string) => {
+      return (
+        <Badge variant="default" className="font-normal">
+          {formatCategoria(categoria)}
+        </Badge>
+      );
+    },
+    [formatCategoria]
+  );
 
   if (error) {
     return (
@@ -267,10 +309,11 @@ export function OutrasDespesasListing({
         />
         <CardContent>
           <div className="space-y-4">
-
             {items.length === 0 ? (
               <EmptyState
-                icon={<DollarSignIcon className="h-10 w-10 text-muted-foreground" />}
+                icon={
+                  <DollarSignIcon className="h-10 w-10 text-muted-foreground" />
+                }
                 title="Nenhuma despesa cadastrada"
                 description="Comece adicionando suas despesas operacionais e administrativas."
                 action={
@@ -290,10 +333,18 @@ export function OutrasDespesasListing({
                   <TableHeader>
                     <TableRow className="bg-primary hover:bg-primary">
                       <TableHead className="w-10 font-medium text-primary-foreground rounded-tl-md"></TableHead>
-                      <TableHead className="font-medium text-primary-foreground">Nome</TableHead>
-                      <TableHead className="font-medium text-primary-foreground">Categoria</TableHead>
-                      <TableHead className="font-medium text-primary-foreground w-[180px]">Valor Total</TableHead>
-                      <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">Ações</TableHead>
+                      <TableHead className="font-medium text-primary-foreground">
+                        Nome
+                      </TableHead>
+                      <TableHead className="font-medium text-primary-foreground">
+                        Categoria
+                      </TableHead>
+                      <TableHead className="font-medium text-primary-foreground w-[180px]">
+                        Valor Total
+                      </TableHead>
+                      <TableHead className="font-medium text-primary-foreground text-right rounded-tr-md w-[100px]">
+                        Ações
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -305,7 +356,7 @@ export function OutrasDespesasListing({
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => toggleExpanded(item.id || '')}
+                              onClick={() => toggleExpanded(item.id || "")}
                             >
                               {item.isExpanded ? (
                                 <ChevronUp className="h-4 w-4" />
@@ -314,13 +365,20 @@ export function OutrasDespesasListing({
                               )}
                             </Button>
                           </TableCell>
-                          <TableCell className="font-medium" onClick={() => toggleExpanded(item.id || '')}>
+                          <TableCell
+                            className="font-medium"
+                            onClick={() => toggleExpanded(item.id || "")}
+                          >
                             {item.nome}
                           </TableCell>
-                          <TableCell onClick={() => toggleExpanded(item.id || '')}>
+                          <TableCell
+                            onClick={() => toggleExpanded(item.id || "")}
+                          >
                             {renderCategoriaBadge(item.categoria)}
                           </TableCell>
-                          <TableCell onClick={() => toggleExpanded(item.id || '')}>
+                          <TableCell
+                            onClick={() => toggleExpanded(item.id || "")}
+                          >
                             <span className="font-medium text-sm">
                               {formatGenericCurrency(
                                 item.total || calculateTotal(item),
@@ -339,12 +397,12 @@ export function OutrasDespesasListing({
                                 organizationId={organization.id}
                                 onUpdate={handleUpdateItem}
                               />
-                              
+
                               {/* Botões de Editar/Excluir */}
                               <OutrasDespesasRowActions
                                 item={item}
                                 onEdit={() => setEditingItem(item)}
-                                onDelete={() => handleDeleteItem(item.id || '')}
+                                onDelete={() => handleDeleteItem(item.id || "")}
                               />
                             </div>
                           </TableCell>
@@ -363,9 +421,23 @@ export function OutrasDespesasListing({
                         )}
                       </React.Fragment>
                     ))}
+
+                    {/* Linha de totalização */}
+                    {items.length > 0 && (
+                      <TableRow className="bg-muted/50 font-bold border-t-2">
+                        <TableCell></TableCell>
+                        <TableCell colSpan={2} className="text-right font-bold">
+                          TOTAL GERAL
+                        </TableCell>
+                        <TableCell className="font-bold">
+                          {formatGenericCurrency(grandTotal, "BRL")}
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
-                
+
                 <div className="mt-8">
                   <FinancialPagination
                     currentPage={currentPage}

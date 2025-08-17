@@ -25,7 +25,26 @@ import {
   DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
+import { formatCurrency, formatPercent, formatMoneyValue } from "@/lib/utils/formatters";
+
+// Função para converter safra para ano (2024/25 -> 2025)
+function safraToYear(safra: string): string {
+  const match = safra.match(/(\d{4})\/(\d{2})/);
+  if (match) {
+    const yearStart = parseInt(match[1]);
+    const yearEnd = parseInt(match[2]);
+    // Se o ano final for menor que 50, assumimos que é 20XX, senão 19XX
+    const fullYearEnd = yearEnd < 50 ? 2000 + yearEnd : 1900 + yearEnd;
+    return fullYearEnd.toString();
+  }
+  return safra; // Retorna original se não for no formato esperado
+}
+
+// Função helper para formatar valores (0 vira "-")
+function formatValue(value: number | null | undefined): string {
+  if (value === null || value === undefined || value === 0) return "-";
+  return formatMoneyValue(value, 0);
+}
 
 // Interface para os dados do DRE
 export interface DREData {
@@ -198,9 +217,12 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
             <div className="min-w-max">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-primary hover:bg-primary dark:bg-primary/90 dark:hover:bg-primary/90">
+                  <TableRow className="bg-primary dark:bg-primary/90 hover:!bg-primary dark:hover:!bg-primary/90">
                     <TableHead className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
-                      Demonstração de Resultado
+                      <div>
+                        <div>Demonstração de Resultado</div>
+                        <div className="text-xs font-normal opacity-90">Valores em R$</div>
+                      </div>
                     </TableHead>
                     {data.anos.map((ano, index) => (
                       <TableHead 
@@ -210,7 +232,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                           index === data.anos.length - 1 && "rounded-tr-md"
                         )}
                       >
-                        {ano}
+                        {safraToYear(ano)}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -255,7 +277,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-green-700 dark:text-green-400 font-medium"
                           >
-                            {formatCurrency(data.receita_bruta.agricola[ano] || 0)}
+                            {formatValue(data.receita_bruta.agricola[ano])}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -270,7 +292,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px]"
                           >
-                            {formatCurrency(data.receita_bruta.pecuaria[ano] || 0)}
+                            {formatValue(data.receita_bruta.pecuaria[ano])}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -287,7 +309,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                         key={ano} 
                         className="text-center font-semibold min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800/50 text-green-700 dark:text-green-400"
                       >
-                        {formatCurrency(data.receita_bruta.total[ano] || 0)}
+                        {formatValue(data.receita_bruta.total[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -304,7 +326,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-red-700 dark:text-red-400 font-medium"
                           >
-                            ({formatCurrency((data.impostos_vendas?.pis[ano] || 0) + (data.impostos_vendas?.cofins[ano] || 0))})
+                            ({formatValue((data.impostos_vendas?.pis[ano] || 0) + (data.impostos_vendas?.cofins[ano] || 0))})
                           </TableCell>
                         ))}
                       </TableRow>
@@ -317,7 +339,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive font-medium"
                           >
-                            ({formatCurrency(data.impostos_vendas?.total[ano] || 0)})
+                            ({formatValue(data.impostos_vendas?.total[ano] || 0)})
                           </TableCell>
                         ))}
                       </TableRow>
@@ -334,7 +356,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                         key={ano} 
                         className="text-center font-semibold min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800/50"
                       >
-                        {formatCurrency(data.receita_liquida[ano] || 0)}
+                        {formatValue(data.receita_liquida[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -378,7 +400,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive"
                           >
-                            {formatCurrency(data.custos.agricola[ano] || 0)}
+                            {formatValue(data.custos.agricola[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -393,7 +415,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive"
                           >
-                            {formatCurrency(data.custos.pecuaria[ano] || 0)}
+                            {formatValue(data.custos.pecuaria[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -410,7 +432,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                         key={ano} 
                         className="text-center font-medium min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800 text-destructive"
                       >
-                        {formatCurrency(data.custos.total[ano] || 0)}
+                        {formatValue(data.custos.total[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -430,7 +452,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             valor < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"
                           )}
                         >
-                          {formatCurrency(valor)}
+                          {formatValue(valor)}
                         </TableCell>
                       );
                     })}
@@ -449,7 +471,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px] text-green-600 dark:text-green-400"
                       >
-                        {formatCurrency(data.outras_receitas_operacionais?.[ano] || 0)}
+                        {formatValue(data.outras_receitas_operacionais?.[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -493,7 +515,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive"
                           >
-                            {formatCurrency(data.despesas_operacionais.administrativas[ano] || 0)}
+                            {formatValue(data.despesas_operacionais.administrativas[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -508,7 +530,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive"
                           >
-                            {formatCurrency(data.despesas_operacionais.pessoal[ano] || 0)}
+                            {formatValue(data.despesas_operacionais.pessoal[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -523,7 +545,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive"
                           >
-                            {formatCurrency(data.despesas_operacionais.arrendamentos[ano] || 0)}
+                            {formatValue(data.despesas_operacionais.arrendamentos[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -538,7 +560,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive"
                           >
-                            {formatCurrency(data.despesas_operacionais.tributarias[ano] || 0)}
+                            {formatValue(data.despesas_operacionais.tributarias[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -553,7 +575,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive"
                           >
-                            {formatCurrency(data.despesas_operacionais.manutencao_seguros[ano] || 0)}
+                            {formatValue(data.despesas_operacionais.manutencao_seguros[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -568,7 +590,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive"
                           >
-                            {formatCurrency(data.despesas_operacionais.outros[ano] || 0)}
+                            {formatValue(data.despesas_operacionais.outros[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -585,7 +607,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                         key={ano} 
                         className="text-center font-medium min-w-[120px] w-[120px] bg-gray-50 dark:bg-gray-800 text-destructive"
                       >
-                        {formatCurrency(data.despesas_operacionais.total[ano] || 0)}
+                        {formatValue(data.despesas_operacionais.total[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -605,7 +627,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             valor < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"
                           )}
                         >
-                          {formatCurrency(valor)}
+                          {formatValue(valor)}
                         </TableCell>
                       );
                     })}
@@ -642,7 +664,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px] text-destructive"
                       >
-                        {formatCurrency(data.depreciacao_amortizacao[ano] || 0)}
+                        {formatValue(data.depreciacao_amortizacao[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -662,7 +684,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             valor < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"
                           )}
                         >
-                          {formatCurrency(valor)}
+                          {formatValue(valor)}
                         </TableCell>
                       );
                     })}
@@ -707,7 +729,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px]"
                           >
-                            {formatCurrency(data.resultado_financeiro.receitas_financeiras[ano] || 0)}
+                            {formatValue(data.resultado_financeiro.receitas_financeiras[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -722,7 +744,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             key={ano} 
                             className="text-center min-w-[120px] w-[120px] text-destructive"
                           >
-                            {formatCurrency(data.resultado_financeiro.despesas_financeiras[ano] || 0)}
+                            {formatValue(data.resultado_financeiro.despesas_financeiras[ano] || 0)}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -742,7 +764,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                                 valor < 0 ? "text-destructive" : valor > 0 ? "text-green-600 dark:text-green-400" : ""
                               )}
                             >
-                              {formatCurrency(valor)}
+                              {formatValue(valor)}
                             </TableCell>
                           );
                         })}
@@ -765,7 +787,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             valor < 0 ? "text-destructive" : ""
                           )}
                         >
-                          {formatCurrency(valor)}
+                          {formatValue(valor)}
                         </TableCell>
                       );
                     })}
@@ -786,7 +808,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             valor < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"
                           )}
                         >
-                          {formatCurrency(valor)}
+                          {formatValue(valor)}
                         </TableCell>
                       );
                     })}
@@ -802,7 +824,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                         key={ano} 
                         className="text-center min-w-[120px] w-[120px] text-destructive"
                       >
-                        {formatCurrency(data.impostos_sobre_lucro[ano] || 0)}
+                        {formatValue(data.impostos_sobre_lucro[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -822,7 +844,7 @@ export function DRETable({ organizationId, projectionId, initialData }: DRETable
                             valor < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"
                           )}
                         >
-                          {formatCurrency(valor)}
+                          {formatValue(valor)}
                         </TableCell>
                       );
                     })}

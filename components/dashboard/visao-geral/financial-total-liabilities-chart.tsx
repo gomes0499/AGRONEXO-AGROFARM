@@ -31,15 +31,14 @@ import { getTotalLiabilitiesChartData, type LiabilityData, type TotalLiabilities
 
 // Formatar valor monetário
 function formatCurrency(value: number, digits = 2) {
-  let formatted = new Intl.NumberFormat("pt-BR", {
+  // Não usar notação compacta, sempre mostrar o valor completo
+  const formatted = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-    notation: value >= 1000000 ? "compact" : "standard",
+    notation: "standard",
+    minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(value);
-
-  // Adicionar espaço entre o número e a unidade (mi, bi)
-  formatted = formatted.replace(/mi$/, " mi").replace(/bi$/, " bi");
 
   return formatted;
 }
@@ -124,7 +123,7 @@ export function FinancialTotalLiabilitiesChart({
                 <LayoutList className="h-4 w-4 text-white" />
               </div>
               <div>
-                <CardTitle className="text-white">Passivos Totais</CardTitle>
+                <CardTitle className="text-white">Passivos Totais - R$ milhões</CardTitle>
                 <CardDescription className="text-white/80">
                   {error}
                 </CardDescription>
@@ -154,7 +153,7 @@ export function FinancialTotalLiabilitiesChart({
               </div>
               <div>
                 <CardTitle className="text-white">
-                  Passivos Totais {displaySafra ? `(${displaySafra})` : ""}
+                  Passivos Totais - R$ milhões {displaySafra ? `(${displaySafra})` : ""}
                 </CardTitle>
                 <CardDescription className="text-white/80">
                   Composição dos passivos por tipo
@@ -188,16 +187,18 @@ export function FinancialTotalLiabilitiesChart({
             </div>
             <div>
               <CardTitle className="text-white">
-                Posição da Dívida por Safra
+                Posição da Dívida por Safra - R$ milhões
                 {isPending && (
                   <Loader2 className="h-4 w-4 animate-spin inline ml-2" />
                 )}
               </CardTitle>
               <CardDescription className="text-white/80">
                 {data && data.length > 0
-                  ? `Valores totais das dívidas em todas as safras (${
-                      data[0]?.safra
-                    } - ${data[data.length - 1]?.safra})`
+                  ? data.length === 1 
+                    ? `Valores totais das dívidas na safra ${data[0]?.safra}`
+                    : `Valores totais das dívidas nas safras com movimentação (${
+                        data[0]?.safra
+                      } - ${data[data.length - 1]?.safra})`
                   : "Valores totais das dívidas em todas as safras"}
               </CardDescription>
             </div>
@@ -228,7 +229,7 @@ export function FinancialTotalLiabilitiesChart({
                   interval={0}
                 />
                 <YAxis
-                  tickFormatter={(value) => formatCurrency(value, 0)}
+                  tickFormatter={(value) => (value/1000000).toFixed(0)}
                   tickLine={false}
                   axisLine={false}
                   width={90}
@@ -239,13 +240,11 @@ export function FinancialTotalLiabilitiesChart({
                     <ChartTooltipContent className="dark:border-gray-700" />
                   }
                   formatter={(value: any, name: any) => {
-                    const formattedValue = formatCurrency(
-                      Number(value)
-                    ).replace(/mi$/, " mi");
+                    const formattedValue = formatCurrency(Number(value));
+                    const label = chartConfig[name as keyof typeof chartConfig]?.label || name;
                     return [
-                      formattedValue,
-                      chartConfig[name as keyof typeof chartConfig]?.label ||
-                        name,
+                      `${formattedValue} `,
+                      label,
                     ];
                   }}
                   labelFormatter={(label) => `Safra: ${label}`}
@@ -267,12 +266,7 @@ export function FinancialTotalLiabilitiesChart({
                   <LabelList
                     dataKey="outros"
                     position="top"
-                    formatter={(value: number) => {
-                      if (value >= 1000000000) return `${(value/1000000000).toFixed(1)}B`;
-                      if (value >= 1000000) return `${(value/1000000).toFixed(1)}M`;
-                      if (value >= 1000) return `${(value/1000).toFixed(1)}K`;
-                      return value.toFixed(0);
-                    }}
+                    formatter={(value: number) => (value/1000000).toFixed(0)}
                     fill={chartConfig.outros.color}
                     fontSize={10}
                     fontWeight="600"
@@ -287,33 +281,8 @@ export function FinancialTotalLiabilitiesChart({
                   <LabelList
                     dataKey="bancos_tradings"
                     position="top"
-                    formatter={(value: number) => {
-                      if (value >= 1000000000) return `${(value/1000000000).toFixed(1)}B`;
-                      if (value >= 1000000) return `${(value/1000000).toFixed(1)}M`;
-                      if (value >= 1000) return `${(value/1000).toFixed(1)}K`;
-                      return value.toFixed(0);
-                    }}
+                    formatter={(value: number) => (value/1000000).toFixed(0)}
                     fill={chartConfig.bancos_tradings.color}
-                    fontSize={10}
-                    fontWeight="600"
-                    offset={5}
-                  />
-                </Bar>
-                <Bar
-                  dataKey="liquido"
-                  name="Dívida Líquida"
-                  fill={chartConfig.liquido.color}
-                >
-                  <LabelList
-                    dataKey="liquido"
-                    position="top"
-                    formatter={(value: number) => {
-                      if (value >= 1000000000) return `${(value/1000000000).toFixed(1)}B`;
-                      if (value >= 1000000) return `${(value/1000000).toFixed(1)}M`;
-                      if (value >= 1000) return `${(value/1000).toFixed(1)}K`;
-                      return value.toFixed(0);
-                    }}
-                    fill={chartConfig.liquido.color}
                     fontSize={10}
                     fontWeight="600"
                     offset={5}
@@ -328,12 +297,7 @@ export function FinancialTotalLiabilitiesChart({
                   <LabelList
                     dataKey="total"
                     position="top"
-                    formatter={(value: number) => {
-                      if (value >= 1000000000) return `${(value/1000000000).toFixed(1)}B`;
-                      if (value >= 1000000) return `${(value/1000000).toFixed(1)}M`;
-                      if (value >= 1000) return `${(value/1000).toFixed(1)}K`;
-                      return value.toFixed(0);
-                    }}
+                    formatter={(value: number) => (value/1000000).toFixed(0)}
                     fill={chartConfig.total.color}
                     fontSize={10}
                     fontWeight="600"

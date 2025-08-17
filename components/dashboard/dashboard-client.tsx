@@ -14,23 +14,26 @@ import type { DashboardData } from "@/lib/actions/dashboard/dashboard-actions";
 // Import components that will receive data
 import { OverviewKpiCards } from "@/components/dashboard/visao-geral/overview-kpi-cards";
 import { FinancialKpiCards } from "@/components/dashboard/visao-geral/financial-kpi-cards";
-import { FinancialBankDistributionChartClient } from "@/components/dashboard/visao-geral/financial-bank-distribution-chart";
-import { FinancialDebtTypeDistributionChart } from "@/components/dashboard/visao-geral/financial-debt-type-distribution-chart";
-import { FinancialBankDistributionAllSafrasChart } from "@/components/dashboard/visao-geral/financial-bank-distribution-all-safras-chart";
-import { FinancialDebtTypeDistributionAllSafrasChart } from "@/components/dashboard/visao-geral/financial-debt-type-distribution-all-safras-chart";
-import { FinancialTotalLiabilitiesChart } from "@/components/dashboard/visao-geral/financial-total-liabilities-chart";
 import { ProductionKPICardsClient as ProductionKpiCards } from "@/components/production/stats/production-kpi-cards";
 import { AreaPlantadaChartClient as AreaPlantadaChart } from "@/components/production/stats/area-plantada-chart";
 import { ProdutividadeChartClient as ProdutividadeChart } from "@/components/production/stats/produtividade-chart";
 import { ReceitaChartClient as ReceitaChart } from "@/components/production/stats/receita-chart";
 import { FinancialChartClient as FinancialChart } from "@/components/production/stats/financial-chart";
-import { FluxoCaixaClient } from "@/components/projections/cash-flow/fluxo-caixa-client";
-import { DRETable } from "@/components/projections/dre/dre-table";
-import { BalancoPatrimonialTable } from "@/components/projections/balanco/balanco-patrimonial-table";
+import { DREStyled } from "@/components/projections/dre/dre-styled";
+import { BalancoStyled } from "@/components/projections/balanco/balanco-styled";
 import { CultureProjectionsTable } from "@/components/projections/cultures/culture-projections-table";
 import { DebtPositionTable } from "@/components/projections/debts/debt-position-table";
 import { MarketTicker } from "@/components/dashboard/market-ticker";
 import { WeatherTickerBar } from "@/components/dashboard/weather-ticker-bar";
+import { CashPolicyConfig } from "@/components/dashboard/visao-geral/cash-policy-config";
+import { ProjectionsOverview } from "@/components/dashboard/projections/projections-overview";
+import { DebtEvolutionChart } from "@/components/dashboard/visao-geral/debt-evolution-chart";
+import { BankDebtWaterfallChart } from "@/components/dashboard/visao-geral/bank-debt-waterfall-chart";
+import { BankRankingChart } from "@/components/dashboard/visao-geral/bank-ranking-chart";
+import { DebtBySafraCharts } from "@/components/dashboard/visao-geral/debt-by-safra-charts";
+import { FinancialIndicatorsEvolutionChart } from "@/components/dashboard/visao-geral/financial-indicators-evolution-chart";
+import { Button } from "@/components/ui/button";
+import { Settings2 } from "lucide-react";
 
 interface DashboardClientProps {
   organizationId: string;
@@ -38,6 +41,7 @@ interface DashboardClientProps {
   projectionId?: string;
   initialData: DashboardData;
   isSuperAdmin: boolean;
+  cashPolicy?: any;
 }
 
 export function DashboardClient({
@@ -46,12 +50,16 @@ export function DashboardClient({
   projectionId,
   initialData,
   isSuperAdmin,
+  cashPolicy,
 }: DashboardClientProps) {
   const { productionConfig } = initialData;
   
   // State para safra selecionada na aba financeiro
   const defaultFinancialSafraId = productionConfig.safras?.find(s => s.nome === "2025/26")?.id || "";
   const [selectedFinancialSafraId, setSelectedFinancialSafraId] = useState<string>(defaultFinancialSafraId);
+  
+  // State para configuração de política de caixa
+  const [isCashPolicyOpen, setIsCashPolicyOpen] = useState(false);
   
   // Extract filter data from production config
   const filterData = {
@@ -87,16 +95,10 @@ export function DashboardClient({
                   Produção
                 </TabsTriggerPrimary>
                 <TabsTriggerPrimary value="financial">
-                  Financeiro
+                  Indicadores
                 </TabsTriggerPrimary>
-                <TabsTriggerPrimary value="culture-projections">
-                  Projeções de Culturas
-                </TabsTriggerPrimary>
-                <TabsTriggerPrimary value="debt-position">
-                  Posição de Dívida
-                </TabsTriggerPrimary>
-                <TabsTriggerPrimary value="projections">
-                  Fluxo de Caixa
+                <TabsTriggerPrimary value="projections-overview">
+                  Projeções
                 </TabsTriggerPrimary>
                 <TabsTriggerPrimary value="dre">
                   DRE
@@ -163,43 +165,44 @@ export function DashboardClient({
                 defaultCultureIds={initialData.productionConfig.cultures.map(c => c.id)}
               />
               
-              <div className="grid gap-4 md:grid-cols-2">
-                <AreaPlantadaChart
-                  organizationId={organizationId}
-                  projectionId={projectionId}
-                  initialData={{ 
-                    chartData: [],
-                    culturaColors: {},
-                    safras: initialData.productionConfig.safras 
-                  }}
-                />
-                <ProdutividadeChart
-                  organizationId={organizationId}
-                  projectionId={projectionId}
-                  initialData={{
-                    chartData: [],
-                    culturaColors: {},
-                    safras: initialData.productionConfig.safras
-                  }}
-                />
-                <ReceitaChart
-                  organizationId={organizationId}
-                  projectionId={projectionId}
-                  initialData={{
-                    chartData: [],
-                    culturaColors: {},
-                    safras: initialData.productionConfig.safras
-                  }}
-                />
-                <FinancialChart
-                  organizationId={organizationId}
-                  projectionId={projectionId}
-                  initialData={{
-                    chartData: [],
-                    safras: initialData.productionConfig.safras
-                  }}
-                />
-              </div>
+              <AreaPlantadaChart
+                organizationId={organizationId}
+                projectionId={projectionId}
+                initialData={{ 
+                  chartData: [],
+                  culturaColors: {},
+                  safras: initialData.productionConfig.safras 
+                }}
+              />
+              
+              <ProdutividadeChart
+                organizationId={organizationId}
+                projectionId={projectionId}
+                initialData={{
+                  chartData: [],
+                  culturaColors: {},
+                  safras: initialData.productionConfig.safras
+                }}
+              />
+              
+              <ReceitaChart
+                organizationId={organizationId}
+                projectionId={projectionId}
+                initialData={{
+                  chartData: [],
+                  culturaColors: {},
+                  safras: initialData.productionConfig.safras
+                }}
+              />
+              
+              <FinancialChart
+                organizationId={organizationId}
+                projectionId={projectionId}
+                initialData={{
+                  chartData: [],
+                  safras: initialData.productionConfig.safras
+                }}
+              />
             </TabsContent>
 
             {/* Financial Tab */}
@@ -212,87 +215,58 @@ export function DashboardClient({
                 onSafraChange={setSelectedFinancialSafraId}
               />
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <FinancialBankDistributionChartClient
-                  organizationId={organizationId}
-                  projectionId={projectionId}
-                  initialData={initialData.bankDistribution.data}
-                  initialYearUsed={initialData.bankDistribution.yearUsed}
-                  initialSafraName={initialData.bankDistribution.safraName}
-                  selectedSafraId={selectedFinancialSafraId}
-                />
-                <FinancialDebtTypeDistributionChart
-                  organizationId={organizationId}
-                  projectionId={projectionId}
-                  initialData={initialData.debtTypeDistribution}
-                  selectedSafraId={selectedFinancialSafraId}
-                />
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <FinancialBankDistributionAllSafrasChart
-                  organizationId={organizationId}
-                  projectionId={projectionId}
-                  initialData={initialData.bankDistributionAllSafras}
-                />
-                <FinancialDebtTypeDistributionAllSafrasChart
-                  organizationId={organizationId}
-                  projectionId={projectionId}
-                  initialData={initialData.debtTypeDistributionAllSafras}
-                />
-              </div>
-
-              <FinancialTotalLiabilitiesChart
+              <DebtEvolutionChart
                 organizationId={organizationId}
                 projectionId={projectionId}
-                initialData={initialData.totalLiabilities}
+              />
+
+              <BankDebtWaterfallChart
+                organizationId={organizationId}
+                projectionId={projectionId}
+              />
+
+              <BankRankingChart
+                organizationId={organizationId}
+                projectionId={projectionId}
+              />
+
+              <DebtBySafraCharts
+                organizationId={organizationId}
                 selectedSafraId={selectedFinancialSafraId}
+                projectionId={projectionId}
               />
-            </TabsContent>
 
-            {/* Culture Projections Tab */}
-            <TabsContent value="culture-projections" className="space-y-6">
-              <CultureProjectionsTable
-                organizationId={organizationId}
-                initialCultureProjections={initialData.cultureProjections}
-                safras={initialData.safras || []}
-              />
-            </TabsContent>
-
-            {/* Debt Position Tab */}
-            <TabsContent value="debt-position" className="space-y-6">
-              <DebtPositionTable
-                organizationId={organizationId}
-                initialDebtPositions={initialData.debtPositions}
-                safras={initialData.safras || []}
-              />
-            </TabsContent>
-
-            {/* Cash Flow Tab */}
-            <TabsContent value="projections" className="space-y-6">
-              <FluxoCaixaClient
+              <FinancialIndicatorsEvolutionChart
                 organizationId={organizationId}
                 projectionId={projectionId}
-                cashFlowData={initialData.cashFlowSummary as any}
-                cashPolicy={null}
               />
             </TabsContent>
+
+            {/* Projections Overview Tab */}
+            <TabsContent value="projections-overview" className="space-y-6">
+              <ProjectionsOverview
+                organizationId={organizationId}
+                projectionId={projectionId}
+                safras={filterData.safras}
+                cultures={filterData.cultures}
+                properties={filterData.properties}
+              />
+            </TabsContent>
+
 
             {/* DRE Tab */}
             <TabsContent value="dre" className="space-y-6">
-              <DRETable
+              <DREStyled
                 organizationId={organizationId}
                 projectionId={projectionId}
-                initialData={initialData.dreSummary}
               />
             </TabsContent>
 
             {/* Balance Sheet Tab */}
             <TabsContent value="balanco" className="space-y-6">
-              <BalancoPatrimonialTable
+              <BalancoStyled
                 organizationId={organizationId}
                 projectionId={projectionId}
-                initialData={initialData.balanceSummary as any}
               />
             </TabsContent>
           </main>

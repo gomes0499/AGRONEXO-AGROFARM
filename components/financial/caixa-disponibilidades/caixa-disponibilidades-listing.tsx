@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useCallback } from "react";
+import React, { useState, useTransition, useCallback, useMemo } from "react";
 import { CaixaDisponibilidadesListItem, CaixaDisponibilidadesCategoriaType } from "@/schemas/financial/caixa_disponibilidades";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, WalletIcon, ChevronDown, ChevronUp, Settings, FileSpreadsheet, Loader2 } from "lucide-react";
@@ -59,6 +59,31 @@ export function CaixaDisponibilidadesListing({
   const totalPages = Math.ceil(items.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedData = items.slice(startIndex, startIndex + itemsPerPage);
+
+  // Function to calculate total from valores_por_safra
+  const calculateTotal = useCallback((item: CaixaDisponibilidadesListItem) => {
+    let total = 0;
+    
+    if (item.valores_por_safra) {
+      if (typeof item.valores_por_safra === 'string') {
+        try {
+          const parsedValues = JSON.parse(item.valores_por_safra);
+          total = Object.values(parsedValues).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
+        } catch (e) {
+          console.error("Erro ao processar valores_por_safra:", e);
+        }
+      } else {
+        total = Object.values(item.valores_por_safra).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
+      }
+    }
+    
+    return total;
+  }, []);
+
+  // Calcular total geral
+  const grandTotal = useMemo(() => {
+    return items.reduce((sum, item) => sum + calculateTotal(item), 0);
+  }, [items, calculateTotal]);
 
   // Refresh data when needed
   const refreshData = useCallback(() => {
@@ -123,26 +148,6 @@ export function CaixaDisponibilidadesListing({
     } catch (error) {
       toast.error("Erro ao excluir item de caixa e disponibilidades");
     }
-  }, []);
-  
-  // Function to calculate total from valores_por_safra
-  const calculateTotal = useCallback((item: CaixaDisponibilidadesListItem) => {
-    let total = 0;
-    
-    if (item.valores_por_safra) {
-      if (typeof item.valores_por_safra === 'string') {
-        try {
-          const parsedValues = JSON.parse(item.valores_por_safra);
-          total = Object.values(parsedValues).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
-        } catch (e) {
-          console.error("Erro ao processar valores_por_safra:", e);
-        }
-      } else {
-        total = Object.values(item.valores_por_safra).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
-      }
-    }
-    
-    return total;
   }, []);
 
   // Toggle expanded state for an item
@@ -344,6 +349,20 @@ export function CaixaDisponibilidadesListing({
                         )}
                       </React.Fragment>
                     ))}
+                    
+                    {/* Linha de totalização */}
+                    {items.length > 0 && (
+                      <TableRow className="bg-muted/50 font-bold border-t-2">
+                        <TableCell></TableCell>
+                        <TableCell colSpan={2} className="text-right font-bold">
+                          TOTAL GERAL
+                        </TableCell>
+                        <TableCell className="font-bold">
+                          {formatGenericCurrency(grandTotal, "BRL")}
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
                 

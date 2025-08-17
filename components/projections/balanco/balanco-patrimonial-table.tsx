@@ -23,8 +23,27 @@ import {
   TrendingDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { formatCurrency, formatMoneyValue } from "@/lib/utils/formatters";
 import { BalancoPatrimonialData } from "@/lib/actions/projections-actions/balanco-patrimonial-data";
+
+// Função para converter safra para ano (2024/25 -> 2025)
+function safraToYear(safra: string): string {
+  const match = safra.match(/(\d{4})\/(\d{2})/);
+  if (match) {
+    const yearStart = parseInt(match[1]);
+    const yearEnd = parseInt(match[2]);
+    // Se o ano final for menor que 50, assumimos que é 20XX, senão 19XX
+    const fullYearEnd = yearEnd < 50 ? 2000 + yearEnd : 1900 + yearEnd;
+    return fullYearEnd.toString();
+  }
+  return safra; // Retorna original se não for no formato esperado
+}
+
+// Função helper para formatar valores (0 vira "-")
+function formatValue(value: number | null | undefined): string {
+  if (value === null || value === undefined || value === 0) return "-";
+  return formatMoneyValue(value, 0);
+}
 
 interface BalancoPatrimonialTableProps {
   organizationId: string;
@@ -128,9 +147,12 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
             <div className="min-w-max">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-primary hover:bg-primary dark:bg-primary/90 dark:hover:bg-primary/90">
+                  <TableRow className="bg-primary dark:bg-primary/90 hover:!bg-primary dark:hover:!bg-primary/90">
                     <TableHead className="font-semibold text-primary-foreground min-w-[250px] w-[250px] sticky left-0 bg-primary dark:bg-primary/90 z-20 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] rounded-tl-md">
-                      Balanço Patrimonial
+                      <div>
+                        <div>Balanço Patrimonial</div>
+                        <div className="text-xs font-normal opacity-90">Valores em R$</div>
+                      </div>
                     </TableHead>
                     {data.anos.map((ano, index) => (
                       <TableHead 
@@ -140,7 +162,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                           index === data.anos.length - 1 && "rounded-tr-md"
                         )}
                       >
-                        {ano}
+                        {safraToYear(ano)}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -199,7 +221,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 valor < 0 ? "text-destructive" : ""
                               )}
                             >
-                              {formatCurrency(valor)}
+                              {formatValue(valor)}
                             </TableCell>
                           );
                         })}
@@ -217,7 +239,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.caixa_bancos?.[ano] || 0)}
+                                {formatValue(data.ativo.circulante.caixa_bancos?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -231,7 +253,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.clientes?.[ano] || 0)}
+                                {formatValue(data.ativo.circulante.clientes?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -245,7 +267,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(0)}
+                                {formatValue(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -259,7 +281,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(0)}
+                                {formatValue(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -274,7 +296,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.estoques?.defensivos?.[ano] || 0)}
+                                {formatValue(data.ativo.circulante.estoques?.defensivos?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -288,7 +310,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.estoques?.fertilizantes?.[ano] || 0)}
+                                {formatValue(data.ativo.circulante.estoques?.fertilizantes?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -302,7 +324,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(0)}
+                                {formatValue(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -316,7 +338,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.estoques?.commodities?.[ano] || 0)}
+                                {formatValue(data.ativo.circulante.estoques?.commodities?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -330,7 +352,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(0)}
+                                {formatValue(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -344,7 +366,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.circulante.outros_ativos_circulantes?.[ano] || 0)}
+                                {formatValue(data.ativo.circulante.outros_ativos_circulantes?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -376,7 +398,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 valor < 0 ? "text-destructive" : ""
                               )}
                             >
-                              {formatCurrency(valor)}
+                              {formatValue(valor)}
                             </TableCell>
                           );
                         })}
@@ -394,7 +416,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.nao_circulante.total?.[ano] || 0)}
+                                {formatValue(data.ativo.nao_circulante.total?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -408,7 +430,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px]"
                               >
-                                {formatCurrency(data.ativo.nao_circulante.imobilizado?.terras?.[ano] || 0)}
+                                {formatValue(data.ativo.nao_circulante.imobilizado?.terras?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -435,7 +457,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                             total < 0 ? "text-destructive" : ""
                           )}
                         >
-                          {formatCurrency(total)}
+                          {formatValue(total)}
                         </TableCell>
                       );
                     })}
@@ -494,7 +516,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 valor < 0 ? "" : "text-destructive"
                               )}
                             >
-                              {formatCurrency(valor)}
+                              {formatValue(valor)}
                             </TableCell>
                           );
                         })}
@@ -512,7 +534,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.circulante.fornecedores?.[ano] || 0)}
+                                {formatValue(data.passivo.circulante.fornecedores?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -531,7 +553,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                   key={ano} 
                                   className="text-center min-w-[120px] w-[120px] text-destructive"
                                 >
-                                  {formatCurrency(valor)}
+                                  {formatValue(valor)}
                                 </TableCell>
                               );
                             })}
@@ -546,7 +568,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(0)}
+                                {formatValue(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -560,7 +582,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(0)}
+                                {formatValue(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -574,7 +596,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.circulante.outros_passivos_circulantes?.[ano] || 0)}
+                                {formatValue(data.passivo.circulante.outros_passivos_circulantes?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -606,7 +628,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 valor < 0 ? "" : "text-destructive"
                               )}
                             >
-                              {formatCurrency(valor)}
+                              {formatValue(valor)}
                             </TableCell>
                           );
                         })}
@@ -629,7 +651,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                   key={ano} 
                                   className="text-center min-w-[120px] w-[120px] text-destructive"
                                 >
-                                  {formatCurrency(valor)}
+                                  {formatValue(valor)}
                                 </TableCell>
                               );
                             })}
@@ -644,7 +666,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.nao_circulante.financiamentos_terras?.[ano] || 0)}
+                                {formatValue(data.passivo.nao_circulante.financiamentos_terras?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -658,7 +680,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(0)}
+                                {formatValue(0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -672,7 +694,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                                 key={ano} 
                                 className="text-center min-w-[120px] w-[120px] text-destructive"
                               >
-                                {formatCurrency(data.passivo.nao_circulante.outros_passivos_nao_circulantes?.[ano] || 0)}
+                                {formatValue(data.passivo.nao_circulante.outros_passivos_nao_circulantes?.[ano] || 0)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -696,7 +718,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                             valor < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"
                           )}
                         >
-                          {formatCurrency(valor)}
+                          {formatValue(valor)}
                         </TableCell>
                       );
                     })}
@@ -715,7 +737,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                           ((data as any).passivo?.patrimonio_liquido?.capital_social?.[ano] || 0) < 0 ? "text-destructive" : ""
                         )}
                       >
-                        {formatCurrency((data as any).passivo?.patrimonio_liquido?.capital_social?.[ano] || 0)}
+                        {formatValue((data as any).passivo?.patrimonio_liquido?.capital_social?.[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -732,7 +754,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                           ((data as any).passivo?.patrimonio_liquido?.reservas?.[ano] || 0) < 0 ? "text-destructive" : ""
                         )}
                       >
-                        {formatCurrency((data as any).passivo?.patrimonio_liquido?.reservas?.[ano] || 0)}
+                        {formatValue((data as any).passivo?.patrimonio_liquido?.reservas?.[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -749,7 +771,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                           ((data as any).passivo?.patrimonio_liquido?.lucros_acumulados?.[ano] || 0) < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"
                         )}
                       >
-                        {formatCurrency((data as any).passivo?.patrimonio_liquido?.lucros_acumulados?.[ano] || 0)}
+                        {formatValue((data as any).passivo?.patrimonio_liquido?.lucros_acumulados?.[ano] || 0)}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -770,7 +792,7 @@ export function BalancoPatrimonialTable({ organizationId, projectionId, initialD
                           key={ano} 
                           className="text-center font-medium min-w-[120px] w-[120px] bg-gray-100 dark:bg-gray-700"
                         >
-                          {formatCurrency(total)}
+                          {formatValue(total)}
                         </TableCell>
                       );
                     })}

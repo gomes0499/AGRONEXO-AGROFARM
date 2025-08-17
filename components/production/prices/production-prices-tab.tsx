@@ -147,12 +147,8 @@ export function ProductionPricesTab({
     return yearA - yearB;
   });
 
-  // Filtrar apenas as safras que existem nos dados
-  const usedSafraIds = sortedSafraIds.filter((safraId) =>
-    unifiedItems.some(
-      (item) => item.pricesByYear && safraId in item.pricesByYear
-    )
-  );
+  // Usar todas as safras disponíveis (não filtrar)
+  const usedSafraIds = sortedSafraIds;
 
   // Initialize the editing state for a price entry
   const initPriceEditState = (item: UnifiedPriceItem) => {
@@ -272,7 +268,7 @@ export function ProductionPricesTab({
 
   // Format number for display
   const formatNumber = (value: number | undefined) => {
-    if (value === undefined || value === null) return "-";
+    if (value === undefined || value === null || value === 0) return "-";
     return value.toLocaleString("pt-BR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 4,

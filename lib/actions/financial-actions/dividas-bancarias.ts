@@ -34,6 +34,7 @@ export async function getDividasBancarias(organizacaoId: string) {
         nome: item.instituicao_bancaria, // Adicionar campo nome para compatibilidade
         valores_por_safra: item.fluxo_pagamento_anual || item.valores_por_ano || {}, // Usar fluxo_pagamento_anual
         valores_por_ano: item.fluxo_pagamento_anual || item.valores_por_ano || {}, // Manter ambos para compatibilidade
+        categoria: item.modalidade, // Mapear modalidade para categoria
         total
       };
     });
@@ -64,6 +65,7 @@ export async function getDividaBancaria(id: string) {
   return {
     ...data,
     nome: data.instituicao_bancaria,
+    categoria: data.modalidade, // Mapear modalidade para categoria
     valores_por_safra: data.fluxo_pagamento_anual || data.valores_por_ano || {},
     valores_por_ano: data.fluxo_pagamento_anual || data.valores_por_ano || {}
   };
@@ -87,6 +89,11 @@ export async function createDividaBancaria(
     valor_principal: values.valor_principal,
     fluxo_pagamento_anual: values.valores_por_safra || {}, // Usar campo correto fluxo_pagamento_anual
     moeda: values.moeda || "BRL",
+    // Novos campos de contrato
+    numero_contrato: values.numero_contrato || null,
+    quantidade_parcelas: values.quantidade_parcelas || null,
+    periodicidade: values.periodicidade || null,
+    datas_pagamento_irregular: values.datas_pagamento_irregular || null,
   };
   
   const { data, error } = await supabase
@@ -126,6 +133,11 @@ export async function updateDividaBancaria(
     valor_principal: values.valor_principal,
     fluxo_pagamento_anual: values.valores_por_safra || {}, // Usar campo correto fluxo_pagamento_anual
     moeda: values.moeda || "BRL",
+    // Novos campos de contrato
+    numero_contrato: values.numero_contrato || null,
+    quantidade_parcelas: values.quantidade_parcelas || null,
+    periodicidade: values.periodicidade || null,
+    datas_pagamento_irregular: values.datas_pagamento_irregular || null,
   };
   
   const { data, error } = await supabase

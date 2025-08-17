@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/chart";
 import { formatCurrency } from "@/lib/utils/property-formatters";
 import { cleanPropertyName } from "@/lib/utils/property-name-cleaner";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useDashboardFilterContext } from "@/components/dashboard/dashboard-filter-provider";
+import { useChartColors } from "@/contexts/chart-colors-context";
 
 interface PropertyValueChartClientProps {
   organizationId: string;
@@ -34,13 +35,6 @@ interface PropertyData {
   valor_atual: number;
 }
 
-const chartConfig = {
-  valor: {
-    label: "Valor",
-    color: "hsl(var(--primary))",
-  },
-} satisfies ChartConfig;
-
 export function PropertyValueChartClient({
   organizationId,
 }: PropertyValueChartClientProps) {
@@ -49,6 +43,14 @@ export function PropertyValueChartClient({
   const [properties, setProperties] = useState<PropertyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { colors } = useChartColors();
+
+  const chartConfig = useMemo(() => ({
+    valor: {
+      label: "Valor",
+      color: colors.color1,
+    },
+  } satisfies ChartConfig), [colors]);
 
   useEffect(() => {
     async function fetchProperties() {
@@ -104,7 +106,7 @@ export function PropertyValueChartClient({
             <div className="rounded-full p-2 bg-white/20">
               <TrendingUp className="h-4 w-4 text-white" />
             </div>
-            Valor por Propriedade
+            Valor por Propriedade (R$ milhões)
             <Tooltip>
               <TooltipTrigger asChild>
                 <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help ml-auto" />
@@ -138,7 +140,7 @@ export function PropertyValueChartClient({
             <div className="rounded-full p-2 bg-white/20">
               <TrendingUp className="h-4 w-4 text-white" />
             </div>
-            Valor por Propriedade
+            Valor por Propriedade (R$ milhões)
             <Tooltip>
               <TooltipTrigger asChild>
                 <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help ml-auto" />
@@ -186,7 +188,7 @@ export function PropertyValueChartClient({
           <div className="rounded-full p-2 bg-white/20">
             <TrendingUp className="h-4 w-4 text-white" />
           </div>
-          Valor por Propriedade
+          Valor por Propriedade (R$ milhões)
           <Tooltip>
             <TooltipTrigger asChild>
               <Info className="h-4 w-4 text-white/70 hover:text-white cursor-help ml-auto" />
@@ -224,7 +226,7 @@ export function PropertyValueChartClient({
               type="number"
               tickLine={true}
               axisLine={true}
-              tickFormatter={(value) => value >= 1000000 ? `${(value/1000000).toFixed(0)}M` : value >= 1000 ? `${(value/1000).toFixed(0)}K` : value}
+              tickFormatter={(value) => (value/1000000).toFixed(0)}
               fontSize={9}
               width={30}
             />
@@ -251,10 +253,7 @@ export function PropertyValueChartClient({
                 dataKey="valor"
                 position="top"
                 formatter={(value: number) => {
-                  if (value >= 1000000000) return `${(value/1000000000).toFixed(1)}B`;
-                  if (value >= 1000000) return `${(value/1000000).toFixed(1)}M`;
-                  if (value >= 1000) return `${(value/1000).toFixed(1)}K`;
-                  return value.toFixed(0);
+                  return (value/1000000).toFixed(1);
                 }}
                 fill="var(--color-valor)"
                 fontSize={11}

@@ -3288,7 +3288,7 @@ export class DefinitivePDFReportService {
     this.doc.setFontSize(9);
     this.doc.setFont("helvetica", "bold");
     this.doc.setTextColor(80, 80, 80);
-    this.doc.text(`${ltvValue}%`, x + width / 2, barY + barHeight / 2, { align: 'center' });
+    this.doc.text(`${(ltvValue / 100).toFixed(2)}`, x + width / 2, barY + barHeight / 2, { align: 'center' });
   }
 
   private drawBalanceSheetTable(tableData: BalanceSheetRow[]) {
