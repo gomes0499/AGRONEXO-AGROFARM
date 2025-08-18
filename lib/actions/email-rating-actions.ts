@@ -66,10 +66,11 @@ export async function sendRatingReportByEmail(
               box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             .header {
-              background-color: #0f172a;
-              color: #ffffff;
+              background-color: #ffffff;
+              color: #1e293b;
               padding: 30px;
               text-align: center;
+              border-bottom: 2px solid #e2e8f0;
             }
             .content {
               padding: 40px 30px;
@@ -154,8 +155,9 @@ export async function sendRatingReportByEmail(
         <body>
           <div class="container">
             <div class="header">
-              <h1 style="margin: 0; font-size: 24px;">Relatório de Rating de Crédito</h1>
-              <p style="margin: 10px 0 0 0; opacity: 0.9;">${organizationName}</p>
+              <img src="https://vnqovsdcychjczfjamdc.supabase.co/storage/v1/object/public/public-assets/logosr.png" alt="SR Consultoria" style="max-width: 200px; height: auto; display: block; margin: 0 auto 15px;">
+              <h1 style="margin: 0; font-size: 24px; color: #1e293b;">Relatório de Rating de Crédito</h1>
+              <p style="margin: 10px 0 0 0; color: #64748b;">${organizationName}</p>
             </div>
             
             <div class="content">
@@ -170,41 +172,83 @@ export async function sendRatingReportByEmail(
               <p>Segue em anexo o relatório de rating de crédito da <strong>${organizationName}</strong>, 
               gerado em ${currentDate}.</p>
               
-              <div class="rating-box">
-                <div class="rating">${ratingData.rating}</div>
-                <div class="outlook">Outlook: ${ratingData.outlook}</div>
-                <div class="score">Score: ${ratingData.score.toFixed(1)}/100</div>
-              </div>
-              
-              <div class="highlights">
-                <strong>Destaques da Análise:</strong>
-                <ul style="margin: 10px 0 0 0; padding-left: 20px;">
-                  <li>Análise completa de indicadores financeiros</li>
-                  <li>Scoring detalhado por dimensão de risco</li>
-                  <li>Comparativo com benchmarks do setor</li>
-                  <li>Projeções e análise de cenários</li>
-                  <li>Recomendações para melhoria do rating</li>
-                </ul>
-              </div>
-              
-              <div class="metrics-grid">
-                <div class="metric">
-                  <div class="metric-label">Margem EBITDA</div>
-                  <div class="metric-value">${(ratingData.indicators.margemEbitda * 100).toFixed(1)}%</div>
-                </div>
-                <div class="metric">
-                  <div class="metric-label">Dívida/EBITDA</div>
-                  <div class="metric-value">${ratingData.indicators.dividaEbitda.toFixed(2)}x</div>
-                </div>
-                <div class="metric">
-                  <div class="metric-label">Liquidez Corrente</div>
-                  <div class="metric-value">${ratingData.indicators.liquidezCorrente.toFixed(2)}</div>
-                </div>
-                <div class="metric">
-                  <div class="metric-label">ROE</div>
-                  <div class="metric-value">${(ratingData.indicators.roe).toFixed(1)}%</div>
-                </div>
-              </div>
+              <!-- Info Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin: 30px 0;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <h3 style="color: #1e293b; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">
+                      📊 Informações do Relatório
+                    </h3>
+                    <table width="100%" cellpadding="5" cellspacing="0">
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Organização:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${organizationName}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Rating:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${ratingData.rating} - ${
+                            ratingData.rating === "AAA" || ratingData.rating.startsWith("AA") || ratingData.rating.startsWith("A") ? 
+                              "Excelente capacidade de pagamento, gestão superior e práticas sustentáveis exemplares" :
+                            ratingData.rating.startsWith("BAA") ? 
+                              "Forte capacidade de pagamento, boa gestão e práticas sustentáveis sólidas" :
+                            ratingData.rating.startsWith("BA") ? 
+                              "Boa capacidade de pagamento, gestão adequada e boas práticas sustentáveis" :
+                            ratingData.rating === "BA5" || ratingData.rating === "BA6" ? 
+                              "Capacidade de pagamento adequada, gestão aceitável" :
+                            ratingData.rating.startsWith("B") && !ratingData.rating.startsWith("BA") && !ratingData.rating.startsWith("BB") ? 
+                              "Capacidade de pagamento aceitável, mas limitada" :
+                            ratingData.rating.startsWith("BB") || ratingData.rating === "B1" || ratingData.rating === "B2" ? 
+                              "Capacidade de pagamento fraca, alta probabilidade de problemas estruturais" :
+                            ratingData.rating.startsWith("B3") || ratingData.rating.startsWith("C1") ? 
+                              "Capacidade de pagamento muito fraca, problemas estruturais significativos" :
+                            ratingData.rating.startsWith("C") || ratingData.rating.startsWith("D") ? 
+                              "Capacidade de pagamento extremamente limitada, alta probabilidade de inadimplência" :
+                            ratingData.rating === "E" || ratingData.rating === "F" || ratingData.rating === "G" || ratingData.rating === "H" ? 
+                              "Já em situação de inadimplência ou com alta probabilidade de default iminente" :
+                            "Capacidade de pagamento não avaliada"
+                          }
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Score:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${ratingData.score.toFixed(1)}/100
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Data de Geração:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${currentDate}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;" valign="top">
+                          <strong style="color: #475569;">Conteúdo:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          • Análise de Crédito e Score<br>
+                          • Indicadores Financeiros<br>
+                          • Scoring por Dimensão de Risco<br>
+                          • Benchmarks do Setor<br>
+                          • Metodologia de Cálculo<br>
+                          • Recomendações Estratégicas
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
               <p>O relatório completo em PDF está anexado a este email e contém:</p>
               <ul>
@@ -216,8 +260,10 @@ export async function sendRatingReportByEmail(
                 <li>Conclusões e recomendações estratégicas</li>
               </ul>
               
-              <p style="margin-top: 30px;">Atenciosamente,<br>
-              <strong>SR Consultoria</strong></p>
+              <div style="margin-top: 40px; text-align: left;">
+                <p style="margin: 0 0 15px 0; font-size: 16px;">Atenciosamente,</p>
+                <img src="https://vnqovsdcychjczfjamdc.supabase.co/storage/v1/object/public/public-assets/logosr.png" alt="SR Consultoria" style="max-width: 150px; height: auto;">
+              </div>
             </div>
             
             <div class="footer">
@@ -239,7 +285,7 @@ export async function sendRatingReportByEmail(
     for (const email of recipientEmails) {
       try {
         await resend.emails.send({
-          from: "SR Consultoria <relatorios@srconsultoria.com.br>",
+          from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
           to: email,
           subject: subject,
           html: htmlContent,
@@ -319,10 +365,11 @@ export async function sendRatingResultByEmail(
               box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             .header {
-              background-color: #0f172a;
-              color: #ffffff;
+              background-color: #ffffff;
+              color: #1e293b;
               padding: 30px;
               text-align: center;
+              border-bottom: 2px solid #e2e8f0;
             }
             .logo {
               height: 50px;
@@ -436,9 +483,9 @@ export async function sendRatingResultByEmail(
         <body>
           <div class="container">
             <div class="header">
-              ${process.env.SR_LOGO_URL ? `<img src="${process.env.SR_LOGO_URL}" alt="SR Consultoria" class="logo">` : ''}
-              <h1 style="margin: 0; font-size: 26px; font-weight: 300;">Relatório de Rating</h1>
-              <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 18px;">${organizationName}</p>
+              <img src="https://vnqovsdcychjczfjamdc.supabase.co/storage/v1/object/public/public-assets/logosr.png" alt="SR Consultoria" style="max-width: 200px; height: auto; display: block; margin: 0 auto 15px;">
+              <h1 style="margin: 0; font-size: 26px; font-weight: 600; color: #1e293b;">Relatório de Rating</h1>
+              <p style="margin: 10px 0 0 0; font-size: 18px; color: #64748b;">${organizationName}</p>
             </div>
             
             <div class="content">
@@ -453,75 +500,121 @@ export async function sendRatingResultByEmail(
               <p style="font-size: 16px;">Segue em anexo o relatório detalhado de rating da <strong>${organizationName}</strong>, 
               gerado em ${currentDate}.</p>
               
-              <div class="rating-box">
-                <div class="rating">${ratingResult.rating}</div>
-                <div class="rating-description">${
-                  ratingResult.rating === "AAA" ? "Excelente capacidade de crédito" :
-                  ratingResult.rating === "AA" ? "Muito boa capacidade de pagamento" :
-                  ratingResult.rating === "A" ? "Boa capacidade de pagamento" :
-                  ratingResult.rating === "BBB" ? "Capacidade adequada de pagamento" :
-                  ratingResult.rating === "BB" ? "Capacidade de pagamento com incertezas" :
-                  ratingResult.rating === "B" ? "Capacidade limitada de pagamento" :
-                  "Capacidade frágil de pagamento"
-                }</div>
-                <div class="score">Score: ${ratingResult.finalScore.toFixed(1)}/100</div>
-              </div>
-              
-              <div class="info-grid">
-                <div class="info-item">
-                  <div class="info-label">Modelo Utilizado</div>
-                  <div class="info-value">${ratingResult.modelName}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Safra Analisada</div>
-                  <div class="info-value">${ratingResult.safraName}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Cenário</div>
-                  <div class="info-value">${ratingResult.scenarioName}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Data da Análise</div>
-                  <div class="info-value">${new Date(ratingResult.calculatedAt).toLocaleDateString("pt-BR")}</div>
-                </div>
-              </div>
-              
-              <div class="highlights">
-                <strong style="font-size: 16px;">Principais Métricas Analisadas:</strong>
-                <table class="metrics-table" style="margin-top: 15px;">
-                  <thead>
-                    <tr>
-                      <th>Métrica</th>
-                      <th style="text-align: right;">Peso</th>
-                      <th style="text-align: right;">Pontuação</th>
-                      <th style="text-align: right;">Contribuição</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${ratingResult.metrics.slice(0, 5).map((metric: any) => `
+              <!-- Info Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin: 30px 0;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <h3 style="color: #1e293b; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">
+                      📊 Informações do Relatório
+                    </h3>
+                    <table width="100%" cellpadding="5" cellspacing="0">
                       <tr>
-                        <td class="metric-name">${metric.nome}</td>
-                        <td class="metric-value">${metric.peso}%</td>
-                        <td class="metric-value">${metric.pontuacao.toFixed(1)}</td>
-                        <td class="metric-value">${metric.contribuicao.toFixed(1)} pts</td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Organização:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${organizationName}
+                        </td>
                       </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-                ${ratingResult.metrics.length > 5 ? `<p style="margin: 10px 0 0 0; font-size: 14px; color: #64748b;">... e mais ${ratingResult.metrics.length - 5} métricas no relatório completo</p>` : ''}
-              </div>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Rating:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${ratingResult.rating} - ${
+                            ratingResult.rating === "AAA" || ratingResult.rating.startsWith("AA") || ratingResult.rating.startsWith("A") ? 
+                              "Excelente capacidade de pagamento, gestão superior e práticas sustentáveis exemplares" :
+                            ratingResult.rating.startsWith("BAA") ? 
+                              "Forte capacidade de pagamento, boa gestão e práticas sustentáveis sólidas" :
+                            ratingResult.rating.startsWith("BA") ? 
+                              "Boa capacidade de pagamento, gestão adequada e boas práticas sustentáveis" :
+                            ratingResult.rating === "BA5" || ratingResult.rating === "BA6" ? 
+                              "Capacidade de pagamento adequada, gestão aceitável" :
+                            ratingResult.rating.startsWith("B") && !ratingResult.rating.startsWith("BA") && !ratingResult.rating.startsWith("BB") ? 
+                              "Capacidade de pagamento aceitável, mas limitada" :
+                            ratingResult.rating.startsWith("BB") || ratingResult.rating === "B1" || ratingResult.rating === "B2" ? 
+                              "Capacidade de pagamento fraca, alta probabilidade de problemas estruturais" :
+                            ratingResult.rating.startsWith("B3") || ratingResult.rating.startsWith("C1") ? 
+                              "Capacidade de pagamento muito fraca, problemas estruturais significativos" :
+                            ratingResult.rating.startsWith("C") || ratingResult.rating.startsWith("D") ? 
+                              "Capacidade de pagamento extremamente limitada, alta probabilidade de inadimplência" :
+                            ratingResult.rating === "E" || ratingResult.rating === "F" || ratingResult.rating === "G" || ratingResult.rating === "H" ? 
+                              "Já em situação de inadimplência ou com alta probabilidade de default iminente" :
+                            "Capacidade de pagamento não avaliada"
+                          }
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Score:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${ratingResult.finalScore.toFixed(1)}/100
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Modelo:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${ratingResult.modelName}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Safra:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${ratingResult.safraName}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Cenário:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${ratingResult.scenarioName}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          <strong style="color: #475569;">Data de Geração:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          ${currentDate}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b; padding: 5px 0;" valign="top">
+                          <strong style="color: #475569;">Conteúdo:</strong>
+                        </td>
+                        <td style="color: #64748b; padding: 5px 0;">
+                          • Análise de Crédito e Score<br>
+                          • Indicadores Financeiros<br>
+                          • Scoring por Dimensão de Risco<br>
+                          • Benchmarks do Setor<br>
+                          • Metodologia de Cálculo<br>
+                          • Recomendações Estratégicas
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
               <p style="font-size: 16px; margin-top: 30px;">O relatório completo em PDF anexo contém:</p>
               <ul style="font-size: 15px; color: #475569; line-height: 1.8;">
-                <li>Análise detalhada de todas as ${ratingResult.metrics.length} métricas avaliadas</li>
-                <li>Composição completa da nota final</li>
-                <li>Valores e pontuações individuais de cada indicador</li>
+                <li>Análise detalhada de todas as métricas avaliadas</li>
+                <li>Composição completa da nota final e score</li>
+                <li>Detalhamento por dimensão de risco</li>
                 <li>Metodologia de cálculo utilizada</li>
-                <li>Interpretação dos resultados</li>
+                <li>Interpretação dos resultados e recomendações</li>
               </ul>
               
-              <p style="margin-top: 35px; font-size: 16px;">Atenciosamente,<br>
-              <strong style="font-size: 18px;">SR Consultoria</strong></p>
+              <div style="margin-top: 40px; text-align: left;">
+                <p style="margin: 0 0 15px 0; font-size: 16px;">Atenciosamente,</p>
+                <img src="https://vnqovsdcychjczfjamdc.supabase.co/storage/v1/object/public/public-assets/logosr.png" alt="SR Consultoria" style="max-width: 150px; height: auto;">
+              </div>
             </div>
             
             <div class="footer">
@@ -543,12 +636,10 @@ export async function sendRatingResultByEmail(
       throw new Error("PDF não fornecido");
     }
 
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "relatorios@srconsultoria.com.br";
-
     // Tentar enviar para todos de uma vez primeiro
     try {
       await resend.emails.send({
-        from: `SR Consultoria <${fromEmail}>`,
+        from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
         to: recipientEmails,
         subject: subject,
         html: htmlContent,
@@ -575,7 +666,7 @@ export async function sendRatingResultByEmail(
       for (const email of recipientEmails) {
         try {
           await resend.emails.send({
-            from: `SR Consultoria <${fromEmail}>`,
+            from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
             to: email,
             subject: subject,
             html: htmlContent,

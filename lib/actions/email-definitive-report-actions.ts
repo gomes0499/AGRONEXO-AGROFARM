@@ -45,11 +45,11 @@ export async function sendDefinitiveReportByEmail(
     
     const logoUrl = orgData?.logo || null;
     
-    // URL do logo SR Consultoria hospedado no ImgBB
-    const srLogoUrl = process.env.SR_LOGO_URL || 'https://i.ibb.co/MDVmjRPB/logosr.png';
+    // URL do logo SR Consultoria hospedado no Supabase
+    const srLogoUrl = 'https://vnqovsdcychjczfjamdc.supabase.co/storage/v1/object/public/public-assets/logosr.png';
     
-    // Fallback: tenta usar o logo da organização primeiro, depois o logo SR
-    const emailLogoUrl = logoUrl || srLogoUrl;
+    // Sempre usar o logo da SR Consultoria
+    const emailLogoUrl = srLogoUrl;
     
     // Obter nome do cenário se projection foi selecionada
     let scenarioName = "Base";
@@ -79,16 +79,20 @@ export async function sendDefinitiveReportByEmail(
               <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <!-- Header -->
                 <tr>
-                  <td style="background-color: #1e293b; padding: 30px; border-radius: 8px 8px 0 0;">
-                    <!-- Logo Container with light background -->
+                  <td style="background-color: #ffffff; padding: 30px; border-radius: 8px 8px 0 0; border-bottom: 2px solid #e2e8f0;">
+                    <!-- Logo Container -->
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td align="center" style="padding: 20px; background-color: #f8f9fa; border-radius: 8px;">
-                          <img src="${emailLogoUrl}" alt="SR Consultoria" style="max-width: 180px; height: auto; display: block;">
+                        <td align="center" style="padding: 20px 20px 10px 20px;">
+                          <img src="${emailLogoUrl}" alt="SR Consultoria" style="max-width: 200px; height: auto; display: block;">
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center">
+                          <h1 style="color: #1e293b; margin: 10px 0; font-size: 24px; font-weight: 600;">Relatório Completo</h1>
                         </td>
                       </tr>
                     </table>
-                    <p style="color: #cbd5e1; margin: 20px 0 0 0; font-size: 16px; text-align: center;">Relatório Completo</p>
                   </td>
                 </tr>
                 
@@ -146,15 +150,16 @@ export async function sendDefinitiveReportByEmail(
                               </td>
                               <td style="color: #64748b; padding: 5px 0;">
                                 • Visão Geral da Organização<br>
-                                • Propriedades e Terras<br>
-                                • Áreas de Plantio Detalhadas<br>
-                                • Produtividade por Cultura<br>
+                                • Dados Cadastrais e Informações<br>
+                                • Propriedades e Estrutura de Terras<br>
+                                • Áreas de Plantio por Cultura<br>
+                                • Produtividade e Sistema de Produção<br>
+                                • Receitas Projetadas<br>
                                 • Evolução Financeira<br>
-                                • Análise de Passivos e Dívidas<br>
+                                • Evolução de Passivos<br>
+                                • Posição de Dívidas<br>
                                 • Indicadores Econômicos<br>
-                                • Investimentos Realizados e Planejados<br>
-                                • Fluxo de Caixa Projetado<br>
-                                • DRE e Balanço Patrimonial
+                                • Fluxo de Caixa e Política de Caixa
                               </td>
                             </tr>
                           </table>
@@ -172,6 +177,12 @@ export async function sendDefinitiveReportByEmail(
                         </td>
                       </tr>
                     </table>
+                    
+                    <!-- Assinatura -->
+                    <div style="margin-top: 40px; text-align: left;">
+                      <p style="margin: 0 0 15px 0; font-size: 16px; color: #475569;">Atenciosamente,</p>
+                      <img src="https://vnqovsdcychjczfjamdc.supabase.co/storage/v1/object/public/public-assets/logosr.png" alt="SR Consultoria" style="max-width: 150px; height: auto;">
+                    </div>
                   </td>
                 </tr>
                 
@@ -198,7 +209,7 @@ export async function sendDefinitiveReportByEmail(
     try {
       // Tentar enviar para todos os destinatários de uma vez
       const { data, error } = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || "SR Consultoria <onboarding@resend.dev>",
+        from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
         to: recipients, // Enviar para todos de uma vez
         subject: emailSubject,
         html: emailHtml,
@@ -222,7 +233,7 @@ export async function sendDefinitiveReportByEmail(
             await new Promise(resolve => setTimeout(resolve, 1000)); // 1 segundo de delay
             
             const { data: individualData, error: individualError } = await resend.emails.send({
-              from: process.env.RESEND_FROM_EMAIL || "SR Consultoria <onboarding@resend.dev>",
+              from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
               to: [email],
               subject: emailSubject,
               html: emailHtml,
@@ -274,7 +285,7 @@ export async function sendDefinitiveReportByEmail(
           await new Promise(resolve => setTimeout(resolve, 1000));
           
           const { data, error: emailError } = await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL || "SR Consultoria <onboarding@resend.dev>",
+            from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
             to: [email],
             subject: emailSubject,
             html: emailHtml,
