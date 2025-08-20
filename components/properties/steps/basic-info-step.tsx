@@ -709,7 +709,7 @@ export function BasicInfoStep({
                     values={field.value || {}}
                     onChange={field.onChange}
                     safras={safras}
-                    disabled={true}
+                    disabled={false}
                     currency="BRL"
                   />
                   {(!areaTotal || !custoHectare) && (
