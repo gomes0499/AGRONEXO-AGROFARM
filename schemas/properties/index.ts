@@ -149,7 +149,10 @@ export const propertyFormSchema = basePropertyFormSchema
     } 
     // Validação para propriedades arrendadas e parceria agrícola
     else if (data.tipo === "ARRENDADO" || data.tipo === "PARCERIA_AGRICOLA") {
-      if (!data.data_inicio) {
+      // Só validar se os campos existem e estão vazios
+      // Não validar durante o carregamento inicial
+      
+      if (data.data_inicio === null || data.data_inicio === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Data de início é obrigatória para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
@@ -157,7 +160,7 @@ export const propertyFormSchema = basePropertyFormSchema
         });
       }
       
-      if (!data.data_termino) {
+      if (data.data_termino === null || data.data_termino === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Data de término é obrigatória para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
@@ -165,7 +168,7 @@ export const propertyFormSchema = basePropertyFormSchema
         });
       }
       
-      if (!data.tipo_anuencia) {
+      if (data.tipo_anuencia === "" || data.tipo_anuencia === null || data.tipo_anuencia === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Tipo de anuência é obrigatório para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
@@ -173,7 +176,8 @@ export const propertyFormSchema = basePropertyFormSchema
         });
       }
       
-      if (!data.arrendantes) {
+      // Arrendantes - verificar se está vazio apenas se foi tocado
+      if (data.arrendantes !== undefined && (!data.arrendantes || data.arrendantes.trim() === "")) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Arrendantes é obrigatório para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
@@ -181,15 +185,17 @@ export const propertyFormSchema = basePropertyFormSchema
         });
       }
       
-      if (!data.custo_hectare || data.custo_hectare <= 0) {
+      // Custo hectare - verificar se é válido apenas se foi definido
+      if (data.custo_hectare !== undefined && (data.custo_hectare === null || data.custo_hectare === 0 || data.custo_hectare < 0)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Custo por hectare é obrigatório para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
+          message: `Custo por hectare deve ser maior que zero para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
           path: ["custo_hectare"],
         });
       }
       
-      if (!data.tipo_pagamento) {
+      // Tipo pagamento - verificar apenas se foi definido
+      if (data.tipo_pagamento !== undefined && data.tipo_pagamento === null) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Tipo de pagamento é obrigatório para ${data.tipo === "ARRENDADO" ? "propriedades arrendadas" : "parcerias agrícolas"}`,
@@ -201,6 +207,9 @@ export const propertyFormSchema = basePropertyFormSchema
   });
 
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
+
+// Schema específico para edição (sem validações obrigatórias condicionais)
+export const propertyEditFormSchema = basePropertyFormSchema;
 
 // Schema para Arrendamento (matches database table exactly)
 export const leaseSchema = z.object({

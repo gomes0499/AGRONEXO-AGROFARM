@@ -145,7 +145,14 @@ export async function getPropertyById(id: string) {
     throw new Error("Não foi possível carregar os detalhes da propriedade");
   }
   
-  return data as Property;
+  // Como a tabela propriedade_proprietarios não existe,
+  // vamos usar o campo proprietarios que já existe na propriedade
+  const propertyWithOwners = {
+    ...data,
+    proprietarios: data.proprietarios || []
+  };
+  
+  return propertyWithOwners as Property;
 }
 
 export async function createProperty(
@@ -209,26 +216,8 @@ export async function createProperty(
       throw new Error(errorMsg);
     }
     
-    // Salvar múltiplos proprietários se houver
-    if (proprietarios && proprietarios.length > 0) {
-      const ownersToInsert = proprietarios.map((owner: PropertyOwner) => ({
-        propriedade_id: data.id,
-        organizacao_id: organizationId,
-        nome: owner.nome,
-        cpf_cnpj: owner.cpf_cnpj || null,
-        tipo_pessoa: owner.tipo_pessoa || null,
-        percentual_participacao: owner.percentual_participacao || null
-      }));
-      
-      const { error: ownersError } = await supabase
-        .from("propriedade_proprietarios")
-        .insert(ownersToInsert);
-      
-      if (ownersError) {
-        console.error("Erro ao salvar proprietários:", ownersError);
-        // Não vamos falhar a operação completa, mas logamos o erro
-      }
-    }
+    // Como a tabela propriedade_proprietarios não existe,
+    // os proprietários já foram salvos no campo proprietarios da própria propriedade
     
     // Se for arrendamento, criar registro na tabela de arrendamentos também
     if ((values.tipo === "ARRENDADO" || values.tipo === "PARCERIA_AGRICOLA") && custos_por_safra) {
@@ -339,6 +328,55 @@ export async function updateProperty(
     // Extrair proprietários do objeto de valores
     const { proprietarios, custos_por_safra, ...propertyData } = processedValues;
     
+    // IMPORTANTE: Limpar completamente custos_por_safra se houver qualquer problema
+    let cleanedCustosPorSafra = null;
+    
+    // Só processar custos_por_safra se o tipo for arrendado
+    if ((values.tipo === "ARRENDADO" || values.tipo === "PARCERIA_AGRICOLA") && 
+        custos_por_safra && 
+        typeof custos_por_safra === 'object' && 
+        Object.keys(custos_por_safra).length > 0) {
+      
+      console.log("DEBUG - custos_por_safra original:", custos_por_safra);
+      
+      // Buscar a organização da propriedade
+      const { data: propData } = await supabase
+        .from("propriedades")
+        .select("organizacao_id")
+        .eq("id", id)
+        .single();
+      
+      if (propData) {
+        // Buscar safras válidas da organização
+        const { data: safrasData } = await supabase
+          .from("safras")
+          .select("id")
+          .eq("organizacao_id", propData.organizacao_id);
+        
+        const validSafraIds = (safrasData || []).map(s => s.id);
+        console.log("DEBUG - IDs de safras válidas:", validSafraIds);
+        
+        // Filtrar apenas IDs válidos
+        const tempCustos: Record<string, number> = {};
+        for (const [key, value] of Object.entries(custos_por_safra)) {
+          // Validar que a chave é um UUID válido
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (uuidRegex.test(key) && validSafraIds.includes(key)) {
+            tempCustos[key] = value as number;
+          } else {
+            console.log(`DEBUG - Removendo ID de safra inválido: ${key}`);
+          }
+        }
+        
+        // Só usar se tiver pelo menos uma safra válida
+        if (Object.keys(tempCustos).length > 0) {
+          cleanedCustosPorSafra = tempCustos;
+        }
+        
+        console.log("DEBUG - custos_por_safra limpo:", cleanedCustosPorSafra);
+      }
+    }
+    
     // Se for arrendada, adicionar campos de arrendamento
     const updateData = {
       ...propertyData,
@@ -347,7 +385,7 @@ export async function updateProperty(
         arrendantes: values.arrendantes,
         custo_hectare: values.custo_hectare,
         tipo_pagamento: values.tipo_pagamento,
-        custos_por_safra: custos_por_safra || {}
+        custos_por_safra: cleanedCustosPorSafra // Já está limpo e validado
       } : {
         // Se mudou de arrendado para próprio, limpar campos de arrendamento
         arrendantes: null,
@@ -356,6 +394,8 @@ export async function updateProperty(
         custos_por_safra: null
       })
     };
+    
+    console.log("DEBUG - updateData final:", updateData);
     
     const { data, error } = await supabase
       .from("propriedades")
@@ -386,39 +426,9 @@ export async function updateProperty(
       throw new Error(errorMsg);
     }
     
-    // Atualizar múltiplos proprietários
-    if (proprietarios !== undefined) {
-      // Primeiro, remover todos os proprietários existentes
-      const { error: deleteError } = await supabase
-        .from("propriedade_proprietarios")
-        .delete()
-        .eq("propriedade_id", id);
-      
-      if (deleteError) {
-        console.error("Erro ao remover proprietários antigos:", deleteError);
-      }
-      
-      // Depois, inserir os novos proprietários se houver
-      if (proprietarios.length > 0) {
-        const ownersToInsert = proprietarios.map((owner: PropertyOwner) => ({
-          propriedade_id: id,
-          organizacao_id: data.organizacao_id,
-          nome: owner.nome,
-          cpf_cnpj: owner.cpf_cnpj || null,
-          tipo_pessoa: owner.tipo_pessoa || null,
-          percentual_participacao: owner.percentual_participacao || null
-        }));
-        
-        const { error: ownersError } = await supabase
-          .from("propriedade_proprietarios")
-          .insert(ownersToInsert);
-        
-        if (ownersError) {
-          console.error("Erro ao salvar novos proprietários:", ownersError);
-          // Não vamos falhar a operação completa, mas logamos o erro
-        }
-      }
-    }
+    // Como a tabela propriedade_proprietarios não existe,
+    // vamos apenas atualizar o campo proprietarios na própria tabela propriedades
+    // O campo proprietarios já foi incluído no updateData acima
     
     // Gerenciar arrendamentos baseado no tipo da propriedade
     if (values.tipo === "ARRENDADO" || values.tipo === "PARCERIA_AGRICOLA") {

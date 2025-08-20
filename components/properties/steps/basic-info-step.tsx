@@ -96,9 +96,18 @@ export function BasicInfoStep({
     name: "custo_hectare",
   });
   
+  // Controlar se é a primeira renderização para não limpar campos ao carregar
+  const [isFirstRender, setIsFirstRender] = useState(true);
+  
   // Quando o tipo mudar para arrendado, limpar o ano de aquisição
   // e quando mudar para próprio, limpar os campos de arrendamento
   useEffect(() => {
+    // Não executar na primeira renderização (quando carrega os dados)
+    if (isFirstRender) {
+      setIsFirstRender(false);
+      return;
+    }
+    
     if (isLeased) {
       // Se for arrendado, limpar o ano de aquisição
       form.setValue("ano_aquisicao", null, { shouldValidate: false });
@@ -112,7 +121,7 @@ export function BasicInfoStep({
       form.setValue("tipo_pagamento", "SACAS", { shouldValidate: false });
       form.setValue("custos_por_safra", {}, { shouldValidate: false });
     }
-  }, [isLeased, form]);
+  }, [isLeased]);
   
   // Buscar safras quando o tipo for arrendado
   useEffect(() => {
@@ -148,9 +157,15 @@ export function BasicInfoStep({
     fetchCommodityPrices();
   }, [isLeased]);
   
-  // Calcular valores por safra automaticamente
+  // Calcular valores por safra automaticamente (apenas se não existirem valores)
   useEffect(() => {
-    if (isLeased && areaTotal && custoHectare && safras.length > 0 && Array.isArray(commodityPrices)) {
+    // Só calcular se não houver valores já preenchidos
+    const currentCustos = form.getValues("custos_por_safra");
+    const hasExistingValues = currentCustos && Object.keys(currentCustos).length > 0 && 
+                             Object.values(currentCustos).some(v => v > 0);
+    
+    if (isLeased && areaTotal && custoHectare && safras.length > 0 && 
+        Array.isArray(commodityPrices) && !hasExistingValues) {
       const custosPorSafra: Record<string, number> = {};
       const sacasTotal = areaTotal * custoHectare;
       
