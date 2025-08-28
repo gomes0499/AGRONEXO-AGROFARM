@@ -294,8 +294,12 @@ export async function forgotPassword(formData: ForgotPasswordFormValues) {
   const supabase = await createClient();
   
   try {
+    // Garantir que temos a URL completa com o callback
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.srcon.com.br';
+    const callbackUrl = `${appUrl}/auth/callback`;
+    
     const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?type=recovery`,
+      redirectTo: callbackUrl,
     });
 
     if (error) {

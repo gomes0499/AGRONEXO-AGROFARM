@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import { AuthHandler } from "./auth-handler";
 import Script from "next/script";
 import "./globals.css";
 
@@ -71,6 +72,7 @@ export default function RootLayout({
           disableTransitionOnChange
           enableColorScheme
         >
+          <AuthHandler />
           <main className="min-h-screen flex flex-col bg-card">
             {children}
             <Toaster />
