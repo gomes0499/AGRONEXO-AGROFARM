@@ -4,7 +4,7 @@ export async function GET(request: NextRequest) {
   try {
     const clientId = process.env.YAHOO_CLIENT_ID;
     const isProd = process.env.NODE_ENV === 'production';
-    const baseUrl = isProd ? 'https://www.srconsultoria.online' : 'http://localhost:3000';
+    const baseUrl = isProd ? 'https://www.srcon.com.br' : 'http://localhost:3000';
     const redirectUri = `${baseUrl}/api/yahoo-auth/callback`;
     
     if (!clientId) {

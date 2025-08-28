@@ -209,7 +209,7 @@ export async function sendDefinitiveReportByEmail(
     try {
       // Tentar enviar para todos os destinatários de uma vez
       const { data, error } = await resend.emails.send({
-        from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
+        from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srcon.com.br'}>`,
         to: recipients, // Enviar para todos de uma vez
         subject: emailSubject,
         html: emailHtml,
@@ -233,7 +233,7 @@ export async function sendDefinitiveReportByEmail(
             await new Promise(resolve => setTimeout(resolve, 1000)); // 1 segundo de delay
             
             const { data: individualData, error: individualError } = await resend.emails.send({
-              from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
+              from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srcon.com.br'}>`,
               to: [email],
               subject: emailSubject,
               html: emailHtml,
@@ -285,7 +285,7 @@ export async function sendDefinitiveReportByEmail(
           await new Promise(resolve => setTimeout(resolve, 1000));
           
           const { data, error: emailError } = await resend.emails.send({
-            from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
+            from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srcon.com.br'}>`,
             to: [email],
             subject: emailSubject,
             html: emailHtml,

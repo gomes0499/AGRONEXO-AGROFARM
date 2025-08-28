@@ -20,7 +20,7 @@ export class PythonPDFReportServiceRemote {
       
       // Determinar a URL base da API
       // Usar o domínio de produção
-      const apiBaseUrl = 'https://www.srconsultoria.online';
+      const apiBaseUrl = 'https://www.srcon.com.br';
       
       console.log(`Chamando serviço Python em: ${this.apiUrl}/generate-complete-report`);
       console.log('Payload:', { organizationId, projectionId, apiBaseUrl });
@@ -68,7 +68,7 @@ export class PythonPDFReportServiceRemote {
     try {
       // Determinar a URL base da API
       // Usar o domínio de produção
-      const apiBaseUrl = 'https://www.srconsultoria.online';
+      const apiBaseUrl = 'https://www.srcon.com.br';
       
       const response = await fetch(`${this.apiUrl}/generate-rating-report`, {
         method: 'POST',

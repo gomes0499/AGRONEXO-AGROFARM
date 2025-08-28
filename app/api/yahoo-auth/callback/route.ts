@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const clientId = process.env.YAHOO_CLIENT_ID!;
     const clientSecret = process.env.YAHOO_CLIENT_SECRET!;
     const isProd = process.env.NODE_ENV === 'production';
-    const baseUrl = isProd ? 'https://www.srconsultoria.online' : 'http://localhost:3000';
+    const baseUrl = isProd ? 'https://www.srcon.com.br' : 'http://localhost:3000';
     const redirectUri = `${baseUrl}/api/yahoo-auth/callback`;
     
     const tokenUrl = 'https://api.login.yahoo.com/oauth2/get_token';

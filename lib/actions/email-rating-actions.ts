@@ -285,7 +285,7 @@ export async function sendRatingReportByEmail(
     for (const email of recipientEmails) {
       try {
         await resend.emails.send({
-          from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
+          from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srcon.com.br'}>`,
           to: email,
           subject: subject,
           html: htmlContent,
@@ -639,7 +639,7 @@ export async function sendRatingResultByEmail(
     // Tentar enviar para todos de uma vez primeiro
     try {
       await resend.emails.send({
-        from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
+        from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srcon.com.br'}>`,
         to: recipientEmails,
         subject: subject,
         html: htmlContent,
@@ -666,7 +666,7 @@ export async function sendRatingResultByEmail(
       for (const email of recipientEmails) {
         try {
           await resend.emails.send({
-            from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srconsultoria.online'}>`,
+            from: `SR Consultoria <${process.env.RESEND_FROM_EMAIL || 'noreply@srcon.com.br'}>`,
             to: email,
             subject: subject,
             html: htmlContent,

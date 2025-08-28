@@ -6,7 +6,7 @@ const resendClient = new Resend(process.env.RESEND_API_KEY);
 
 // Nome da empresa para exibição nos emails
 const COMPANY_NAME = 'SR-Consultoria';
-const DEFAULT_FROM_EMAIL = `${COMPANY_NAME} <noreply@srconsultoria.online>`;
+const DEFAULT_FROM_EMAIL = `${COMPANY_NAME} <noreply@srcon.com.br>`;
 
 /**
  * Interface para envio de email genérico

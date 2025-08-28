@@ -1,5 +1,5 @@
 # SR Consultoria - Robots.txt
-# https://srconsultoria.online
+# https://srcon.com.br
 
 # Allow all crawlers
 User-agent: *
@@ -22,7 +22,7 @@ Allow: /terms
 Allow: /about
 
 # Sitemap location
-Sitemap: https://srconsultoria.online/sitemap.xml
+Sitemap: https://srcon.com.br/sitemap.xml
 
 # Crawl-delay for responsible crawling
 Crawl-delay: 1

@@ -105,7 +105,7 @@ export async function sendInvitation({
     }
 
     // Prepara os dados para o email
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.srconsultoria.online';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.srcon.com.br';
     const acceptUrl = `${baseUrl}/auth/invite?token=${token}`;
     const roleName = getRoleName(role);
     const inviterName = inviter.nome || inviter.email.split('@')[0] || 'Administrador';
@@ -251,7 +251,7 @@ export async function createAdminAccount(email: string, organizacaoId: string) {
     }
     
     // Envia o email com as credenciais
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.srconsultoria.online';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.srcon.com.br';
     const loginUrl = `${baseUrl}/auth/login`;
     
     // Envia o email com as credenciais
@@ -433,7 +433,7 @@ export async function createMemberAccount(memberData: any, organizacaoId: string
     }
     
     // Envia o email com as credenciais
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.srconsultoria.online';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.srcon.com.br';
     const loginUrl = `${baseUrl}/auth/login`;
     
     // Envia o email diretamente (sem setTimeout)

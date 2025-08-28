@@ -18,7 +18,7 @@ export class PythonPDFReportServiceAsync {
       }
       
       // Determinar a URL base da API
-      const apiBaseUrl = 'https://www.srconsultoria.online';
+      const apiBaseUrl = 'https://www.srcon.com.br';
       
       console.log(`Iniciando geração assíncrona de relatório`);
       console.log('Payload:', { organizationId, projectionId, apiBaseUrl });
