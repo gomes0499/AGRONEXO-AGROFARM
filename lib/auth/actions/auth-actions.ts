@@ -296,7 +296,10 @@ export async function forgotPassword(formData: ForgotPasswordFormValues) {
   try {
     // Garantir que temos a URL completa com o callback
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.srcon.com.br';
-    const callbackUrl = `${appUrl}/auth/callback`;
+    // Importante: O Supabase precisa do callback para processar o token
+    const callbackUrl = `${appUrl}/auth/callback?type=recovery`;
+    
+    console.log('Sending password reset email with redirectTo:', callbackUrl);
     
     const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
       redirectTo: callbackUrl,
@@ -340,6 +343,14 @@ export async function resetPassword(formData: ResetPasswordFormValues) {
   const supabase = await createClient();
   
   try {
+    // Verificar se há uma sessão ativa
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Reset password - Current session:', session ? 'Active' : 'None');
+    
+    if (!session) {
+      throw new Error('Sessão de recuperação não encontrada. Por favor, solicite um novo link de recuperação.');
+    }
+    
     const { error } = await supabase.auth.updateUser({
       password: formData.password,
     });
