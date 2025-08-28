@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 
 // Define as rotas que exigem autenticação
 const protectedRoutes = [
@@ -24,6 +24,11 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   });
+
+  // Add additional security headers
+  response.headers.set('X-DNS-Prefetch-Control', 'on');
+  response.headers.set('X-Permitted-Cross-Domain-Policies', 'none');
+  response.headers.set('X-Download-Options', 'noopen');
 
   // Cria o cliente do Supabase com os cookies da requisição
   const supabase = createServerClient(

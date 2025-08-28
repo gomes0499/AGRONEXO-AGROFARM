@@ -30,6 +30,8 @@ export function OwnersManager({ form, owners, onChange }: OwnersManagerProps) {
     e?.preventDefault();
     if (newOwner.nome && newOwner.nome.trim()) {
       const updatedOwners = [...owners, { ...newOwner, nome: newOwner.nome.trim() }];
+      console.log("DEBUG - Adicionando proprietário:", newOwner);
+      console.log("DEBUG - Lista atualizada de proprietários:", updatedOwners);
       onChange(updatedOwners);
       setNewOwner({
         nome: "",
@@ -125,7 +127,10 @@ export function OwnersManager({ form, owners, onChange }: OwnersManagerProps) {
           </div>
           <Button 
             type="button" 
-            onClick={handleAddOwner} 
+            onClick={(e) => {
+              console.log("DEBUG - Botão clicado, newOwner:", newOwner);
+              handleAddOwner(e);
+            }} 
             variant="outline"
             disabled={!newOwner.nome || !newOwner.nome.trim()}
             className="w-full sm:w-auto"

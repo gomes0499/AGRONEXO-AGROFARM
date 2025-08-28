@@ -284,13 +284,16 @@ export function BasicInfoStep({
                   form={form}
                   owners={field.value || []}
                   onChange={(owners) => {
+                    console.log("DEBUG - onChange chamado com owners:", owners);
                     field.onChange(owners);
+                    form.setValue("proprietarios", owners, { shouldValidate: false });
                     // Atualizar o campo proprietario com o primeiro nome para compatibilidade
                     if (owners.length > 0) {
                       form.setValue("proprietario", owners[0].nome);
                     } else {
                       form.setValue("proprietario", null);
                     }
+                    console.log("DEBUG - Valores do form após atualização:", form.getValues("proprietarios"));
                   }}
                 />
               </FormControl>

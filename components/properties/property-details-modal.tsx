@@ -308,8 +308,12 @@ export function PropertyDetailsModal({
                     />
                     <InfoField
                       icon={User}
-                      label="Proprietário"
-                      value={property.proprietario || "A informar"}
+                      label="Proprietário(s)"
+                      value={
+                        property.proprietarios && property.proprietarios.length > 0
+                          ? property.proprietarios.map((p: any) => p.nome).join(", ")
+                          : property.proprietario || "A informar"
+                      }
                     />
                     <InfoField
                       icon={FileText}

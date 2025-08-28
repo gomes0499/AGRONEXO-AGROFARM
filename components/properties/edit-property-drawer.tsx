@@ -175,6 +175,9 @@ export function EditPropertyDrawer({
         imagem: imageUrl
       };
       
+      console.log("DEBUG - dados sendo enviados para update:", dataToUpdate);
+      console.log("DEBUG - proprietarios sendo enviados:", dataToUpdate.proprietarios);
+      
       await updateProperty(propertyId, dataToUpdate);
       toast.success("Propriedade atualizada com sucesso!");
       

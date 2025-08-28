@@ -314,6 +314,9 @@ export async function updateProperty(
 ) {
   const supabase = await createClient();
   
+  console.log("DEBUG - valores recebidos em updateProperty:", values);
+  console.log("DEBUG - proprietarios recebidos:", values.proprietarios);
+  
   try {
     // Processar os valores para garantir que campos numéricos zero sejam NULL
     const processedValues = {
@@ -327,6 +330,8 @@ export async function updateProperty(
     
     // Extrair proprietários do objeto de valores
     const { proprietarios, custos_por_safra, ...propertyData } = processedValues;
+    
+    console.log("DEBUG - proprietarios após extração:", proprietarios);
     
     // IMPORTANTE: Limpar completamente custos_por_safra se houver qualquer problema
     let cleanedCustosPorSafra = null;
@@ -380,6 +385,8 @@ export async function updateProperty(
     // Se for arrendada, adicionar campos de arrendamento
     const updateData = {
       ...propertyData,
+      // Sempre incluir proprietários se existirem
+      ...(proprietarios ? { proprietarios } : {}),
       // Adicionar campos de arrendamento se o tipo for ARRENDADO ou PARCERIA_AGRICOLA
       ...(values.tipo === "ARRENDADO" || values.tipo === "PARCERIA_AGRICOLA" ? {
         arrendantes: values.arrendantes,
@@ -440,6 +447,28 @@ export async function updateProperty(
         .single();
       
       if (existingLease) {
+        // Garantir que custos_por_ano não seja vazio
+        const custosParaArrendamento = cleanedCustosPorSafra || custos_por_safra || {};
+        
+        // Se ainda estiver vazio, buscar uma safra válida para usar como padrão
+        let finalCustos = custosParaArrendamento;
+        if (Object.keys(finalCustos).length === 0) {
+          // Buscar primeira safra válida
+          const { data: primeirasSafras } = await supabase
+            .from("safras")
+            .select("id")
+            .eq("organizacao_id", data.organizacao_id)
+            .order("ano_inicio", { ascending: true })
+            .limit(1);
+          
+          if (primeirasSafras && primeirasSafras.length > 0) {
+            finalCustos = { [primeirasSafras[0].id]: 0 };
+          } else {
+            // Se não houver safras, criar objeto vazio (o trigger pode aceitar vazio para commodity_price_projections)
+            finalCustos = {};
+          }
+        }
+        
         // Atualizar arrendamento existente
         const { error: updateLeaseError } = await supabase
           .from("arrendamentos")
@@ -451,16 +480,38 @@ export async function updateProperty(
             area_arrendada: values.area_total || 0,
             custo_hectare: values.custo_hectare || 0,
             tipo_pagamento: values.tipo_pagamento || "SACAS",
-            custos_por_ano: custos_por_safra || {},
+            custos_por_ano: finalCustos,
           })
           .eq("id", existingLease.id);
         
         if (updateLeaseError) {
           console.error("Erro ao atualizar arrendamento:", updateLeaseError);
         }
-      } else if (custos_por_safra) {
+      } else if (custos_por_safra || values.tipo === "ARRENDADO" || values.tipo === "PARCERIA_AGRICOLA") {
         // Criar novo arrendamento
         const numeroArrendamento = `ARR-${data.nome.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+        
+        // Garantir que custos_por_ano não seja vazio
+        const custosParaArrendamento = cleanedCustosPorSafra || custos_por_safra || {};
+        
+        // Se ainda estiver vazio, buscar uma safra válida para usar como padrão
+        let finalCustos = custosParaArrendamento;
+        if (Object.keys(finalCustos).length === 0) {
+          // Buscar primeira safra válida
+          const { data: primeirasSafras } = await supabase
+            .from("safras")
+            .select("id")
+            .eq("organizacao_id", data.organizacao_id)
+            .order("ano_inicio", { ascending: true })
+            .limit(1);
+          
+          if (primeirasSafras && primeirasSafras.length > 0) {
+            finalCustos = { [primeirasSafras[0].id]: 0 };
+          } else {
+            // Se não houver safras, criar objeto vazio
+            finalCustos = {};
+          }
+        }
         
         const { error: createLeaseError } = await supabase
           .from("arrendamentos")
@@ -476,7 +527,7 @@ export async function updateProperty(
             area_arrendada: values.area_total || 0,
             custo_hectare: values.custo_hectare || 0,
             tipo_pagamento: values.tipo_pagamento || "SACAS",
-            custos_por_ano: custos_por_safra,
+            custos_por_ano: finalCustos,
             ativo: true,
             observacoes: `Arrendamento criado automaticamente para a propriedade ${data.nome}`
           });
