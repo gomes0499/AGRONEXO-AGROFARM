@@ -107,8 +107,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Permite acesso à página de reset-password mesmo com sessão ativa
+  // Isso é necessário para o fluxo de recuperação de senha do Supabase
+  const isResetPasswordRoute = pathname === '/auth/reset-password' || pathname.startsWith('/auth/reset-password/');
+  
   // Redireciona para dashboard se tentar acessar rota de auth estando autenticado
-  if (isAuthRoute && session) {
+  // EXCETO para a página de reset-password que precisa ser acessível durante o fluxo de recuperação
+  if (isAuthRoute && session && !isResetPasswordRoute) {
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
