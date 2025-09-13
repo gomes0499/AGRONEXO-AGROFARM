@@ -4,8 +4,8 @@ import { ReactNode } from "react";
 import { ThemeAwareLogo } from "@/components/dashboard/theme-aware-logo";
 
 export const metadata: Metadata = {
-  title: "Autenticação | SR-Consultoria",
-  description: "Sistema de autenticação da plataforma SR-Consultoria",
+  title: "Autenticação | AGROFARM",
+  description: "Sistema de autenticação da plataforma AGROFARM",
 };
 
 export default function AuthLayout({ children }: { children: ReactNode }) {

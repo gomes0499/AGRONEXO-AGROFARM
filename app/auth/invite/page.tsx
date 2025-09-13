@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { AcceptInviteForm } from "@/components/auth/accept-invite-form";
 
 export const metadata: Metadata = {
-  title: "Convite | SR-Consultoria",
-  description: "Aceite seu convite para a plataforma SR-Consultoria",
+  title: "Convite | AGROFARM",
+  description: "Aceite seu convite para a plataforma AGROFARM",
 };
 
 interface InvitePageProps {

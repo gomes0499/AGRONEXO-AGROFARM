@@ -174,7 +174,7 @@ export function ResponsiveGroqChat({
                   <Bot className="h-12 w-12 text-primary" />
                 </div>
                 <h3 className="text-xl font-medium mb-2">
-                  Bem-vindo ao Suporte SR-Consultoria
+                  Bem-vindo ao Suporte AGROFARM
                 </h3>
                 <p className="text-secondary-foreground max-w-md mb-8">
                   Estou aqui para responder suas dúvidas sobre o sistema.

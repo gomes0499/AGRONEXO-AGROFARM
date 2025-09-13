@@ -102,12 +102,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:!p-1.5 h-12"
             >
               <Link href="/dashboard">
                 <ThemeAwareLogo
-                  width={200}
-                  height={100}
+                  width={1200}
+                  height={1200}
                   priority={true}
                   quality={100}
                 />

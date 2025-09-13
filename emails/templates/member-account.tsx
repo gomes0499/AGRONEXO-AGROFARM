@@ -1,11 +1,11 @@
 import React from "react";
-import { 
-  Heading, 
-  Section, 
-  Text, 
-  Button, 
+import {
+  Heading,
+  Section,
+  Text,
+  Button,
   Link,
-  Hr
+  Hr,
 } from "@react-email/components";
 import { EmailLayout } from "../components/layout";
 
@@ -27,26 +27,22 @@ export default function MemberAccountEmail({
   return (
     <EmailLayout
       title={`Sua Conta na ${organizationName} Foi Criada`}
-      preview={`Sua conta na plataforma SR-Consultoria para a organização ${organizationName} foi criada. Acesse agora com seus dados.`}
+      preview={`Sua conta na plataforma AGROFARM para a organização ${organizationName} foi criada. Acesse agora com seus dados.`}
     >
       <Heading as="h2" style={headingStyle}>
         Bem-vindo(a) à {organizationName}!
       </Heading>
-      
+
+      <Text style={paragraphStyle}>Olá {userName},</Text>
+
       <Text style={paragraphStyle}>
-        Olá {userName},
+        Uma conta foi criada para você na plataforma AGROFARM pela organização{" "}
+        <strong>{organizationName}</strong>. Seus dados já foram cadastrados no
+        sistema, e você pode acessar agora mesmo usando as credenciais abaixo.
       </Text>
-      
-      <Text style={paragraphStyle}>
-        Uma conta foi criada para você na plataforma SR-Consultoria 
-        pela organização <strong>{organizationName}</strong>. Seus dados já foram 
-        cadastrados no sistema, e você pode acessar agora mesmo usando as credenciais abaixo.
-      </Text>
-      
+
       <Section style={credentialsContainerStyle}>
-        <Text style={credentialsTitleStyle}>
-          Seus Dados de Acesso
-        </Text>
+        <Text style={credentialsTitleStyle}>Seus Dados de Acesso</Text>
         <Text style={credentialsDetailStyle}>
           <strong>Email:</strong> {userEmail}
         </Text>
@@ -54,33 +50,36 @@ export default function MemberAccountEmail({
           <strong>Senha:</strong> {password}
         </Text>
       </Section>
-      
+
       <Text style={securityNoteStyle}>
-        Por motivos de segurança, recomendamos que você altere sua senha imediatamente após o primeiro acesso.
+        Por motivos de segurança, recomendamos que você altere sua senha
+        imediatamente após o primeiro acesso.
       </Text>
-      
+
       <Section style={buttonContainerStyle}>
         <Button style={buttonStyle} href={loginUrl}>
           Acessar o Sistema
         </Button>
       </Section>
-      
+
       <Hr style={dividerStyle} />
-      
+
       <Text style={paragraphStyle}>
-        A SR-Consultoria é uma plataforma especializada em consultoria agrícola e financeira para 
-        produtores rurais, oferecendo ferramentas para gestão completa de propriedades, 
-        análise de produção, planejamento financeiro e muito mais.
+        A AGROFARM é uma plataforma especializada em consultoria agrícola e
+        financeira para produtores rurais, oferecendo ferramentas para gestão
+        completa de propriedades, análise de produção, planejamento financeiro e
+        muito mais.
       </Text>
-      
+
       <Text style={paragraphStyle}>
-        Se você não esperava receber este e-mail ou acredita que ele foi enviado por engano, 
-        entre em contato com o administrador da organização.
+        Se você não esperava receber este e-mail ou acredita que ele foi enviado
+        por engano, entre em contato com o administrador da organização.
       </Text>
-      
+
       <Text style={signatureStyle}>
-        Atenciosamente,<br />
-        Equipe SR-Consultoria
+        Atenciosamente,
+        <br />
+        Equipe AGROFARM
       </Text>
     </EmailLayout>
   );

@@ -146,7 +146,7 @@ export function RegisterForm({ email, inviteToken }: RegisterFormProps = {}) {
           </p>
         ) : (
           <p className="text-gray-500 dark:text-gray-400">
-            Registre-se na plataforma SR-Consultoria
+            Registre-se na plataforma AGROFARM
           </p>
         )}
       </div>

@@ -37,7 +37,7 @@ export function ThemeAwareLogo({
   return (
     <Image
       src={logoSrc}
-      alt="SR-Consultoria Logo"
+      alt="AGROFARM Logo"
       width={width}
       height={height}
       priority={priority}

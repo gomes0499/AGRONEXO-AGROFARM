@@ -49,7 +49,7 @@ export function EnhancedGroqChat({
     "Como controlar pragas na lavoura?",
     "Quais fatores afetam o preço da soja?",
   ],
-  title = "Assistente SR-Consultoria",
+  title = "Assistente AGROFARM",
   height = "600px",
 }: EnhancedGroqChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);

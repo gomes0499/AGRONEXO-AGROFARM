@@ -1,15 +1,15 @@
 import React from "react";
-import { 
-  Html, 
-  Head, 
-  Body, 
-  Container, 
-  Section, 
-  Heading, 
+import {
+  Html,
+  Head,
+  Body,
+  Container,
+  Section,
+  Heading,
   Text,
   Hr,
   Img,
-  Link
+  Link,
 } from "@react-email/components";
 
 interface EmailLayoutProps {
@@ -20,8 +20,7 @@ interface EmailLayoutProps {
 
 export const EmailLayout = ({
   children,
-  title = "SR-Consultoria",
-  preview = "Informações importantes da SR-Consultoria"
+  title = "AGROFARM",
 }: EmailLayoutProps) => {
   return (
     <Html>
@@ -34,24 +33,26 @@ export const EmailLayout = ({
         <Container style={containerStyle}>
           <Section style={headerStyle}>
             <Heading as="h1" style={headingStyle}>
-              SR-Consultoria
+              AGROFARM
             </Heading>
           </Section>
-          
-          <Section style={contentStyle}>
-            {children}
-          </Section>
-          
+
+          <Section style={contentStyle}>{children}</Section>
+
           <Hr style={hrStyle} />
-          
+
           <Section style={footerStyle}>
             <Text style={footerTextStyle}>
-              © {new Date().getFullYear()} SR-Consultoria. Todos os direitos reservados.
+              © {new Date().getFullYear()} AGROFARM. Todos os direitos
+              reservados.
             </Text>
             <Text style={footerTextStyle}>
               Este é um email automático, por favor não responda.
             </Text>
-            <Link href="https://sr-consultoria.com/privacidade" style={linkStyle}>
+            <Link
+              href="https://AGROFARM.com/privacidade"
+              style={linkStyle}
+            >
               Política de Privacidade
             </Link>
           </Section>
@@ -64,7 +65,8 @@ export const EmailLayout = ({
 // Estilos
 const bodyStyle = {
   backgroundColor: "#f6f9fc",
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  fontFamily:
+    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   margin: "0",
 };
 

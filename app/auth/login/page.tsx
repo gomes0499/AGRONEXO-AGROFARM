@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: "Login | SR-Consultoria",
-  description: "Acesse sua conta na plataforma SR-Consultoria",
+  title: "Login | AGROFARM",
+  description: "Acesse sua conta na plataforma AGROFARM",
 };
 
 interface LoginPageProps {

@@ -117,7 +117,7 @@ export function LoginForm({
       <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold">Login</h1>
         <p className="text-gray-500 dark:text-gray-400">
-          Entre com sua conta da SR-Consultoria
+          Entre com sua conta da AGROFARM
         </p>
       </div>
 

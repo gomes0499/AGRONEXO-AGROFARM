@@ -15,7 +15,7 @@ export async function uploadSRLogo() {
     // Fazer upload para o bucket público
     const { data, error } = await supabase.storage
       .from('public-assets') // Você precisa criar este bucket como público no Supabase
-      .upload('logos/sr-consultoria-logo.png', logoBuffer, {
+      .upload('logos/AGROFARM-logo.png', logoBuffer, {
         contentType: 'image/png',
         upsert: true
       });
@@ -28,7 +28,7 @@ export async function uploadSRLogo() {
     // Pegar a URL pública
     const { data: { publicUrl } } = supabase.storage
       .from('public-assets')
-      .getPublicUrl('logos/sr-consultoria-logo.png');
+      .getPublicUrl('logos/AGROFARM-logo.png');
     
     return { 
       success: true, 

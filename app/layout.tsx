@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SR Consultoria - Gestão Agrícola e Financeira",
+  title: "AGROFARM - Gestão Agrícola e Financeira",
   description:
     "Plataforma de consultoria para produtores rurais, gestão de propriedades agrícolas e análise financeira",
   icons: {

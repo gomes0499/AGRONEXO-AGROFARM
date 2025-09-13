@@ -5,7 +5,7 @@ import { logError } from '@/utils/logger';
 const resendClient = new Resend(process.env.RESEND_API_KEY);
 
 // Nome da empresa para exibição nos emails
-const COMPANY_NAME = 'SR-Consultoria';
+const COMPANY_NAME = 'AGROFARM';
 const DEFAULT_FROM_EMAIL = `${COMPANY_NAME} <noreply@srcon.com.br>`;
 
 /**

@@ -8,8 +8,8 @@ import { verifyUserPermission } from "@/lib/auth/verify-permissions";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Perfil do Usuário | SR-Consultoria",
-  description: "Gerencie suas informações de perfil e conta na SR-Consultoria",
+  title: "Perfil do Usuário | AGROFARM",
+  description: "Gerencie suas informações de perfil e conta na AGROFARM",
 };
 
 export default async function ProfilePage() {

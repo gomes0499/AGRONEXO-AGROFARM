@@ -1,11 +1,5 @@
 import React from "react";
-import { 
-  Heading, 
-  Section, 
-  Text, 
-  Button, 
-  Link
-} from "@react-email/components";
+import { Heading, Section, Text, Button, Link } from "@react-email/components";
 import { EmailLayout } from "../components/layout";
 
 interface InvitationEmailProps {
@@ -27,41 +21,50 @@ export default function InvitationEmail({
 }: InvitationEmailProps) {
   return (
     <EmailLayout
-      title={isReminder 
-        ? `Lembrete: Convite para participar da ${organizationName}` 
-        : `Convite para participar da ${organizationName}`}
-      preview={`Você foi convidado por ${inviterName} para se juntar à ${organizationName} na plataforma SR-Consultoria.`}
+      title={
+        isReminder
+          ? `Lembrete: Convite para participar da ${organizationName}`
+          : `Convite para participar da ${organizationName}`
+      }
+      preview={`Você foi convidado por ${inviterName} para se juntar à ${organizationName} na plataforma AGROFARM.`}
     >
       <Heading as="h2" style={headingStyle}>
-        {isReminder ? 'Lembrete: Você tem um convite pendente!' : 'Você recebeu um convite!'}
+        {isReminder
+          ? "Lembrete: Você tem um convite pendente!"
+          : "Você recebeu um convite!"}
       </Heading>
-      
+
       <Text style={paragraphStyle}>
-        <strong>{inviterName}</strong> {isReminder ? 'te convidou anteriormente' : 'convidou você'} para se juntar à organização <strong>{organizationName}</strong> na plataforma SR-Consultoria como <strong>{role}</strong>.
+        <strong>{inviterName}</strong>{" "}
+        {isReminder ? "te convidou anteriormente" : "convidou você"} para se
+        juntar à organização <strong>{organizationName}</strong> na plataforma
+        AGROFARM como <strong>{role}</strong>.
       </Text>
-      
+
       <Text style={paragraphStyle}>
-        A SR-Consultoria é uma plataforma especializada em consultoria agrícola e financeira para produtores rurais, oferecendo ferramentas para gestão completa de propriedades, análise de produção, planejamento financeiro e muito mais.
+        A AGROFARM é uma plataforma especializada em consultoria agrícola e
+        financeira para produtores rurais, oferecendo ferramentas para gestão
+        completa de propriedades, análise de produção, planejamento financeiro e
+        muito mais.
       </Text>
-      
+
       <Section style={buttonContainerStyle}>
         <Button style={buttonStyle} href={acceptUrl}>
           Aceitar Convite
         </Button>
       </Section>
-      
-      
-      <Text style={noteStyle}>
-        Este convite expira em {expiresIn}.
-      </Text>
-      
+
+      <Text style={noteStyle}>Este convite expira em {expiresIn}.</Text>
+
       <Text style={paragraphStyle}>
-        Se você não conhece esta pessoa ou organização, ou acredita que recebeu este convite por engano, basta ignorar este email.
+        Se você não conhece esta pessoa ou organização, ou acredita que recebeu
+        este convite por engano, basta ignorar este email.
       </Text>
-      
+
       <Text style={signatureStyle}>
-        Atenciosamente,<br />
-        Equipe SR-Consultoria
+        Atenciosamente,
+        <br />
+        Equipe AGROFARM
       </Text>
     </EmailLayout>
   );

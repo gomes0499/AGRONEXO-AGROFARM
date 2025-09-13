@@ -32,11 +32,12 @@ export default async function OnboardingPage() {
       <div className="space-y-2 text-center">
         <Image
           src="/logo.svg"
-          alt="SR-Consultoria Logo"
+          alt="AGROFARM Logo"
           width={300}
           height={300}
           priority
           className="mx-auto"
+          quality={100}
         />
         <h1 className="text-3xl font-bold">Complete seu perfil</h1>
         <p className="text-muted-foreground">

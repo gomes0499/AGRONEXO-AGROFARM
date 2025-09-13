@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { RegisterForm } from "@/components/auth/register-form";
 
 export const metadata: Metadata = {
-  title: "Registro | SR-Consultoria",
-  description: "Crie sua conta na plataforma SR-Consultoria",
+  title: "Registro | AGROFARM",
+  description: "Crie sua conta na plataforma AGROFARM",
 };
 
 interface RegisterPageProps {

@@ -32,6 +32,17 @@ const colorPalettes = {
     name: "Padrão",
     colors: DEFAULT_CHART_COLORS,
   },
+  harvest: {
+    name: "Colheita",
+    colors: {
+      color1: "#D97706", // Laranja escuro
+      color2: "#F59E0B", // Laranja médio
+      color3: "#FCD34D", // Amarelo dourado
+      color4: "#FDE68A", // Amarelo claro
+      color5: "#92400E", // Marrom escuro
+      color6: "#451A03", // Marrom muito escuro
+    },
+  },
   corporate: {
     name: "Corporativo",
     colors: {

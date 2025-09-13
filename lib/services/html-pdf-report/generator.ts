@@ -1717,7 +1717,7 @@ export class HtmlPdfReportGenerator {
 
         <div style="margin-top: 40pt; text-align: center; page-break-inside: avoid;">
           <div class="info-box" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; border: none;">
-            <h4>Relatório Gerado pelo Sistema SR-Consultoria</h4>
+            <h4>Relatório Gerado pelo Sistema AGROFARM</h4>
             <p>Análise baseada em dados reais e metodologias comprovadas</p>
             <p>Para dúvidas ou esclarecimentos, entre em contato com nossa equipe técnica</p>
           </div>

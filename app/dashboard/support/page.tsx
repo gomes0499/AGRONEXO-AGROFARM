@@ -18,7 +18,7 @@ export default async function ResponsiveChatPage() {
             "Como controlar pragas na lavoura?",
             "Quais fatores afetam o preço da soja?",
           ]}
-          title="Chat SR-Consultoria"
+          title="Chat AGROFARM"
           description="Converse com nosso assistente e tire suas dúvidas sobre o sistema"
         />
       </div>

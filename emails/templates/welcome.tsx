@@ -1,11 +1,5 @@
 import React from "react";
-import { 
-  Heading, 
-  Section, 
-  Text, 
-  Button, 
-  Link
-} from "@react-email/components";
+import { Heading, Section, Text, Button, Link } from "@react-email/components";
 import { EmailLayout } from "../components/layout";
 
 interface WelcomeEmailProps {
@@ -21,43 +15,48 @@ export default function WelcomeEmail({
 }: WelcomeEmailProps) {
   return (
     <EmailLayout
-      title="Bem-vindo à SR-Consultoria"
-      preview="Seja bem-vindo à plataforma SR-Consultoria para consultoria agrícola e financeira."
+      title="Bem-vindo à AGROFARM"
+      preview="Seja bem-vindo à plataforma AGROFARM para consultoria agrícola e financeira."
     >
       <Heading as="h2" style={headingStyle}>
         Olá, {userName}!
       </Heading>
-      
+
       <Text style={paragraphStyle}>
-        Seja bem-vindo à plataforma <strong>SR-Consultoria</strong> para consultoria agrícola e financeira. 
-        Estamos felizes em tê-lo como parte da organização <strong>{organizationName}</strong>.
+        Seja bem-vindo à plataforma <strong>AGROFARM</strong> para consultoria
+        agrícola e financeira. Estamos felizes em tê-lo como parte da
+        organização <strong>{organizationName}</strong>.
       </Text>
-      
+
       <Text style={paragraphStyle}>
         Nossa plataforma oferece ferramentas poderosas para:
       </Text>
-      
+
       <ul style={listStyle}>
         <li style={listItemStyle}>Gerenciamento de propriedades e terras</li>
         <li style={listItemStyle}>Análise de produção e produtividade</li>
-        <li style={listItemStyle}>Planejamento financeiro e controle de custos</li>
+        <li style={listItemStyle}>
+          Planejamento financeiro e controle de custos
+        </li>
         <li style={listItemStyle}>Projeções e simulações econômicas</li>
         <li style={listItemStyle}>Monitoramento de indicadores importantes</li>
       </ul>
-      
+
       <Section style={buttonContainerStyle}>
         <Button style={buttonStyle} href={loginUrl}>
           Acessar a Plataforma
         </Button>
       </Section>
-      
+
       <Text style={paragraphStyle}>
-        Se precisar de qualquer ajuda, nossa equipe está à disposição para auxiliá-lo.
+        Se precisar de qualquer ajuda, nossa equipe está à disposição para
+        auxiliá-lo.
       </Text>
-      
+
       <Text style={signatureStyle}>
-        Atenciosamente,<br />
-        Equipe SR-Consultoria
+        Atenciosamente,
+        <br />
+        Equipe AGROFARM
       </Text>
     </EmailLayout>
   );
