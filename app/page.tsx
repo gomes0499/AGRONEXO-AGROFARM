@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function Home() {
-  redirect("https://srconsultoria.framer.website/");
+  redirect("https://agronexo-agrofarm.vercel.app/auth/login");
 }

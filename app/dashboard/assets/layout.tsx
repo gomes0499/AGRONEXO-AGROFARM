@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/dashboard/site-header";
 import { requireSuperAdmin } from "@/lib/auth/verify-permissions";
 
 export const metadata: Metadata = {
-  title: "Patrimônio | SR Consultoria",
+  title: "Patrimônio | AGROFARM",
   description: "Gestão patrimonial e controle de ativos",
 };
 

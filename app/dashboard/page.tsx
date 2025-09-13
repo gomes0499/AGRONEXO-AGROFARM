@@ -59,7 +59,7 @@ export default async function DashboardPage({
         <div className="flex flex-1 flex-col items-center justify-center p-6">
           <div className="mx-auto max-w-md text-center">
             <h2 className="text-2xl font-semibold">
-              Bem-vindo à SR Consultoria
+              Bem-vindo à AGROFARM
             </h2>
             <p className="mt-2 text-muted-foreground">
               Você ainda não está associado a uma organização.
@@ -122,7 +122,7 @@ export default async function DashboardPage({
         <div className="flex flex-1 flex-col items-center justify-center p-6">
           <div className="mx-auto max-w-md text-center">
             <h2 className="text-2xl font-semibold">
-              Bem-vindo à SR Consultoria
+              Bem-vindo à AGROFARM
             </h2>
             <p className="mt-2 text-muted-foreground">
               Selecione ou crie uma organização para visualizar o dashboard.

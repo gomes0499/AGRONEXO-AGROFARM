@@ -42,7 +42,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className="absolute inset-0 flex items-end justify-center">
           <div className="max-w-full px-8 py-12 bg-white/10 dark:bg-gray-900/80  backdrop-blur-sm">
             <h2 className="text-3xl text-white font-medium text-start mb-2">
-              Bem-vindo à SR Consultoria
+              Bem-vindo à AGROFARM
             </h2>
             <p className="text-white text-start">
               Plataforma especializada em gestão e consultoria agrícola,
